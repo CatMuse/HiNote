@@ -3,6 +3,7 @@ import { CommentStore, HighlightComment, CommentItem } from './CommentStore';
 import { Modal } from 'obsidian';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo } from './types';
+import CommentPlugin from '../main';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -13,10 +14,12 @@ export class CommentView extends ItemView {
     private highlights: HighlightInfo[] = [];
     private commentStore: CommentStore;
     private searchInput: HTMLInputElement;
+    private plugin: CommentPlugin;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
         this.commentStore = commentStore;
+        this.plugin = (this.app as any).plugins.plugins['obsidian-comment'] as CommentPlugin;
         
         // 监听文档切换
         this.registerEvent(
@@ -171,8 +174,7 @@ export class CommentView extends ItemView {
 
             // 高亮内容区域
             const contentEl = card.createEl("div", {
-                cls: "highlight-content",
-                attr: { 'aria-label': '点击定位到文档位置' }
+                cls: "highlight-content"
             });
 
             // 高亮文本容器
@@ -187,13 +189,21 @@ export class CommentView extends ItemView {
 
             // 高亮文本区域
             const textEl = textContainer.createEl("div", {
-                cls: "highlight-text"
+                cls: "highlight-text",
+                attr: { 'aria-label': '点击定位到文档位置' }
             });
 
             // 创建文本内容元素
-            textEl.createEl("div", {
+            const textContent = textEl.createEl("div", {
                 text: highlight.text,
                 cls: "highlight-text-content"
+            });
+
+            // 将点击事件监听器移到文本内容元素上
+            textContent.addEventListener("mousedown", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.jumpToHighlight(highlight);
             });
 
             // 操作按钮组
@@ -201,8 +211,70 @@ export class CommentView extends ItemView {
                 cls: "highlight-action-buttons"
             });
 
+            // 左侧按钮组
+            const leftButtons = actionButtons.createEl("div", {
+                cls: "highlight-action-buttons-left"
+            });
+
+            // AI 按钮和下拉菜单
+            const aiContainer = leftButtons.createEl("div", {
+                cls: "highlight-ai-container"
+            });
+
+            const aiButton = aiContainer.createEl("button", {
+                cls: "highlight-action-btn highlight-ai-btn",
+                attr: { 'aria-label': '使用 AI 分析' }
+            });
+            aiButton.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 4V2"/>
+                    <path d="M15 16v-2"/>
+                    <path d="M8 9h2"/>
+                    <path d="M20 9h2"/>
+                    <path d="M17.8 11.8L19 13"/>
+                    <path d="M15 9h0"/>
+                    <path d="M17.8 6.2L19 5"/>
+                    <path d="m3 21 9-9"/>
+                    <path d="M12.2 6.2 11 5"/>
+                </svg>
+            `;
+
+            // 创建下拉菜单
+            const aiDropdown = aiContainer.createEl("div", {
+                cls: "highlight-ai-dropdown hidden"
+            });
+
+            // 获取所有可用的 prompts
+            const prompts = Object.keys(this.plugin.settings.ai.prompts);
+            prompts.forEach(promptName => {
+                const promptItem = aiDropdown.createEl("div", {
+                    cls: "highlight-ai-dropdown-item",
+                    text: promptName
+                });
+                promptItem.addEventListener("click", () => {
+                    // TODO: 处理 AI 分析
+                    console.log(`使用 ${promptName} 分析文本:`, highlight.text);
+                    aiDropdown.addClass("hidden");
+                });
+            });
+
+            // 添加点击事件
+            aiButton.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (aiDropdown.hasClass("hidden")) {
+                    aiDropdown.removeClass("hidden");
+                } else {
+                    aiDropdown.addClass("hidden");
+                }
+            });
+
+            // 右侧按钮组
+            const rightButtons = actionButtons.createEl("div", {
+                cls: "highlight-action-buttons-right"
+            });
+
             // 添加评论按钮
-            const addCommentBtn = actionButtons.createEl("button", {
+            const addCommentBtn = rightButtons.createEl("button", {
                 cls: "highlight-action-btn highlight-add-btn",
                 attr: { 'aria-label': '添加评论' }
             });
@@ -217,7 +289,7 @@ export class CommentView extends ItemView {
             });
 
             // 分享按钮
-            const shareBtn = actionButtons.createEl("button", {
+            const shareBtn = rightButtons.createEl("button", {
                 cls: "highlight-action-btn highlight-share-btn",
                 attr: { 'aria-label': '导出为图片' }
             });
@@ -231,13 +303,6 @@ export class CommentView extends ItemView {
             shareBtn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 this.exportHighlightAsImage(highlight);
-            });
-
-            // 点击事件处理
-            contentEl.addEventListener("mousedown", async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                await this.jumpToHighlight(highlight);
             });
 
             // 评论列表区域 - 修复可能为 undefined 的问题
@@ -582,7 +647,7 @@ export class CommentView extends ItemView {
                 }
                 
                 // 计算滚动位置，使高亮内容在视图的上方
-                const linesAbove = 3;  // 上方预留3行
+                const linesAbove = 3;  // 上方预留3
                 const startLine = Math.max(0, pos.line - linesAbove);
                 
                 // 先滚动到目标位置
