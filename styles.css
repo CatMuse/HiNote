@@ -142,24 +142,26 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-comment-input {
-    padding: 12px 0px;
-    background-color: var(--background-secondary);
+    padding: 12px;
+    background-color: var(--background-primary);
+    border-radius: 6px;
+    margin: 0 0 8px 0;
+    width: 100%;
 }
 
 .highlight-comment-input textarea {
     width: 100%;
-    min-height: 80px;
-    padding: 10px 12px;
+    min-height: 120px;
+    padding: 16px;
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     background-color: var(--background-primary);
     color: var(--text-normal);
     font-size: 13px;
     line-height: 1.5;
-    resize: vertical;
-    transition: all 0.2s ease;
+    resize: none;
     margin: 0;
-    box-sizing: border-box;
+    transition: border-color 0.2s ease;
 }
 
 .highlight-comment-input textarea:focus {
@@ -167,11 +169,17 @@ If your plugin does not need CSS, delete this file.
     border-color: var(--interactive-accent);
 }
 
+.highlight-comment-input textarea::placeholder {
+    color: var(--text-muted);
+}
+
 .highlight-comment-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 12px;
+    padding: 12px 0 0 0;
+    margin-top: 8px;
+    border-top: 1px solid var(--background-modifier-border);
 }
 
 .highlight-btn {
@@ -238,7 +246,7 @@ If your plugin does not need CSS, delete this file.
     color: var(--text-normal);
     font-size: 13px;
     line-height: 1.5;
-    margin-bottom: 0;
+    padding: 2px 0;
 }
 
 .highlight-comment-time {
@@ -472,9 +480,9 @@ If your plugin does not need CSS, delete this file.
 
 /* 编辑状态的评论样式 */
 .highlight-comment-editing {
-    padding: 12px;
     background-color: var(--background-primary);
     border-radius: 6px;
+    padding: 12px;
 }
 
 .highlight-comment-editing textarea {

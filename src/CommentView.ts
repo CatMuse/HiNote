@@ -23,8 +23,11 @@ export class CommentView extends ItemView {
         
         // 监听文档切换
         this.registerEvent(
-            this.app.workspace.on('active-leaf-change', () => {
-                this.handleFileChange();
+            this.app.workspace.on('file-open', (file) => {
+                if (file) {
+                    this.currentFile = file;
+                    this.updateHighlights();
+                }
             })
         );
 
@@ -74,7 +77,12 @@ export class CommentView extends ItemView {
             cls: "highlight-container"
         });
 
-        await this.handleFileChange();
+        // 初始化当前文件
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile) {
+            this.currentFile = activeFile;
+            await this.updateHighlights();
+        }
     }
 
     private debounce(func: Function, wait: number) {
@@ -83,19 +91,6 @@ export class CommentView extends ItemView {
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
-    }
-
-    private async handleFileChange() {
-        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
-        
-        if (markdownLeaves.length > 0) {
-            const markdownView = markdownLeaves[0].view as MarkdownView;
-            this.currentFile = markdownView.file;
-        } else {
-            this.currentFile = null;
-        }
-        
-        await this.updateHighlights();
     }
 
     private async updateHighlights() {
@@ -326,63 +321,71 @@ export class CommentView extends ItemView {
             if (!commentEl) return;
 
             // 找到评论内容元素
-            const contentEl = commentEl.querySelector('.highlight-comment-content');
-            const timeEl = commentEl.querySelector('.highlight-comment-time');
-            const editBtn = commentEl.querySelector('.highlight-edit-btn');
-            const deleteBtn = commentEl.querySelector('.highlight-delete-btn');
+            const contentEl = commentEl.querySelector('.highlight-comment-content') as HTMLElement;
+            if (!contentEl) return;
 
-            // 隐藏原有的评论内容、时间和按钮
-            contentEl?.addClass('hidden');
-            timeEl?.addClass('hidden');
-            editBtn?.addClass('hidden');
-            deleteBtn?.addClass('hidden');
+            // 保存原有内容
+            const originalContent = contentEl.textContent || '';
 
-            // 创建编辑区域
-            const editArea = commentEl.createEl("div", {
-                cls: "highlight-comment-edit-area"
-            });
+            // 创建编辑框
+            const textarea = document.createElement('textarea');
+            textarea.value = originalContent;
+            textarea.className = 'highlight-comment-input';
+            textarea.style.minHeight = `${contentEl.offsetHeight}px`;  // 设置最小高度与原内容一致
 
-            // 创建文本框并填充原有内容
-            const textarea = editArea.createEl("textarea", {
-                value: existingComment.content,
-                attr: { placeholder: "输入评论..." }
-            });
+            // 替换内容为编辑框
+            contentEl.replaceWith(textarea);
 
-            // 创建按钮组
-            const btnGroup = editArea.createEl("div", {
-                cls: "highlight-comment-buttons"
+            // 隐藏底部的时间和按钮
+            const footer = commentEl.querySelector('.highlight-comment-footer');
+            if (footer) {
+                footer.addClass('hidden');
+            }
+
+            // 创建编辑操作按钮
+            const editActions = commentEl.createEl('div', {
+                cls: 'highlight-comment-buttons'
             });
 
             // 取消按钮
-            btnGroup.createEl("button", {
-                cls: "highlight-btn",
-                text: "取消"
-            }).addEventListener("click", () => {
-                // 显示原有内容
-                contentEl?.removeClass('hidden');
-                timeEl?.removeClass('hidden');
-                editBtn?.removeClass('hidden');
-                deleteBtn?.removeClass('hidden');
-                // 移除编辑区域
-                editArea.remove();
+            const cancelBtn = editActions.createEl('button', {
+                cls: 'highlight-btn',
+                text: '取消'
             });
 
             // 保存按钮
-            btnGroup.createEl("button", {
-                cls: "highlight-btn highlight-btn-primary",
-                text: "保存"
-            }).addEventListener("click", async () => {
-                const content = textarea.value.trim();
-                if (content) {
-                    await this.updateComment(highlight, existingComment.id, content);
+            const saveBtn = editActions.createEl('button', {
+                cls: 'highlight-btn highlight-btn-primary',
+                text: '保存'
+            });
+
+            // 取消编辑
+            const cancelEdit = () => {
+                textarea.replaceWith(contentEl);
+                editActions.remove();
+                footer?.removeClass('hidden');
+            };
+
+            // 保存编辑
+            const saveEdit = async () => {
+                const newContent = textarea.value.trim();
+                if (newContent && newContent !== originalContent) {
+                    await this.updateComment(highlight, existingComment.id, newContent);
                     await this.updateHighlights();
                 } else {
-                    // 如果内容为空，恢复原有显示
-                    contentEl?.removeClass('hidden');
-                    timeEl?.removeClass('hidden');
-                    editBtn?.removeClass('hidden');
-                    deleteBtn?.removeClass('hidden');
-                    editArea.remove();
+                    cancelEdit();
+                }
+            };
+
+            cancelBtn.addEventListener('click', cancelEdit);
+            saveBtn.addEventListener('click', saveEdit);
+
+            // 支持按键操作
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    cancelEdit();
+                } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    saveEdit();
                 }
             });
 
@@ -511,5 +514,88 @@ export class CommentView extends ItemView {
 
     private generateHighlightId(highlight: HighlightInfo): string {
         return `highlight-${highlight.position}-${Date.now()}`;
+    }
+
+    private async jumpToHighlight(highlight: HighlightInfo) {
+        if (!this.currentFile) {
+            new Notice("未找到当前文件");
+            return;
+        }
+
+        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
+        
+        if (markdownLeaves.length === 0) {
+            new Notice("未找到文档视图");
+            return;
+        }
+
+        // 找到当前文件对应的编辑器视图
+        const targetLeaf = markdownLeaves.find(leaf => {
+            const view = leaf.view as MarkdownView;
+            return view.file?.path === this.currentFile?.path;
+        });
+
+        if (!targetLeaf) {
+            new Notice("未找到对应的编辑器视图");
+            return;
+        }
+
+        const markdownView = targetLeaf.view as MarkdownView;
+
+        try {
+            // 先激活编辑器视图
+            await this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
+
+            // 等待编辑器准备就绪
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // 获取文档内容
+            const content = await this.app.vault.read(this.currentFile);
+            const highlightText = `==${highlight.text}==`;  // 搜索高亮语法
+            const position = content.indexOf(highlightText);
+            
+            if (position !== -1) {
+                const editor = markdownView.editor;
+                const pos = editor.offsetToPos(position);
+                
+                // 找到段落的末尾（下一个空行或文档末尾）
+                let nextLineNumber = pos.line;
+                const totalLines = editor.lineCount();
+                
+                // 向下查找直到找到空行或文件末尾
+                while (nextLineNumber < totalLines - 1) {
+                    const currentLine = editor.getLine(nextLineNumber);
+                    const nextLine = editor.getLine(nextLineNumber + 1);
+                    
+                    // 如果当前行不为空但下一行为空，说明找到了段落末尾
+                    if (currentLine.trim() !== '' && nextLine.trim() === '') {
+                        break;
+                    }
+                    nextLineNumber++;
+                }
+                
+                // 计算滚动位置，使高亮内容在视图的上方
+                const linesAbove = 3;  // 上方预留3行
+                const startLine = Math.max(0, pos.line - linesAbove);
+                
+                // 先滚动到目标位置
+                editor.scrollIntoView({
+                    from: { line: startLine, ch: 0 },
+                    to: { line: pos.line, ch: 0 }
+                });
+
+                // 等待滚动完成后设置光标位置到段落的下一行
+                await new Promise(resolve => setTimeout(resolve, 50));
+                editor.setCursor({
+                    line: nextLineNumber + 1,  // 定位到段落末尾的下一行
+                    ch: 0
+                });
+            } else {
+                new Notice("未找到高亮内容");
+            }
+        } catch (error) {
+            console.error("定位失败:", error);
+            new Notice("定位失败，请重试");
+        }
     }
 } 
