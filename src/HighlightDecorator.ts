@@ -26,10 +26,10 @@ class CommentWidget extends WidgetType {
             cls: "highlight-comment-icon-container"
         });
 
-        // 更新评论图标为线性样式
+        // 更新评论图标为 Lucide 样式
         iconContainer.innerHTML = `
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
             </svg>
         `;
 

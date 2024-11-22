@@ -9,56 +9,26 @@ export const modernTemplate: CardTemplate = {
         const cardContainer = document.createElement('div');
         cardContainer.className = 'highlight-export-card highlight-export-card-modern';
 
-        // 添加卡片标题
-        const header = document.createElement('div');
-        header.className = 'highlight-export-card-header';
-        header.innerHTML = `
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-            <span>知识摘录</span>
-        `;
-        cardContainer.appendChild(header);
-
         // 高亮文本区域
-        const textSection = document.createElement('div');
-        textSection.className = 'highlight-export-text-section';
+        const quoteSection = document.createElement('div');
+        quoteSection.className = 'highlight-export-quote-section';
         
-        const textContent = document.createElement('div');
-        textContent.className = 'highlight-export-text';
-        textContent.textContent = highlight.text;
-        textSection.appendChild(textContent);
-        cardContainer.appendChild(textSection);
-
-        // 评论区域
-        if (highlight.comments?.length) {
-            const commentsSection = document.createElement('div');
-            commentsSection.className = 'highlight-export-comments';
-
-            const commentsTitle = document.createElement('div');
-            commentsTitle.className = 'highlight-export-comments-title';
-            commentsTitle.textContent = '思考与评论';
-            commentsSection.appendChild(commentsTitle);
-
-            highlight.comments.forEach(comment => {
-                const commentEl = document.createElement('div');
-                commentEl.className = 'highlight-export-comment';
-
-                const commentContent = document.createElement('div');
-                commentContent.className = 'highlight-export-comment-content';
-                commentContent.textContent = comment.content;
-                commentEl.appendChild(commentContent);
-
-                const commentTime = document.createElement('div');
-                commentTime.className = 'highlight-export-comment-time';
-                commentTime.textContent = new Date(comment.createdAt).toLocaleString();
-                commentEl.appendChild(commentTime);
-
-                commentsSection.appendChild(commentEl);
-            });
-
-            cardContainer.appendChild(commentsSection);
-        }
+        // 添加引号装饰
+        const quoteDecoration = document.createElement('div');
+        quoteDecoration.className = 'highlight-export-quote-decoration';
+        quoteDecoration.innerHTML = `
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.2">
+                <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
+                <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+            </svg>
+        `;
+        quoteSection.appendChild(quoteDecoration);
+        
+        const quoteContent = document.createElement('div');
+        quoteContent.className = 'highlight-export-quote';
+        quoteContent.textContent = highlight.text;
+        quoteSection.appendChild(quoteContent);
+        cardContainer.appendChild(quoteSection);
 
         // 底部信息
         const footer = document.createElement('div');
@@ -66,14 +36,7 @@ export const modernTemplate: CardTemplate = {
 
         const source = document.createElement('div');
         source.className = 'highlight-export-source';
-        source.innerHTML = `
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-            </svg>
-            <span>From Obsidian</span>
-        `;
+        source.textContent = document.querySelector('.workspace-leaf.mod-active .view-header-title')?.textContent || 'Obsidian';
         footer.appendChild(source);
 
         const date = document.createElement('div');

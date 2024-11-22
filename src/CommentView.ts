@@ -169,27 +169,57 @@ export class CommentView extends ItemView {
                 cls: "highlight-card"
             });
 
-            // 添加卡片顶部操作栏
-            const cardHeader = card.createEl("div", {
-                cls: "highlight-card-header"
+            // 高亮内容区域
+            const contentEl = card.createEl("div", {
+                cls: "highlight-content",
+                attr: { 'aria-label': '点击定位到文档位置' }
             });
 
-            // 序号标签
-            cardHeader.createEl("div", {
+            // 序号和高亮文本
+            const textContainer = contentEl.createEl("div", {
+                cls: "highlight-text-container"
+            });
+
+            textContainer.createEl("span", {
                 text: `#${index + 1}`,
                 cls: "highlight-index"
             });
 
-            // 添加分享按钮
-            const shareBtn = cardHeader.createEl("button", {
-                cls: "highlight-share-btn",
+            textContainer.createEl("div", {
+                text: highlight.text,
+                cls: "highlight-text"
+            });
+
+            // 操作按钮组
+            const actionButtons = contentEl.createEl("div", {
+                cls: "highlight-action-buttons"
+            });
+
+            // 添加评论按钮
+            const addCommentBtn = actionButtons.createEl("button", {
+                cls: "highlight-action-btn highlight-add-btn",
+                attr: { 'aria-label': '添加评论' }
+            });
+            addCommentBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+            `;
+            addCommentBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                this.showCommentInput(card, highlight);
+            });
+
+            // 分享按钮
+            const shareBtn = actionButtons.createEl("button", {
+                cls: "highlight-action-btn highlight-share-btn",
                 attr: { 'aria-label': '导出为图片' }
             });
             shareBtn.innerHTML = `
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                    <polyline points="16 6 12 2 8 6"/>
-                    <line x1="12" y1="2" x2="12" y2="15"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
             `;
             shareBtn.addEventListener("click", (e) => {
@@ -197,66 +227,26 @@ export class CommentView extends ItemView {
                 this.exportHighlightAsImage(highlight);
             });
 
-            // 高亮内容区域
-            const contentEl = card.createEl("div", {
-                cls: "highlight-content",
-                attr: { 'aria-label': '点击定位到文档位置' }
-            });
-
-            // 修改点击事件处理
+            // 点击事件处理
             contentEl.addEventListener("mousedown", async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // 直接跳转，不需要激活编辑器
-                const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
-                if (markdownLeaves.length > 0) {
-                    const markdownView = markdownLeaves[0].view as MarkdownView;
-                    if (markdownView && markdownView.file) {
-                        const editor = markdownView.editor;
-                        
-                        // 使用编辑器的搜索功能定位到高亮文本
-                        const searchText = `==${highlight.text}==`;  // 搜索高亮语法
-                        const content = editor.getValue();
-                        const position = content.indexOf(searchText);
-                        
-                        if (position !== -1) {
-                            const pos = editor.offsetToPos(position);
-                            editor.setCursor(pos);
-                            
-                            // 确保高亮文本在视图中可见
-                            editor.scrollIntoView({
-                                from: pos,
-                                to: pos
-                            }, true);
-                        }
-                    }
-                }
+                await this.jumpToHighlight(highlight);
             });
 
-            // 高亮文本
-            contentEl.createEl("div", {
-                text: highlight.text,
-                cls: "highlight-text"
-            });
+            // 评论列表区域 - 修复可能为 undefined 的问题
+            const comments = highlight.comments || [];
+            if (comments.length > 0) {  // 使用安全的数组长度检查
+                const commentsSection = card.createEl("div", {
+                    cls: "highlight-comments-section"
+                });
 
-            // 评论列表区域
-            const commentsSection = card.createEl("div", {
-                cls: "highlight-comments-section"
-            });
-
-            // 初始化评论数组（如果不存在）
-            if (!highlight.comments) {
-                highlight.comments = [];
-            }
-
-            // 显示现有评论
-            if (highlight.comments.length > 0) {  // 现在 comments 一定存在
                 const commentsList = commentsSection.createEl("div", {
                     cls: "highlight-comments-list"
                 });
 
-                highlight.comments.forEach((comment, commentIndex) => {
+                // 使用已经检查过的 comments 数组
+                comments.forEach(comment => {
                     const commentEl = commentsList.createEl("div", {
                         cls: "highlight-comment",
                         attr: { 'data-comment-id': comment.id }
@@ -291,8 +281,7 @@ export class CommentView extends ItemView {
                     });
                     editBtn.innerHTML = `
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
                         </svg>
                     `;
                     editBtn.addEventListener("click", (e) => {
@@ -308,10 +297,8 @@ export class CommentView extends ItemView {
                     deleteBtn.innerHTML = `
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 6h18"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                            <line x1="10" y1="11" x2="10" y2="17"/>
-                            <line x1="14" y1="11" x2="14" y2="17"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                         </svg>
                     `;
                     deleteBtn.addEventListener("click", async (e) => {
@@ -320,22 +307,12 @@ export class CommentView extends ItemView {
                     });
                 });
             }
-
-            // 添加评论按钮
-            const addBtn = commentsSection.createEl("button", {
-                cls: "highlight-add-comment",
-                text: "添加评论"
-            });
-            addBtn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                this.showCommentInput(card, highlight);
-            });
         });
     }
 
     private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
         if (existingComment) {
-            // 找到现有评论的元素
+            // 编辑现有评论的逻辑
             const commentEl = card.querySelector(`[data-comment-id="${existingComment.id}"]`);
             if (!commentEl) return;
 
@@ -350,7 +327,7 @@ export class CommentView extends ItemView {
             const textarea = document.createElement('textarea');
             textarea.value = originalContent;
             textarea.className = 'highlight-comment-input';
-            textarea.style.minHeight = `${contentEl.offsetHeight}px`;  // 设置最小高度与原内容一致
+            textarea.style.minHeight = `${contentEl.offsetHeight}px`;
 
             // 替换内容为编辑框
             contentEl.replaceWith(textarea);
@@ -412,15 +389,19 @@ export class CommentView extends ItemView {
             textarea.focus();
             textarea.setSelectionRange(textarea.value.length, textarea.value.length);
         } else {
-            // 移除现有的评论输入区域（如果有）
-            card.querySelector('.highlight-comment-input')?.remove();
+            // 添加新评论的逻辑
+            let commentsSection = card.querySelector('.highlight-comments-section');
+            
+            if (!commentsSection) {
+                commentsSection = card.createEl('div', {
+                    cls: 'highlight-comments-section'
+                });
+                
+                commentsSection.createEl('div', {
+                    cls: 'highlight-comments-list'
+                });
+            }
 
-            // 找到评论列表区域
-            const commentsSection = card.querySelector('.highlight-comments-section');
-            const commentsList = commentsSection?.querySelector('.highlight-comments-list');
-            const addButton = commentsSection?.querySelector('.highlight-add-comment');
-
-            // 创建输���区域
             const inputSection = document.createElement('div');
             inputSection.className = 'highlight-comment-input';
 
@@ -432,16 +413,13 @@ export class CommentView extends ItemView {
                 cls: "highlight-comment-buttons"
             });
 
-            // 取消按钮
             btnGroup.createEl("button", {
                 cls: "highlight-btn",
                 text: "取消"
             }).addEventListener("click", () => {
                 inputSection.remove();
-                addButton?.removeClass('hidden');  // 显示添加按钮
             });
 
-            // 保存按钮
             btnGroup.createEl("button", {
                 cls: "highlight-btn highlight-btn-primary",
                 text: "保存"
@@ -452,21 +430,11 @@ export class CommentView extends ItemView {
                     await this.updateHighlights();
                 }
                 inputSection.remove();
-                addButton?.removeClass('hidden');  // 显示添加按钮
             });
 
-            // 隐藏添加按钮
-            addButton?.addClass('hidden');
-
-            // 将输入区域插入到评论列表的末尾
+            const commentsList = commentsSection.querySelector('.highlight-comments-list');
             if (commentsList) {
-                commentsList.appendChild(inputSection);
-            } else {
-                // 如果还没有评论列表，创建一个
-                const newCommentsList = commentsSection?.createEl('div', {
-                    cls: 'highlight-comments-list'
-                });
-                newCommentsList?.appendChild(inputSection);
+                commentsList.insertBefore(inputSection, commentsList.firstChild);
             }
 
             textarea.focus();
@@ -559,22 +527,19 @@ export class CommentView extends ItemView {
             return;
         }
 
-        const markdownView = targetLeaf.view as MarkdownView;
-
         try {
             // 先激活编辑器视图
             await this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
 
-            // 等待编辑器准备就绪
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // 获取文档内容
-            const content = await this.app.vault.read(this.currentFile);
-            const highlightText = `==${highlight.text}==`;  // 搜索高亮语法
-            const position = content.indexOf(highlightText);
+            const markdownView = targetLeaf.view as MarkdownView;
+            const editor = markdownView.editor;
+            
+            // 使用编辑器的搜索功能定位到高亮文本
+            const searchText = `==${highlight.text}==`;  // 搜索高亮语法
+            const content = editor.getValue();
+            const position = content.indexOf(searchText);
             
             if (position !== -1) {
-                const editor = markdownView.editor;
                 const pos = editor.offsetToPos(position);
                 
                 // 找到段落的末尾（下一个空行或文档末尾）
@@ -586,7 +551,7 @@ export class CommentView extends ItemView {
                     const currentLine = editor.getLine(nextLineNumber);
                     const nextLine = editor.getLine(nextLineNumber + 1);
                     
-                    // 如果当前行不为但下一行为空，说明找到了段落末尾
+                    // 如果当前行不为空但下一行为空，说明找到了段落末尾
                     if (currentLine.trim() !== '' && nextLine.trim() === '') {
                         break;
                     }

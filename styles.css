@@ -29,31 +29,65 @@ If your plugin does not need CSS, delete this file.
     border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
     overflow: hidden;
+    background-color: var(--background-primary);
     transition: all 0.2s ease;
 }
 
 .highlight-content {
-    padding: 10px 12px;
+    padding: 16px;
     cursor: pointer;
-    background-color: var(--background-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.highlight-content:hover {
-    background-color: var(--background-modifier-hover);
+.highlight-text-container {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.highlight-index {
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-shrink: 0;
 }
 
 .highlight-text {
     color: var(--text-normal);
-    line-height: 1.4;
-    font-size: 12px;
+    line-height: 1.5;
+    font-size: 14px;
+    flex-grow: 1;
 }
 
-.highlight-index {
-    position: absolute;
-    top: 12px;
-    right: 16px;
-    font-size: 12px;
+.highlight-action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.highlight-card:hover .highlight-action-buttons {
+    opacity: 1;
+}
+
+.highlight-action-btn {
+    background: none;
+    border: none;
+    padding: 6px;
     color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.highlight-action-btn:hover {
+    color: var(--text-accent);
+    background-color: var(--background-modifier-hover);
 }
 
 .highlight-comment {
@@ -228,10 +262,13 @@ If your plugin does not need CSS, delete this file.
 .highlight-comments-section {
     border-top: 1px solid var(--background-modifier-border);
     background-color: var(--background-secondary);
+    padding: 12px 16px;
 }
 
 .highlight-comments-list {
-    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .highlight-comment {
@@ -525,7 +562,6 @@ If your plugin does not need CSS, delete this file.
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .highlight-share-btn {
@@ -615,7 +651,6 @@ If your plugin does not need CSS, delete this file.
 /* 导出预览弹窗样式 */
 .highlight-export-modal {
     max-width: 800px;
-    width: 100%;
 }
 
 .highlight-export-preview-container {
@@ -643,4 +678,28 @@ If your plugin does not need CSS, delete this file.
     background-color: var(--background-primary);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 导出预览标题和选择器容器 */
+.highlight-export-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+/* 模板选择器样式 */
+.highlight-template-selector {
+    padding: 6px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 13px;
+    min-width: 120px;
+}
+
+.highlight-template-selector:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
 }

@@ -1,15 +1,145 @@
-/* 默认模板样式 */
-.highlight-export-card {
-    /* ... 原有的卡片样式 ... */
+/* 现代风格卡片样式 */
+.highlight-export-card-modern {
+    background-color: var(--background-primary);
+    border-radius: 20px;
+    padding: 40px;
+    width: 680px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    margin: 40px;
 }
 
-/* 模板选择器样式 */
-.highlight-template-selector {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 16px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background-color: var(--background-primary);
+.highlight-export-card-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-accent);
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 40px;
+    letter-spacing: -0.5px;
+}
+
+.highlight-export-card-title-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.highlight-export-card-title-content svg {
+    margin-top: 1px;
+}
+
+.highlight-export-quote-section {
+    margin: 0;
+    padding: 32px;
+    background-color: var(--background-secondary);
+    border-radius: 16px;
+    position: relative;
+}
+
+.highlight-export-quote-decoration {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    opacity: 0.15;
+}
+
+.highlight-export-quote {
+    font-size: 18px;
+    line-height: 1.6;
     color: var(--text-normal);
-} 
+    padding-left: 40px;
+    position: relative;
+    z-index: 1;
+    letter-spacing: 0;
+    word-spacing: normal;
+    font-weight: normal;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.highlight-export-thoughts {
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.highlight-export-thoughts-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 24px;
+    letter-spacing: -0.3px;
+}
+
+.highlight-export-thought-item {
+    padding: 20px;
+    background-color: var(--background-secondary);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.highlight-export-thought-content {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-normal);
+}
+
+.highlight-export-thought-time {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 12px;
+}
+
+.highlight-export-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.highlight-export-source {
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 0;
+}
+
+.highlight-export-date {
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 0;
+}
+
+/* 预览容器样式 */
+.highlight-export-preview-container {
+    padding: 40px;
+    margin: 16px 0;
+    background-color: var(--background-secondary);
+    border-radius: 12px;
+    max-height: 70vh;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* 导出预览弹窗样式 */
+.highlight-export-modal {
+    max-width: 800px;
+    width: 100%;
+}
+
+/* 确保导出时的边距 */
+.highlight-export-preview-container .highlight-export-card-modern {
+    margin: 40px;
+}
+ 
