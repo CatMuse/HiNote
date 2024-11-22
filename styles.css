@@ -33,7 +33,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-content {
-    padding: 14px 16px;
+    padding: 10px 12px;
     cursor: pointer;
     background-color: var(--background-primary);
 }
