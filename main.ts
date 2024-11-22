@@ -1,4 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { CommentView, VIEW_TYPE_COMMENT } from './src/CommentView';
+import { CommentStore } from './src/CommentStore';
+import { HighlightDecorator } from './src/HighlightDecorator';
 
 // Remember to rename these classes and interfaces!
 
@@ -12,9 +15,19 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
+	private commentStore: CommentStore;
+	private highlightDecorator: HighlightDecorator;
 
 	async onload() {
 		await this.loadSettings();
+
+		// 初始化评论存储
+		this.commentStore = new CommentStore(this as Plugin);
+		await this.commentStore.loadComments();
+
+		// 初始化高亮装饰器
+		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
+		this.highlightDecorator.enable();
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
@@ -76,10 +89,55 @@ export default class MyPlugin extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+		// 注册视图
+		this.registerView(
+			VIEW_TYPE_COMMENT,
+			(leaf) => new CommentView(leaf, this.commentStore)
+		);
+
+		// 添加打开评论面板的功能按钮
+		this.addRibbonIcon(
+			'message-square',
+			'打开评论面板',
+			async () => {
+				const { workspace } = this.app;
+				
+				// 检查评论面板是否已经打开
+				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+				if (existing.length) {
+					// 如果已经打开，就激活它
+					workspace.revealLeaf(existing[0]);
+					return;
+				}
+
+				// 在右侧打开评论面板
+				const leaf = workspace.getRightLeaf(false);
+				if (leaf) {
+					await leaf.setViewState({
+						type: VIEW_TYPE_COMMENT,
+						active: true,
+					});
+				} else {
+					new Notice('无法创建评论面板');
+				}
+			}
+		);
+
+		// 定期清理不存在文件的评论
+		this.registerInterval(
+			window.setInterval(async () => {
+				const existingFiles = new Set(
+					this.app.vault.getFiles().map(file => file.path)
+				);
+				await this.commentStore.cleanupComments(existingFiles);
+			}, 60 * 60 * 1000) // 每小时检查一次
+		);
 	}
 
 	onunload() {
-
+		// 清理视图
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
 	}
 
 	async loadSettings() {
