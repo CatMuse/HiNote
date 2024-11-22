@@ -15,136 +15,188 @@ If your plugin does not need CSS, delete this file.
     color: var(--text-muted);
     text-align: center;
     padding: 32px 16px;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .highlight-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    padding: 4px 0;
 }
 
 .highlight-card {
-    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
     overflow: hidden;
+    transition: all 0.2s ease;
 }
 
 .highlight-content {
-    padding: 16px;
+    padding: 14px 16px;
     cursor: pointer;
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    transition: background-color 0.2s ease;
-}
-
-.highlight-location-icon {
-    color: var(--text-muted);
-    padding-top: 3px;
-    transition: color 0.2s ease;
+    background-color: var(--background-primary);
 }
 
 .highlight-content:hover {
     background-color: var(--background-modifier-hover);
 }
 
-.highlight-content:hover .highlight-location-icon {
-    color: var(--text-accent);
-}
-
 .highlight-text {
     color: var(--text-normal);
     line-height: 1.5;
-    flex: 1;
-    margin-right: 24px;
+    font-size: 14px;
 }
 
 .highlight-index {
     position: absolute;
-    top: 16px;
+    top: 12px;
     right: 16px;
     font-size: 12px;
     color: var(--text-muted);
 }
 
 .highlight-comment {
-    padding: 12px 16px;
+    padding: 12px;
     background-color: var(--background-primary);
+    border-radius: 6px;
+    margin-bottom: 8px;
     position: relative;
-    border-top: 1px solid var(--background-modifier-border);
 }
 
-.highlight-edit-btn {
-    position: absolute;
-    top: 12px;
-    right: 16px;
+.highlight-comment-content {
+    color: var(--text-normal);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+.highlight-comment-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.highlight-comment-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-right: auto;
+}
+
+.highlight-comment-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.highlight-comment:hover .highlight-comment-actions {
+    opacity: 1;
+}
+
+.highlight-edit-btn,
+.highlight-delete-btn {
     background: none;
     border: none;
     padding: 4px;
     color: var(--text-muted);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
     opacity: 0;
-    transition: opacity 0.2s;
+    width: 24px;
+    height: 24px;
+    position: static;
 }
 
-.highlight-comment:hover .highlight-edit-btn {
-    opacity: 1;
+.highlight-edit-btn:hover {
+    color: var(--text-accent);
+}
+
+.highlight-delete-btn:hover {
+    color: var(--text-error);
 }
 
 .highlight-add-comment {
     width: 100%;
-    padding: 8px;
+    padding: 12px 16px;
     background: none;
     border: none;
-    border-top: 1px solid var(--background-modifier-border);
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
+    text-align: left;
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.highlight-comments-section:hover .highlight-add-comment {
+    opacity: 1;
 }
 
 .highlight-add-comment:hover {
-    background-color: var(--background-modifier-hover);
     color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
 }
 
 .highlight-comment-input {
-    padding: 12px 16px;
-    border-top: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
+    padding: 12px 0px;
+    background-color: var(--background-secondary);
 }
 
 .highlight-comment-input textarea {
     width: 100%;
     min-height: 80px;
-    margin-bottom: 8px;
-    padding: 8px;
-    background-color: var(--background-primary);
+    padding: 10px 12px;
     border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
+    border-radius: 6px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 13px;
+    line-height: 1.5;
     resize: vertical;
-    font-family: inherit;
+    transition: all 0.2s ease;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.highlight-comment-input textarea:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
 }
 
 .highlight-comment-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+    margin-top: 12px;
 }
 
 .highlight-btn {
-    padding: 4px 12px;
+    padding: 6px 12px;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
     font-size: 12px;
-    background-color: var(--background-modifier-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: none;
+    color: var(--text-muted);
+}
+
+.highlight-btn:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
 }
 
 .highlight-btn-primary {
     background-color: var(--interactive-accent);
     color: var(--text-on-accent);
+}
+
+.highlight-btn-primary:hover {
+    opacity: 0.9;
 }
 
 /* 临时高亮效果 */
@@ -167,27 +219,30 @@ If your plugin does not need CSS, delete this file.
 
 .highlight-comments-section {
     border-top: 1px solid var(--background-modifier-border);
+    background-color: var(--background-secondary);
 }
 
 .highlight-comments-list {
-    padding: 8px 0;
+    padding: 12px 16px;
 }
 
 .highlight-comment {
-    padding: 12px 16px;
+    padding: 12px;
     background-color: var(--background-primary);
-    position: relative;
+    border-radius: 6px;
     margin-bottom: 8px;
-    border-radius: 4px;
+    position: relative;
 }
 
 .highlight-comment-content {
-    margin-right: 48px;
-    line-height: 1.4;
+    color: var(--text-normal);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 0;
 }
 
 .highlight-comment-time {
-    font-size: 0.8em;
+    font-size: 11px;
     color: var(--text-muted);
     margin-top: 4px;
 }
@@ -205,13 +260,13 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-edit-btn {
-    top: 8px;
     right: 32px;
+    top: 12px;
 }
 
 .highlight-delete-btn {
-    top: 8px;
-    right: 8px;
+    right: 12px;
+    top: 12px;
 }
 
 .highlight-comment:hover .highlight-edit-btn,
@@ -224,7 +279,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-search-container {
-    padding: 16px 16px 0;
+    padding: 16px 16px 12px;
     position: sticky;
     top: 0;
     background-color: var(--background-primary);
@@ -235,18 +290,17 @@ If your plugin does not need CSS, delete this file.
 .highlight-search-input {
     width: 100%;
     padding: 8px 12px;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
+    background-color: var(--background-secondary);
     color: var(--text-normal);
-    font-size: 14px;
+    font-size: 13px;
     transition: all 0.2s ease;
 }
 
 .highlight-search-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 2px var(--background-modifier-border);
 }
 
 .highlight-search-input::placeholder {
@@ -279,40 +333,25 @@ If your plugin does not need CSS, delete this file.
     opacity: 1;
 }
 
-/* 活跃行的高亮效果 */
-.highlight-active-line {
-    background-color: var(--background-modifier-success);
-    border-radius: 4px;
-    animation: highlight-pulse 2s ease-out;
-}
-
-@keyframes highlight-pulse {
-    0% {
-        background-color: var(--background-modifier-success);
-    }
-    100% {
-        background-color: transparent;
-    }
-}
-
 .highlight-comment-widget {
     position: absolute;
     right: -40px;
-    top: 4px;
+    top: 2px;
     z-index: 2;
 }
 
 .highlight-comment-button {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding: 0;
+    gap: 1px;
+    padding: 0px 4px;
     border: none;
-    background: none;
+    border-radius: 4px;
+    background: transparent;
     color: #9A9A97;
     cursor: pointer;
     opacity: 1;
-    transition: opacity 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .highlight-comment-button-hidden {
@@ -326,7 +365,7 @@ If your plugin does not need CSS, delete this file.
 .highlight-comment-icon-container {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 1px;
     color: #9A9A97;
 }
 
@@ -334,8 +373,7 @@ If your plugin does not need CSS, delete this file.
     font-size: 11px;
     font-weight: 400;
     color: #9A9A97;
-    min-width: 8px;
-    text-align: center;
+    margin-left: 1px;
 }
 
 .highlight-comment-tooltip {
@@ -347,8 +385,8 @@ If your plugin does not need CSS, delete this file.
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     padding: 8px;
-    min-width: 200px;
-    max-width: 300px;
+    min-width: 300px;
+    max-width: 500px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 100;
 }
@@ -365,9 +403,10 @@ If your plugin does not need CSS, delete this file.
 
 .highlight-comment-tooltip-content {
     font-size: 12px;
-    line-height: 1.4;
+    line-height: 1.5;
     color: var(--text-normal);
     word-break: break-word;
+    padding: 4px 0;
 }
 
 .highlight-comment-tooltip-time {
@@ -389,7 +428,7 @@ If your plugin does not need CSS, delete this file.
     display: none !important;
 }
 
-/* 调整评论数量样式 */
+/* 修改评论数量样式 */
 .highlight-comment-count {
     font-size: 10px;
     font-weight: 500;
@@ -427,5 +466,59 @@ If your plugin does not need CSS, delete this file.
 
 /* 悬停效果 */
 .highlight-comment-button:hover {
-    opacity: 0.8;
+    background-color: var(--background-modifier-hover);
+    opacity: 1;
+}
+
+/* 编辑状态的评论样式 */
+.highlight-comment-editing {
+    padding: 12px;
+    background-color: var(--background-primary);
+    border-radius: 6px;
+}
+
+.highlight-comment-editing textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 8px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    margin-bottom: 8px;
+}
+
+.highlight-comment-editing textarea:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+/* 编辑区域样式 */
+.highlight-comment-edit-area {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.highlight-comment-edit-area textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 12px;
+    margin: 0 0 8px 0;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.highlight-comment-edit-area textarea:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
 }

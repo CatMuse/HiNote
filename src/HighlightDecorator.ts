@@ -26,10 +26,10 @@ class CommentWidget extends WidgetType {
             cls: "highlight-comment-icon-container"
         });
 
-        // 更新评论图标为简单版本
+        // 更新评论图标为线性样式
         iconContainer.innerHTML = `
-            <svg viewBox="0 0 24 24" width="14" height="14">
-                <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
         `;
 
@@ -157,12 +157,6 @@ export class HighlightDecorator {
                                 text: text.trim(),
                                 position: absolutePosition
                             });
-
-                            // 添加高亮文本的装饰
-                            const highlightMark = Decoration.mark({
-                                class: "cm-highlight"
-                            });
-                            widgets.push(highlightMark.range(absolutePosition, absolutePosition + match[0].length));
                         }
                     }
 
