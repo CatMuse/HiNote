@@ -48,10 +48,8 @@ export class ExportPreviewModal extends Modal {
             text: '下载'
         }).addEventListener('click', async () => {
             try {
-                const html2canvas = require('html2canvas');
-                
-                // 直接导出预览卡片
-                const canvas = await html2canvas(previewContainer, {
+                // 使用全局对象中的 html2canvas
+                const canvas = await (window as any).html2canvas(previewContainer, {
                     backgroundColor: getComputedStyle(document.body).getPropertyValue('--background-secondary'),
                     scale: 3,
                     useCORS: true,
@@ -79,7 +77,7 @@ export class ExportPreviewModal extends Modal {
                         `;
                         clonedDoc.head.appendChild(style);
                     }
-                } as Html2CanvasOptions);
+                });
 
                 const link = document.createElement('a');
                 link.download = `highlight-${Date.now()}.png`;

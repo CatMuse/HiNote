@@ -2,6 +2,7 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { CommentView, VIEW_TYPE_COMMENT } from './src/CommentView';
 import { CommentStore } from './src/CommentStore';
 import { HighlightDecorator } from './src/HighlightDecorator';
+import html2canvas from 'html2canvas';
 
 // Remember to rename these classes and interfaces!
 
@@ -20,6 +21,9 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		// 将 html2canvas 添加到全局对象
+		(window as any).html2canvas = html2canvas;
 
 		// 初始化评论存储
 		this.commentStore = new CommentStore(this as Plugin);

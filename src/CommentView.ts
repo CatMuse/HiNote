@@ -175,19 +175,25 @@ export class CommentView extends ItemView {
                 attr: { 'aria-label': '点击定位到文档位置' }
             });
 
-            // 序号和高亮文本
+            // 高亮文本容器
             const textContainer = contentEl.createEl("div", {
                 cls: "highlight-text-container"
             });
 
-            textContainer.createEl("span", {
-                text: `#${index + 1}`,
-                cls: "highlight-index"
+            // 添加竖线装饰
+            textContainer.createEl("div", {
+                cls: "highlight-text-decorator"
             });
 
-            textContainer.createEl("div", {
-                text: highlight.text,
+            // 高亮文本区域
+            const textEl = textContainer.createEl("div", {
                 cls: "highlight-text"
+            });
+
+            // 创建文本内容元素
+            textEl.createEl("div", {
+                text: highlight.text,
+                cls: "highlight-text-content"
             });
 
             // 操作按钮组
@@ -392,16 +398,7 @@ export class CommentView extends ItemView {
             // 添加新评论的逻辑
             let commentsSection = card.querySelector('.highlight-comments-section');
             
-            if (!commentsSection) {
-                commentsSection = card.createEl('div', {
-                    cls: 'highlight-comments-section'
-                });
-                
-                commentsSection.createEl('div', {
-                    cls: 'highlight-comments-list'
-                });
-            }
-
+            // 创建输入区域
             const inputSection = document.createElement('div');
             inputSection.className = 'highlight-comment-input';
 
@@ -413,13 +410,19 @@ export class CommentView extends ItemView {
                 cls: "highlight-comment-buttons"
             });
 
+            // 取消按钮
             btnGroup.createEl("button", {
                 cls: "highlight-btn",
                 text: "取消"
             }).addEventListener("click", () => {
                 inputSection.remove();
+                // 如果没有评论，移除评论区域
+                if (!commentsSection?.querySelector('.highlight-comment')) {
+                    commentsSection?.remove();
+                }
             });
 
+            // 保存按钮
             btnGroup.createEl("button", {
                 cls: "highlight-btn highlight-btn-primary",
                 text: "保存"
@@ -428,9 +431,25 @@ export class CommentView extends ItemView {
                 if (content) {
                     await this.addComment(highlight, content);
                     await this.updateHighlights();
+                } else {
+                    inputSection.remove();
+                    // 如果没有评论，移除评论区域
+                    if (!commentsSection?.querySelector('.highlight-comment')) {
+                        commentsSection?.remove();
+                    }
                 }
-                inputSection.remove();
             });
+
+            // 如果还没有评论区域，创建一个
+            if (!commentsSection) {
+                commentsSection = card.createEl('div', {
+                    cls: 'highlight-comments-section'
+                });
+                
+                commentsSection.createEl('div', {
+                    cls: 'highlight-comments-list'
+                });
+            }
 
             const commentsList = commentsSection.querySelector('.highlight-comments-list');
             if (commentsList) {
@@ -527,11 +546,15 @@ export class CommentView extends ItemView {
             return;
         }
 
+        const markdownView = targetLeaf.view as MarkdownView;
+
         try {
             // 先激活编辑器视图
             await this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
 
-            const markdownView = targetLeaf.view as MarkdownView;
+            // 等待编辑器准备就绪
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             const editor = markdownView.editor;
             
             // 使用编辑器的搜索功能定位到高亮文本
@@ -583,8 +606,8 @@ export class CommentView extends ItemView {
         }
     }
 
-    // 修改导出图片功能
-    private async exportHighlightAsImage(highlight: HighlightInfo) {
+    // 修改导出图片功能的方法签名
+    private exportHighlightAsImage(highlight: HighlightInfo & { comments?: CommentItem[] }) {
         new ExportPreviewModal(this.app, highlight).open();
     }
 } 

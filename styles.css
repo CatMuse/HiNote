@@ -43,21 +43,29 @@ If your plugin does not need CSS, delete this file.
 
 .highlight-text-container {
     display: flex;
-    gap: 8px;
-    align-items: flex-start;
+    gap: 12px;
+    align-items: stretch;
+    position: relative;
 }
 
-.highlight-index {
-    font-size: 12px;
-    color: var(--text-muted);
+.highlight-text-decorator {
+    width: 3px;
+    background-color: var(--text-highlight-bg);
+    border-radius: 1.5px;
     flex-shrink: 0;
 }
 
 .highlight-text {
+    position: relative;
     color: var(--text-normal);
     line-height: 1.5;
     font-size: 14px;
     flex-grow: 1;
+    padding: 2px 0;
+}
+
+.highlight-text-content {
+    padding-bottom: 4px;
 }
 
 .highlight-action-buttons {
@@ -378,13 +386,6 @@ If your plugin does not need CSS, delete this file.
     opacity: 1;
 }
 
-.highlight-comment-widget {
-    position: absolute;
-    right: -40px;
-    top: 2px;
-    z-index: 2;
-}
-
 .highlight-comment-button {
     display: inline-flex;
     align-items: center;
@@ -393,10 +394,11 @@ If your plugin does not need CSS, delete this file.
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: #9A9A97;
+    color: var(--text-muted);
     cursor: pointer;
     opacity: 1;
     transition: all 0.2s ease;
+    height: 22px;
 }
 
 .highlight-comment-button-hidden {
@@ -411,13 +413,13 @@ If your plugin does not need CSS, delete this file.
     display: inline-flex;
     align-items: center;
     gap: 1px;
-    color: #9A9A97;
+    color: var(--text-muted);
 }
 
 .highlight-comment-count {
     font-size: 11px;
     font-weight: 400;
-    color: #9A9A97;
+    color: var(--text-muted);
     margin-left: 1px;
 }
 
@@ -680,7 +682,7 @@ If your plugin does not need CSS, delete this file.
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* 导出预览标题和选择器容器 */
+/* 导出预览标题和择器容器 */
 .highlight-export-header {
     display: flex;
     justify-content: space-between;
@@ -702,4 +704,53 @@ If your plugin does not need CSS, delete this file.
 .highlight-template-selector:focus {
     outline: none;
     border-color: var(--interactive-accent);
+}
+
+/* 控制按钮容器 */
+.highlight-controls {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 8px;
+}
+
+.highlight-toggle-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.highlight-toggle-all-btn:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+    border-color: var(--text-muted);
+}
+
+.highlight-toggle-all-icon {
+    transition: transform 0.3s ease;
+}
+
+/* 删除编辑器容器的右侧 padding */
+.markdown-source-view,
+.markdown-source-view.mod-cm6 .cm-content {
+    padding-right: initial !important;
+}
+
+/* 修改评论按钮容器的定位方式 */
+.highlight-comment-widget {
+    position: absolute;
+    right: -32px;          /* 向右偏移固定距离 */
+    top: 14%;             /* 垂直居中 */
+    transform: translateY(-50%);
+    z-index: 2;
+    height: 22px;
+    display: flex;
+    align-items: center;
 }
