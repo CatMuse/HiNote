@@ -518,3 +518,129 @@ If your plugin does not need CSS, delete this file.
     outline: none;
     border-color: var(--interactive-accent);
 }
+
+/* 分享按钮样式 */
+.highlight-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.highlight-share-btn {
+    background: none;
+    border: none;
+    padding: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.highlight-card:hover .highlight-share-btn {
+    opacity: 1;
+}
+
+.highlight-share-btn:hover {
+    color: var(--text-accent);
+    background-color: var(--background-modifier-hover);
+    border-radius: 4px;
+}
+
+/* 导出图片样式 */
+.highlight-export-container {
+    position: fixed;
+    left: -9999px;  /* 放在视图外 */
+    width: 600px;
+    padding: 40px;
+    background-color: var(--background-primary);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.highlight-export-content {
+    padding: 24px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+}
+
+.highlight-export-text {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-normal);
+    margin-bottom: 20px;
+    padding: 16px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    border-left: 4px solid var(--interactive-accent);
+}
+
+.highlight-export-comments {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.highlight-export-comment {
+    margin-bottom: 16px;
+    padding: 12px;
+    background-color: var(--background-secondary);
+    border-radius: 6px;
+}
+
+.highlight-export-comment-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-normal);
+}
+
+.highlight-export-comment-time {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.highlight-export-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* 导出预览弹窗样式 */
+.highlight-export-modal {
+    max-width: 800px;
+    width: 100%;
+}
+
+.highlight-export-preview-container {
+    padding: 20px;
+    margin: 16px 0;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.highlight-export-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 调整导出容器样式 */
+.highlight-export-container {
+    width: 100%;
+    padding: 24px;
+    background-color: var(--background-primary);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}

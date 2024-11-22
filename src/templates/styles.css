@@ -1,0 +1,15 @@
+/* 默认模板样式 */
+.highlight-export-card {
+    /* ... 原有的卡片样式 ... */
+}
+
+/* 模板选择器样式 */
+.highlight-template-selector {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 16px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+} 

@@ -1,11 +1,8 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice } from "obsidian";
 import { CommentStore, HighlightComment, CommentItem } from './CommentStore';
-
-interface HighlightInfo extends Partial<HighlightComment> {
-    text: string;
-    position: number;
-    comments?: CommentItem[];
-}
+import { Modal } from 'obsidian';
+import { ExportPreviewModal } from './ExportModal';
+import { HighlightInfo } from './types';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -172,6 +169,34 @@ export class CommentView extends ItemView {
                 cls: "highlight-card"
             });
 
+            // 添加卡片顶部操作栏
+            const cardHeader = card.createEl("div", {
+                cls: "highlight-card-header"
+            });
+
+            // 序号标签
+            cardHeader.createEl("div", {
+                text: `#${index + 1}`,
+                cls: "highlight-index"
+            });
+
+            // 添加分享按钮
+            const shareBtn = cardHeader.createEl("button", {
+                cls: "highlight-share-btn",
+                attr: { 'aria-label': '导出为图片' }
+            });
+            shareBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                    <polyline points="16 6 12 2 8 6"/>
+                    <line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+            `;
+            shareBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                this.exportHighlightAsImage(highlight);
+            });
+
             // 高亮内容区域
             const contentEl = card.createEl("div", {
                 cls: "highlight-content",
@@ -213,12 +238,6 @@ export class CommentView extends ItemView {
             contentEl.createEl("div", {
                 text: highlight.text,
                 cls: "highlight-text"
-            });
-
-            // 序号标签
-            contentEl.createEl("div", {
-                text: `#${index + 1}`,
-                cls: "highlight-index"
             });
 
             // 评论列表区域
@@ -401,7 +420,7 @@ export class CommentView extends ItemView {
             const commentsList = commentsSection?.querySelector('.highlight-comments-list');
             const addButton = commentsSection?.querySelector('.highlight-add-comment');
 
-            // 创建输入区域
+            // 创建输���区域
             const inputSection = document.createElement('div');
             inputSection.className = 'highlight-comment-input';
 
@@ -567,7 +586,7 @@ export class CommentView extends ItemView {
                     const currentLine = editor.getLine(nextLineNumber);
                     const nextLine = editor.getLine(nextLineNumber + 1);
                     
-                    // 如果当前行不为空但下一行为空，说明找到了段落末尾
+                    // 如果当前行不为但下一行为空，说明找到了段落末尾
                     if (currentLine.trim() !== '' && nextLine.trim() === '') {
                         break;
                     }
@@ -597,5 +616,10 @@ export class CommentView extends ItemView {
             console.error("定位失败:", error);
             new Notice("定位失败，请重试");
         }
+    }
+
+    // 修改导出图片功能
+    private async exportHighlightAsImage(highlight: HighlightInfo) {
+        new ExportPreviewModal(this.app, highlight).open();
     }
 } 
