@@ -21,7 +21,7 @@ If your plugin does not need CSS, delete this file.
 .highlight-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     padding: 4px 0;
 }
 
@@ -44,8 +44,8 @@ If your plugin does not need CSS, delete this file.
 
 .highlight-text {
     color: var(--text-normal);
-    line-height: 1.5;
-    font-size: 14px;
+    line-height: 1.4;
+    font-size: 12px;
 }
 
 .highlight-index {
@@ -57,7 +57,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-comment {
-    padding: 12px;
+    padding: 8px;
     background-color: var(--background-primary);
     border-radius: 6px;
     margin-bottom: 8px;
@@ -75,7 +75,7 @@ If your plugin does not need CSS, delete this file.
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    margin-top: 8px;
+    margin-top: 0px;
 }
 
 .highlight-comment-time {
@@ -142,17 +142,17 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-comment-input {
-    padding: 12px;
+    padding: 8px;
     background-color: var(--background-primary);
     border-radius: 6px;
-    margin: 0 0 8px 0;
+    margin: 0 0 4px 0;
     width: 100%;
 }
 
 .highlight-comment-input textarea {
     width: 100%;
-    min-height: 120px;
-    padding: 16px;
+    min-height: 80px;
+    padding: 12px;
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     background-color: var(--background-primary);
@@ -170,15 +170,15 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-comment-input textarea::placeholder {
-    color: var(--text-muted);
+    color: var(--text-faint);
 }
 
 .highlight-comment-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    padding: 12px 0 0 0;
-    margin-top: 8px;
+    padding: 8px 0 0 0;
+    margin-top: 2px;
     border-top: 1px solid var(--background-modifier-border);
 }
 
@@ -231,11 +231,11 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-comments-list {
-    padding: 12px 16px;
+    padding: 8px 12px;
 }
 
 .highlight-comment {
-    padding: 12px;
+    padding: 8px;
     background-color: var(--background-primary);
     border-radius: 6px;
     margin-bottom: 8px;
@@ -392,7 +392,7 @@ If your plugin does not need CSS, delete this file.
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
-    padding: 8px;
+    padding: 12px 16px;
     min-width: 300px;
     max-width: 500px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -402,25 +402,25 @@ If your plugin does not need CSS, delete this file.
 .highlight-comment-tooltip-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
 }
 
 .highlight-comment-tooltip-item {
-    padding: 4px 0;
+    padding: 2px 0;
 }
 
 .highlight-comment-tooltip-content {
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.4;
     color: var(--text-normal);
     word-break: break-word;
-    padding: 4px 0;
+    padding: 2px 0;
 }
 
 .highlight-comment-tooltip-time {
     font-size: 10px;
-    color: var(--text-muted);
-    margin-top: 2px;
+    color: var(--text-faint);
+    margin-top: 0px;
 }
 
 .highlight-comment-tooltip-more {
@@ -434,18 +434,6 @@ If your plugin does not need CSS, delete this file.
 
 .hidden {
     display: none !important;
-}
-
-/* 修改评论数量样式 */
-.highlight-comment-count {
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-accent);
-    background-color: var(--background-modifier-border);
-    padding: 1px 4px;
-    border-radius: 8px;
-    min-width: 16px;
-    text-align: center;
 }
 
 /* 修改编辑器容器样式确保有足够空间显示按钮 */
