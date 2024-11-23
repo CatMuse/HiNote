@@ -1,24 +1,30 @@
 import { EditorView, ViewPlugin, DecorationSet, Decoration, WidgetType } from "@codemirror/view";
 import { Plugin, MarkdownView } from "obsidian";
 import { CommentStore, HighlightComment, CommentItem } from "./CommentStore";
+import { CommentUpdateEvent } from "./types";
 
 class CommentWidget extends WidgetType {
     constructor(
         private plugin: Plugin,
-        private highlights: { text: string; position: number }[],
-        private commentCount: number,
-        private comments: CommentItem[],
+        private highlight: HighlightComment,
         private onClick: () => void
     ) {
         super();
     }
 
+    eq(other: CommentWidget): boolean {
+        // 比较评论内容是否相同
+        return this.highlight.text === other.highlight.text &&
+               this.highlight.comments.length === other.highlight.comments.length;
+    }
+
     toDOM() {
         const wrapper = document.createElement("span");
         wrapper.addClass("highlight-comment-widget");
+        wrapper.setAttribute('data-highlight-text', this.highlight.text);
         
         const button = wrapper.createEl("button", {
-            cls: "highlight-comment-button"
+            cls: "highlight-comment-button highlight-comment-button-hidden"
         });
 
         // 评论图标和数量容器
@@ -34,20 +40,17 @@ class CommentWidget extends WidgetType {
         `;
 
         // 评论数量
-        if (this.commentCount > 0) {
+        const commentCount = this.highlight.comments.length;
+        if (commentCount > 0) {
             iconContainer.createEl("span", {
                 cls: "highlight-comment-count",
-                text: this.commentCount.toString()
+                text: commentCount.toString()
             });
-
-            // 如果有评论，默认显示按钮
             button.removeClass("highlight-comment-button-hidden");
-        } else {
-            button.addClass("highlight-comment-button-hidden");
         }
 
-        // 创建评论预览弹窗
-        if (this.comments && this.comments.length > 0) {
+        // 只在有评论时创建预览弹窗
+        if (commentCount > 0) {
             const tooltip = wrapper.createEl("div", {
                 cls: "highlight-comment-tooltip hidden"
             });
@@ -56,7 +59,7 @@ class CommentWidget extends WidgetType {
                 cls: "highlight-comment-tooltip-list"
             });
 
-            this.comments.slice(0, 3).forEach(comment => {
+            this.highlight.comments.slice(0, 3).forEach(comment => {
                 const commentItem = commentsList.createEl("div", {
                     cls: "highlight-comment-tooltip-item"
                 });
@@ -72,10 +75,10 @@ class CommentWidget extends WidgetType {
                 });
             });
 
-            if (this.comments.length > 3) {
+            if (this.highlight.comments.length > 3) {
                 tooltip.createEl("div", {
                     cls: "highlight-comment-tooltip-more",
-                    text: `还有 ${this.comments.length - 3} 条评论...`
+                    text: `还有 ${this.highlight.comments.length - 3} 条评论...`
                 });
             }
 
@@ -89,13 +92,36 @@ class CommentWidget extends WidgetType {
             });
         }
 
+        // 添加鼠标悬停事件 - 控制按钮显示
+        wrapper.addEventListener("mouseenter", () => {
+            button.removeClass("highlight-comment-button-hidden");
+        });
+
+        wrapper.addEventListener("mouseleave", () => {
+            if (commentCount === 0) {  // 只有在没有评论时才隐藏
+                button.addClass("highlight-comment-button-hidden");
+            }
+        });
+
+        // 点击事件
         button.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
             this.onClick();
+            
+            window.dispatchEvent(new CustomEvent("open-comment-input", {
+                detail: {
+                    highlightId: this.highlight.id,
+                    text: this.highlight.text
+                }
+            }));
         });
 
         return wrapper;
+    }
+
+    destroy(dom: HTMLElement): void {
+        dom.remove();
     }
 }
 
@@ -111,6 +137,49 @@ export class HighlightDecorator {
     enable() {
         const plugin = this.plugin;
         const commentStore = this.commentStore;
+
+        // 监听评论更新事件
+        this.plugin.registerDomEvent(window, 'comment-updated', (e: CustomEvent) => {
+            const buttons = document.querySelectorAll('.highlight-comment-widget');
+            buttons.forEach(button => {
+                const highlightText = button.getAttribute('data-highlight-text');
+                if (highlightText === e.detail.text) {
+                    // 获取按钮元素
+                    const commentButton = button.querySelector('.highlight-comment-button');
+                    
+                    // 更新评论数量
+                    const countEl = button.querySelector('.highlight-comment-count');
+                    if (countEl) {
+                        const commentCount = e.detail.comments.length;
+                        countEl.textContent = commentCount.toString();
+                        
+                        // 根据评论数量显示或隐藏按钮
+                        if (commentCount === 0) {
+                            commentButton?.addClass('highlight-comment-button-hidden');
+                        } else {
+                            commentButton?.removeClass('highlight-comment-button-hidden');
+                        }
+                    }
+
+                    // 更新预览内容
+                    const tooltip = button.querySelector('.highlight-comment-tooltip-list');
+                    if (tooltip) {
+                        tooltip.empty();
+                        e.detail.comments.slice(0, 3).forEach((comment: CommentItem) => {
+                            const item = tooltip.createEl('div', { cls: 'highlight-comment-tooltip-item' });
+                            item.createEl('div', {
+                                cls: 'highlight-comment-tooltip-content',
+                                text: comment.content
+                            });
+                            item.createEl('div', {
+                                cls: 'highlight-comment-tooltip-time',
+                                text: new Date(comment.createdAt).toLocaleString()
+                            });
+                        });
+                    }
+                }
+            });
+        });
 
         const highlightPlugin = ViewPlugin.fromClass(class {
             decorations: DecorationSet;
@@ -139,45 +208,38 @@ export class HighlightDecorator {
                 const content = doc.toString();
                 const fileComments = this.commentStore.getFileComments(markdownView.file);
 
-                // 按段落分析高亮内容
+                // 按段落分析内容
                 const paragraphs = content.split(/\n\n+/);
                 let offset = 0;
 
-                paragraphs.forEach(paragraph => {
+                paragraphs.forEach((paragraph) => {
+                    // 在当前段落中查找高亮文本
                     const highlightRegex = /==(.*?)==|<mark>(.*?)<\/mark>/g;
-                    const paragraphHighlights: Array<{ text: string; position: number }> = [];
                     let match;
+                    const paragraphHighlights: HighlightComment[] = [];
 
-                    // 收集段落中的所有高亮
                     while ((match = highlightRegex.exec(paragraph)) !== null) {
                         const text = match[1] || match[2];
                         if (text.trim()) {
-                            const absolutePosition = offset + match.index;
-                            paragraphHighlights.push({
-                                text: text.trim(),
-                                position: absolutePosition
-                            });
+                            const matchedComment = fileComments.find(c => c.text === text.trim());
+                            if (matchedComment) {
+                                paragraphHighlights.push(matchedComment);
+                            }
                         }
                     }
 
-                    // 如果段落中有高亮内容，添加评论按钮
                     if (paragraphHighlights.length > 0) {
-                        // 获取段落中所有高亮的评论
-                        const paragraphComments = paragraphHighlights.flatMap(highlight => {
-                            const storedHighlight = fileComments.find(
-                                h => h.text === highlight.text && h.position === highlight.position
-                            );
-                            return storedHighlight?.comments || [];
-                        });
+                        const allComments = paragraphHighlights.flatMap(h => h.comments || []);
+                        const combinedHighlight = {
+                            ...paragraphHighlights[0],
+                            comments: allComments
+                        };
 
-                        // 在段落开始位置添加评论按钮
                         const widget = Decoration.widget({
                             widget: new CommentWidget(
                                 this.plugin,
-                                paragraphHighlights,
-                                paragraphComments.length,
-                                paragraphComments,
-                                () => this.openCommentPanel(paragraphHighlights[0])
+                                combinedHighlight,
+                                () => this.openCommentPanel(combinedHighlight)
                             ),
                             side: -1
                         });
@@ -185,17 +247,17 @@ export class HighlightDecorator {
                         widgets.push(widget.range(offset));
                     }
 
-                    offset += paragraph.length + 2; // +2 for the newlines
+                    offset += paragraph.length + 2;
                 });
 
-                return Decoration.set(widgets, true);
+                return Decoration.set(widgets);
             }
 
             private getActiveMarkdownView() {
                 return this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
             }
 
-            private openCommentPanel(highlight: { text: string; position: number }) {
+            private openCommentPanel(highlight: HighlightComment) {
                 const workspace = this.plugin.app.workspace;
                 const existing = workspace.getLeavesOfType("comment-view");
                 
@@ -212,10 +274,41 @@ export class HighlightDecorator {
                 }
             }
         }, {
-            decorations: v => v.decorations,
+            decorations: v => v.decorations
         });
 
-        // 注册插件
         this.plugin.registerEditorExtension([highlightPlugin]);
+    }
+
+    private updateTooltipContent(tooltip: Element, comments: CommentItem[]) {
+        const list = tooltip.querySelector('.highlight-comment-tooltip-list');
+        if (!list) return;
+
+        // 清空现有内容
+        list.empty();
+
+        // 添加最新的评论
+        comments.slice(0, 3).forEach(comment => {
+            const item = list.createEl('div', { cls: 'highlight-comment-tooltip-item' });
+            item.createEl('div', {
+                cls: 'highlight-comment-tooltip-content',
+                text: comment.content
+            });
+            item.createEl('div', {
+                cls: 'highlight-comment-tooltip-time',
+                text: new Date(comment.createdAt).toLocaleString()
+            });
+        });
+
+        // 更新"更多评论"提示
+        const moreEl = tooltip.querySelector('.highlight-comment-tooltip-more');
+        if (moreEl) {
+            if (comments.length > 3) {
+                moreEl.textContent = `还有 ${comments.length - 3} 条评论...`;
+                moreEl.removeClass('hidden');
+            } else {
+                moreEl.addClass('hidden');
+            }
+        }
     }
 } 

@@ -1,12 +1,3 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
-
 .highlight-container {
     padding: 12px;
 }
@@ -438,7 +429,8 @@ If your plugin does not need CSS, delete this file.
     min-width: 300px;
     max-width: 500px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+    z-index: 99999;
+    pointer-events: auto;
 }
 
 .highlight-comment-tooltip-list {
@@ -500,6 +492,7 @@ If your plugin does not need CSS, delete this file.
     border-left: 1px solid var(--background-modifier-border);
     border-top: 1px solid var(--background-modifier-border);
     transform: rotate(45deg);
+    z-index: 99998;
 }
 
 /* 悬停效果 */

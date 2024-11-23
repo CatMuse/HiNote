@@ -35,7 +35,7 @@ export default class CommentPlugin extends Plugin {
 
 		// 添加打开评论面板的功能按钮
 		this.addRibbonIcon(
-			'message-square',
+			'message-square-quote',
 			'打开评论面板',
 			async () => {
 				const { workspace } = this.app;
@@ -71,6 +71,16 @@ export default class CommentPlugin extends Plugin {
 				await this.commentStore.cleanupComments(existingFiles);
 			}, 60 * 60 * 1000) // 每小时检查一次
 		);
+
+		// 监控评论加载性能
+		const measureCommentPerformance = () => {
+			const start = performance.now();
+			
+			// 评论加载操作
+			
+			const end = performance.now();
+			console.log(`Comments loaded in ${end - start}ms`);
+		}
 	}
 
 	onunload() {

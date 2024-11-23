@@ -5,6 +5,7 @@ import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo } from './types';
 import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
+import { CommentUpdateEvent } from './types';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -73,7 +74,7 @@ export class CommentView extends ItemView {
             this.updateHighlightsList();
         }, 300));
 
-        // 创建高亮列表容器
+        // 创高亮列表容器
         this.highlightContainer = container.createDiv({
             cls: "highlight-container"
         });
@@ -108,18 +109,34 @@ export class CommentView extends ItemView {
         
         // 合并高亮和评论数据
         this.highlights = highlights.map(highlight => {
-            const storedComment = storedComments.find(
-                (c: HighlightComment) => c.text === highlight.text && c.position === highlight.position
-            );
-            return storedComment || {
+            // 查找匹配的评论，优先使用文本匹配
+            const storedComment = storedComments.find(c => {
+                // 首先检查文本是否匹配
+                const textMatch = c.text === highlight.text;
+                if (textMatch && highlight.paragraphText) {
+                    // 如果文本匹配，查是否在同一段落范围内
+                    return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
+                }
+                return false;
+            });
+
+            if (storedComment) {
+                return {
+                    ...storedComment,
+                    position: highlight.position, // 更新位置以匹配当前文档
+                    paragraphOffset: highlight.paragraphOffset
+                };
+            }
+
+            return {
                 id: this.generateHighlightId(highlight),
                 ...highlight,
+                comments: [],
                 createdAt: Date.now(),
                 updatedAt: Date.now()
             };
         });
 
-        // 使用搜索过滤后的结果进行渲染
         await this.updateHighlightsList();
     }
 
@@ -340,9 +357,9 @@ export class CommentView extends ItemView {
                 this.exportHighlightAsImage(highlight);
             });
 
-            // 评论列表区域 - 修复可能为 undefined 的问题
+            // 评论表区域 - 修复可能为 undefined 的问题
             const comments = highlight.comments || [];
-            if (comments.length > 0) {  // 使用安全的数组长度检查
+            if (comments.length > 0) {  // 用安全的数组长度检查
                 const commentsSection = card.createEl("div", {
                     cls: "highlight-comments-section"
                 });
@@ -410,6 +427,7 @@ export class CommentView extends ItemView {
                     deleteBtn.addEventListener("click", async (e) => {
                         e.stopPropagation();
                         await this.deleteComment(highlight, comment.id);
+                        // 不需要调用 updateHighlights，因为 deleteComment 已经会触发更新
                     });
                 });
             }
@@ -435,7 +453,7 @@ export class CommentView extends ItemView {
             textarea.className = 'highlight-comment-input';
             textarea.style.minHeight = `${contentEl.offsetHeight}px`;
 
-            // 替换内容为编辑框
+            // 替换内容为编辑
             contentEl.replaceWith(textarea);
 
             // 隐藏底部的时间和按钮
@@ -510,7 +528,7 @@ export class CommentView extends ItemView {
                 cls: "highlight-comment-buttons"
             });
 
-            // 取消按钮
+            // 取消钮
             btnGroup.createEl("button", {
                 cls: "highlight-btn",
                 text: "取消"
@@ -540,7 +558,7 @@ export class CommentView extends ItemView {
                 }
             });
 
-            // 如果还没有评论区域，创建一个
+            // 如果还没有评论区域，创建一
             if (!commentsSection) {
                 commentsSection = card.createEl('div', {
                     cls: 'highlight-comments-section'
@@ -563,23 +581,31 @@ export class CommentView extends ItemView {
     private extractHighlights(content: string): HighlightInfo[] {
         const highlightRegex = /==(.*?)==|<mark>(.*?)<\/mark>/g;
         const highlights: HighlightInfo[] = [];
-        
-        let match;
-        while ((match = highlightRegex.exec(content)) !== null) {
-            const text = match[1] || match[2];
-            if (text.trim()) {
-                highlights.push({
-                    text: text.trim(),
-                    position: match.index
-                });
+        const paragraphs = content.split(/\n\n+/);
+        let offset = 0;
+
+        paragraphs.forEach(paragraph => {
+            let match;
+            while ((match = highlightRegex.exec(paragraph)) !== null) {
+                const text = match[1] || match[2];
+                if (text.trim()) {
+                    const highlight: HighlightInfo = {
+                        text: text.trim(),
+                        position: offset + match.index,
+                        paragraphOffset: offset,
+                        paragraphText: paragraph
+                    };
+                    highlights.push(highlight);
+                }
             }
-        }
+            offset += paragraph.length + 2;
+        });
 
         return highlights;
     }
 
     private async addComment(highlight: HighlightInfo, content: string) {
-        if (!this.currentFile) return;
+        if (!this.currentFile || !highlight.id) return;
 
         const newComment: CommentItem = {
             id: `comment-${Date.now()}`,
@@ -595,6 +621,14 @@ export class CommentView extends ItemView {
         highlight.updatedAt = Date.now();
 
         await this.commentStore.addComment(this.currentFile, highlight as HighlightComment);
+
+        // 触发更新评论按钮
+        window.dispatchEvent(new CustomEvent("comment-updated", {
+            detail: {
+                text: highlight.text,
+                comments: highlight.comments
+            }
+        }));
     }
 
     private async updateComment(highlight: HighlightInfo, commentId: string, content: string) {
@@ -606,6 +640,14 @@ export class CommentView extends ItemView {
             comment.updatedAt = Date.now();
             highlight.updatedAt = Date.now();
             await this.commentStore.addComment(this.currentFile, highlight as HighlightComment);
+
+            // 触发更新评论按钮
+            window.dispatchEvent(new CustomEvent("comment-updated", {
+                detail: {
+                    text: highlight.text,
+                    comments: highlight.comments
+                }
+            }));
         }
     }
 
@@ -615,6 +657,16 @@ export class CommentView extends ItemView {
         highlight.comments = highlight.comments.filter(c => c.id !== commentId);
         highlight.updatedAt = Date.now();
         await this.commentStore.addComment(this.currentFile, highlight as HighlightComment);
+
+        // 触发更新评论按钮
+        window.dispatchEvent(new CustomEvent("comment-updated", {
+            detail: {
+                text: highlight.text,
+                comments: highlight.comments
+            }
+        }));
+
+        // 重新渲染高亮列表
         await this.updateHighlights();
     }
 
@@ -698,7 +750,7 @@ export class CommentView extends ItemView {
                     ch: 0
                 });
             } else {
-                new Notice("未找到高亮内容");
+                new Notice("未找到高亮内");
             }
         } catch (error) {
             console.error("定位失败:", error);
@@ -780,5 +832,34 @@ export class CommentView extends ItemView {
                 }
             }
         }
+    }
+
+    async onload() {
+        // ... 其他代码保持不变 ...
+
+        // 添加事件监听
+        window.addEventListener("open-comment-input", ((e: CustomEvent) => {
+            const { highlightId, text } = e.detail;
+            
+            // 等待一下确保视图已经更新
+            setTimeout(() => {
+                // 找到对应的高亮卡片
+                const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
+                    .find(card => {
+                        const textContent = card.querySelector('.highlight-text-content')?.textContent;
+                        return textContent === text;
+                    });
+
+                if (highlightCard) {
+                    // 找到并点击添加评论按钮
+                    const addButton = highlightCard.querySelector('.highlight-add-btn') as HTMLElement;
+                    if (addButton) {
+                        addButton.click();
+                    }
+                    // 滚动到评论区域
+                    highlightCard.scrollIntoView({ behavior: "smooth" });
+                }
+            }, 100);
+        }) as EventListener);
     }
 } 

@@ -1,10 +1,12 @@
 import { CommentItem } from './CommentStore';
 
 export interface HighlightInfo {
-    id?: string;
     text: string;
     position: number;
+    paragraphOffset?: number;
+    paragraphText?: string;
     comments?: CommentItem[];
+    id?: string;
     createdAt?: number;
     updatedAt?: number;
 }
@@ -60,4 +62,18 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 请以简洁清晰的方式组织回答，每个部分使用标题区分。`
         }
     }
-}; 
+};
+
+// 添加自定义事件类型
+export interface CommentUpdateEvent {
+    fileId: string;
+    highlightId: string;
+    text: string;
+    comments: CommentItem[];
+}
+
+declare global {
+    interface WindowEventMap {
+        'comment-updated': CustomEvent<CommentUpdateEvent>;
+    }
+} 
