@@ -754,7 +754,7 @@ If your plugin does not need CSS, delete this file.
     padding-right: initial !important;
 }
 
-/* 修改评论按钮容器的定位方式 */
+/* 修改评论按钮容器的���位方式 */
 .highlight-comment-widget {
     position: absolute;
     right: -32px;          /* 向右偏移固定距离 */
@@ -843,4 +843,43 @@ If your plugin does not need CSS, delete this file.
     to {
         transform: rotate(360deg);
     }
+}
+
+/* AI 服务设置区域样式 */
+.ai-service-settings {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.ai-service-settings h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+/* 设置项容器样式 */
+.ai-service-settings .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75em 0;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 设置项控制区域样式 */
+.ai-service-settings .setting-item-control {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;  /* 确保内容右对齐 */
+    min-width: 200px;  /* 给定一个最小宽度 */
+}
+
+/* 下拉菜单样式 */
+.ai-service-settings .dropdown {
+    min-width: 180px;  /* 统一下拉菜单宽度 */
 }

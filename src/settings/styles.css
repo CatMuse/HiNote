@@ -60,4 +60,26 @@
 
 .setting-header-button:hover {
     opacity: 0.9;
+}
+
+/* AI 服务设置区域样式 */
+.ai-service-settings {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.ai-service-settings h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+/* 分隔线样式 */
+hr {
+    margin: 24px 0;
+    border: none;
+    border-top: 1px solid var(--background-modifier-border);
 } 

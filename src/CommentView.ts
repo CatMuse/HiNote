@@ -658,7 +658,7 @@ export class CommentView extends ItemView {
             const editor = markdownView.editor;
             
             // 使用编辑器的搜索功能定位到高亮文本
-            const searchText = `==${highlight.text}==`;  // 搜索高亮语法
+            const searchText = `==${highlight.text}==`;  // 搜��高亮语法
             const content = editor.getValue();
             const position = content.indexOf(searchText);
             
@@ -720,8 +720,17 @@ export class CommentView extends ItemView {
                 throw new Error(`未找到名为 "${promptName}" 的 Prompt`);
             }
 
+            // 找到当前高亮对应的卡片
+            const highlightCard = this.highlightContainer.querySelector(
+                `.highlight-card .highlight-text-content[text="${highlight.text}"]`
+            )?.closest('.highlight-card');
+
+            if (!highlightCard) {
+                throw new Error('未找到对应的高亮卡片');
+            }
+
             // 显示加载状态
-            const aiButton = this.containerEl.querySelector('.highlight-ai-btn');
+            const aiButton = highlightCard.querySelector('.highlight-ai-btn');
             const normalIcon = aiButton?.querySelector('.highlight-ai-icon');
             const loadingIcon = aiButton?.querySelector('.highlight-ai-icon-loading');
             
@@ -745,13 +754,19 @@ export class CommentView extends ItemView {
             new Notice(`AI 分析失败: ${error.message}`);
         } finally {
             // 恢复正常状态
-            const aiButton = this.containerEl.querySelector('.highlight-ai-btn');
-            const normalIcon = aiButton?.querySelector('.highlight-ai-icon');
-            const loadingIcon = aiButton?.querySelector('.highlight-ai-icon-loading');
+            const highlightCard = this.highlightContainer.querySelector(
+                `.highlight-card .highlight-text-content[text="${highlight.text}"]`
+            )?.closest('.highlight-card');
             
-            if (normalIcon && loadingIcon) {
-                normalIcon.removeClass('hidden');
-                loadingIcon.addClass('hidden');
+            if (highlightCard) {
+                const aiButton = highlightCard.querySelector('.highlight-ai-btn');
+                const normalIcon = aiButton?.querySelector('.highlight-ai-icon');
+                const loadingIcon = aiButton?.querySelector('.highlight-ai-icon-loading');
+                
+                if (normalIcon && loadingIcon) {
+                    normalIcon.removeClass('hidden');
+                    loadingIcon.addClass('hidden');
+                }
             }
         }
     }
