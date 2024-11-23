@@ -449,7 +449,7 @@ export class CommentView extends ItemView {
                 cls: 'highlight-comment-buttons'
             });
 
-            // 取消按钮
+            // 取按钮
             const cancelBtn = editActions.createEl('button', {
                 cls: 'highlight-btn',
                 text: '取消'
@@ -727,10 +727,12 @@ export class CommentView extends ItemView {
                 throw new Error(`未找到名为 "${promptName}" 的 Prompt`);
             }
 
-            // 找到当前高亮对应的卡片
-            const highlightCard = this.highlightContainer.querySelector(
-                `.highlight-card .highlight-text-content[text="${highlight.text}"]`
-            )?.closest('.highlight-card');
+            // 修改查找高亮卡片的方式
+            const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
+                .find(card => {
+                    const textContent = card.querySelector('.highlight-text-content')?.textContent;
+                    return textContent === highlight.text;
+                });
 
             if (!highlightCard) {
                 throw new Error('未找到对应的高亮卡片');
@@ -761,9 +763,11 @@ export class CommentView extends ItemView {
             new Notice(`AI 分析失败: ${error.message}`);
         } finally {
             // 恢复正常状态
-            const highlightCard = this.highlightContainer.querySelector(
-                `.highlight-card .highlight-text-content[text="${highlight.text}"]`
-            )?.closest('.highlight-card');
+            const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
+                .find(card => {
+                    const textContent = card.querySelector('.highlight-text-content')?.textContent;
+                    return textContent === highlight.text;
+                });
             
             if (highlightCard) {
                 const aiButton = highlightCard.querySelector('.highlight-ai-btn');

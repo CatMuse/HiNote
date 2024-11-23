@@ -8,7 +8,7 @@ If your plugin does not need CSS, delete this file.
 */
 
 .highlight-container {
-    padding: 16px;
+    padding: 12px;
 }
 
 .highlight-empty-state {
@@ -33,11 +33,11 @@ If your plugin does not need CSS, delete this file.
 }
 
 .highlight-content {
-    padding: 16px;
+    padding: 12px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 2px;
 }
 
 .highlight-text-container {
@@ -58,7 +58,7 @@ If your plugin does not need CSS, delete this file.
     position: relative;
     color: var(--text-normal);
     line-height: 1.5;
-    font-size: 14px;
+    font-size: 12px;
     flex-grow: 1;
     padding: 2px 0;
 }
@@ -72,7 +72,10 @@ If your plugin does not need CSS, delete this file.
     justify-content: space-between;
     align-items: center;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, height 0.2s ease, margin 0.2s ease;
+    height: 0;
+    margin: 0;
+    visibility: hidden;
 }
 
 .highlight-action-buttons-left {
@@ -89,6 +92,9 @@ If your plugin does not need CSS, delete this file.
 
 .highlight-card:hover .highlight-action-buttons {
     opacity: 1;
+    height: auto;
+    margin-top: 12px;
+    visibility: visible;
 }
 
 .highlight-action-btn {
@@ -113,7 +119,7 @@ If your plugin does not need CSS, delete this file.
     padding: 8px;
     background-color: var(--background-primary);
     border-radius: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     position: relative;
 }
 
@@ -133,8 +139,9 @@ If your plugin does not need CSS, delete this file.
 
 .highlight-comment-time {
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--text-faint);
     margin-right: auto;
+    margin-top: 4px;
 }
 
 .highlight-comment-actions {
@@ -260,15 +267,6 @@ If your plugin does not need CSS, delete this file.
     opacity: 0.9;
 }
 
-/* 临时高亮效果 */
-.temp-highlight {
-    background-color: var(--text-accent);
-    color: var(--text-on-accent);
-    border-radius: 4px;
-    padding: 0 2px;
-    animation: highlight-fade 2s ease-out;
-}
-
 @keyframes highlight-fade {
     0% {
         background-color: var(--text-accent);
@@ -281,20 +279,20 @@ If your plugin does not need CSS, delete this file.
 .highlight-comments-section {
     border-top: 1px solid var(--background-modifier-border);
     background-color: var(--background-secondary);
-    padding: 12px 16px;
+    padding: 8px 12px;
 }
 
 .highlight-comments-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
 }
 
 .highlight-comment {
     padding: 8px;
     background-color: var(--background-primary);
     border-radius: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     position: relative;
 }
 
@@ -303,12 +301,6 @@ If your plugin does not need CSS, delete this file.
     font-size: 13px;
     line-height: 1.5;
     padding: 2px 0;
-}
-
-.highlight-comment-time {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 4px;
 }
 
 .highlight-edit-btn,
@@ -754,7 +746,7 @@ If your plugin does not need CSS, delete this file.
     padding-right: initial !important;
 }
 
-/* 修改评论按钮容器的���位方式 */
+/* 修改评论按钮容器的位方式 */
 .highlight-comment-widget {
     position: absolute;
     right: -32px;          /* 向右偏移固定距离 */
@@ -882,4 +874,259 @@ If your plugin does not need CSS, delete this file.
 /* 下拉菜单样式 */
 .ai-service-settings .dropdown {
     min-width: 180px;  /* 统一下拉菜单宽度 */
+}
+
+.workspace-leaf-content {
+    padding: 0 !important;
+}
+
+.view-content {
+    padding: 0 !important;
+}
+
+/* 设置菜单样式 */
+.custom-prompt-container {
+    margin: 16px 0;
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--background-secondary);
+    transition: all 0.2s ease;
+}
+
+/* Prompt 标题行样式 */
+.custom-prompt-container .setting-item {
+    border: none;
+    padding: 0;
+    margin-bottom: 12px;
+}
+
+.custom-prompt-container .setting-item-info {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.custom-prompt-container .setting-item-control {
+    gap: 8px;
+    padding: 0;
+}
+
+/* Prompt 内容预览样式 */
+.custom-prompt-preview {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-normal);
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+/* 编辑和删除按钮样式 */
+.custom-prompt-container .setting-item-control button {
+    background-color: transparent;
+    border: none;
+    padding: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.custom-prompt-container .setting-item-control button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent);
+}
+
+.custom-prompt-container .setting-item-control button[aria-label="删除"]:hover {
+    color: var(--text-error);
+}
+
+/* 标题和添加按钮容器 */
+.setting-prompt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.setting-header-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-normal);
+    margin: 0;
+}
+
+/* 添加按钮样式 */
+.setting-header-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.setting-header-button:hover {
+    opacity: 0.9;
+}
+
+.setting-header-button svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* AI 服务设置区域样式 */
+.ai-service-settings {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.ai-service-settings h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+/* 分隔线样式 */
+hr {
+    margin: 8px 0;
+    border: none;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Prompt 弹窗样式 */
+.prompt-modal {
+    width: 600px;
+    max-width: 90vw;
+}
+
+.prompt-modal .modal-content {
+    padding: 0;
+    margin: 0;
+}
+
+.prompt-modal .modal-title {
+    margin: 0;
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.prompt-modal .modal-body {
+    padding: 24px;
+}
+
+/* Prompt 输入区域样式 */
+.prompt-modal-input {
+    margin-bottom: 16px;
+}
+
+.prompt-modal-input .setting-item {
+    border: none;
+    padding: 0;
+}
+
+.prompt-modal-input .setting-item-info {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.prompt-modal-input input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    font-size: 14px;
+}
+
+.prompt-modal-input input:focus {
+    border-color: var(--interactive-accent);
+    outline: none;
+}
+
+/* Prompt 内容输入区域 */
+.prompt-modal-content {
+    margin-bottom: 24px;
+}
+
+.prompt-modal-content .setting-item {
+    border: none;
+    padding: 0;
+}
+
+.prompt-modal-content .setting-item-info {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.prompt-modal-content textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.prompt-modal-content textarea:focus {
+    border-color: var(--interactive-accent);
+    outline: none;
+}
+
+/* 按钮容器样式 */
+.prompt-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--background-modifier-border);
+    margin-top: 8px;
+}
+
+.prompt-modal-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.prompt-modal-button-cancel {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.prompt-modal-button-cancel:hover {
+    background-color: var(--background-modifier-border);
+}
+
+.prompt-modal-button-submit {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.prompt-modal-button-submit:hover {
+    opacity: 0.9;
 }

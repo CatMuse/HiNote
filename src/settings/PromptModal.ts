@@ -14,7 +14,7 @@ export class AddPromptModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
 
-        contentEl.createEl('h2', { text: '添加新的 Prompt' });
+        contentEl.createEl('h2', { text: '添加 Prompt' });
 
         new Setting(contentEl)
             .setName('名称')

@@ -11,6 +11,35 @@ export class AISettingTab extends ObsidianSettingTab {
         super(app, plugin);
         this.plugin = plugin;
         this.DEFAULT_SETTINGS = plugin.DEFAULT_SETTINGS;  // 从插件实例获取默认设置
+        
+        // 加载样式
+        this.loadStyles();
+    }
+
+    private loadStyles() {
+        // 创建 style 元素
+        const styleEl = document.createElement('style');
+        styleEl.id = 'comment-plugin-settings-styles';
+        
+        // 添加样式内容
+        styleEl.textContent = `
+            .prompt-settings-container {
+                background-color: var(--background-secondary);
+                border-radius: 8px;
+                padding: 16px;
+                margin: 16px 0;
+            }
+            
+            /* 其他样式... */
+        `;
+        
+        // 添加到文档头部
+        document.head.appendChild(styleEl);
+    }
+
+    // 在组件卸载时移除样式
+    hide() {
+        document.getElementById('comment-plugin-settings-styles')?.remove();
     }
 
     display(): void {
