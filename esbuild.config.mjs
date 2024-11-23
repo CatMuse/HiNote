@@ -31,7 +31,6 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		"html2canvas",
 		...builtins],
 	format: "cjs",
 	target: "es2018",

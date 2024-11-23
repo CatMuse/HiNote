@@ -658,7 +658,7 @@ export class CommentView extends ItemView {
             const editor = markdownView.editor;
             
             // 使用编辑器的搜索功能定位到高亮文本
-            const searchText = `==${highlight.text}==`;  // 搜��高亮语法
+            const searchText = `==${highlight.text}==`;  // 搜高亮语法
             const content = editor.getValue();
             const position = content.indexOf(searchText);
             
@@ -707,8 +707,15 @@ export class CommentView extends ItemView {
     }
 
     // 修改导出图片功能的方法签名
-    private exportHighlightAsImage(highlight: HighlightInfo & { comments?: CommentItem[] }) {
-        new ExportPreviewModal(this.app, highlight).open();
+    private async exportHighlightAsImage(highlight: HighlightInfo & { comments?: CommentItem[] }) {
+        try {
+            // 动态导入 html2canvas
+            const html2canvas = (await import('html2canvas')).default;
+            new ExportPreviewModal(this.app, highlight, html2canvas).open();
+        } catch (error) {
+            console.error("Failed to load html2canvas:", error);
+            new Notice("导出失败：无法加载必要的组件");
+        }
     }
 
     private async handleAIAnalysis(highlight: HighlightInfo, promptName: string) {

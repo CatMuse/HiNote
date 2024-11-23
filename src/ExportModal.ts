@@ -1,6 +1,7 @@
 import { App, Modal, Notice } from 'obsidian';
 import { HighlightInfo } from './types';
 import { getTemplate } from './templates';
+import { CommentItem } from './CommentStore';
 
 interface Html2CanvasOptions {
     backgroundColor: string;
@@ -12,8 +13,13 @@ interface Html2CanvasOptions {
 }
 
 export class ExportPreviewModal extends Modal {
-    constructor(app: App, private highlight: HighlightInfo) {
+    private highlight: HighlightInfo & { comments?: CommentItem[] };
+    private html2canvasInstance: any;
+
+    constructor(app: App, highlight: HighlightInfo & { comments?: CommentItem[] }, html2canvas: any) {
         super(app);
+        this.highlight = highlight;
+        this.html2canvasInstance = html2canvas;
     }
 
     async onOpen() {
@@ -48,8 +54,7 @@ export class ExportPreviewModal extends Modal {
             text: '下载'
         }).addEventListener('click', async () => {
             try {
-                // 使用全局对象中的 html2canvas
-                const canvas = await (window as any).html2canvas(previewContainer, {
+                const canvas = await this.html2canvasInstance(previewContainer, {
                     backgroundColor: getComputedStyle(document.body).getPropertyValue('--background-secondary'),
                     scale: 3,
                     useCORS: true,
