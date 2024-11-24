@@ -19,6 +19,17 @@ export default class CommentPlugin extends Plugin {
 		// 将 html2canvas 添加到全局对象
 		(window as any).html2canvas = html2canvas;
 
+		// 添加导出样式
+		const styleEl = document.createElement('style');
+		styleEl.id = 'highlight-export-styles';
+		try {
+			const response = await fetch(`app://local/${this.manifest.dir}/src/templates/styles.css`);
+			styleEl.textContent = await response.text();
+		} catch (error) {
+			console.error('Failed to load export styles:', error);
+		}
+		document.head.appendChild(styleEl);
+
 		// 初始化评论存储
 		this.commentStore = new CommentStore(this);
 		await this.commentStore.loadComments();

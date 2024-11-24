@@ -142,4 +142,271 @@
 .highlight-export-preview-container .highlight-export-card-modern {
     margin: 40px;
 }
- 
+
+/* 通用样式 */
+.highlight-export-preview-container {
+    padding: 20px;
+    border-radius: 8px;
+    background-color: var(--background-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 导出容器 */
+.highlight-export-container {
+    width: 480px;
+    margin: 0 auto;
+    padding: 0;
+    background: none;
+}
+
+/* 所有导出卡片的基础样式 */
+.highlight-export-card-modern,
+.highlight-export-card-minimal,
+.highlight-export-card-academic,
+.highlight-export-card-social {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* 模板选择器样式 */
+.highlight-template-selector {
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.highlight-template-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-normal);
+}
+
+.highlight-template-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.highlight-template-select:hover {
+    border-color: var(--interactive-accent);
+}
+
+.highlight-template-select:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--background-modifier-border);
+}
+
+.highlight-template-select option {
+    padding: 8px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+/* 按钮样式 */
+.highlight-export-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 15px;
+    border-top: 1px solid var(--background-modifier-border);
+    position: sticky;
+    bottom: 0;
+    background-color: var(--background-primary);
+}
+
+.highlight-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.highlight-btn:hover {
+    opacity: 0.9;
+}
+
+.highlight-btn-primary {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+/* 默认模板（现代风格）样式 */
+.highlight-export-card-modern {
+    padding: 32px;
+    background-color: var(--background-primary);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 背景装饰 */
+.highlight-export-card-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, 
+        var(--interactive-accent) 0%,
+        var(--interactive-accent-hover) 100%);
+}
+
+/* 引号装饰 */
+.highlight-export-card-modern .highlight-export-quote-decoration {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    opacity: 0.06;
+    transform: scale(2);
+}
+
+/* 引用内容区域 */
+.highlight-export-card-modern .highlight-export-quote-section {
+    position: relative;
+    padding: 24px 0;
+}
+
+.highlight-export-card-modern .highlight-export-quote {
+    font-size: 1.25em;
+    line-height: 1.7;
+    color: var(--text-normal);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* 底部信息样式 */
+.highlight-export-card-modern .highlight-export-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--background-modifier-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.highlight-export-card-modern .highlight-export-source {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.highlight-export-card-modern .highlight-export-source::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.6;
+}
+
+.highlight-export-card-modern .highlight-export-date {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* 深色模式适配 */
+.theme-dark .highlight-export-card-modern {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.theme-dark .highlight-export-card-modern:hover {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+/* 亮色模式适配 */
+.theme-light .highlight-export-card-modern {
+    background: linear-gradient(to bottom right,
+        var(--background-primary) 0%,
+        var(--background-primary-alt) 100%);
+}
+
+/* 简约模板样式 */
+.highlight-export-card-minimal {
+    padding: 20px;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.highlight-export-card-minimal .highlight-export-quote {
+    font-size: 1.1em;
+    line-height: 1.6;
+    color: var(--text-normal);
+}
+
+/* 学术模板样式 */
+.highlight-export-card-academic {
+    padding: 30px;
+    background-color: var(--background-primary);
+    border: 2px solid var(--background-modifier-border);
+    font-family: "Times New Roman", Times, serif;
+}
+
+.highlight-export-card-academic .highlight-export-quote {
+    font-size: 1.2em;
+    line-height: 1.8;
+    font-style: italic;
+    color: var(--text-normal);
+    margin: 20px 0;
+}
+
+/* 社交媒体模板样式 */
+.highlight-export-card-social {
+    padding: 20px;
+    background-color: var(--background-primary);
+    border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.highlight-export-card-social .highlight-export-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.highlight-export-card-social .highlight-export-logo {
+    margin-right: 10px;
+}
+
+.highlight-export-card-social .highlight-export-app-name {
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.highlight-export-card-social .highlight-export-quote {
+    font-size: 1.3em;
+    line-height: 1.6;
+    color: var(--text-normal);
+    margin: 20px 0;
+}
+
+.highlight-export-card-social .highlight-export-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}

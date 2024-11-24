@@ -1,6 +1,6 @@
 import { App, Modal, Notice } from 'obsidian';
 import { HighlightInfo } from './types';
-import { getTemplate } from './templates';
+import { getTemplate, templates } from './templates';
 import { CommentItem } from './CommentStore';
 
 interface Html2CanvasOptions {
@@ -15,6 +15,8 @@ interface Html2CanvasOptions {
 export class ExportPreviewModal extends Modal {
     private highlight: HighlightInfo & { comments?: CommentItem[] };
     private html2canvasInstance: any;
+    private selectedTemplateId: string = 'default';
+    private previewContainer: HTMLElement;
 
     constructor(app: App, highlight: HighlightInfo & { comments?: CommentItem[] }, html2canvas: any) {
         super(app);
@@ -27,15 +29,52 @@ export class ExportPreviewModal extends Modal {
         contentEl.empty();
         contentEl.addClass('highlight-export-modal');
 
+        // 创建主容器
+        const mainContainer = contentEl.createEl('div', {
+            cls: 'highlight-export-main-container'
+        });
+
+        // 添加模板选择区域
+        const templateSelector = mainContainer.createEl('div', {
+            cls: 'highlight-template-selector'
+        });
+
+        const templateLabel = templateSelector.createEl('div', {
+            cls: 'highlight-template-label',
+            text: '选择模板'
+        });
+
+        // 创建下拉框
+        const selectEl = templateSelector.createEl('select', {
+            cls: 'highlight-template-select'
+        });
+
+        // 添加所有可用模板选项
+        templates.forEach(template => {
+            const option = selectEl.createEl('option', {
+                text: template.name,
+                value: template.id
+            });
+            
+            if (this.selectedTemplateId === template.id) {
+                option.selected = true;
+            }
+        });
+
+        // 监听选择变化
+        selectEl.addEventListener('change', (e) => {
+            const select = e.target as HTMLSelectElement;
+            this.selectedTemplateId = select.value;
+            this.updatePreview();
+        });
+
         // 创建预览容器
-        const previewContainer = contentEl.createEl('div', {
+        this.previewContainer = mainContainer.createEl('div', {
             cls: 'highlight-export-preview-container'
         });
 
-        // 渲染预览
-        const template = getTemplate('default');
-        const cardElement = template.render(this.highlight);
-        previewContainer.appendChild(cardElement);
+        // 初始预览
+        this.updatePreview();
 
         // 按钮组
         const buttonContainer = contentEl.createEl('div', {
@@ -54,38 +93,37 @@ export class ExportPreviewModal extends Modal {
             text: '下载'
         }).addEventListener('click', async () => {
             try {
-                const canvas = await this.html2canvasInstance(previewContainer, {
-                    backgroundColor: getComputedStyle(document.body).getPropertyValue('--background-secondary'),
-                    scale: 3,
+                // 创建临时容器用于导出
+                const exportContainer = document.createElement('div');
+                exportContainer.className = 'highlight-export-container';
+                exportContainer.style.padding = '0';
+                exportContainer.style.margin = '0';
+                exportContainer.style.background = 'none';
+                exportContainer.style.width = '480px'; // 设置固定宽度
+                
+                const template = getTemplate(this.selectedTemplateId);
+                const cardElement = template.render(this.highlight);
+                exportContainer.appendChild(cardElement);
+                document.body.appendChild(exportContainer);
+
+                const canvas = await this.html2canvasInstance(exportContainer, {
+                    backgroundColor: null,
+                    scale: 2, // 降低缩放比例
                     useCORS: true,
                     allowTaint: true,
                     logging: false,
                     onclone: (clonedDoc: Document) => {
                         const style = clonedDoc.createElement('style');
-                        style.textContent = `
-                            * {
-                                -webkit-font-smoothing: antialiased;
-                                -moz-osx-font-smoothing: grayscale;
-                                text-rendering: optimizeLegibility;
-                                letter-spacing: 0;
-                                word-spacing: normal;
-                                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                            }
-                            .highlight-export-preview-container {
-                                padding: 40px;
-                                background-color: ${getComputedStyle(document.body).getPropertyValue('--background-secondary')};
-                            }
-                            .highlight-export-card-modern {
-                                margin: 0;
-                                background-color: ${getComputedStyle(document.body).getPropertyValue('--background-primary')};
-                            }
-                        `;
+                        style.textContent = this.getExportStyles();
                         clonedDoc.head.appendChild(style);
                     }
                 });
 
+                // 清理临时容器
+                document.body.removeChild(exportContainer);
+
                 const link = document.createElement('a');
-                link.download = `highlight-${Date.now()}.png`;
+                link.download = `highlight-${this.selectedTemplateId}-${Date.now()}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
 
@@ -98,8 +136,34 @@ export class ExportPreviewModal extends Modal {
         });
     }
 
+    private updatePreview() {
+        this.previewContainer.empty();
+        const template = getTemplate(this.selectedTemplateId);
+        const cardElement = template.render(this.highlight);
+        this.previewContainer.appendChild(cardElement);
+    }
+
+    private getExportStyles(): string {
+        return `
+            * {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+                text-rendering: optimizeLegibility;
+                letter-spacing: 0;
+                word-spacing: normal;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+            .highlight-export-container {
+                padding: 0;
+                margin: 0;
+                background: none;
+            }
+            ${document.querySelector('#highlight-export-styles')?.innerHTML || ''}
+        `;
+    }
+
     onClose() {
         const { contentEl } = this;
         contentEl.empty();
     }
-} 
+}
