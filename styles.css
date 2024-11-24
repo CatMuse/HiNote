@@ -119,6 +119,25 @@
     font-size: 13px;
     line-height: 1.5;
     margin-bottom: 0;
+    cursor: text;
+    transition: background-color 0.2s ease;
+}
+
+.highlight-comment-content:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.highlight-comment-content::after {
+    content: '双击编辑';
+    display: none;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+.highlight-comment-content:hover::after {
+    display: inline;
 }
 
 .highlight-comment-footer {
@@ -393,6 +412,7 @@
     opacity: 1;
     transition: all 0.2s ease;
     height: 22px;
+    z-index: 1;
 }
 
 .highlight-comment-button-hidden {
@@ -429,7 +449,7 @@
     min-width: 300px;
     max-width: 500px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 99999;
+    z-index: 999999;
     pointer-events: auto;
 }
 
@@ -742,10 +762,10 @@
 /* 修改评论按钮容器的位方式 */
 .highlight-comment-widget {
     position: absolute;
-    right: -32px;          /* 向右偏移固定距离 */
-    top: 14%;             /* 垂直居中 */
+    right: -32px;
+    top: 14%;
     transform: translateY(-50%);
-    z-index: 2;
+    z-index: 1;
     height: 22px;
     display: flex;
     align-items: center;
@@ -1122,4 +1142,53 @@ hr {
 
 .prompt-modal-button-submit:hover {
     opacity: 0.9;
+}
+
+.highlight-comment-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 4px;
+    text-align: left;
+}
+
+/* 移除旧的删除按钮样式 */
+.highlight-delete-btn {
+    display: none;
+}
+
+/* 添加新的操作提示区域样式 */
+.highlight-comment-actions-hint {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 删除链接样式 */
+.highlight-comment-delete-link {
+    background: none;
+    border: none;
+    padding: 4px 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    box-shadow: none;
+    -webkit-box-shadow: none;  /* 添加 webkit 前缀 */
+}
+
+.highlight-comment-delete-link:hover {
+    color: var(--text-error);
+    background: none;
+    box-shadow: none;
+    -webkit-box-shadow: none;  /* 添加 webkit 前缀 */
+}
+
+/* 调整提示文本样式 */
+.highlight-comment-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-right: auto;
 }

@@ -310,7 +310,7 @@ export class CommentView extends ItemView {
                 // 如果没有可用的 prompts，显示提示信息
                 aiDropdown.createEl("div", {
                     cls: "highlight-ai-dropdown-item",
-                    text: "请先在设置中添加 Prompt"
+                    text: "请先在置中添加 Prompt"
                 });
             }
 
@@ -379,10 +379,16 @@ export class CommentView extends ItemView {
                         attr: { 'data-comment-id': comment.id }
                     });
 
-                    // 评论内容
-                    commentEl.createEl("div", {
+                    // 评论内容 - 添加双击事件
+                    const contentEl = commentEl.createEl("div", {
                         text: comment.content,
                         cls: "highlight-comment-content"
+                    });
+
+                    // 添加双击事件监听
+                    contentEl.addEventListener("dblclick", (e) => {
+                        e.stopPropagation();
+                        this.showCommentInput(card, highlight, comment);
                     });
 
                     // 创建底部操作栏
@@ -401,22 +407,7 @@ export class CommentView extends ItemView {
                         cls: "highlight-comment-actions"
                     });
 
-                    // 编辑按钮
-                    const editBtn = actions.createEl("button", {
-                        cls: "highlight-edit-btn",
-                        attr: { 'aria-label': '编辑评论' }
-                    });
-                    editBtn.innerHTML = `
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
-                        </svg>
-                    `;
-                    editBtn.addEventListener("click", (e) => {
-                        e.stopPropagation();
-                        this.showCommentInput(card, highlight, comment);
-                    });
-
-                    // 删除按钮
+                    // 删除按钮 (保留删除按钮，但移除编辑按钮)
                     const deleteBtn = actions.createEl("button", {
                         cls: "highlight-delete-btn",
                         attr: { 'aria-label': '删除评论' }
@@ -431,7 +422,6 @@ export class CommentView extends ItemView {
                     deleteBtn.addEventListener("click", async (e) => {
                         e.stopPropagation();
                         await this.deleteComment(highlight, comment.id);
-                        // 不需要调用 updateHighlights，因为 deleteComment 已经会触发更新
                     });
                 });
             }
@@ -440,7 +430,7 @@ export class CommentView extends ItemView {
 
     private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
         if (existingComment) {
-            // 编辑有评论的逻辑
+            // 编辑现有评论的逻辑
             const commentEl = card.querySelector(`[data-comment-id="${existingComment.id}"]`);
             if (!commentEl) return;
 
@@ -454,7 +444,6 @@ export class CommentView extends ItemView {
             textarea.value = originalContent;
             textarea.className = 'highlight-comment-input';
             textarea.style.minHeight = `${contentEl.offsetHeight}px`;
-            textarea.placeholder = 'Shift + Enter 换行，Esc 取消';
 
             // 替换内容为编辑框
             contentEl.replaceWith(textarea);
@@ -465,27 +454,32 @@ export class CommentView extends ItemView {
                 footer.addClass('hidden');
             }
 
-            // 创建编辑操作按钮
-            const editActions = commentEl.createEl('div', {
-                cls: 'highlight-comment-buttons'
+            // 添加快捷键提示和删除按钮
+            const actionHint = commentEl.createEl('div', {
+                cls: 'highlight-comment-actions-hint'
             });
 
-            // 取消按钮
-            const cancelBtn = editActions.createEl('button', {
-                cls: 'highlight-btn',
-                text: '取消'
+            // 快捷键提示
+            actionHint.createEl('span', {
+                cls: 'highlight-comment-hint',
+                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
             });
 
-            // 保存按钮
-            const saveBtn = editActions.createEl('button', {
-                cls: 'highlight-btn highlight-btn-primary',
-                text: '保存'
+            // 删除按钮
+            const deleteLink = actionHint.createEl('button', {
+                cls: 'highlight-comment-delete-link',
+                text: '删除评论'
+            });
+
+            deleteLink.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.deleteComment(highlight, existingComment.id);
             });
 
             // 取消编辑
             const cancelEdit = () => {
                 textarea.replaceWith(contentEl);
-                editActions.remove();
+                actionHint.remove();
                 footer?.removeClass('hidden');
             };
 
@@ -500,22 +494,21 @@ export class CommentView extends ItemView {
                 }
             };
 
-            cancelBtn.addEventListener('click', cancelEdit);
-            saveBtn.addEventListener('click', saveEdit);
-
-            // 修改快捷键处理
+            // 支持快捷键操作
             textarea.onkeydown = async (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     e.stopPropagation();
                     cancelEdit();
-                } else if (e.key === 'Enter' && !e.shiftKey) {  // 直接使用回车键，Shift+Enter 用于换行
+                } else if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Save triggered - Edit mode');
                     await saveEdit();
                 }
             };
+
+            // 聚焦到文本框
+            textarea.focus();
         } else {
             // 添加新评论的逻辑
             let commentsSection = card.querySelector('.highlight-comments-section');
@@ -524,32 +517,18 @@ export class CommentView extends ItemView {
             const inputSection = document.createElement('div');
             inputSection.className = 'highlight-comment-input';
 
-            const textarea = inputSection.createEl("textarea", {
-                attr: { 
-                    placeholder: "Shift + Enter 换行，Esc 取消"
-                }
-            });
+            // 创建文本框
+            const textarea = inputSection.createEl("textarea");
 
-            const btnGroup = inputSection.createEl("div", {
-                cls: "highlight-comment-buttons"
-            });
-
-            // 取消按钮
-            const cancelBtn = btnGroup.createEl("button", {
-                cls: "highlight-btn",
-                text: "取消"
-            });
-
-            // 保存按钮
-            const saveBtn = btnGroup.createEl("button", {
-                cls: "highlight-btn highlight-btn-primary",
-                text: "保存"
+            // 添加快捷键提示
+            inputSection.createEl('div', {
+                cls: 'highlight-comment-hint',
+                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
             });
 
             // 取消操作
             const cancelAdd = () => {
                 inputSection.remove();
-                // 如果没有评论，移除评论区域
                 if (!commentsSection?.querySelector('.highlight-comment')) {
                     commentsSection?.remove();
                 }
@@ -566,19 +545,15 @@ export class CommentView extends ItemView {
                 }
             };
 
-            cancelBtn.addEventListener("click", cancelAdd);
-            saveBtn.addEventListener("click", saveAdd);
-
-            // 修改快捷键处理
+            // 支持快捷键操作
             textarea.onkeydown = async (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     e.stopPropagation();
                     cancelAdd();
-                } else if (e.key === 'Enter' && !e.shiftKey) {  // 直接使用回车键，Shift+Enter 用于换行
+                } else if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Save triggered - Add mode');
                     await saveAdd();
                 }
             };
