@@ -48,7 +48,7 @@ export class CommentView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "文档高亮";
+        return "ObsidianComment";
     }
 
     getIcon(): string {
