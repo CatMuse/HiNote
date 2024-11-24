@@ -109,7 +109,7 @@ export class AISettingTab extends ObsidianSettingTab {
                     if (!this.plugin.settings.ai.openai) {
                         this.plugin.settings.ai.openai = {
                             apiKey: '',
-                            model: 'gpt-3.5-turbo'
+                            model: 'gpt-4o'
                         };
                     }
                     this.plugin.settings.ai.openai.apiKey = value;
@@ -180,9 +180,9 @@ export class AISettingTab extends ObsidianSettingTab {
             .setDesc('选择要使用的 OpenAI 模型')
             .addDropdown(dropdown => dropdown
                 .addOptions({
-                    'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+                    'gpt-4o': 'GPT-4o',
                     'gpt-4': 'GPT-4',
-                    'gpt-4-turbo-preview': 'GPT-4 Turbo'
+                    'gpt-4o-mini': 'GPT-4o-mini'
                 })
                 .setValue(this.plugin.settings.ai.openai?.model || 'gpt-3.5-turbo')
                 .onChange(async (value: OpenAIModel) => {

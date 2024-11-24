@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform } from "obsidian";
 import { CommentStore, HighlightComment, CommentItem } from './CommentStore';
 import { Modal } from 'obsidian';
 import { ExportPreviewModal } from './ExportModal';
@@ -49,6 +49,10 @@ export class CommentView extends ItemView {
 
     getDisplayText(): string {
         return "文档高亮";
+    }
+
+    getIcon(): string {
+        return "message-square-quote";  // 使用与左侧功能区相同的图标
     }
 
     async onOpen() {
@@ -436,15 +440,13 @@ export class CommentView extends ItemView {
 
     private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
         if (existingComment) {
-            // 编辑现有评论的逻辑
+            // 编辑有评论的逻辑
             const commentEl = card.querySelector(`[data-comment-id="${existingComment.id}"]`);
             if (!commentEl) return;
 
-            // 找到评论内容元素
             const contentEl = commentEl.querySelector('.highlight-comment-content') as HTMLElement;
             if (!contentEl) return;
 
-            // 保存原有内容
             const originalContent = contentEl.textContent || '';
 
             // 创建编辑框
@@ -452,8 +454,9 @@ export class CommentView extends ItemView {
             textarea.value = originalContent;
             textarea.className = 'highlight-comment-input';
             textarea.style.minHeight = `${contentEl.offsetHeight}px`;
+            textarea.placeholder = 'Shift + Enter 换行，Esc 取消';
 
-            // 替换内容为编辑
+            // 替换内容为编辑框
             contentEl.replaceWith(textarea);
 
             // 隐藏底部的时间和按钮
@@ -462,12 +465,12 @@ export class CommentView extends ItemView {
                 footer.addClass('hidden');
             }
 
-            // 创编辑操作按
+            // 创建编辑操作按钮
             const editActions = commentEl.createEl('div', {
                 cls: 'highlight-comment-buttons'
             });
 
-            // 取按钮
+            // 取消按钮
             const cancelBtn = editActions.createEl('button', {
                 cls: 'highlight-btn',
                 text: '取消'
@@ -500,18 +503,19 @@ export class CommentView extends ItemView {
             cancelBtn.addEventListener('click', cancelEdit);
             saveBtn.addEventListener('click', saveEdit);
 
-            // 支持按键操作
-            textarea.addEventListener('keydown', (e) => {
+            // 修改快捷键处理
+            textarea.onkeydown = async (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
                     cancelEdit();
-                } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    saveEdit();
+                } else if (e.key === 'Enter' && !e.shiftKey) {  // 直接使用回车键，Shift+Enter 用于换行
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Save triggered - Edit mode');
+                    await saveEdit();
                 }
-            });
-
-            // 聚焦到文本框并将光标移到末尾
-            textarea.focus();
-            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            };
         } else {
             // 添加新评论的逻辑
             let commentsSection = card.querySelector('.highlight-comments-section');
@@ -521,44 +525,65 @@ export class CommentView extends ItemView {
             inputSection.className = 'highlight-comment-input';
 
             const textarea = inputSection.createEl("textarea", {
-                attr: { placeholder: "输入评论..." }
+                attr: { 
+                    placeholder: "Shift + Enter 换行，Esc 取消"
+                }
             });
 
             const btnGroup = inputSection.createEl("div", {
                 cls: "highlight-comment-buttons"
             });
 
-            // 取消钮
-            btnGroup.createEl("button", {
+            // 取消按钮
+            const cancelBtn = btnGroup.createEl("button", {
                 cls: "highlight-btn",
                 text: "取消"
-            }).addEventListener("click", () => {
+            });
+
+            // 保存按钮
+            const saveBtn = btnGroup.createEl("button", {
+                cls: "highlight-btn highlight-btn-primary",
+                text: "保存"
+            });
+
+            // 取消操作
+            const cancelAdd = () => {
                 inputSection.remove();
                 // 如果没有评论，移除评论区域
                 if (!commentsSection?.querySelector('.highlight-comment')) {
                     commentsSection?.remove();
                 }
-            });
+            };
 
-            // 保存按钮
-            btnGroup.createEl("button", {
-                cls: "highlight-btn highlight-btn-primary",
-                text: "保存"
-            }).addEventListener("click", async () => {
+            // 保存操作
+            const saveAdd = async () => {
                 const content = textarea.value.trim();
                 if (content) {
                     await this.addComment(highlight, content);
                     await this.updateHighlights();
                 } else {
-                    inputSection.remove();
-                    // 如果没有评论，移除评论区域
-                    if (!commentsSection?.querySelector('.highlight-comment')) {
-                        commentsSection?.remove();
-                    }
+                    cancelAdd();
                 }
-            });
+            };
 
-            // 如果还没有评论区域，创建一
+            cancelBtn.addEventListener("click", cancelAdd);
+            saveBtn.addEventListener("click", saveAdd);
+
+            // 修改快捷键处理
+            textarea.onkeydown = async (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    cancelAdd();
+                } else if (e.key === 'Enter' && !e.shiftKey) {  // 直接使用回车键，Shift+Enter 用于换行
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Save triggered - Add mode');
+                    await saveAdd();
+                }
+            };
+
+            // 如果还没有评论区域，创建一个
             if (!commentsSection) {
                 commentsSection = card.createEl('div', {
                     cls: 'highlight-comments-section'
@@ -574,6 +599,7 @@ export class CommentView extends ItemView {
                 commentsList.insertBefore(inputSection, commentsList.firstChild);
             }
 
+            // 聚焦到文本框
             textarea.focus();
         }
     }
@@ -766,7 +792,7 @@ export class CommentView extends ItemView {
             new ExportPreviewModal(this.app, highlight, html2canvas).open();
         } catch (error) {
             console.error("Failed to load html2canvas:", error);
-            new Notice("导出失败：无法加载必要的组件");
+            new Notice("导出失败：无法加载必要的件");
         }
     }
 
@@ -809,7 +835,7 @@ export class CommentView extends ItemView {
             // 更新视图
             await this.updateHighlights();
             
-            new Notice('AI 分析完成');
+            new Notice('AI 分析完');
         } catch (error) {
             console.error('AI 分析失败:', error);
             new Notice(`AI 分析失败: ${error.message}`);

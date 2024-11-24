@@ -221,13 +221,26 @@ export class HighlightDecorator {
                     while ((match = highlightRegex.exec(paragraph)) !== null) {
                         const text = match[1] || match[2];
                         if (text.trim()) {
+                            // 查找已存在的评论
                             const matchedComment = fileComments.find(c => c.text === text.trim());
                             if (matchedComment) {
                                 paragraphHighlights.push(matchedComment);
+                            } else {
+                                // 为没有评论的高亮创建一个空的评论对象
+                                paragraphHighlights.push({
+                                    id: `highlight-${Date.now()}`,
+                                    text: text.trim(),
+                                    position: offset + match.index,
+                                    comments: [],
+                                    createdAt: Date.now(),
+                                    updatedAt: Date.now(),
+                                    paragraphId: `p-${offset}-${Date.now()}`
+                                } as HighlightComment);
                             }
                         }
                     }
 
+                    // 只要有高亮就创建评论按钮，不管是否有评论
                     if (paragraphHighlights.length > 0) {
                         const allComments = paragraphHighlights.flatMap(h => h.comments || []);
                         const combinedHighlight = {

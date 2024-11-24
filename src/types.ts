@@ -12,9 +12,9 @@ export interface HighlightInfo {
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'ollama';
-export type OpenAIModel = 'gpt-3.5-turbo' | 'gpt-4' | 'gpt-4-turbo-preview';
+export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini' | 'gpt-4';
 export type AnthropicModel = 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku';
-export type OllamaModel = 'llama2' | 'mistral' | 'mixtral' | 'phi';
+export type OllamaModel = 'llama3.2' | 'qwen2.5:14b' | 'mixtral' | 'phi';
 
 export interface AISettings {
     provider: AIProvider;
@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         provider: 'openai',
         openai: {
             apiKey: '',
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4o',
         },
         prompts: {
             '分析要点': `作为一个知识助手，请帮我分析和理解以下高亮内容，并提供以下几个方面的见解：
