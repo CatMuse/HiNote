@@ -1,94 +1,97 @@
-# Obsidian Sample Plugin
+# Obsidian Comment Plugin
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+A powerful commenting system for your Obsidian notes that allows you to add, manage, and export comments throughout your vault.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+### 💬 Comment Management
+- Add comments to any part of your documents
+- Persistent storage of comments across sessions
+- Automatic cleanup of orphaned comments
+- Visual highlighting of commented text
 
-## First time developing plugins?
+### 🎨 User Interface
+- Dedicated comment panel accessible via ribbon icon
+- Clean and intuitive comment view
+- Seamless text highlighting integration
+- Easy navigation between comments
 
-Quick starting guide for new plugin devs:
+### 📤 Export Capabilities
+- Export comments with highlighted text
+- Custom styling options for exports
+- High-quality image export using html2canvas
+- Configurable export settings
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+### ⚙️ Customization
+- Configurable plugin settings
+- AI-enhanced features (optional)
+- Customizable appearance options
+- Flexible display preferences
 
-## Releasing new releases
+## Installation
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+1. Open Obsidian Settings
+2. Navigate to Community Plugins and disable Safe Mode
+3. Click Browse and search for "Comment"
+4. Install the plugin and enable it
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Usage
 
-## Adding your plugin to the community plugin list
+### Adding Comments
+1. Select text in your note
+2. Click the comment icon in the ribbon
+3. Enter your comment in the panel
+4. Save to apply
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### Managing Comments
+- View all comments in the dedicated comment panel
+- Click on comments to navigate to their location
+- Edit or delete comments directly from the panel
+- Filter and organize comments as needed
 
-## How to use
+### Exporting Comments
+1. Open the comment panel
+2. Click the export button
+3. Configure export settings
+4. Choose your export format
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+## Configuration
 
-## Manually installing the plugin
+The plugin can be configured through the settings tab:
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+- **Comment Display**: Customize how comments appear in your notes
+- **Highlight Style**: Modify the appearance of highlighted text
+- **Export Options**: Configure export preferences
+- **AI Features**: Enable or disable AI-enhanced capabilities
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+## Performance Considerations
 
-## Funding URL
+- Comments are automatically cleaned up hourly to maintain performance
+- Efficient comment storage system
+- Optimized highlighting mechanism
+- Responsive UI design
 
-You can include funding URLs where people who use your plugin can financially support it.
+## Contributing
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+## Support
 
-If you have multiple URLs, you can also do:
+If you encounter any issues or have feature requests, please:
+1. Check the existing issues on GitHub
+2. Create a new issue if needed
+3. Provide as much detail as possible about your problem
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+## License
 
-## API Documentation
+MIT License - see the LICENSE file for details
 
-See https://github.com/obsidianmd/obsidian-api
+## Acknowledgments
+
+- Built for the Obsidian community
+- Uses html2canvas for high-quality exports
+- Special thanks to all contributors
+
+---
+
+For more information about Obsidian plugins, visit [Obsidian Plugin Documentation](https://docs.obsidian.md/Plugins/Getting+started/Build+a+plugin).
