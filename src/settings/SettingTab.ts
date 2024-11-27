@@ -170,6 +170,45 @@ export class AISettingTab extends ObsidianSettingTab {
         this.displayPromptSettings();
     }
 
+    private createOrUpdateModelDropdown(container: HTMLElement, models?: {id: string, name: string}[]) {
+        const defaultOptions = {
+            'gpt-4o': 'GPT-4o',
+            'gpt-4o-mini': 'GPT-4o-mini',
+            'gpt-4': 'GPT-4',
+            'gpt-4-turbo-preview': 'GPT-4 Turbo',
+            'gpt-3.5-turbo': 'GPT-3.5 Turbo'
+        };
+
+        return new Setting(container)
+            .setName('模型')
+            .setDesc('选择要使用的 OpenAI 模型')
+            .addDropdown(dropdown => {
+                // 使用传入的模型列表或默认选项
+                const options: {[key: string]: string} = {};
+                if (models && models.length > 0) {
+                    models.forEach(model => {
+                        options[model.id] = model.name;
+                    });
+                } else {
+                    Object.assign(options, defaultOptions);
+                }
+                
+                dropdown
+                    .addOptions(options)
+                    .setValue(this.plugin.settings.ai.openai?.model || 'gpt-4o')
+                    .onChange(async (value: OpenAIModel) => {
+                        if (!this.plugin.settings.ai.openai) {
+                            this.plugin.settings.ai.openai = {
+                                apiKey: '',
+                                model: 'gpt-4o'
+                            };
+                        }
+                        this.plugin.settings.ai.openai.model = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+    }
+
     private displayOpenAISettings() {
         const container = this.containerEl.createEl('div', {
             cls: 'ai-service-settings'
@@ -212,30 +251,7 @@ export class AISettingTab extends ObsidianSettingTab {
                                 const modelContainer = container.querySelector('.model-setting-container');
                                 if (modelContainer instanceof HTMLElement) {
                                     modelContainer.empty();
-                                    new Setting(modelContainer)
-                                        .setName('模型')
-                                        .setDesc('选择要使用的 OpenAI 模型')
-                                        .addDropdown(dropdown => {
-                                            // 添加所有可用的模型
-                                            const options: {[key: string]: string} = {};
-                                            models.forEach(model => {
-                                                options[model.id] = model.name;
-                                            });
-                                            
-                                            dropdown
-                                                .addOptions(options)
-                                                .setValue(this.plugin.settings.ai.openai?.model || 'gpt-3.5-turbo')
-                                                .onChange(async (value: OpenAIModel) => {
-                                                    if (!this.plugin.settings.ai.openai) {
-                                                        this.plugin.settings.ai.openai = {
-                                                            apiKey: '',
-                                                            model: 'gpt-3.5-turbo'
-                                                        };
-                                                    }
-                                                    this.plugin.settings.ai.openai.model = value;
-                                                    await this.plugin.saveSettings();
-                                                });
-                                        });
+                                    this.createOrUpdateModelDropdown(modelContainer, models);
                                 }
                                 new Notice('API Key 验证成功！已加载可用模型');
                             } else {
@@ -254,26 +270,7 @@ export class AISettingTab extends ObsidianSettingTab {
         });
 
         // 初始显示默认的模型选择
-        new Setting(modelContainer)
-            .setName('模型')
-            .setDesc('选择要使用的 OpenAI 模型')
-            .addDropdown(dropdown => dropdown
-                .addOptions({
-                    'gpt-4o': 'GPT-4o',
-                    'gpt-4': 'GPT-4',
-                    'gpt-4o-mini': 'GPT-4o-mini'
-                })
-                .setValue(this.plugin.settings.ai.openai?.model || 'gpt-3.5-turbo')
-                .onChange(async (value: OpenAIModel) => {
-                    if (!this.plugin.settings.ai.openai) {
-                        this.plugin.settings.ai.openai = {
-                            apiKey: '',
-                            model: 'gpt-3.5-turbo'
-                        };
-                    }
-                    this.plugin.settings.ai.openai.model = value;
-                    await this.plugin.saveSettings();
-                }));
+        this.createOrUpdateModelDropdown(modelContainer);
 
         // 自定义 API 地址
         new Setting(container)
@@ -286,7 +283,7 @@ export class AISettingTab extends ObsidianSettingTab {
                     if (!this.plugin.settings.ai.openai) {
                         this.plugin.settings.ai.openai = {
                             apiKey: '',
-                            model: 'gpt-3.5-turbo'
+                            model: 'gpt-4o'
                         };
                     }
                     this.plugin.settings.ai.openai.baseUrl = value;
@@ -328,66 +325,10 @@ export class AISettingTab extends ObsidianSettingTab {
             'gpt-4': 'GPT-4',
             'gpt-4-turbo-preview': 'GPT-4 Turbo',
             'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+            'gpt-4o': 'GPT-4o',
+            'gpt-4o-mini': 'GPT-4o-mini'
         };
         return nameMap[modelId] || modelId;
-    }
-
-    private createModelDropdown(container: HTMLElement) {
-        new Setting(container)
-            .setName('模型')
-            .setDesc('选择要使用的 OpenAI 模型')
-            .addDropdown(dropdown => dropdown
-                .addOptions({
-                    'gpt-3.5-turbo': 'GPT-3.5 Turbo',
-                    'gpt-4': 'GPT-4',
-                    'gpt-4-turbo-preview': 'GPT-4 Turbo'
-                })
-                .setValue(this.plugin.settings.ai.openai?.model || 'gpt-3.5-turbo')
-                .onChange(async (value: OpenAIModel) => {
-                    if (!this.plugin.settings.ai.openai) {
-                        this.plugin.settings.ai.openai = {
-                            apiKey: '',
-                            model: 'gpt-3.5-turbo'
-                        };
-                    }
-                    this.plugin.settings.ai.openai.model = value;
-                    await this.plugin.saveSettings();
-                }));
-    }
-
-    // 更新指定容器中的模型下拉菜单
-    private updateModelDropdownInContainer(container: HTMLElement, models: {id: string, name: string}[]) {
-        const modelSetting = container.querySelector('.model-setting-container .setting-item') as HTMLElement;
-        if (modelSetting) {
-            while (modelSetting.firstChild) {
-                modelSetting.removeChild(modelSetting.firstChild);
-            }
-            
-            new Setting(modelSetting as HTMLElement)
-                .setName('模型')
-                .setDesc('选择要使用的 OpenAI 模型')
-                .addDropdown(dropdown => {
-                    // 添加所有可用的模型
-                    const options: {[key: string]: string} = {};
-                    models.forEach(model => {
-                        options[model.id] = model.name;
-                    });
-                    
-                    dropdown
-                        .addOptions(options)
-                        .setValue(this.plugin.settings.ai.openai?.model || 'gpt-3.5-turbo')
-                        .onChange(async (value: OpenAIModel) => {
-                            if (!this.plugin.settings.ai.openai) {
-                                this.plugin.settings.ai.openai = {
-                                    apiKey: '',
-                                    model: 'gpt-3.5-turbo'
-                                };
-                            }
-                            this.plugin.settings.ai.openai.model = value;
-                            await this.plugin.saveSettings();
-                        });
-                });
-        }
     }
 
     private displayAnthropicSettings() {
