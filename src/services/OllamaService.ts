@@ -1,133 +1,221 @@
 import { requestUrl, Notice } from 'obsidian';
 
+interface OllamaResponse {
+    response: string;
+    error?: string;
+}
+
+interface OllamaModel {
+    name: string;
+    modified_at: string;
+    size: number;
+}
+
+interface OllamaModelsResponse {
+    models: OllamaModel[];
+}
+
+interface OllamaVersionResponse {
+    version: string;
+}
+
 export class OllamaService {
-    constructor(private host: string = 'http://localhost:11434') {}
+    private retryAttempts = 3;
+    private retryDelay = 1000; // ms
+    private baseUrl: string;
+
+    constructor(host: string = 'http://localhost:11434') {
+        // Ensure the host has a protocol and normalize the URL
+        if (!host.startsWith('http://') && !host.startsWith('https://')) {
+            host = 'http://' + host;
+        }
+        // Remove trailing slash if present
+        this.baseUrl = host.replace(/\/$/, '');
+        console.log('Initialized OllamaService with base URL:', this.baseUrl);
+    }
 
     async listModels(): Promise<string[]> {
         try {
-            // 先测试连接
-            const isConnected = await this.testConnection();
-            if (!isConnected) {
-                throw new Error('无法连接到 Ollama 服务');
-            }
+            await this.ensureConnection();
 
-            // 获取模型列表
-            console.log('正在获取模型列表...');
-            const response = await requestUrl({
-                url: `${this.host}/api/tags`,
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                throw: false
+            const response = await this.makeRequest({
+                endpoint: '/api/tags',
+                method: 'GET'
             });
 
-            console.log('API 响应状态:', response.status);
-            console.log('API 响应内容:', response.text);
+            console.log('Models response:', response);
 
-            if (response.status !== 200) {
-                throw new Error(`API 请求失败: ${response.status}`);
+            if (!response || !response.models) {
+                throw new Error('Invalid API response format');
             }
 
-            const data = response.json;
-            console.log('解析后的数据:', data);
-
-            return (data.models || []).map((model: string) => model.split(':')[0]);
+            // Extract just the model names from the response
+            return response.models.map(model => model.name);
         } catch (error) {
-            console.error('获取模型列表失败:', error);
-            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                throw new Error('网络请求失败，请检查 Ollama 服务是否正在运行');
-            }
-            throw error;
-        }
-    }
-
-    async testConnection(): Promise<boolean> {
-        try {
-            console.log('测试连接:', `${this.host}/api/version`);
-            
-            // 使用简单的 ping 请求测试连接
-            const response = await requestUrl({
-                url: `${this.host}/api/version`,
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                throw: false
-            });
-
-            console.log('连接测试响应:', {
-                status: response.status,
-                text: response.text
-            });
-
-            // 检查响应状态
-            if (response.status === 200) {
-                console.log('成功连接到 Ollama 服务');
-                return true;
-            }
-
-            console.log('连接失败，状态码:', response.status);
-            return false;
-        } catch (error) {
-            console.error('连接测试失败:', error);
-            return false;
+            console.error('Failed to fetch models:', error);
+            throw this.handleError(error);
         }
     }
 
     async generateCompletion(model: string, prompt: string): Promise<string> {
         try {
-            console.log('生成请求:', { model, prompt });
-            const response = await requestUrl({
-                url: `${this.host}/api/generate`,
+            await this.ensureConnection();
+
+            const response = await this.makeRequest({
+                endpoint: '/api/generate',
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
-                    model: model,
-                    prompt: prompt,
+                    model,
+                    prompt,
                     stream: false
-                }),
-                throw: false
+                })
             });
 
-            if (response.status !== 200) {
-                console.error('生成失败:', response.text);
-                throw new Error(`生成失败: ${response.status}`);
+            if (!response || !response.response) {
+                throw new Error('Invalid API response format');
             }
 
-            const data = response.json;
-            return data.response;
+            return response.response;
         } catch (error) {
-            console.error('生成失败:', error);
-            throw new Error(`AI 生成失败: ${error.message}`);
+            console.error('Generation failed:', error);
+            throw this.handleError(error);
         }
     }
 
     async pullModel(modelName: string): Promise<void> {
         try {
-            new Notice(`开始下载模型 ${modelName}...`);
-            const response = await requestUrl({
-                url: `${this.host}/api/pull`,
+            new Notice(`Downloading model ${modelName}...`);
+            const response = await this.makeRequest({
+                endpoint: '/api/pull',
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     name: modelName
                 }),
-                throw: false
             });
 
             if (!response.ok) {
-                throw new Error(`下载失败: ${response.status}`);
+                throw new Error(`Failed to download model: ${response.status}`);
             }
 
-            new Notice(`模型 ${modelName} 下载完成`);
+            new Notice(`Model ${modelName} downloaded successfully`);
         } catch (error) {
             console.error('Failed to pull model:', error);
-            throw new Error(`下载模型失败: ${error.message}`);
+            throw new Error(`Failed to download model: ${error.message}`);
         }
     }
-} 
+
+    private async ensureConnection(): Promise<void> {
+        if (!this.baseUrl) {
+            throw new Error('Ollama service not configured. Please set the host in settings.');
+        }
+        const isConnected = await this.testConnection();
+        if (!isConnected) {
+            throw new Error('Unable to connect to Ollama service. Please ensure the service is running.');
+        }
+    }
+
+    async testConnection(): Promise<boolean> {
+        if (!this.baseUrl) {
+            return false;
+        }
+        
+        try {
+            const response = await this.makeRequest({
+                endpoint: '/api/version',
+                method: 'GET'
+            });
+
+            return !!response?.version;
+        } catch (error) {
+            console.error('Connection test failed:', error);
+            return false;
+        }
+    }
+
+    private async makeRequest(params: {
+        endpoint: string;
+        method: string;
+        body?: string;
+    }): Promise<any> {
+        let lastError: Error | null = null;
+
+        for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
+            try {
+                const url = new URL(params.endpoint, this.baseUrl).toString();
+                console.log(`Making request to ${url} (attempt ${attempt}/${this.retryAttempts})`);
+                
+                const response = await requestUrl({
+                    url,
+                    method: params.method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: params.body,
+                    throw: false
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                console.log('Response body:', response.text);
+
+                if (response.status === 200) {
+                    try {
+                        // Some Ollama endpoints might return empty responses
+                        if (!response.text) {
+                            return {};
+                        }
+
+                        // Try to parse as JSON
+                        const jsonResponse = JSON.parse(response.text);
+                        return jsonResponse;
+                    } catch (e) {
+                        console.error('Failed to parse JSON response:', e);
+                        console.error('Response text:', response.text);
+                        throw new Error('Invalid JSON response from server');
+                    }
+                }
+
+                // Handle non-200 responses
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorJson = JSON.parse(response.text);
+                    if (errorJson.error) {
+                        errorMessage = errorJson.error;
+                    }
+                } catch (e) {
+                    // If we can't parse the error as JSON, use the raw text
+                    if (response.text) {
+                        errorMessage = response.text;
+                    }
+                }
+                throw new Error(errorMessage);
+            } catch (error) {
+                console.error(`Request failed (attempt ${attempt}):`, error);
+                lastError = error;
+                if (attempt < this.retryAttempts) {
+                    await this.delay(this.retryDelay * attempt);
+                    continue;
+                }
+                break;
+            }
+        }
+
+        throw lastError;
+    }
+
+    private handleError(error: any): Error {
+        if (error.message.includes('ECONNREFUSED')) {
+            new Notice('Ollama service is not running. Please start the service.');
+            return new Error('Unable to connect to Ollama service. Please ensure the service is running.');
+        }
+        if (error instanceof TypeError && error.message.includes('Invalid URL')) {
+            return new Error(`Invalid Ollama service URL: ${this.baseUrl}`);
+        }
+        return error;
+    }
+
+    private delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}

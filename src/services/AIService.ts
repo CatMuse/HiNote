@@ -1,7 +1,14 @@
 import { AIProvider, AISettings } from '../types';
+import { OllamaService } from './OllamaService';
 
 export class AIService {
-    constructor(private settings: AISettings) {}
+    private ollamaService: OllamaService;
+
+    constructor(private settings: AISettings) {
+        if (settings.ollama?.host) {
+            this.ollamaService = new OllamaService(settings.ollama.host);
+        }
+    }
 
     async generateResponse(prompt: string, context: string): Promise<string> {
         const promptWithContext = prompt.replace('{{text}}', context);
@@ -14,13 +21,13 @@ export class AIService {
             case 'ollama':
                 return await this.callOllama(promptWithContext);
             default:
-                throw new Error('未配置 AI 服务');
+                throw new Error('AI service not configured');
         }
     }
 
     private async callOpenAI(prompt: string): Promise<string> {
         if (!this.settings.openai?.apiKey) {
-            throw new Error('未配置 OpenAI API Key');
+            throw new Error('OpenAI API Key not configured');
         }
 
         const response = await fetch(this.settings.openai.baseUrl || 'https://api.openai.com/v1/chat/completions', {
@@ -39,7 +46,7 @@ export class AIService {
         });
 
         if (!response.ok) {
-            throw new Error(`OpenAI API 请求失败: ${response.statusText}`);
+            throw new Error(`OpenAI API request failed: ${response.statusText}`);
         }
 
         const data = await response.json();
@@ -47,12 +54,36 @@ export class AIService {
     }
 
     private async callAnthropic(prompt: string): Promise<string> {
-        // 实现 Anthropic API 调用
-        throw new Error('Anthropic API 尚未实现');
+        // Anthropic implementation placeholder
+        throw new Error('Anthropic API not yet implemented');
     }
 
     private async callOllama(prompt: string): Promise<string> {
-        // 实现 Ollama API 调用
-        throw new Error('Ollama API 尚未实现');
+        if (!this.ollamaService) {
+            throw new Error('Ollama service not configured. Please set the host in settings.');
+        }
+
+        if (!this.settings.ollama?.model) {
+            throw new Error('Ollama model not configured. Please select a model in settings.');
+        }
+
+        return await this.ollamaService.generateCompletion(
+            this.settings.ollama.model,
+            prompt
+        );
     }
-} 
+
+    async listOllamaModels(): Promise<string[]> {
+        if (!this.ollamaService) {
+            throw new Error('Ollama service not configured. Please set the host in settings.');
+        }
+        return await this.ollamaService.listModels();
+    }
+
+    async testOllamaConnection(): Promise<boolean> {
+        if (!this.ollamaService) {
+            return false;
+        }
+        return await this.ollamaService.testConnection();
+    }
+}

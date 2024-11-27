@@ -360,120 +360,216 @@ export class AISettingTab extends ObsidianSettingTab {
     }
 
     private async displayOllamaSettings() {
+        // Clear any existing settings
+        const existingContainer = this.containerEl.querySelector('.ai-service-settings');
+        if (existingContainer) {
+            existingContainer.remove();
+        }
+
         const container = this.containerEl.createEl('div', {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'Ollama 设置' });
+        container.createEl('h3', { text: 'Ollama Settings' });
 
-        // 设置默认地址
+        // Set default host if not configured
         const defaultHost = 'http://localhost:11434';
         if (!this.plugin.settings.ai.ollama) {
             this.plugin.settings.ai.ollama = {
                 host: defaultHost,
-                model: 'llama2'
+                model: ''  // Don't set a default model until we check what's available
             };
             await this.plugin.saveSettings();
         }
 
-        // 服务器地址
-        new Setting(container)
-            .setName('服务器地址')
-            .setDesc('Ollama 服务器地址，默认为 http://localhost:11434')
-            .addText(text => text
-                .setPlaceholder('http://localhost:11434')
-                .setValue(this.plugin.settings.ai.ollama?.host || defaultHost)
-                .onChange(async (value) => {
-                    if (!this.plugin.settings.ai.ollama) {
-                        this.plugin.settings.ai.ollama = {
-                            host: value,
-                            model: 'llama2'
-                        };
-                    } else {
-                        this.plugin.settings.ai.ollama.host = value;
-                    }
-                    await this.plugin.saveSettings();
-                }));
-
-        // 创建模型容器
+        // Create model container first
         const modelContainer = container.createEl('div', {
             cls: 'model-setting-container'
         });
 
-        // 尝试加载模型列表
-        try {
-            const ollamaService = new OllamaService(this.plugin.settings.ai.ollama.host);
-            const isConnected = await ollamaService.testConnection();
-            
-            if (isConnected) {
-                const models = await ollamaService.listModels();
-                if (models.length > 0) {
-                    this.updateOllamaModelDropdown(container, models);
-                    new Notice('已连接到 Ollama 服务');
+        // Server address setting
+        const hostSetting = new Setting(container)
+            .setName('Server Address')
+            .setDesc('Ollama server address (default: http://localhost:11434)')
+            .addText(text => {
+                text.setPlaceholder('http://localhost:11434')
+                    .setValue(this.plugin.settings.ai.ollama?.host || defaultHost)
+                    .onChange(async (value) => {
+                        // Ensure the host has a protocol
+                        let host = value;
+                        if (!host.startsWith('http://') && !host.startsWith('https://')) {
+                            host = 'http://' + host;
+                            text.setValue(host);
+                        }
+                        
+                        if (!this.plugin.settings.ai.ollama) {
+                            this.plugin.settings.ai.ollama = {
+                                host: host,
+                                model: ''
+                            };
+                        } else {
+                            this.plugin.settings.ai.ollama.host = host;
+                        }
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        // Add test connection button
+        hostSetting.addButton(button => 
+            button
+                .setButtonText('Test Connection')
+                .onClick(async () => {
+                    const host = this.plugin.settings.ai.ollama?.host || defaultHost;
+                    try {
+                        const ollamaService = new OllamaService(host);
+                        const isConnected = await ollamaService.testConnection();
+                        if (isConnected) {
+                            new Notice('Successfully connected to Ollama service');
+                            // Try to load models
+                            const models = await ollamaService.listModels();
+                            if (models.length > 0) {
+                                // Clear existing model selection before updating
+                                modelContainer.empty();
+                                this.updateOllamaModelDropdown(modelContainer, models);
+                            } else {
+                                new Notice('No models found. Please download models using "ollama pull"');
+                                this.showDefaultOllamaModels(modelContainer);
+                            }
+                        } else {
+                            new Notice('Could not connect to Ollama service');
+                            this.showDefaultOllamaModels(modelContainer);
+                        }
+                    } catch (error) {
+                        console.error('Ollama connection error:', error);
+                        new Notice('Failed to connect to Ollama service. Please check the server address.');
+                        this.showDefaultOllamaModels(modelContainer);
+                    }
+                })
+        );
+
+        // Display model selection based on saved state
+        if (this.plugin.settings.ai.ollama?.model) {
+            // If we have a saved model, show it first
+            this.showSavedModel(modelContainer);
+        } else {
+            // Only try to load models if we don't have a saved state
+            try {
+                const ollamaService = new OllamaService(this.plugin.settings.ai.ollama.host);
+                const isConnected = await ollamaService.testConnection();
+                
+                if (isConnected) {
+                    const models = await ollamaService.listModels();
+                    if (models.length > 0) {
+                        this.updateOllamaModelDropdown(modelContainer, models);
+                        
+                        // Set the first available model as default if none is selected
+                        if (!this.plugin.settings.ai.ollama?.model) {
+                            this.plugin.settings.ai.ollama.model = models[0];
+                            await this.plugin.saveSettings();
+                        }
+                    } else {
+                        this.showDefaultOllamaModels(modelContainer);
+                    }
                 } else {
-                    // 显示默认模型选择
                     this.showDefaultOllamaModels(modelContainer);
-                    new Notice('未找到可用的模型，请先使用 ollama pull 下载模型');
                 }
-            } else {
-                // 显示默认模型选择
+            } catch (error) {
+                console.error('Initial model load failed:', error);
                 this.showDefaultOllamaModels(modelContainer);
-                new Notice('无法连接到 Ollama 服务，请确保服务已启动');
             }
-        } catch (error) {
-            // 显示默认模型选择
-            this.showDefaultOllamaModels(modelContainer);
-            console.error('Ollama connection error:', error);
-            new Notice('连接 Ollama 服务失败');
         }
     }
 
-    private showDefaultOllamaModels(container: HTMLElement) {
+    private showSavedModel(container: HTMLElement) {
+        container.empty();
+        
         new Setting(container)
-            .setName('模型')
-            .setDesc('选择要使用的 Ollama 模型')
-            .addDropdown(dropdown => dropdown
-                .addOptions({
-                    'llama2': 'Llama 2',
-                    'mistral': 'Mistral',
-                    'mixtral': 'Mixtral'
-                })
-                .setValue(this.plugin.settings.ai.ollama?.model || 'llama2')
-                .onChange(async (value: OllamaModel) => {
-                    if (!this.plugin.settings.ai.ollama) {
-                        this.plugin.settings.ai.ollama = {
-                            host: 'http://localhost:11434',
-                            model: value
-                        };
-                    } else {
-                        this.plugin.settings.ai.ollama.model = value;
-                    }
-                    await this.plugin.saveSettings();
-                }));
-    }
-
-    private updateOllamaModelDropdown(container: HTMLElement, models: string[]) {
-        // 直接在 container 中查找 model-setting-container
-        const modelContainer = container.querySelector('.model-setting-container') as HTMLElement;
-        if (!modelContainer) return;
-
-        // 清空现有内容
-        modelContainer.empty();
-
-        // 创建新的设置项
-        new Setting(modelContainer)
-            .setName('模型')
-            .setDesc('选择要使用的 Ollama 模型')
+            .setName('Model')
+            .setDesc('Currently selected model (Test connection to see all available models)')
             .addDropdown(dropdown => {
-                const options: Record<string, string> = {};
-                models.forEach(model => {
-                    const modelName = model.split(':')[0];  // 移除版本标签
-                    options[modelName] = this.formatModelName(modelName);
-                });
+                const savedModel = this.plugin.settings.ai.ollama?.model || '';
+                const options: Record<string, string> = {
+                    [savedModel]: this.formatModelName(savedModel)
+                };
                 
                 dropdown
                     .addOptions(options)
-                    .setValue(this.plugin.settings.ai.ollama?.model || models[0])
+                    .setValue(savedModel)
+                    .onChange(async (value: OllamaModel) => {
+                        if (!this.plugin.settings.ai.ollama) {
+                            this.plugin.settings.ai.ollama = {
+                                host: 'http://localhost:11434',
+                                model: value
+                            };
+                        } else {
+                            this.plugin.settings.ai.ollama.model = value;
+                        }
+                        await this.plugin.saveSettings();
+                    });
+            });
+    }
+
+    private showDefaultOllamaModels(container: HTMLElement) {
+        container.empty();
+        
+        new Setting(container)
+            .setName('Model')
+            .setDesc('No models available. Please download a model using "ollama pull <model>"')
+            .addDropdown(dropdown => {
+                const options = {
+                    'llama2': 'Llama 2',
+                    'mistral': 'Mistral',
+                    'mixtral': 'Mixtral',
+                    'codellama': 'Code Llama',
+                    'phi': 'Phi-2',
+                    'neural-chat': 'Neural Chat',
+                    'starling-lm': 'Starling',
+                    'stable-code': 'StableCode'
+                };
+                
+                dropdown
+                    .addOptions(options)
+                    .setValue(this.plugin.settings.ai.ollama?.model || '')
+                    .setDisabled(true)
+                    .onChange(async (value: OllamaModel) => {
+                        if (!this.plugin.settings.ai.ollama) {
+                            this.plugin.settings.ai.ollama = {
+                                host: 'http://localhost:11434',
+                                model: value
+                            };
+                        } else {
+                            this.plugin.settings.ai.ollama.model = value;
+                        }
+                        await this.plugin.saveSettings();
+                    });
+            });
+    }
+
+    private updateOllamaModelDropdown(container: HTMLElement, models: string[]) {
+        container.empty();
+
+        new Setting(container)
+            .setName('Model')
+            .setDesc('Select an available Ollama model')
+            .addDropdown(dropdown => {
+                const options: Record<string, string> = {};
+                models.forEach(model => {
+                    options[model] = this.formatModelName(model);
+                });
+                
+                // Ensure the current model is in the list, or select the first available
+                let currentModel = this.plugin.settings.ai.ollama?.model;
+                if (!currentModel || !models.includes(currentModel)) {
+                    currentModel = models[0];
+                    if (this.plugin.settings.ai.ollama) {
+                        this.plugin.settings.ai.ollama.model = currentModel;
+                        this.plugin.saveSettings();
+                    }
+                }
+
+                dropdown
+                    .addOptions(options)
+                    .setValue(currentModel)
                     .onChange(async (value: OllamaModel) => {
                         if (!this.plugin.settings.ai.ollama) {
                             this.plugin.settings.ai.ollama = {
