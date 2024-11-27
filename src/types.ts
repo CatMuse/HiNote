@@ -14,7 +14,7 @@ export interface HighlightInfo {
 export type AIProvider = 'openai' | 'anthropic' | 'ollama';
 export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini' | 'gpt-4';
 export type AnthropicModel = 'claude-3-opus' | 'claude-3-sonnet' | 'claude-3-haiku';
-export type OllamaModel = 'llama3.2' | 'qwen2.5:14b' | 'mixtral' | 'phi';
+export type OllamaModel = string;
 
 export interface AISettings {
     provider: AIProvider;
@@ -30,6 +30,7 @@ export interface AISettings {
     ollama?: {
         host: string;
         model: OllamaModel;
+        availableModels?: string[];
     };
     prompts: {
         [key: string]: string;

@@ -397,7 +397,8 @@ export class AISettingTab extends ObsidianSettingTab {
         if (!this.plugin.settings.ai.ollama) {
             this.plugin.settings.ai.ollama = {
                 host: defaultHost,
-                model: ''  // Don't set a default model until we check what's available
+                model: '',  // Don't set a default model until we check what's available
+                availableModels: []
             };
             await this.plugin.saveSettings();
         }
@@ -425,7 +426,8 @@ export class AISettingTab extends ObsidianSettingTab {
                         if (!this.plugin.settings.ai.ollama) {
                             this.plugin.settings.ai.ollama = {
                                 host: host,
-                                model: ''
+                                model: '',
+                                availableModels: []
                             };
                         } else {
                             this.plugin.settings.ai.ollama.host = host;
@@ -468,11 +470,11 @@ export class AISettingTab extends ObsidianSettingTab {
         );
 
         // Display model selection based on saved state
-        if (this.plugin.settings.ai.ollama?.model) {
-            // If we have a saved model, show it first
-            this.showSavedModel(modelContainer);
+        if (this.plugin.settings.ai.ollama?.availableModels?.length) {
+            // 如果有保存的模型列表，显示所有模型
+            this.showDefaultOllamaModels(modelContainer);
         } else {
-            // Only try to load models if we don't have a saved state
+            // 如果没有保存的模型列表，尝试加载模型
             try {
                 const ollamaService = new OllamaService(this.plugin.settings.ai.ollama.host);
                 const isConnected = await ollamaService.testConnection();
@@ -481,12 +483,6 @@ export class AISettingTab extends ObsidianSettingTab {
                     const models = await ollamaService.listModels();
                     if (models.length > 0) {
                         this.updateOllamaModelDropdown(modelContainer, models);
-                        
-                        // Set the first available model as default if none is selected
-                        if (!this.plugin.settings.ai.ollama?.model) {
-                            this.plugin.settings.ai.ollama.model = models[0];
-                            await this.plugin.saveSettings();
-                        }
                     } else {
                         this.showDefaultOllamaModels(modelContainer);
                     }
@@ -519,7 +515,8 @@ export class AISettingTab extends ObsidianSettingTab {
                         if (!this.plugin.settings.ai.ollama) {
                             this.plugin.settings.ai.ollama = {
                                 host: 'http://localhost:11434',
-                                model: value
+                                model: value,
+                                availableModels: []
                             };
                         } else {
                             this.plugin.settings.ai.ollama.model = value;
@@ -532,76 +529,84 @@ export class AISettingTab extends ObsidianSettingTab {
     private showDefaultOllamaModels(container: HTMLElement) {
         container.empty();
         
+        // 获取上次保存的模型列表
+        const savedModels = this.plugin.settings.ai.ollama?.availableModels || [];
+        
         new Setting(container)
             .setName('Model')
-            .setDesc('No models available. Please download a model using "ollama pull <model>"')
+            .setDesc(savedModels.length 
+                ? 'Select a model to use' 
+                : 'No models available. Please click "Test Connection" to load models')
             .addDropdown(dropdown => {
-                const options = {
-                    'llama2': 'Llama 2',
-                    'mistral': 'Mistral',
-                    'mixtral': 'Mixtral',
-                    'codellama': 'Code Llama',
-                    'phi': 'Phi-2',
-                    'neural-chat': 'Neural Chat',
-                    'starling-lm': 'Starling',
-                    'stable-code': 'StableCode'
-                };
-                
-                dropdown
-                    .addOptions(options)
-                    .setValue(this.plugin.settings.ai.ollama?.model || '')
-                    .setDisabled(true)
-                    .onChange(async (value: OllamaModel) => {
-                        if (!this.plugin.settings.ai.ollama) {
-                            this.plugin.settings.ai.ollama = {
-                                host: 'http://localhost:11434',
-                                model: value
-                            };
-                        } else {
-                            this.plugin.settings.ai.ollama.model = value;
-                        }
-                        await this.plugin.saveSettings();
+                if (savedModels.length > 0) {
+                    // 显示所有保存的模型
+                    const options: { [key: string]: string } = {};
+                    savedModels.forEach(model => {
+                        options[model] = model;
                     });
+                    
+                    dropdown
+                        .addOptions(options)
+                        .setValue(this.plugin.settings.ai.ollama?.model || savedModels[0])
+                        .onChange(async (value: OllamaModel) => {
+                            if (!this.plugin.settings.ai.ollama) {
+                                this.plugin.settings.ai.ollama = {
+                                    host: 'http://localhost:11434',
+                                    model: value,
+                                    availableModels: savedModels
+                                };
+                            } else {
+                                this.plugin.settings.ai.ollama.model = value;
+                            }
+                            await this.plugin.saveSettings();
+                        });
+                } else {
+                    dropdown
+                        .addOption('', 'No models available')
+                        .setValue('')
+                        .setDisabled(true);
+                }
             });
     }
 
     private updateOllamaModelDropdown(container: HTMLElement, models: string[]) {
+        // 保存获取到的模型列表
+        if (!this.plugin.settings.ai.ollama) {
+            this.plugin.settings.ai.ollama = {
+                host: 'http://localhost:11434',
+                model: models[0],
+                availableModels: models
+            };
+        } else {
+            this.plugin.settings.ai.ollama.availableModels = models;
+            // 如果当前选择的模型不在新的列表中，更新为第一个可用模型
+            if (!models.includes(this.plugin.settings.ai.ollama.model)) {
+                this.plugin.settings.ai.ollama.model = models[0];
+            }
+        }
+        
         container.empty();
-
+        
         new Setting(container)
             .setName('Model')
-            .setDesc('Select an available Ollama model')
+            .setDesc('Select a model to use')
             .addDropdown(dropdown => {
-                const options: Record<string, string> = {};
+                const options: { [key: string]: string } = {};
                 models.forEach(model => {
-                    options[model] = this.formatModelName(model);
+                    options[model] = model;
                 });
                 
-                // Ensure the current model is in the list, or select the first available
-                let currentModel = this.plugin.settings.ai.ollama?.model;
-                if (!currentModel || !models.includes(currentModel)) {
-                    currentModel = models[0];
-                    if (this.plugin.settings.ai.ollama) {
-                        this.plugin.settings.ai.ollama.model = currentModel;
-                        this.plugin.saveSettings();
-                    }
-                }
-
                 dropdown
                     .addOptions(options)
-                    .setValue(currentModel)
+                    .setValue(this.plugin.settings.ai.ollama.model)
                     .onChange(async (value: OllamaModel) => {
-                        if (!this.plugin.settings.ai.ollama) {
-                            this.plugin.settings.ai.ollama = {
-                                host: 'http://localhost:11434',
-                                model: value
-                            };
-                        } else {
-                            this.plugin.settings.ai.ollama.model = value;
-                        }
+                        this.plugin.settings.ai.ollama.model = value;
                         await this.plugin.saveSettings();
                     });
             });
+            
+        // 保存设置
+        this.plugin.saveSettings();
     }
 
     private displayPromptSettings() {
