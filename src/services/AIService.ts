@@ -1,5 +1,6 @@
 import { AIProvider, AISettings } from '../types';
 import { OllamaService } from './OllamaService';
+import { AnthropicService } from './AnthropicService';
 
 export class AIService {
     private ollamaService: OllamaService;
@@ -60,8 +61,13 @@ export class AIService {
     }
 
     private async callAnthropic(prompt: string): Promise<string> {
-        // Anthropic implementation placeholder
-        throw new Error('Anthropic API not yet implemented');
+        const settings = this.settings.anthropic;
+        if (!settings?.apiKey) {
+            throw new Error('Anthropic API key not configured');
+        }
+
+        const anthropicService = new AnthropicService(settings.apiKey, settings.baseUrl);
+        return await anthropicService.generateResponse(prompt);
     }
 
     private async callOllama(prompt: string): Promise<string> {

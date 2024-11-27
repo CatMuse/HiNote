@@ -1,9 +1,9 @@
-import { App, PluginSettingTab as ObsidianSettingTab, Setting, Notice, TextAreaComponent, Modal } from 'obsidian';
-import { AIProvider, OpenAIModel, AnthropicModel, OllamaModel, PluginSettings } from '../types';
+import { App, PluginSettingTab, Setting, Notice, TextAreaComponent, Modal, requestUrl } from 'obsidian';
+import { AIProvider, OpenAIModel, AnthropicModel, PluginSettings } from '../types';
 import { OllamaService } from '../services/OllamaService';
 import { CommentView } from '../CommentView';
 
-export class AISettingTab extends ObsidianSettingTab {
+export class AISettingTab extends PluginSettingTab {
     plugin: any;  // 修改为具体的插件类型
     DEFAULT_SETTINGS: PluginSettings;  // 添加这一行
 
@@ -209,6 +209,46 @@ export class AISettingTab extends ObsidianSettingTab {
             });
     }
 
+    private async fetchAvailableModels(apiKey: string): Promise<{id: string, name: string}[]> {
+        const baseUrl = this.plugin.settings.ai.openai?.baseUrl || 'https://api.openai.com/v1';
+        const response = await fetch(`${baseUrl}/models`, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch models');
+        }
+
+        const data = await response.json();
+        // 过滤 GPT 模型
+        return data.data
+            .filter((model: any) => 
+                model.id.includes('gpt') && 
+                !model.id.includes('instruct') &&
+                !model.id.includes('0301') &&  // 过滤旧版本
+                !model.id.includes('0314')
+            )
+            .map((model: any) => ({
+                id: model.id,
+                name: this.formatModelName(model.id)
+            }));
+    }
+
+    private formatModelName(modelId: string): string {
+        // 美化模型名称显示
+        const nameMap: {[key: string]: string} = {
+            'gpt-4': 'GPT-4',
+            'gpt-4-turbo-preview': 'GPT-4 Turbo',
+            'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+            'gpt-4o': 'GPT-4o',
+            'gpt-4o-mini': 'GPT-4o-mini'
+        };
+        return nameMap[modelId] || modelId;
+    }
+
     private displayOpenAISettings() {
         const container = this.containerEl.createEl('div', {
             cls: 'ai-service-settings'
@@ -291,44 +331,41 @@ export class AISettingTab extends ObsidianSettingTab {
                 }));
     }
 
-    private async fetchAvailableModels(apiKey: string): Promise<{id: string, name: string}[]> {
-        const baseUrl = this.plugin.settings.ai.openai?.baseUrl || 'https://api.openai.com/v1';
-        const response = await fetch(`${baseUrl}/models`, {
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            }
-        });
+    private async verifyAnthropicApiKey(apiKey: string): Promise<boolean> {
+        try {
+            const baseUrl = this.plugin.settings.ai.anthropic?.baseUrl || 'https://api.anthropic.com';
+            const response = await requestUrl({
+                url: `${baseUrl}/v1/messages`,
+                method: 'POST',
+                headers: {
+                    'anthropic-version': '2023-06-01',
+                    'content-type': 'application/json',
+                    'x-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-opus-20240229',
+                    max_tokens: 1,
+                    messages: [{
+                        role: 'user',
+                        content: 'Hi'
+                    }]
+                })
+            });
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch models');
+            return response.status === 200;
+        } catch (error) {
+            console.error('Error verifying Anthropic API key:', error);
+            return false;
         }
-
-        const data = await response.json();
-        // 过滤 GPT 模型
-        return data.data
-            .filter((model: any) => 
-                model.id.includes('gpt') && 
-                !model.id.includes('instruct') &&
-                !model.id.includes('0301') &&  // 过滤旧版本
-                !model.id.includes('0314')
-            )
-            .map((model: any) => ({
-                id: model.id,
-                name: this.formatModelName(model.id)
-            }));
     }
 
-    private formatModelName(modelId: string): string {
-        // 美化模型名称显示
-        const nameMap: {[key: string]: string} = {
-            'gpt-4': 'GPT-4',
-            'gpt-4-turbo-preview': 'GPT-4 Turbo',
-            'gpt-3.5-turbo': 'GPT-3.5 Turbo',
-            'gpt-4o': 'GPT-4o',
-            'gpt-4o-mini': 'GPT-4o-mini'
-        };
-        return nameMap[modelId] || modelId;
+    private getDefaultAnthropicModels(): {id: string, name: string}[] {
+        return [
+            { id: 'claude-3-opus-20240229', name: 'Claude-3 Opus' },
+            { id: 'claude-3-sonnet-20240229', name: 'Claude-3 Sonnet' },
+            { id: 'claude-3-5-sonnet-latest', name: 'Claude-3.5 Sonnet' },
+            { id: 'claude-3-haiku-20240307', name: 'Claude-3 Haiku' }
+        ];
     }
 
     private displayAnthropicSettings() {
@@ -349,34 +386,96 @@ export class AISettingTab extends ObsidianSettingTab {
                     if (!this.plugin.settings.ai.anthropic) {
                         this.plugin.settings.ai.anthropic = {
                             apiKey: '',
-                            model: 'claude-3-opus'
+                            model: 'claude-3-opus-20240229'
                         };
                     }
                     this.plugin.settings.ai.anthropic.apiKey = value;
                     await this.plugin.saveSettings();
+                })
+                // 添加回车键监听
+                .inputEl.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        const apiKey = this.plugin.settings.ai.anthropic?.apiKey;
+                        if (!apiKey) {
+                            new Notice('请先输入 API Key');
+                            return;
+                        }
+
+                        new Notice('正在验证 API Key...');
+
+                        try {
+                            const isValid = await this.verifyAnthropicApiKey(apiKey);
+                            if (isValid) {
+                                // 创建或更新模型选择设置
+                                const modelContainer = container.querySelector('.model-setting-container');
+                                if (modelContainer instanceof HTMLElement) {
+                                    modelContainer.empty();
+                                    this.createAnthropicModelDropdown(modelContainer);
+                                }
+                                new Notice('API Key 验证成功！');
+                            } else {
+                                new Notice('API Key 验证失败，请检查是否正确');
+                            }
+                        } catch (error) {
+                            console.error('API Key 验证失败:', error);
+                            new Notice('API Key 验证失败，请检查是否正确');
+                        }
+                    }
                 }));
 
-        // 模型选择
+        // 自定义 API 地址
         new Setting(container)
-            .setName('模型')
-            .setDesc('选择要使用的 Anthropic 模型')
-            .addDropdown(dropdown => dropdown
-                .addOptions({
-                    'claude-3-opus': 'Claude 3 Opus',
-                    'claude-3-sonnet': 'Claude 3 Sonnet',
-                    'claude-3-haiku': 'Claude 3 Haiku'
-                })
-                .setValue(this.plugin.settings.ai.anthropic?.model || 'claude-3-opus')
-                .onChange(async (value: AnthropicModel) => {
+            .setName('自定义 API 地址')
+            .setDesc('如果使用自定义 API 代理，请输入完整的 API 地址')
+            .addText(text => text
+                .setPlaceholder('https://api.anthropic.com')
+                .setValue(this.plugin.settings.ai.anthropic?.baseUrl || '')
+                .onChange(async (value) => {
                     if (!this.plugin.settings.ai.anthropic) {
                         this.plugin.settings.ai.anthropic = {
                             apiKey: '',
-                            model: 'claude-3-opus'
+                            model: 'claude-3-opus-20240229'
                         };
                     }
-                    this.plugin.settings.ai.anthropic.model = value;
+                    this.plugin.settings.ai.anthropic.baseUrl = value;
                     await this.plugin.saveSettings();
                 }));
+
+        // 创建模型设置容器
+        const modelContainer = container.createEl('div', {
+            cls: 'model-setting-container'
+        });
+
+        // 显示默认的模型选择
+        this.createAnthropicModelDropdown(modelContainer);
+    }
+
+    private createAnthropicModelDropdown(container: HTMLElement) {
+        const models = this.getDefaultAnthropicModels();
+        
+        new Setting(container)
+            .setName('模型')
+            .setDesc('选择要使用的 Anthropic 模型')
+            .addDropdown(dropdown => {
+                const options = Object.fromEntries(
+                    models.map(model => [model.id, model.name])
+                );
+
+                dropdown
+                    .addOptions(options)
+                    .setValue(this.plugin.settings.ai.anthropic?.model || 'claude-3-opus-20240229')
+                    .onChange(async (value: AnthropicModel) => {
+                        if (!this.plugin.settings.ai.anthropic) {
+                            this.plugin.settings.ai.anthropic = {
+                                apiKey: '',
+                                model: value
+                            };
+                        } else {
+                            this.plugin.settings.ai.anthropic.model = value;
+                        }
+                        await this.plugin.saveSettings();
+                    });
+            });
     }
 
     private async displayOllamaSettings() {
@@ -511,7 +610,7 @@ export class AISettingTab extends ObsidianSettingTab {
                 dropdown
                     .addOptions(options)
                     .setValue(savedModel)
-                    .onChange(async (value: OllamaModel) => {
+                    .onChange(async (value: string) => {
                         if (!this.plugin.settings.ai.ollama) {
                             this.plugin.settings.ai.ollama = {
                                 host: 'http://localhost:11434',
@@ -548,7 +647,7 @@ export class AISettingTab extends ObsidianSettingTab {
                     dropdown
                         .addOptions(options)
                         .setValue(this.plugin.settings.ai.ollama?.model || savedModels[0])
-                        .onChange(async (value: OllamaModel) => {
+                        .onChange(async (value: string) => {
                             if (!this.plugin.settings.ai.ollama) {
                                 this.plugin.settings.ai.ollama = {
                                     host: 'http://localhost:11434',
@@ -557,6 +656,7 @@ export class AISettingTab extends ObsidianSettingTab {
                                 };
                             } else {
                                 this.plugin.settings.ai.ollama.model = value;
+                                this.plugin.settings.ai.ollama.availableModels = savedModels;
                             }
                             await this.plugin.saveSettings();
                         });
@@ -599,7 +699,7 @@ export class AISettingTab extends ObsidianSettingTab {
                 dropdown
                     .addOptions(options)
                     .setValue(this.plugin.settings.ai.ollama.model)
-                    .onChange(async (value: OllamaModel) => {
+                    .onChange(async (value: string) => {
                         this.plugin.settings.ai.ollama.model = value;
                         await this.plugin.saveSettings();
                     });
