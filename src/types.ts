@@ -46,27 +46,14 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         provider: 'ollama',
         openai: {
             apiKey: '',
-            model: 'gpt-4o'
+            model: 'gpt-4o',
         },
         ollama: {
             host: 'http://localhost:11434',
-            model: 'llama2'
+            model: 'qwen2.5:14b',
         },
         prompts: {
-            '总结评论': `请帮我总结和分析以下高亮内容及其相关评论：
-
-高亮内容：
-{{highlight}}
-
-相关评论：
-{{comment}}
-
-请从以下几个方面进行分析：
-1. 高亮内容的核心观点
-2. 评论的主要见解和补充
-3. 综合建议和启示
-
-请以结构化的方式组织回答。`
+            '总结评论': '请分析以下内容：\n\n{{highlight}}\n\n已有的评论：\n{{comment}}\n\n请给出你的见解：',
         }
     }
 };

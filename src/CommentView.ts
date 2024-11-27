@@ -812,8 +812,17 @@ export class CommentView extends ItemView {
                 commentsText
             );
 
-            // 添加 AI 分析结果作为新评论
+            // 直接添加 AI 分析结果作为新评论
             await this.addComment(highlight, response);
+
+            // 更新高亮列表以显示新评论
+            await this.updateHighlights();
+
+            // 隐藏下拉菜单
+            const dropdown = highlightCard.querySelector('.highlight-ai-dropdown');
+            if (dropdown) {
+                dropdown.addClass('hidden');
+            }
 
             // 恢复按钮状态
             if (normalIcon && loadingIcon) {
@@ -821,11 +830,8 @@ export class CommentView extends ItemView {
                 loadingIcon.addClass('hidden');
             }
 
-            // 隐藏下拉菜单
-            const dropdown = highlightCard.querySelector('.highlight-ai-dropdown');
-            if (dropdown) {
-                dropdown.addClass('hidden');
-            }
+            // 显示成功通知
+            new Notice('AI 分析已添加为新评论');
 
         } catch (error) {
             console.error('AI 分析失败:', error);

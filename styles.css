@@ -1584,3 +1584,52 @@ hr {
         var(--background-primary) 0%,
         var(--background-primary-alt) 100%);
 }
+
+/* Prompt Modal Styles */
+.prompt-content-setting {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.prompt-parameters-help {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: var(--background-secondary);
+    border-radius: 5px;
+}
+
+.prompt-parameters-help p {
+    margin: 0 0 5px 0;
+    font-weight: bold;
+}
+
+.prompt-parameters-help ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.prompt-parameters-help li {
+    margin: 5px 0;
+    color: var(--text-muted);
+}
+
+.prompt-parameter-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.prompt-parameter-buttons button {
+    padding: 5px 10px;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.prompt-parameter-buttons button:hover {
+    background-color: var(--interactive-accent-hover);
+}
