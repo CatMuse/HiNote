@@ -2,9 +2,6 @@ import { App, PluginSettingTab as ObsidianSettingTab, Setting, Notice, TextAreaC
 import { AIProvider, OpenAIModel, AnthropicModel, OllamaModel, PluginSettings } from '../types';
 import { OllamaService } from '../services/OllamaService';
 import { CommentView } from '../CommentView';
-import { App, PluginSettingTab as ObsidianSettingTab, Setting, Notice, TextAreaComponent } from 'obsidian';
-import { AIProvider, OpenAIModel, AnthropicModel, OllamaModel, PluginSettings } from '../types';
-import { OllamaService } from '../services/OllamaService';
 
 export class AISettingTab extends ObsidianSettingTab {
     plugin: any;  // 修改为具体的插件类型
