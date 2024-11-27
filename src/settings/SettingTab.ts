@@ -541,7 +541,7 @@ export class AISettingTab extends ObsidianSettingTab {
                 if (savedModels.length > 0) {
                     // 显示所有保存的模型
                     const options: { [key: string]: string } = {};
-                    savedModels.forEach(model => {
+                    savedModels.forEach((model: string) => {
                         options[model] = model;
                     });
                     
