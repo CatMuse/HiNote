@@ -41,26 +41,6 @@ export class AISettingTab extends PluginSettingTab {
                 margin: 16px 0;
             }
 
-            .prompt-parameter-buttons {
-                display: flex;
-                gap: 8px;
-                margin: 8px 0;
-            }
-
-            .prompt-parameter-buttons button {
-                padding: 4px 8px;
-                border-radius: 4px;
-                background-color: var(--interactive-accent);
-                color: var(--text-on-accent);
-                border: none;
-                cursor: pointer;
-                font-size: 12px;
-            }
-
-            .prompt-parameter-buttons button:hover {
-                background-color: var(--interactive-accent-hover);
-            }
-
             .prompt-list {
                 margin-top: 24px;
             }
@@ -734,25 +714,6 @@ export class AISettingTab extends PluginSettingTab {
             .setValue('');
         textArea.inputEl.style.minHeight = '100px';
         textArea.inputEl.style.width = '100%';
-
-        // Parameter quick insert buttons
-        const buttonDiv = newPromptSection.createEl('div', { cls: 'prompt-parameter-buttons' });
-        const addHighlightBtn = buttonDiv.createEl('button', { text: '插入 {{highlight}}' });
-        const addCommentBtn = buttonDiv.createEl('button', { text: '插入 {{comment}}' });
-
-        addHighlightBtn.onclick = () => {
-            const pos = textArea.inputEl.selectionStart;
-            const currentContent = textArea.getValue();
-            const newContent = currentContent.slice(0, pos) + '{{highlight}}' + currentContent.slice(pos);
-            textArea.setValue(newContent);
-        };
-
-        addCommentBtn.onclick = () => {
-            const pos = textArea.inputEl.selectionStart;
-            const currentContent = textArea.getValue();
-            const newContent = currentContent.slice(0, pos) + '{{comment}}' + currentContent.slice(pos);
-            textArea.setValue(newContent);
-        };
 
         // Add button
         new Setting(newPromptSection)
