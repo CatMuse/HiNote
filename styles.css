@@ -164,26 +164,22 @@
     opacity: 1;
 }
 
-.highlight-add-comment {
-    width: 100%;
-    padding: 12px 16px;
+.highlight-comment-actions button:not(.clickable-icon) {
     background: none;
     border: none;
+    padding: 4px;
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 13px;
-    text-align: left;
     transition: all 0.2s ease;
-    opacity: 0;
+    box-shadow: none;
+    -webkit-box-shadow: none;
 }
 
-.highlight-comments-section:hover .highlight-add-comment {
-    opacity: 1;
-}
-
-.highlight-add-comment:hover {
-    color: var(--text-normal);
-    background-color: var(--background-modifier-hover);
+.highlight-comment-actions button:not(.clickable-icon):hover {
+    color: var(--text-error);
+    background: none;
+    box-shadow: none;
+    -webkit-box-shadow: none;
 }
 
 .highlight-comment-input {
@@ -197,14 +193,14 @@
 .highlight-comment-input textarea {
     width: 100%;
     min-height: 80px;
-    padding: 12px;
+    padding: 8px 12px;
     border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
+    border-radius: 4px;
     background-color: var(--background-primary);
     color: var(--text-normal);
     font-size: 13px;
     line-height: 1.5;
-    resize: none;
+    resize: vertical;
     margin: 0;
     transition: border-color 0.2s ease;
 }
@@ -241,15 +237,6 @@
 .highlight-btn:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);
-}
-
-.highlight-btn-primary {
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-}
-
-.highlight-btn-primary:hover {
-    opacity: 0.9;
 }
 
 @keyframes highlight-fade {
@@ -737,16 +724,6 @@
 .highlight-btn:hover {
     background-color: var(--background-modifier-hover);
     border-color: var(--background-modifier-border-hover);
-}
-
-.highlight-btn-primary {
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
-}
-
-.highlight-btn-primary:hover {
-    background-color: var(--interactive-accent-hover);
 }
 
 /* 导出预览弹窗样式 */
