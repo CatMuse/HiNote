@@ -100,7 +100,19 @@ export default class CommentPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loadedData = await this.loadData();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+		
+		// Ensure AI settings exist
+		if (!this.settings.ai) {
+			this.settings.ai = DEFAULT_SETTINGS.ai;
+		}
+
+		// Initialize or update Ollama settings with default values
+		this.settings.ai.ollama = {
+			host: this.settings.ai.ollama?.host || 'http://localhost:11434',
+			model: this.settings.ai.ollama?.model || 'qwen2.5:14b'
+		};
 	}
 
 	async saveSettings() {

@@ -10,8 +10,14 @@ export class AIService {
         }
     }
 
-    async generateResponse(prompt: string, context: string): Promise<string> {
-        const promptWithContext = prompt.replace('{{text}}', context);
+    async generateResponse(prompt: string, highlight: string, comment?: string): Promise<string> {
+        let promptWithContext = prompt
+            .replace('{{highlight}}', highlight);
+        
+        // If comment is provided, replace its placeholder
+        if (comment) {
+            promptWithContext = promptWithContext.replace('{{comment}}', comment);
+        }
         
         switch (this.settings.provider) {
             case 'openai':

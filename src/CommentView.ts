@@ -800,37 +800,45 @@ export class CommentView extends ItemView {
                 normalIcon.addClass('hidden');
                 loadingIcon.removeClass('hidden');
             }
-            
-            // 生成回复，传递高亮文本
-            const response = await aiService.generateResponse(prompt, highlight.text);
-            
-            // 添加为评论
+
+            // 获取所有评论内容
+            const comments = highlight.comments || [];
+            const commentsText = comments.map(comment => comment.content).join('\n');
+
+            // 调用 AI 服务进行分析
+            const response = await aiService.generateResponse(
+                prompt,
+                highlight.text,
+                commentsText
+            );
+
+            // 添加 AI 分析结果作为新评论
             await this.addComment(highlight, response);
-            
-            // 更新视图
-            await this.updateHighlights();
-            
-            new Notice('AI 分析完');
+
+            // 恢复按钮状态
+            if (normalIcon && loadingIcon) {
+                normalIcon.removeClass('hidden');
+                loadingIcon.addClass('hidden');
+            }
+
+            // 隐藏下拉菜单
+            const dropdown = highlightCard.querySelector('.highlight-ai-dropdown');
+            if (dropdown) {
+                dropdown.addClass('hidden');
+            }
+
         } catch (error) {
             console.error('AI 分析失败:', error);
             new Notice(`AI 分析失败: ${error.message}`);
-        } finally {
-            // 恢复正常状态
-            const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
-                .find(card => {
-                    const textContent = card.querySelector('.highlight-text-content')?.textContent;
-                    return textContent === highlight.text;
-                });
             
-            if (highlightCard) {
-                const aiButton = highlightCard.querySelector('.highlight-ai-btn');
-                const normalIcon = aiButton?.querySelector('.highlight-ai-icon');
-                const loadingIcon = aiButton?.querySelector('.highlight-ai-icon-loading');
-                
-                if (normalIcon && loadingIcon) {
-                    normalIcon.removeClass('hidden');
-                    loadingIcon.addClass('hidden');
-                }
+            // 恢复按钮状态
+            const aiButton = this.highlightContainer.querySelector('.highlight-ai-btn');
+            const normalIcon = aiButton?.querySelector('.highlight-ai-icon');
+            const loadingIcon = aiButton?.querySelector('.highlight-ai-icon-loading');
+            
+            if (normalIcon && loadingIcon) {
+                normalIcon.removeClass('hidden');
+                loadingIcon.addClass('hidden');
             }
         }
     }
