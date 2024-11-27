@@ -30,6 +30,10 @@ export class AISettingTab extends PluginSettingTab {
                 margin: 16px 0;
             }
 
+            .prompt-settings-container h3 {
+                margin-top: 0px;
+            }
+
             .new-prompt-section {
                 background-color: var(--background-primary);
                 border-radius: 6px;
@@ -38,7 +42,7 @@ export class AISettingTab extends PluginSettingTab {
             }
 
             .prompt-content-area {
-                margin: 16px 0;
+                margin: 2px 0;
             }
 
             .prompt-list {
