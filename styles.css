@@ -600,7 +600,9 @@
 /* 导出预览弹窗样式 */
 .highlight-export-modal {
     max-width: 800px;
-    height: 80vh;
+    min-height: 400px;  /* 设置最小高度 */
+    max-height: 90vh;   /* 设置最大高度 */
+    height: auto;       /* 自适应内容高度 */
     display: flex;
     flex-direction: column;
 }
@@ -609,7 +611,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    overflow: hidden;
+    overflow: auto;     /* 改为 auto，允许内容超出时滚动 */
 }
 
 /* 模板选择器样式 */
@@ -620,13 +622,6 @@
     position: sticky;
     top: 0;
     z-index: 1;
-}
-
-.highlight-template-label {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-normal);
 }
 
 .highlight-template-select {
@@ -654,7 +649,6 @@
 /* 预览区域样式 */
 .highlight-export-preview-container {
     flex: 1;
-    padding: 30px;
     margin: 20px;
     background-color: var(--background-secondary);
     border-radius: 12px;
@@ -674,25 +668,6 @@
     padding: 4px 8px;
     border-radius: 4px;
     opacity: 0.8;
-}
-
-/* 自定义滚动条 */
-.highlight-export-preview-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.highlight-export-preview-container::-webkit-scrollbar-track {
-    background: var(--background-primary);
-    border-radius: 4px;
-}
-
-.highlight-export-preview-container::-webkit-scrollbar-thumb {
-    background: var(--background-modifier-border);
-    border-radius: 4px;
-}
-
-.highlight-export-preview-container::-webkit-scrollbar-thumb:hover {
-    background: var(--interactive-accent);
 }
 
 /* 按钮区域样式 */
@@ -1125,13 +1100,6 @@ hr {
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.highlight-template-label {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 15px;
-    color: var(--text-normal);
-}
-
 .highlight-template-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1170,7 +1138,7 @@ hr {
 /* 导出预览容器 */
 .highlight-export-preview-container {
     background-color: var(--background-secondary);
-    padding: 40px;
+    padding: 2px;
     border-radius: 8px;
     margin-bottom: 20px;
 }

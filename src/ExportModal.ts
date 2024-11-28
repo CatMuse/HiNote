@@ -39,11 +39,6 @@ export class ExportPreviewModal extends Modal {
             cls: 'highlight-template-selector'
         });
 
-        const templateLabel = templateSelector.createEl('div', {
-            cls: 'highlight-template-label',
-            text: '选择模板'
-        });
-
         // 创建下拉框
         const selectEl = templateSelector.createEl('select', {
             cls: 'highlight-template-select'
