@@ -944,16 +944,16 @@
     min-width: 200px;  /* 给定一个最小宽度 */
 }
 
-/* 下拉菜单样式 */
+/* 下拉菜单样式？修改侧边栏全局边距问题 */
 .ai-service-settings .dropdown {
     min-width: 180px;  /* 统一下拉菜单宽度 */
 }
 
-.workspace-leaf-content {
+[data-type="comment-view"] .workspace-leaf-content {
     padding: 0 !important;
 }
 
-.view-content {
+[data-type="comment-view"] .view-content {
     padding: 0 !important;
 }
 
