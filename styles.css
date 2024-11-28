@@ -533,68 +533,67 @@
     border-radius: 4px;
 }
 
-/* 导出图片样式 */
-.highlight-export-container {
-    position: fixed;
-    left: -9999px;  /* 放在视图外 */
-    width: 600px;
-    padding: 40px;
+/* 模板选择器样式 */
+.highlight-template-selector {
+    padding: 16px 0px;
     background-color: var(--background-primary);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--background-modifier-border);
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
-.highlight-export-content {
-    padding: 24px;
+.highlight-template-select {
+    width: calc(100%); /* 减去左右padding的宽度 */
+    margin: 0 auto;
     border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-}
-
-.highlight-export-text {
-    font-size: 16px;
-    line-height: 1.6;
-    color: var(--text-normal);
-    margin-bottom: 20px;
-    padding: 16px;
-    background-color: var(--background-secondary);
-    border-radius: 8px;
-    border-left: 4px solid var(--interactive-accent);
-}
-
-.highlight-export-comments {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid var(--background-modifier-border);
-}
-
-.highlight-export-comment {
-    margin-bottom: 16px;
-    padding: 12px;
-    background-color: var(--background-secondary);
     border-radius: 6px;
-}
-
-.highlight-export-comment-content {
-    font-size: 14px;
-    line-height: 1.5;
+    background-color: var(--background-primary);
     color: var(--text-normal);
+    font-size: 14px;
+    line-height: 1.4; /* 添加行高 */
+    transition: all 0.2s ease;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none; /* 为Safari添加前缀 */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
 }
 
-.highlight-export-comment-time {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 4px;
+.highlight-template-select:hover {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.highlight-export-footer {
-    display: flex;
-    justify-content: space-between;
+.highlight-template-select:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+/* 按钮区域样式 */
+.highlight-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
     align-items: center;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--background-modifier-border);
-    font-size: 12px;
-    color: var(--text-muted);
+    justify-content: center;
+    min-width: 80px;
+}
+
+.highlight-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.highlight-btn:active {
+    transform: translateY(0);
 }
 
 /* 导出预览弹窗样式 */
@@ -614,98 +613,7 @@
     overflow: auto;     /* 改为 auto，允许内容超出时滚动 */
 }
 
-/* 模板选择器样式 */
-.highlight-template-selector {
-    padding: 20px;
-    border-bottom: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.highlight-template-select {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.highlight-template-select:hover {
-    border-color: var(--interactive-accent);
-}
-
-.highlight-template-select:focus {
-    outline: none;
-    border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
-}
-
-/* 预览区域样式 */
-.highlight-export-preview-container {
-    flex: 1;
-    margin: 20px;
-    background-color: var(--background-secondary);
-    border-radius: 12px;
-    overflow-y: auto;
-    position: relative;
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.highlight-export-preview-container::before {
-    content: '预览';
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 12px;
-    color: var(--text-muted);
-    background-color: var(--background-primary);
-    padding: 4px 8px;
-    border-radius: 4px;
-    opacity: 0.8;
-}
-
-/* 按钮区域样式 */
-.highlight-export-modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 15px 20px;
-    border-top: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    position: sticky;
-    bottom: 0;
-    z-index: 1;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.highlight-btn {
-    padding: 6px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    border: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-}
-
-.highlight-btn:hover {
-    background-color: var(--background-modifier-hover);
-    border-color: var(--background-modifier-border-hover);
-}
-
 /* 导出预览弹窗样式 */
-.highlight-export-modal {
-    max-width: 800px;
-}
-
 .highlight-export-preview-container {
     padding: 20px;
     margin: 16px 0;
@@ -719,7 +627,6 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid var(--background-modifier-border);
 }
@@ -739,22 +646,6 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-}
-
-/* 模板选择器样式 */
-.highlight-template-selector {
-    padding: 6px 12px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: 13px;
-    min-width: 120px;
-}
-
-.highlight-template-selector:focus {
-    outline: none;
-    border-color: var(--interactive-accent);
 }
 
 /* 控制按钮容器 */
@@ -1093,56 +984,6 @@ hr {
     margin-right: auto;
 }
 
-/* 模板选择器样式 */
-.highlight-template-selector {
-    margin-bottom: 20px;
-    padding: 20px;
-    border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.highlight-template-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.highlight-template-card {
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid var(--background-modifier-border);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.highlight-template-card:hover {
-    background-color: var(--background-modifier-hover);
-}
-
-.highlight-template-card.selected {
-    border-color: var(--interactive-accent);
-    background-color: var(--background-modifier-hover);
-}
-
-.highlight-template-name {
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: var(--text-normal);
-}
-
-.highlight-template-description {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-/* 导出预览容器 */
-.highlight-export-preview-container {
-    background-color: var(--background-secondary);
-    padding: 2px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
 /* 模板特定样式 */
 .highlight-export-card {
     transition: all 0.3s ease;
@@ -1156,7 +997,7 @@ hr {
 }
 
 .highlight-export-card-minimal .highlight-export-quote {
-    font-size: 1.1em;
+    font-size: 1em;
     line-height: 1.6;
     color: var(--text-normal);
 }
@@ -1170,7 +1011,7 @@ hr {
 }
 
 .highlight-export-card-academic .highlight-export-quote {
-    font-size: 1.2em;
+    font-size: 1em;
     line-height: 1.8;
     font-style: italic;
     color: var(--text-normal);
@@ -1201,20 +1042,13 @@ hr {
 }
 
 .highlight-export-card-social .highlight-export-quote {
-    font-size: 1.3em;
+    font-size: 1em;
     line-height: 1.6;
     color: var(--text-normal);
     margin: 20px 0;
 }
 
 /* 按钮样式 */
-.highlight-export-modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-
 .highlight-btn {
     padding: 8px 16px;
     border-radius: 4px;
@@ -1288,7 +1122,7 @@ hr {
 }
 
 .highlight-export-card-modern .highlight-export-quote {
-    font-size: 1.25em;
+    font-size: 1em;
     line-height: 1.7;
     color: var(--text-normal);
     font-weight: 400;
