@@ -380,7 +380,7 @@
     min-width: 300px;
     max-width: 500px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    z-index: 1000;/* 确保tooltip比按钮本身更高一层 */
     pointer-events: auto;
 }
 
@@ -1004,7 +1004,7 @@ hr {
 
 /* 学术模板 */
 .highlight-export-card-academic {
-    padding: 30px;
+    padding: 24px;
     background-color: var(--background-primary);
     border: 2px solid var(--background-modifier-border);
     font-family: "Times New Roman", Times, serif;
@@ -1022,7 +1022,7 @@ hr {
 .highlight-export-card-social {
     padding: 20px;
     background-color: var(--background-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
@@ -1085,9 +1085,9 @@ hr {
 
 /* 默认模板（现代风格）样式优化 */
 .highlight-export-card-modern {
-    padding: 32px;
+    padding: 24px;
     background-color: var(--background-primary);
-    border-radius: 16px;
+    border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     position: relative;
     overflow: hidden;
@@ -1237,20 +1237,4 @@ hr {
 
 .prompt-parameter-buttons button:hover {
     background-color: var(--interactive-accent-hover);
-}
-
-.highlight-comment-tooltip {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    margin-top: 4px;
-    background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    padding: 12px 16px;
-    min-width: 300px;
-    max-width: 500px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 1000;  /* 确保tooltip比按钮本身更高一层 */
-    pointer-events: auto;
 }
