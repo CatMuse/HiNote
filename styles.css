@@ -304,11 +304,6 @@
     color: var(--text-muted);
 }
 
-/* 调整容器的上边距，为搜索框留出空间 */
-.highlight-container {
-    padding-top: 8px;
-}
-
 /* 添加滚动阴影效果 */
 .highlight-search-container::after {
     content: '';
