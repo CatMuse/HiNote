@@ -230,7 +230,11 @@ export class HighlightDecorator {
                                 {
                                     id: text.trim(),
                                     text: text.trim(),
-                                    comments: fileComments?.find(h => h.text === text.trim())?.comments || []
+                                    position: from,
+                                    paragraphId: `p-${from}`,
+                                    comments: fileComments?.find(h => h.text === text.trim())?.comments || [],
+                                    createdAt: Date.now(),
+                                    updatedAt: Date.now()
                                 },
                                 () => {
                                     const highlight = fileComments?.find(h => h.text === text.trim());
