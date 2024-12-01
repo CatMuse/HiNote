@@ -394,7 +394,7 @@ export class AISettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
         }
 
-        // Create model container first
+        // Create model container first (needed for Test Connection button)
         const modelContainer = container.createEl('div', {
             cls: 'model-setting-container'
         });
@@ -460,12 +460,15 @@ export class AISettingTab extends PluginSettingTab {
                 })
         );
 
+        // Move model container to the end
+        container.appendChild(modelContainer);
+
         // Display model selection based on saved state
         if (this.plugin.settings.ai.ollama?.availableModels?.length) {
-            // 如果有保存的模型列表，显示所有模型
+            // If we have saved models, show them
             this.showDefaultOllamaModels(modelContainer);
         } else {
-            // 如果没有保存的模型列表，尝试加载模型
+            // If no saved models, try to load them
             try {
                 const ollamaService = new OllamaService(this.plugin.settings.ai.ollama.host);
                 const isConnected = await ollamaService.testConnection();
