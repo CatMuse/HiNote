@@ -267,6 +267,11 @@ export class AISettingTab extends PluginSettingTab {
 
         container.createEl('h3', { text: 'Anthropic 设置' });
 
+        // 创建模型设置容器（需要在 API Key 验证时使用）
+        const modelContainer = container.createEl('div', {
+            cls: 'model-setting-container'
+        });
+
         // API Key 设置
         new Setting(container)
             .setName('API Key')
@@ -299,11 +304,8 @@ export class AISettingTab extends PluginSettingTab {
                             const isValid = await this.verifyAnthropicApiKey(apiKey);
                             if (isValid) {
                                 // 创建或更新模型选择设置
-                                const modelContainer = container.querySelector('.model-setting-container');
-                                if (modelContainer instanceof HTMLElement) {
-                                    modelContainer.empty();
-                                    this.createAnthropicModelDropdown(modelContainer);
-                                }
+                                modelContainer.empty();
+                                this.createAnthropicModelDropdown(modelContainer);
                                 new Notice('API Key 验证成功！');
                             } else {
                                 new Notice('API Key 验证失败，请检查是否正确');
@@ -314,6 +316,12 @@ export class AISettingTab extends PluginSettingTab {
                         }
                     }
                 }));
+
+        // 显示默认的模型选择
+        this.createAnthropicModelDropdown(modelContainer);
+
+        // 将模型容器移动到正确的位置
+        container.appendChild(modelContainer);
 
         // 自定义 API 地址
         new Setting(container)
@@ -332,14 +340,6 @@ export class AISettingTab extends PluginSettingTab {
                     this.plugin.settings.ai.anthropic.baseUrl = value;
                     await this.plugin.saveSettings();
                 }));
-
-        // 创建模型设置容器
-        const modelContainer = container.createEl('div', {
-            cls: 'model-setting-container'
-        });
-
-        // 显示默认的模型选择
-        this.createAnthropicModelDropdown(modelContainer);
     }
 
     private createAnthropicModelDropdown(container: HTMLElement) {
