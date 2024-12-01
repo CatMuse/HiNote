@@ -1096,7 +1096,7 @@ hr {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, 
+    background: linear-gradient(to bottom right,
         var(--interactive-accent) 0%,
         var(--interactive-accent-hover) 100%);
 }
@@ -1232,4 +1232,77 @@ hr {
 
 .prompt-parameter-buttons button:hover {
     background-color: var(--interactive-accent-hover);
+}
+
+/* 设置页面样式 */
+.prompt-settings-container {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.prompt-settings-container h3 {
+    margin-top: 0px;
+}
+
+.new-prompt-section {
+    background-color: var(--background-primary);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.prompt-content-area {
+    margin: 2px 0;
+}
+
+.prompt-list {
+    margin-top: 24px;
+}
+
+.prompt-item {
+    background-color: var(--background-primary);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.prompt-name-input {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.prompt-content-input {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    resize: vertical;
+}
+
+.prompt-delete-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: var(--background-modifier-error);
+    color: var(--text-on-accent);
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.prompt-delete-btn:hover {
+    background-color: var(--background-modifier-error-hover);
 }
