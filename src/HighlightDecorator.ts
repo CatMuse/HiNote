@@ -222,6 +222,26 @@ export class HighlightDecorator {
                             attributes: backgroundColor ? { style: `background-color: ${backgroundColor}` } : {}
                         });
                         widgets.push(highlightMark.range(from, to));
+
+                        // 创建评论图标装饰器
+                        const widget = Decoration.widget({
+                            widget: new CommentWidget(
+                                this.plugin,
+                                {
+                                    id: text.trim(),
+                                    text: text.trim(),
+                                    comments: fileComments?.find(h => h.text === text.trim())?.comments || []
+                                },
+                                () => {
+                                    const highlight = fileComments?.find(h => h.text === text.trim());
+                                    if (highlight) {
+                                        this.openCommentPanel(highlight);
+                                    }
+                                }
+                            ),
+                            side: 1
+                        });
+                        widgets.push(widget.range(to, to));
                     }
                 }
 
