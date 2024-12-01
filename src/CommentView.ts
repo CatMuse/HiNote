@@ -60,7 +60,7 @@ export class CommentView extends ItemView {
         container.empty();
         
         // 创建搜索区域
-        this.searchContainer = container.createDiv({
+        this.searchContainer = container.createEl("div", {
             cls: "highlight-search-container"
         });
 
@@ -79,7 +79,7 @@ export class CommentView extends ItemView {
         }, 300));
 
         // 创高亮列表容器
-        this.highlightContainer = container.createDiv({
+        this.highlightContainer = container.createEl("div", {
             cls: "highlight-container"
         });
 
@@ -205,9 +205,14 @@ export class CommentView extends ItemView {
             });
 
             // 添加竖线装饰
-            textContainer.createEl("div", {
+            const decorator = textContainer.createEl("div", {
                 cls: "highlight-text-decorator"
             });
+
+            // 如果有背景色，应用到装饰器
+            if (highlight.backgroundColor) {
+                decorator.style.backgroundColor = highlight.backgroundColor;
+            }
 
             // 高亮文本区域
             const textEl = textContainer.createEl("div", {
@@ -564,7 +569,7 @@ export class CommentView extends ItemView {
     }
 
     private extractHighlights(content: string): HighlightInfo[] {
-        const highlightRegex = /==\s*(.*?)\s*==|<mark>\s*(.*?)\s*<\/mark>|<span style="background:rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)">\s*(.*?)\s*<\/span>/g;
+        const highlightRegex = /==\s*(.*?)\s*==|<mark>\s*(.*?)\s*<\/mark>|<span style="background:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,6})">\s*(.*?)\s*<\/span>/g;
         const highlights: HighlightInfo[] = [];
         const paragraphs = content.split(/\n\n+/);
         let offset = 0;
@@ -572,13 +577,15 @@ export class CommentView extends ItemView {
         paragraphs.forEach(paragraph => {
             let match;
             while ((match = highlightRegex.exec(paragraph)) !== null) {
-                const text = (match[1] || match[2] || match[3]).trim();
+                const text = (match[1] || match[2] || match[4])?.trim(); // 更新索引以匹配新的捕获组
+                const backgroundColor = match[3]; // 获取颜色值（rgba 或 16进制）
                 if (text) {
                     const highlight: HighlightInfo = {
                         text: text,
                         position: offset + match.index,
                         paragraphOffset: offset,
-                        paragraphText: paragraph
+                        paragraphText: paragraph,
+                        backgroundColor: backgroundColor // 存储颜色信息
                     };
                     highlights.push(highlight);
                 }
@@ -702,8 +709,16 @@ export class CommentView extends ItemView {
             const highlightFormats = [
                 new RegExp(`==\\s*${escapeRegExp(highlight.text)}\\s*==`),
                 new RegExp(`<mark>\\s*${escapeRegExp(highlight.text)}\\s*</mark>`),
-                new RegExp(`<span style="background:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)">\\s*${escapeRegExp(highlight.text)}\\s*</span>`)
+                new RegExp(`<span style="background:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)">\\s*${escapeRegExp(highlight.text)}\\s*</span>`),
+                new RegExp(`<span style="background:#[0-9a-fA-F]{3,6}">\\s*${escapeRegExp(highlight.text)}\\s*</span>`)
             ];
+
+            // 如果有背景色，优先使用对应的格式
+            if (highlight.backgroundColor) {
+                highlightFormats.unshift(
+                    new RegExp(`<span style="background:${escapeRegExp(highlight.backgroundColor)}">\\s*${escapeRegExp(highlight.text)}\\s*</span>`)
+                );
+            }
 
             // 依次尝试每种格式
             for (const format of highlightFormats) {

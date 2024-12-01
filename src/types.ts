@@ -9,6 +9,7 @@ export interface HighlightInfo {
     id?: string;
     createdAt?: number;
     updatedAt?: number;
+    backgroundColor?: string;  // 新增：存储rgba颜色值
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'ollama';
