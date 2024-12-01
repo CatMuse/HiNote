@@ -564,7 +564,7 @@ export class CommentView extends ItemView {
     }
 
     private extractHighlights(content: string): HighlightInfo[] {
-        const highlightRegex = /==(.*?)==|<mark>(.*?)<\/mark>|<span style="background:rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)">(.*?)<\/span>/g;
+        const highlightRegex = /==\s*(.*?)\s*==|<mark>\s*(.*?)\s*<\/mark>|<span style="background:rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)">\s*(.*?)\s*<\/span>/g;
         const highlights: HighlightInfo[] = [];
         const paragraphs = content.split(/\n\n+/);
         let offset = 0;
@@ -572,10 +572,10 @@ export class CommentView extends ItemView {
         paragraphs.forEach(paragraph => {
             let match;
             while ((match = highlightRegex.exec(paragraph)) !== null) {
-                const text = match[1] || match[2] || match[3];
-                if (text.trim()) {
+                const text = (match[1] || match[2] || match[3]).trim();
+                if (text) {
                     const highlight: HighlightInfo = {
-                        text: text.trim(),
+                        text: text,
                         position: offset + match.index,
                         paragraphOffset: offset,
                         paragraphText: paragraph
@@ -695,9 +695,24 @@ export class CommentView extends ItemView {
             const editor = markdownView.editor;
             
             // 使用编辑器的搜索功能定位到高亮文本
-            const searchText = `==${highlight.text}==`;  // 搜高亮语法
             const content = editor.getValue();
-            const position = content.indexOf(searchText);
+            let position = -1;
+
+            // 尝试所有可能的高亮格式，允许文本前后有空格
+            const highlightFormats = [
+                new RegExp(`==\\s*${escapeRegExp(highlight.text)}\\s*==`),
+                new RegExp(`<mark>\\s*${escapeRegExp(highlight.text)}\\s*</mark>`),
+                new RegExp(`<span style="background:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)">\\s*${escapeRegExp(highlight.text)}\\s*</span>`)
+            ];
+
+            // 依次尝试每种格式
+            for (const format of highlightFormats) {
+                const match = format.exec(content);
+                if (match) {
+                    position = match.index;
+                    break;
+                }
+            }
             
             if (position !== -1) {
                 const pos = editor.offsetToPos(position);
@@ -861,4 +876,8 @@ export class CommentView extends ItemView {
             }, 100);
         }) as EventListener);
     }
-} 
+}
+
+function escapeRegExp(str: string) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
