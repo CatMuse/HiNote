@@ -214,12 +214,12 @@ export class HighlightDecorator {
 
                 paragraphs.forEach((paragraph) => {
                     // 在当前段落中查找高亮文本
-                    const highlightRegex = /==(.*?)==|<mark>(.*?)<\/mark>/g;
+                    const highlightRegex = /==(.*?)==|<mark>(.*?)<\/mark>|<span style="background:rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)">(.*?)<\/span>/g;
                     let match;
                     const paragraphHighlights: HighlightComment[] = [];
 
                     while ((match = highlightRegex.exec(paragraph)) !== null) {
-                        const text = match[1] || match[2];
+                        const text = match[1] || match[2] || match[3];
                         if (text.trim()) {
                             // 查找已存在的评论
                             const matchedComment = fileComments.find(c => c.text === text.trim());

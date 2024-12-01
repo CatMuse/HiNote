@@ -564,7 +564,7 @@ export class CommentView extends ItemView {
     }
 
     private extractHighlights(content: string): HighlightInfo[] {
-        const highlightRegex = /==(.*?)==|<mark>(.*?)<\/mark>/g;
+        const highlightRegex = /==(.*?)==|<mark>(.*?)<\/mark>|<span style="background:rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)">(.*?)<\/span>/g;
         const highlights: HighlightInfo[] = [];
         const paragraphs = content.split(/\n\n+/);
         let offset = 0;
@@ -572,7 +572,7 @@ export class CommentView extends ItemView {
         paragraphs.forEach(paragraph => {
             let match;
             while ((match = highlightRegex.exec(paragraph)) !== null) {
-                const text = match[1] || match[2];
+                const text = match[1] || match[2] || match[3];
                 if (text.trim()) {
                     const highlight: HighlightInfo = {
                         text: text.trim(),
