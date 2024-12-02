@@ -208,46 +208,72 @@ export class HighlightDecorator {
                 const content = doc.toString();
                 const fileComments = this.commentStore.getFileComments(markdownView.file);
 
-                const highlightRegex = /==\s*(.*?)\s*==|<mark>\s*(.*?)\s*<\/mark>|<span style="background:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,6})">\s*(.*?)\s*<\/span>/g;
+                // 按段落分析内容
+                const paragraphs = content.split(/\n\n+/);
+                let offset = 0;
 
-                let match;
-                while ((match = highlightRegex.exec(content)) !== null) {
-                    const text = match[1] || match[2] || match[4];
-                    const backgroundColor = match[3];
-                    if (text?.trim()) {
-                        const from = match.index;
-                        const to = from + match[0].length;
-                        const highlightMark = Decoration.mark({
-                            class: "cm-highlight-text",
-                            attributes: backgroundColor ? { style: `background-color: ${backgroundColor}` } : {}
-                        });
-                        widgets.push(highlightMark.range(from, to));
+                paragraphs.forEach((paragraph) => {
+                    // 在当前段落中查找高亮文本
+                    const highlightRegex = /==\s*(.*?)\s*==|<mark>\s*(.*?)\s*<\/mark>|<span style="background:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,6})">\s*(.*?)\s*<\/span>/g;
+                    let match;
+                    const paragraphHighlights: HighlightComment[] = [];
 
-                        // 创建评论图标装饰器
+                    while ((match = highlightRegex.exec(paragraph)) !== null) {
+                        const text = match[1] || match[2] || match[4];
+                        const backgroundColor = match[3];
+                        if (text?.trim()) {
+                            const from = offset + match.index;
+                            const to = from + match[0].length;
+                            
+                            // 添加高亮标记
+                            const highlightMark = Decoration.mark({
+                                class: "cm-highlight-text",
+                                attributes: backgroundColor ? { style: `background-color: ${backgroundColor}` } : {}
+                            });
+                            widgets.push(highlightMark.range(from, to));
+
+                            // 查找已存在的评论
+                            const matchedComment = fileComments?.find(c => c.text === text.trim());
+                            if (matchedComment) {
+                                paragraphHighlights.push(matchedComment);
+                            } else {
+                                // 为没有评论的高亮创建一个新的评论对象
+                                paragraphHighlights.push({
+                                    id: `highlight-${Date.now()}-${from}`,
+                                    text: text.trim(),
+                                    position: from,
+                                    comments: [],
+                                    createdAt: Date.now(),
+                                    updatedAt: Date.now(),
+                                    paragraphId: `p-${offset}-${Date.now()}`
+                                } as HighlightComment);
+                            }
+                        }
+                    }
+
+                    // 只要段落中有高亮就创建评论按钮
+                    if (paragraphHighlights.length > 0) {
+                        // 使用 flatMap 合并该段落中所有高亮的评论
+                        const allComments = paragraphHighlights.flatMap(h => h.comments || []);
+                        const combinedHighlight = {
+                            ...paragraphHighlights[0],
+                            comments: allComments
+                        };
+
+                        // 在段落末尾添加评论小部件
                         const widget = Decoration.widget({
                             widget: new CommentWidget(
                                 this.plugin,
-                                {
-                                    id: text.trim(),
-                                    text: text.trim(),
-                                    position: from,
-                                    paragraphId: `p-${from}`,
-                                    comments: fileComments?.find(h => h.text === text.trim())?.comments || [],
-                                    createdAt: Date.now(),
-                                    updatedAt: Date.now()
-                                },
-                                () => {
-                                    const highlight = fileComments?.find(h => h.text === text.trim());
-                                    if (highlight) {
-                                        this.openCommentPanel(highlight);
-                                    }
-                                }
+                                combinedHighlight,
+                                () => this.openCommentPanel(combinedHighlight)
                             ),
                             side: 1
                         });
-                        widgets.push(widget.range(to, to));
+                        widgets.push(widget.range(offset + paragraph.length));
                     }
-                }
+
+                    offset += paragraph.length + 2; // +2 for the paragraph separators
+                });
 
                 return Decoration.set(widgets);
             }
