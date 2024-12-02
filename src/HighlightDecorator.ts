@@ -7,6 +7,7 @@ class CommentWidget extends WidgetType {
     constructor(
         private plugin: Plugin,
         private highlight: HighlightComment,
+        private paragraphHighlights: HighlightComment[],
         private onClick: () => void
     ) {
         super();
@@ -14,14 +15,18 @@ class CommentWidget extends WidgetType {
 
     eq(other: CommentWidget): boolean {
         // 比较评论内容是否相同
-        return this.highlight.text === other.highlight.text &&
-               this.highlight.comments.length === other.highlight.comments.length;
+        return this.paragraphHighlights.length === other.paragraphHighlights.length &&
+               this.paragraphHighlights.every((h, i) => 
+                   h.text === other.paragraphHighlights[i].text &&
+                   h.comments.length === other.paragraphHighlights[i].comments.length
+               );
     }
 
     toDOM() {
         const wrapper = document.createElement("span");
         wrapper.addClass("highlight-comment-widget");
-        wrapper.setAttribute('data-highlight-text', this.highlight.text);
+        wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
+        wrapper.setAttribute('data-highlights', this.paragraphHighlights.map(h => h.text).join(','));
         
         const button = wrapper.createEl("button", {
             cls: "highlight-comment-button highlight-comment-button-hidden"
@@ -39,8 +44,11 @@ class CommentWidget extends WidgetType {
             </svg>
         `;
 
+        // 获取所有评论
+        const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
+        const commentCount = allComments.length;
+
         // 评论数量
-        const commentCount = this.highlight.comments.length;
         if (commentCount > 0) {
             iconContainer.createEl("span", {
                 cls: "highlight-comment-count",
@@ -49,17 +57,17 @@ class CommentWidget extends WidgetType {
             button.removeClass("highlight-comment-button-hidden");
         }
 
-        // 只在有评论时创建预览弹窗
+        // 创建预览弹窗
+        const tooltip = wrapper.createEl("div", {
+            cls: "highlight-comment-tooltip hidden"
+        });
+
+        const commentsList = tooltip.createEl("div", {
+            cls: "highlight-comment-tooltip-list"
+        });
+
         if (commentCount > 0) {
-            const tooltip = wrapper.createEl("div", {
-                cls: "highlight-comment-tooltip hidden"
-            });
-
-            const commentsList = tooltip.createEl("div", {
-                cls: "highlight-comment-tooltip-list"
-            });
-
-            this.highlight.comments.slice(0, 3).forEach(comment => {
+            allComments.slice(0, 3).forEach(comment => {
                 const commentItem = commentsList.createEl("div", {
                     cls: "highlight-comment-tooltip-item"
                 });
@@ -75,10 +83,10 @@ class CommentWidget extends WidgetType {
                 });
             });
 
-            if (this.highlight.comments.length > 3) {
+            if (allComments.length > 3) {
                 tooltip.createEl("div", {
                     cls: "highlight-comment-tooltip-more",
-                    text: `还有 ${this.highlight.comments.length - 3} 条评论...`
+                    text: `还有 ${allComments.length - 3} 条评论...`
                 });
             }
 
@@ -134,6 +142,10 @@ export class HighlightDecorator {
         this.commentStore = commentStore;
     }
 
+    private getActiveMarkdownView() {
+        return this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+    }
+
     enable() {
         const plugin = this.plugin;
         const commentStore = this.commentStore;
@@ -141,19 +153,32 @@ export class HighlightDecorator {
         // 监听评论更新事件
         this.plugin.registerDomEvent(window, 'comment-updated', (e: CustomEvent) => {
             const buttons = document.querySelectorAll('.highlight-comment-widget');
+            const updatedText = e.detail.text;
+            
+            // 获取当前文档和评论
+            const view = this.getActiveMarkdownView();
+            if (!view || !view.file) return;
+            
+            const fileComments = this.commentStore.getFileComments(view.file);
+            if (!fileComments) return;
+
             buttons.forEach(button => {
-                const highlightText = button.getAttribute('data-highlight-text');
-                if (highlightText === e.detail.text) {
-                    // 获取按钮元素
-                    const commentButton = button.querySelector('.highlight-comment-button');
-                    
+                const highlightTexts = button.getAttribute('data-highlights')?.split(',') || [];
+                
+                // 如果这个段落包含更新的高亮文本
+                if (highlightTexts.includes(updatedText)) {
+                    // 获取段落中所有高亮的评论
+                    const allComments = fileComments
+                        .filter(comment => highlightTexts.includes(comment.text))
+                        .flatMap(h => h.comments || []);
+
                     // 更新评论数量
                     const countEl = button.querySelector('.highlight-comment-count');
                     if (countEl) {
-                        const commentCount = e.detail.comments.length;
+                        const commentCount = allComments.length;
                         countEl.textContent = commentCount.toString();
                         
-                        // 根据评论数量显示或隐藏按钮
+                        const commentButton = button.querySelector('.highlight-comment-button');
                         if (commentCount === 0) {
                             commentButton?.addClass('highlight-comment-button-hidden');
                         } else {
@@ -162,20 +187,9 @@ export class HighlightDecorator {
                     }
 
                     // 更新预览内容
-                    const tooltip = button.querySelector('.highlight-comment-tooltip-list');
+                    const tooltip = button.querySelector('.highlight-comment-tooltip');
                     if (tooltip) {
-                        tooltip.empty();
-                        e.detail.comments.slice(0, 3).forEach((comment: CommentItem) => {
-                            const item = tooltip.createEl('div', { cls: 'highlight-comment-tooltip-item' });
-                            item.createEl('div', {
-                                cls: 'highlight-comment-tooltip-content',
-                                text: comment.content
-                            });
-                            item.createEl('div', {
-                                cls: 'highlight-comment-tooltip-time',
-                                text: new Date(comment.createdAt).toLocaleString()
-                            });
-                        });
+                        this.updateTooltipContent(tooltip, allComments);
                     }
                 }
             });
@@ -201,7 +215,7 @@ export class HighlightDecorator {
             buildDecorations(view: EditorView) {
                 const widgets: any[] = [];
                 const doc = view.state.doc;
-                const markdownView = this.getActiveMarkdownView();
+                const markdownView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
                 
                 if (!markdownView || !markdownView.file) return Decoration.none;
 
@@ -265,6 +279,7 @@ export class HighlightDecorator {
                             widget: new CommentWidget(
                                 this.plugin,
                                 combinedHighlight,
+                                paragraphHighlights,
                                 () => this.openCommentPanel(combinedHighlight)
                             ),
                             side: 1
@@ -276,10 +291,6 @@ export class HighlightDecorator {
                 });
 
                 return Decoration.set(widgets);
-            }
-
-            private getActiveMarkdownView() {
-                return this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
             }
 
             private openCommentPanel(highlight: HighlightComment) {
@@ -327,13 +338,18 @@ export class HighlightDecorator {
 
         // 更新"更多评论"提示
         const moreEl = tooltip.querySelector('.highlight-comment-tooltip-more');
-        if (moreEl) {
-            if (comments.length > 3) {
+        if (comments.length > 3) {
+            if (moreEl) {
                 moreEl.textContent = `还有 ${comments.length - 3} 条评论...`;
                 moreEl.removeClass('hidden');
             } else {
-                moreEl.addClass('hidden');
+                tooltip.createEl('div', {
+                    cls: 'highlight-comment-tooltip-more',
+                    text: `还有 ${comments.length - 3} 条评论...`
+                });
             }
+        } else if (moreEl) {
+            moreEl.addClass('hidden');
         }
     }
 } 
