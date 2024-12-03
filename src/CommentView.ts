@@ -695,7 +695,7 @@ export class CommentView extends ItemView {
             await this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
 
             // 等待编辑器准备就绪
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const editor = markdownView.editor;
             
@@ -730,36 +730,40 @@ export class CommentView extends ItemView {
             if (position !== -1) {
                 const pos = editor.offsetToPos(position);
                 
-                // 找到段落的末（下一个空行或文档末尾）
+                // 1. 确保编辑器已准备就绪
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                // 2. 先将目标行滚动到视图中央
+                editor.scrollIntoView({
+                    from: { line: pos.line, ch: 0 },
+                    to: { line: pos.line + 1, ch: 0 }
+                }, true);  // 居中对齐
+
+                // 3. 等待滚动完成
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                // 4. 微调位置，确保有足够上下文
+                editor.scrollIntoView({
+                    from: { line: Math.max(0, pos.line - 3), ch: 0 },
+                    to: { line: Math.min(editor.lineCount() - 1, pos.line + 3), ch: 0 }
+                }, true);
+
+                // 5. 查找段落末尾并设置光标位置
                 let nextLineNumber = pos.line;
                 const totalLines = editor.lineCount();
                 
-                // 向下查找直到找到空行或文件末尾
                 while (nextLineNumber < totalLines - 1) {
                     const currentLine = editor.getLine(nextLineNumber);
                     const nextLine = editor.getLine(nextLineNumber + 1);
                     
-                    // 如果当前行不为空但下一行为空，说明找到了段落末尾
                     if (currentLine.trim() !== '' && nextLine.trim() === '') {
                         break;
                     }
                     nextLineNumber++;
                 }
-                
-                // 计算滚动位置，使高亮内容在视图的上方
-                const linesAbove = 3;  // 上方预留3
-                const startLine = Math.max(0, pos.line - linesAbove);
-                
-                // 先滚动到目标位置
-                editor.scrollIntoView({
-                    from: { line: startLine, ch: 0 },
-                    to: { line: pos.line, ch: 0 }
-                });
 
-                // 等待滚动完成后设置光标位置到段落的下一行
-                await new Promise(resolve => setTimeout(resolve, 50));
                 editor.setCursor({
-                    line: nextLineNumber + 1,  // 定位到段落末尾的下一行
+                    line: nextLineNumber + 1,
                     ch: 0
                 });
             } else {
