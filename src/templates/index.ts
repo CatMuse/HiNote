@@ -69,33 +69,6 @@ export const defaultTemplate: CardTemplate = {
     }
 };
 
-// 简约模板
-export const minimalTemplate: CardTemplate = {
-    id: 'minimal',
-    name: '简约模板',
-    description: '清新简约的卡片样式',
-    render: (highlight: HighlightInfo) => {
-        const cardContainer = document.createElement('div');
-        cardContainer.className = 'highlight-export-card highlight-export-card-minimal';
-
-        const quoteContent = document.createElement('div');
-        quoteContent.className = 'highlight-export-quote';
-        quoteContent.textContent = highlight.text;
-        cardContainer.appendChild(quoteContent);
-
-        const footer = document.createElement('div');
-        footer.className = 'highlight-export-footer';
-        
-        const source = document.createElement('div');
-        source.className = 'highlight-export-source';
-        source.textContent = document.querySelector('.workspace-leaf.mod-active .view-header-title')?.textContent || 'Obsidian';
-        footer.appendChild(source);
-
-        cardContainer.appendChild(footer);
-        return cardContainer;
-    }
-};
-
 // 学术模板
 export const academicTemplate: CardTemplate = {
     id: 'academic',
@@ -176,7 +149,6 @@ export const socialTemplate: CardTemplate = {
 // 模板注册表
 export const templates: CardTemplate[] = [
     defaultTemplate,
-    minimalTemplate,
     academicTemplate,
     socialTemplate
 ];

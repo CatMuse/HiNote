@@ -994,19 +994,6 @@ hr {
     transition: all 0.3s ease;
 }
 
-/* 简约模板 */
-.highlight-export-card-minimal {
-    padding: 20px;
-    background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-}
-
-.highlight-export-card-minimal .highlight-export-quote {
-    font-size: 1em;
-    line-height: 1.6;
-    color: var(--text-normal);
-}
-
 /* 学术模板 */
 .highlight-export-card-academic {
     padding: 24px;
