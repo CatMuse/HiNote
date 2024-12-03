@@ -538,27 +538,24 @@
 
 /* 模板选择器样式 */
 .highlight-template-selector {
-    padding: 16px 0px;
-    background-color: var(--background-primary);
-    border-bottom: 1px solid var(--background-modifier-border);
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    padding: 0 0 8px 0;
+    position: relative;  /* 添加相对定位 */
+    z-index: 1;         /* 确保选择器在按钮上方 */
 }
 
 .highlight-template-select {
-    width: calc(100%); /* 减去左右padding的宽度 */
-    margin: 0 auto;
+    width: 100%;
+    padding: 8px 32px 8px 8px;  /* 右侧留出箭头的空间 */
+    border-radius: 4px;
+    background-color: var(--background-modifier-form-field);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background-color: var(--background-primary);
-    color: var(--text-normal);
+    height: 36px;  /* 设置固定高度 */
+    line-height: 1.4;  /* 添加行高 */
     font-size: 14px;
-    line-height: 1.4; /* 添加行高 */
-    transition: all 0.2s ease;
+    color: var(--text-normal);
     cursor: pointer;
     appearance: none;
-    -webkit-appearance: none; /* 为Safari添加前缀 */
+    -webkit-appearance: none;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
     background-position: right 8px center;
@@ -614,9 +611,9 @@
     flex-direction: column;
     flex: 1;
     overflow: auto;     /* 改为 auto，允许内容超出时滚动 */
+    padding: 12px 4px 4px 4px;      /* 添加内边距 */
 }
 
-/* 导出预览弹窗样式 */
 .highlight-export-preview-container {
     padding: 20px;
     margin: 16px 0;
@@ -630,8 +627,10 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    padding-top: 16px;
+    padding: 16px;
+    margin: 0 -16px -16px -16px;  /* 抵消 Modal 的 padding */
     border-top: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);  /* 添加背景色 */
 }
 
 /* 调整导出容器样式 */
