@@ -182,14 +182,12 @@
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: none;
-    -webkit-box-shadow: none;
 }
 
 .highlight-comment-actions button:not(.clickable-icon):hover {
     color: var(--text-error);
     background: none;
     box-shadow: none;
-    -webkit-box-shadow: none;
 }
 
 .highlight-comment-input {
@@ -956,29 +954,22 @@ hr {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 8px;
+    margin-top: 4px;
     padding-top: 8px;
     border-top: 1px solid var(--background-modifier-border);
 }
 
 /* 删除链接样式 */
 .highlight-comment-delete-link {
-    background: none;
     border: none;
-    padding: 4px 0;
-    color: var(--text-muted);
     font-size: 12px;
-    cursor: pointer;
-    transition: color 0.2s ease;
-    box-shadow: none;
-    -webkit-box-shadow: none;  /* 添加 webkit 前缀 */
+    padding: 4px 6px;
+    background-color: none;
+    box-shadow: none !important;
 }
 
 .highlight-comment-delete-link:hover {
     color: var(--text-error);
-    background: none;
-    box-shadow: none;
-    -webkit-box-shadow: none;  /* 添加 webkit 前缀 */
 }
 
 /* 调整提示文本样式 */
@@ -1037,41 +1028,6 @@ hr {
     line-height: 1.6;
     color: var(--text-normal);
     margin: 20px 0;
-}
-
-/* 按钮样式 */
-.highlight-btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
-
-.highlight-btn:hover {
-    opacity: 0.9;
-}
-
-.highlight-btn-primary {
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-}
-
-/* 覆盖 Obsidian 的默认按钮样式 */
-.highlight-comment-actions button:not(.clickable-icon) {
-    box-shadow: none;
-    -webkit-box-shadow: none;
-    background: none;
-    padding: 4px;
-    color: var(--text-muted);
-    transition: color 0.2s ease;
-}
-
-.highlight-comment-actions button:not(.clickable-icon):hover {
-    color: var(--text-error);
-    background: none;
-    box-shadow: none;
-    -webkit-box-shadow: none;
 }
 
 /* 默认模板（现代风格）样式优化 */

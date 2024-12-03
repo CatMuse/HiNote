@@ -1,11 +1,9 @@
-import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal } from "obsidian";
 import { CommentStore, HighlightComment, CommentItem } from './CommentStore';
-import { Modal } from 'obsidian';
 import { ExportPreviewModal } from './ExportModal';
-import { HighlightInfo } from './types';
+import { HighlightInfo, CommentUpdateEvent } from './types';
 import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
-import { CommentUpdateEvent } from './types';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
