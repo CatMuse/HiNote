@@ -845,41 +845,6 @@
     padding: 0;
 }
 
-/* Prompt 内容预览样式 */
-.custom-prompt-preview {
-    margin-top: 12px;
-    padding: 12px;
-    background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text-normal);
-    white-space: pre-wrap;
-    max-height: 120px;
-    overflow-y: auto;
-}
-
-/* 编辑和删除按钮样式 */
-.custom-prompt-container .setting-item-control button {
-    background-color: transparent;
-    border: none;
-    padding: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-.custom-prompt-container .setting-item-control button:hover {
-    background-color: var(--background-modifier-hover);
-    color: var(--text-accent);
-}
-
-.custom-prompt-container .setting-item-control button[aria-label="删除"]:hover {
-    color: var(--text-error);
-}
-
 /* 标题和添加按钮容器 */
 .setting-prompt-header {
     display: flex;
@@ -1129,55 +1094,6 @@ hr {
     background: linear-gradient(to bottom right,
         var(--background-primary) 0%,
         var(--background-primary-alt) 100%);
-}
-
-/* Prompt Modal Styles */
-.prompt-content-setting {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
-
-.prompt-parameters-help {
-    margin: 10px 0;
-    padding: 10px;
-    background-color: var(--background-secondary);
-    border-radius: 5px;
-}
-
-.prompt-parameters-help p {
-    margin: 0 0 5px 0;
-    font-weight: bold;
-}
-
-.prompt-parameters-help ul {
-    margin: 0;
-    padding-left: 20px;
-}
-
-.prompt-parameters-help li {
-    margin: 5px 0;
-    color: var(--text-muted);
-}
-
-.prompt-parameter-buttons {
-    display: flex;
-    gap: 10px;
-    margin: 10px 0;
-}
-
-.prompt-parameter-buttons button {
-    padding: 5px 10px;
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.prompt-parameter-buttons button:hover {
-    background-color: var(--interactive-accent-hover);
 }
 
 /* 设置页面样式 */
