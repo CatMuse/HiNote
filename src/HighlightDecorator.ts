@@ -117,12 +117,13 @@ class CommentWidget extends WidgetType {
             e.stopPropagation();
             this.onClick();
             
-            window.dispatchEvent(new CustomEvent("open-comment-input", {
+            const event = new CustomEvent("open-comment-input", {
                 detail: {
                     highlightId: this.highlight.id,
                     text: this.highlight.text
                 }
-            }));
+            });
+            window.dispatchEvent(event);
         });
 
         return wrapper;

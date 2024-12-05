@@ -39,6 +39,34 @@ export class CommentView extends ItemView {
                 }
             })
         );
+
+        // 监听评论输入事件
+        const handleCommentInput = (e: CustomEvent) => {
+            const { highlightId, text } = e.detail;
+            
+            // 等待一下确保视图已经更新
+            setTimeout(() => {
+                // 找到对应的高亮卡片
+                const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
+                    .find(card => {
+                        const textContent = card.querySelector('.highlight-text-content')?.textContent;
+                        return textContent === text;
+                    });
+
+                if (highlightCard) {
+                    // 找到并点击添加评论按钮
+                    const addButton = highlightCard.querySelector('.highlight-add-comment-btn') as HTMLElement;
+                    if (addButton) {
+                        addButton.click();
+                    }
+                    // 滚动到评论区域
+                    highlightCard.scrollIntoView({ behavior: "smooth" });
+                }
+            }, 100);
+        };
+
+        window.addEventListener("open-comment-input", handleCommentInput as EventListener);
+        this.register(() => window.removeEventListener("open-comment-input", handleCommentInput as EventListener));
     }
 
     getViewType(): string {
@@ -907,31 +935,6 @@ export class CommentView extends ItemView {
 
     async onload() {
         // ... 其他代码保持不变 ...
-
-        // 添加事件监听
-        window.addEventListener("open-comment-input", ((e: CustomEvent) => {
-            const { highlightId, text } = e.detail;
-            
-            // 等待一下确保视图已经更新
-            setTimeout(() => {
-                // 找到对应的高亮卡片
-                const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
-                    .find(card => {
-                        const textContent = card.querySelector('.highlight-text-content')?.textContent;
-                        return textContent === text;
-                    });
-
-                if (highlightCard) {
-                    // 找到并点击添加评论按钮
-                    const addButton = highlightCard.querySelector('.highlight-add-btn') as HTMLElement;
-                    if (addButton) {
-                        addButton.click();
-                    }
-                    // 滚动到评论区域
-                    highlightCard.scrollIntoView({ behavior: "smooth" });
-                }
-            }, 100);
-        }) as EventListener);
     }
 }
 
