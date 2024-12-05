@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting, Notice, TextAreaComponent, Modal, reque
 import { AIProvider, OpenAIModel, AnthropicModel, PluginSettings } from '../types';
 import { OllamaService } from '../services/OllamaService';
 import { CommentView } from '../CommentView';
+import { setIcon } from 'obsidian';  // 添加 setIcon 导入
 
 export class AISettingTab extends PluginSettingTab {
     plugin: any;  // 修改为具体的插件类型
@@ -623,8 +624,11 @@ export class AISettingTab extends PluginSettingTab {
         // 添加按钮
         const addButton = headerContainer.createEl('button', {
             cls: 'prompt-add-btn',
-            text: '添加'
+            attr: {
+                'aria-label': '添加'
+            }
         });
+        setIcon(addButton, 'plus');
         
         addButton.onclick = () => {
             // 如果已经存在新建表单，就不要重复创建
@@ -727,8 +731,11 @@ export class AISettingTab extends PluginSettingTab {
             // Edit button
             const editBtn = buttonContainer.createEl('button', {
                 cls: 'prompt-edit-btn',
-                text: '编辑'
+                attr: {
+                    'aria-label': '编辑'
+                }
             });
+            setIcon(editBtn, 'square-pen');  // 添加 setIcon
 
             // Edit mode elements (hidden by default)
             const editContainer = promptItem.createEl('div', { 
@@ -764,8 +771,11 @@ export class AISettingTab extends PluginSettingTab {
             // Delete button (moved to edit mode)
             const deleteBtn = editButtonsContainer.createEl('button', {
                 cls: 'prompt-delete-btn',
-                text: '删除'
+                attr: {
+                    'aria-label': '删除'
+                }
             });
+            setIcon(deleteBtn, 'trash-2');
 
             // Event handlers
             editBtn.onclick = () => {

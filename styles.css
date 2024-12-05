@@ -1045,17 +1045,17 @@ hr {
     background-color: var(--background-primary);
     border-radius: 6px;
     padding: 16px;
-    margin-bottom: 24px;
+    margin: 12px 0px;
 }
 
 .prompt-list {
-    margin-top: 24px;
+    margin-top: 12px;
 }
 
 .prompt-item {
     background-color: var(--background-primary);
     border-radius: 6px;
-    padding: 16px;
+    padding: 12px;
     position: relative;
 }
 
@@ -1089,7 +1089,7 @@ hr {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 6px;
 }
 
 .prompt-add-btn {
@@ -1102,9 +1102,9 @@ hr {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 8px;
+    padding: 4px;
     border-radius: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 2px;
 }
 
 .prompt-info {
@@ -1141,7 +1141,6 @@ hr {
     display: flex;
     flex-direction: row-reverse;
     gap: 8px;
-    margin-top: 8px;
 }
 
 .prompt-save-btn,
@@ -1175,5 +1174,4 @@ hr {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-normal);
-    margin-bottom: 16px;
 }
