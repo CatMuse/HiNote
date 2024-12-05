@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon } from "obsidian";
 import { CommentStore, HighlightComment, CommentItem } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
@@ -260,19 +260,7 @@ export class CommentView extends ItemView {
             const normalIcon = aiButtonContent.createEl("div", {
                 cls: "highlight-ai-icon"
             });
-            normalIcon.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 4V2"/>
-                    <path d="M15 16v-2"/>
-                    <path d="M8 9h2"/>
-                    <path d="M20 9h2"/>
-                    <path d="M17.8 11.8L19 13"/>
-                    <path d="M15 9h0"/>
-                    <path d="M17.8 6.2L19 5"/>
-                    <path d="m3 21 9-9"/>
-                    <path d="M12.2 6.2 11 5"/>
-                </svg>
-            `;
+            setIcon(normalIcon, "bot-message-square");
 
             // 加载状态的图标
             const loadingIcon = aiButtonContent.createEl("div", {
@@ -346,14 +334,10 @@ export class CommentView extends ItemView {
 
             // 添加评论按钮
             const addCommentBtn = rightButtons.createEl("button", {
-                cls: "highlight-action-btn highlight-add-btn",
+                cls: "highlight-action-btn highlight-add-comment-btn",
                 attr: { 'aria-label': '添加评论' }
             });
-            addCommentBtn.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
-            `;
+            setIcon(addCommentBtn, "square-plus");
             addCommentBtn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 this.showCommentInput(card, highlight);
@@ -364,13 +348,7 @@ export class CommentView extends ItemView {
                 cls: "highlight-action-btn highlight-share-btn",
                 attr: { 'aria-label': '导出为图片' }
             });
-            shareBtn.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-            `;
+            setIcon(shareBtn, "image-down");
             shareBtn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 this.exportHighlightAsImage(highlight);
