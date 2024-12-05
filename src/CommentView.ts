@@ -855,6 +855,33 @@ export class CommentView extends ItemView {
         }
     }
 
+    // 更新 AI 下拉菜单
+    updateAIDropdowns() {
+        const aiDropdowns = this.containerEl.querySelectorAll('.highlight-ai-dropdown');
+        aiDropdowns.forEach((dropdown: HTMLElement) => {
+            // 清空现有选项
+            dropdown.empty();
+            
+            // 重新添加选项
+            const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
+            if (prompts.length > 0) {
+                prompts.forEach(([promptName, promptContent]) => {
+                    const promptItem = dropdown.createEl("div", {
+                        cls: "highlight-ai-dropdown-item",
+                        text: promptName
+                    });
+                    promptItem.addEventListener("click", async () => {
+                        dropdown.addClass("hidden");
+                        const highlight = (dropdown.closest('.highlight-card') as HTMLElement)?.dataset?.highlight;
+                        if (highlight) {
+                            await this.handleAIAnalysis(JSON.parse(highlight), promptName);
+                        }
+                    });
+                });
+            }
+        });
+    }
+
     async onload() {
         // ... 其他代码保持不变 ...
 

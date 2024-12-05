@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Notice, TextAreaComponent, Modal, requestUrl } from 'obsidian';
+import { App, PluginSettingTab, Setting, TextComponent, Notice, TextAreaComponent, Modal, requestUrl } from 'obsidian';
 import { AIProvider, OpenAIModel, AnthropicModel, PluginSettings } from '../types';
 import { OllamaService } from '../services/OllamaService';
 import { CommentView } from '../CommentView';
@@ -686,6 +686,12 @@ export class AISettingTab extends PluginSettingTab {
                 newPromptSection.remove();
                 this.displayPromptList(container);
                 new Notice('Prompt 已添加');
+
+                // 更新所有 AI 下拉菜单
+                const commentView = this.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
+                if (commentView) {
+                    commentView.updateAIDropdowns();
+                }
             }
         };
 
@@ -787,6 +793,12 @@ export class AISettingTab extends PluginSettingTab {
                 delete this.plugin.settings.ai.prompts[name];
                 await this.plugin.saveSettings();
                 promptItem.remove();
+
+                // 更新所有 AI 下拉菜单
+                const commentView = this.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
+                if (commentView) {
+                    commentView.updateAIDropdowns();
+                }
             };
 
             saveBtn.onclick = async () => {
@@ -803,6 +815,12 @@ export class AISettingTab extends PluginSettingTab {
                 // Refresh the prompt list
                 this.displayPromptList(container);
                 new Notice('Prompt 已保存');
+
+                // 更新所有 AI 下拉菜单
+                const commentView = this.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
+                if (commentView) {
+                    commentView.updateAIDropdowns();
+                }
             };
 
             cancelBtn.onclick = () => {
