@@ -615,9 +615,9 @@ export class AISettingTab extends PluginSettingTab {
         });
 
         // 标题
-        headerContainer.createEl('h3', { 
+        headerContainer.createEl('div', { 
             text: 'Prompt 模板设置',
-            cls: 'prompt-title'
+            cls: 'prompt-settings-title'
         });
 
         // 添加按钮

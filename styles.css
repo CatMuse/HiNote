@@ -1041,19 +1041,11 @@ hr {
     margin: 16px 0;
 }
 
-.prompt-settings-container h3 {
-    margin-top: 0px;
-}
-
 .new-prompt-section {
     background-color: var(--background-primary);
     border-radius: 6px;
     padding: 16px;
     margin-bottom: 24px;
-}
-
-.prompt-content-area {
-    margin: 2px 0;
 }
 
 .prompt-list {
@@ -1064,7 +1056,6 @@ hr {
     background-color: var(--background-primary);
     border-radius: 6px;
     padding: 16px;
-    margin-bottom: 16px;
     position: relative;
 }
 
@@ -1076,6 +1067,9 @@ hr {
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     color: var(--text-normal);
+    font-size: 13px;
+    line-height: 1.4;
+    resize: vertical;
 }
 
 .prompt-content-input {
@@ -1086,36 +1080,16 @@ hr {
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     color: var(--text-normal);
+    font-size: 13px;
+    line-height: 1.5;
     resize: vertical;
 }
 
-.prompt-delete-btn {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background-color: var(--background-modifier-error);
-    color: var(--text-on-accent);
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.prompt-delete-btn:hover {
-    background-color: var(--background-modifier-error-hover);
-}
-
-/* Prompt Settings Styles */
 .prompt-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-}
-
-.prompt-title {
-    margin: 0;
 }
 
 .prompt-add-btn {
@@ -1150,32 +1124,28 @@ hr {
     max-height: 2.8em;
     overflow: hidden;
     display: -webkit-box;
-    display: -moz-box;
-    display: box;
     -webkit-line-clamp: 2;
-    -moz-line-clamp: 2;
-    line-clamp: 2;
     -webkit-box-orient: vertical;
-    -moz-box-orient: vertical;
-    box-orient: vertical;
+    line-clamp: 2;
     text-overflow: ellipsis;
 }
 
 .prompt-buttons {
     display: flex;
+    flex-direction: row-reverse;
     gap: 8px;
+    margin-top: 8px;
 }
 
 .prompt-edit-buttons {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: row-reverse;
     gap: 8px;
     margin-top: 8px;
 }
 
 .prompt-save-btn,
-.prompt-cancel-btn,
-.prompt-delete-btn {
+.prompt-cancel-btn {
     padding: 4px 12px;
     border: none;
     border-radius: 4px;
@@ -1201,12 +1171,9 @@ hr {
     background-color: var(--background-modifier-border);
 }
 
-.prompt-delete-btn {
-    background-color: transparent;
-    color: var(--text-error);
-}
-
-.prompt-delete-btn:hover {
-    background-color: var(--background-modifier-error);
-    color: var(--text-on-accent);
+.prompt-settings-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-normal);
+    margin-bottom: 16px;
 }
