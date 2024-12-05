@@ -296,6 +296,11 @@ export class CommentView extends ItemView {
                 cls: "highlight-ai-dropdown hidden"
             });
 
+            // 防止下拉菜单的点击事件冒泡
+            aiDropdown.addEventListener("click", (e) => {
+                e.stopPropagation();
+            });
+
             // 获取所有可用的 prompts
             const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
             if (prompts.length > 0) {
@@ -323,6 +328,13 @@ export class CommentView extends ItemView {
                 if (aiDropdown.hasClass("hidden")) {
                     aiDropdown.removeClass("hidden");
                 } else {
+                    aiDropdown.addClass("hidden");
+                }
+            });
+
+            // 添加document点击事件来关闭下拉菜单
+            document.addEventListener("click", () => {
+                if (!aiDropdown.hasClass("hidden")) {
                     aiDropdown.addClass("hidden");
                 }
             });
