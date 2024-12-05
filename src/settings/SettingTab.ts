@@ -609,58 +609,90 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'prompt-settings-container'
         });
 
-        container.createEl('h3', { text: 'Prompt 模板设置' });
+        // 创建标题栏容器
+        const headerContainer = container.createEl('div', {
+            cls: 'prompt-header'
+        });
 
-        // Add new prompt section
-        const newPromptSection = container.createEl('div', { cls: 'new-prompt-section' });
+        // 标题
+        headerContainer.createEl('h3', { 
+            text: 'Prompt 模板设置',
+            cls: 'prompt-title'
+        });
+
+        // 添加按钮
+        const addButton = headerContainer.createEl('button', {
+            cls: 'prompt-add-btn',
+            text: '添加'
+        });
         
-        const newPromptName = new Setting(newPromptSection)
-            .setName('新建 Prompt')
-            .setDesc('添加新的 Prompt 模板')
-            .addText(text => text
-                .setPlaceholder('输入 Prompt 名称')
-                .setValue('')
-            );
-
-        const contentArea = newPromptSection.createEl('div', { cls: 'prompt-content-area' });
-        const textArea = new TextAreaComponent(contentArea);
-        textArea
-            .setPlaceholder('输入 Prompt 内容\n可用参数：\n{{highlight}} - 当前高亮的文本\n{{comment}} - 已有的评论')
-            .setValue('');
-        textArea.inputEl.style.minHeight = '100px';
-        textArea.inputEl.style.width = '100%';
-
-        // Add button
-        new Setting(newPromptSection)
-            .addButton(btn => btn
-                .setButtonText('添加')
-                .setCta()
-                .onClick(async () => {
-                    const nameInput = newPromptName.controlEl.querySelector('input');
-                    if (!nameInput) return;
-                    
-                    const name = nameInput.value;
-                    const content = textArea.getValue();
-                    
-                    if (name && content) {
-                        if (!this.plugin.settings.ai.prompts) {
-                            this.plugin.settings.ai.prompts = {};
-                        }
-                        this.plugin.settings.ai.prompts[name] = content;
-                        await this.plugin.saveSettings();
-                        
-                        // Clear inputs
-                        nameInput.value = '';
-                        textArea.setValue('');
-                        
-                        // Refresh prompt list
-                        this.displayPromptList(container);
-                        new Notice('Prompt 已添加');
-                    }
-                }));
+        addButton.onclick = () => {
+            // 如果已经存在新建表单，就不要重复创建
+            if (container.querySelector('.new-prompt-section')) return;
+            
+            // 创建新的表单并插入到 promptList 之前
+            const promptList = container.querySelector('.prompt-list') as HTMLElement;
+            if (promptList) {
+                this.createNewPromptForm(container, promptList);
+            }
+        };
 
         // Existing prompts list
         this.displayPromptList(container);
+    }
+
+    private createNewPromptForm(container: HTMLElement, beforeElement: HTMLElement) {
+        const newPromptSection = container.createEl('div', { cls: 'new-prompt-section' });
+        beforeElement.parentElement?.insertBefore(newPromptSection, beforeElement);
+        
+        const nameInput = newPromptSection.createEl('input', {
+            cls: 'prompt-name-input',
+            attr: { 
+                placeholder: '输入 Prompt 名称',
+                type: 'text'
+            }
+        });
+
+        const contentArea = new TextAreaComponent(newPromptSection);
+        contentArea
+            .setPlaceholder('输入 Prompt 内容\n可用参数：\n{{highlight}} - 当前高亮的文本\n{{comment}} - 已有的评论')
+            .setValue('');
+        contentArea.inputEl.style.minHeight = '100px';
+        contentArea.inputEl.style.width = '100%';
+
+        // Buttons container
+        const buttonsContainer = newPromptSection.createEl('div', { cls: 'prompt-buttons' });
+
+        // Save button
+        const saveBtn = buttonsContainer.createEl('button', {
+            cls: 'prompt-save-btn',
+            text: '保存'
+        });
+        saveBtn.onclick = async () => {
+            const name = nameInput.value;
+            const content = contentArea.getValue();
+            
+            if (name && content) {
+                if (!this.plugin.settings.ai.prompts) {
+                    this.plugin.settings.ai.prompts = {};
+                }
+                this.plugin.settings.ai.prompts[name] = content;
+                await this.plugin.saveSettings();
+                
+                newPromptSection.remove();
+                this.displayPromptList(container);
+                new Notice('Prompt 已添加');
+            }
+        };
+
+        // Cancel button
+        const cancelBtn = buttonsContainer.createEl('button', {
+            cls: 'prompt-cancel-btn',
+            text: '取消'
+        });
+        cancelBtn.onclick = () => {
+            newPromptSection.remove();
+        };
     }
 
     private displayPromptList(container: HTMLElement) {
@@ -671,52 +703,101 @@ export class AISettingTab extends PluginSettingTab {
         }
 
         const promptList = container.createEl('div', { cls: 'prompt-list' });
-        promptList.createEl('h4', { text: '现有 Prompts' });
 
         const prompts = this.plugin.settings.ai.prompts || {};
         
         for (const [name, content] of Object.entries(prompts)) {
             const promptItem = promptList.createEl('div', { cls: 'prompt-item' });
             
-            // Prompt name (editable)
-            const nameInput = promptItem.createEl('input', {
+            // Display mode elements
+            const displayContainer = promptItem.createEl('div', { cls: 'prompt-display-mode' });
+            
+            const infoContainer = displayContainer.createEl('div', { cls: 'prompt-info' });
+            infoContainer.createEl('div', { cls: 'prompt-name', text: name });
+            
+            // 创建内容预览，移除换行符并限制显示
+            const contentPreview = (content as string).replace(/\n/g, ' ');
+            infoContainer.createEl('div', { 
+                cls: 'prompt-content-preview', 
+                text: contentPreview
+            });
+            
+            const buttonContainer = displayContainer.createEl('div', { cls: 'prompt-buttons' });
+            
+            // Edit button
+            const editBtn = buttonContainer.createEl('button', {
+                cls: 'prompt-edit-btn',
+                text: '编辑'
+            });
+
+            // Edit mode elements (hidden by default)
+            const editContainer = promptItem.createEl('div', { 
+                cls: 'prompt-edit-mode hidden'
+            });
+
+            const nameInput = editContainer.createEl('input', {
                 cls: 'prompt-name-input',
                 attr: { value: name, type: 'text' }
             });
 
-            // Prompt content (editable)
-            const contentArea = new TextAreaComponent(promptItem);
+            const contentArea = new TextAreaComponent(editContainer);
             contentArea.setValue(content as string);
             contentArea.inputEl.classList.add('prompt-content-input');
             contentArea.inputEl.style.minHeight = '100px';
             contentArea.inputEl.style.width = '100%';
 
-            // Save changes when input changes
-            const saveChanges = async () => {
+            // Edit mode buttons container
+            const editButtonsContainer = editContainer.createEl('div', { cls: 'prompt-edit-buttons' });
+            
+            // Save button
+            const saveBtn = editButtonsContainer.createEl('button', {
+                cls: 'prompt-save-btn',
+                text: '保存'
+            });
+
+            // Cancel button
+            const cancelBtn = editButtonsContainer.createEl('button', {
+                cls: 'prompt-cancel-btn',
+                text: '取消'
+            });
+
+            // Delete button (moved to edit mode)
+            const deleteBtn = editButtonsContainer.createEl('button', {
+                cls: 'prompt-delete-btn',
+                text: '删除'
+            });
+
+            // Event handlers
+            editBtn.onclick = () => {
+                displayContainer.addClass('hidden');
+                editContainer.removeClass('hidden');
+            };
+
+            deleteBtn.onclick = async () => {
+                delete this.plugin.settings.ai.prompts[name];
+                await this.plugin.saveSettings();
+                promptItem.remove();
+            };
+
+            saveBtn.onclick = async () => {
                 const newName = nameInput.value;
                 const newContent = contentArea.getValue();
                 
-                // Remove old prompt if name changed
                 if (name !== newName) {
                     delete this.plugin.settings.ai.prompts[name];
                 }
                 
                 this.plugin.settings.ai.prompts[newName] = newContent;
                 await this.plugin.saveSettings();
+                
+                // Refresh the prompt list
+                this.displayPromptList(container);
+                new Notice('Prompt 已保存');
             };
 
-            nameInput.addEventListener('change', saveChanges);
-            contentArea.onChange(saveChanges);
-
-            // Delete button
-            const deleteBtn = promptItem.createEl('button', {
-                cls: 'prompt-delete-btn',
-                text: '删除'
-            });
-            deleteBtn.onclick = async () => {
-                delete this.plugin.settings.ai.prompts[name];
-                await this.plugin.saveSettings();
-                promptItem.remove();
+            cancelBtn.onclick = () => {
+                displayContainer.removeClass('hidden');
+                editContainer.addClass('hidden');
             };
         }
     }
