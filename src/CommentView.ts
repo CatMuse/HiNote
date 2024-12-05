@@ -189,8 +189,11 @@ export class CommentView extends ItemView {
 
         highlightsToRender.forEach((highlight, index) => {
             const card = highlightList.createEl("div", {
-                cls: "highlight-card"
-            });
+                cls: "highlight-card",
+                attr: {
+                    'data-highlight': JSON.stringify(highlight)
+                }
+            }) as HTMLElement;
 
             // 高亮内容区域
             const contentEl = card.createEl("div", {
@@ -241,91 +244,8 @@ export class CommentView extends ItemView {
                 cls: "highlight-action-buttons-left"
             });
 
-            // AI 按钮和下拉菜单
-            const aiContainer = leftButtons.createEl("div", {
-                cls: "highlight-ai-container"
-            });
-
-            const aiButton = aiContainer.createEl("button", {
-                cls: "highlight-action-btn highlight-ai-btn",
-                attr: { 'aria-label': '使用 AI 分析' }
-            });
-
-            // 创建一个包含正常图标和加载图标的容器
-            const aiButtonContent = aiButton.createEl("div", {
-                cls: "highlight-ai-btn-content"
-            });
-
-            // 正常状态的图标
-            const normalIcon = aiButtonContent.createEl("div", {
-                cls: "highlight-ai-icon"
-            });
-            setIcon(normalIcon, "bot-message-square");
-
-            // 加载状态的图标
-            const loadingIcon = aiButtonContent.createEl("div", {
-                cls: "highlight-ai-icon-loading hidden"
-            });
-            loadingIcon.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="2" x2="12" y2="6"/>
-                    <line x1="12" y1="18" x2="12" y2="22"/>
-                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
-                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
-                    <line x1="2" y1="12" x2="6" y2="12"/>
-                    <line x1="18" y1="12" x2="22" y2="12"/>
-                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
-                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
-                </svg>
-            `;
-
-            // 创建下拉菜单
-            const aiDropdown = aiContainer.createEl("div", {
-                cls: "highlight-ai-dropdown hidden"
-            });
-
-            // 防止下拉菜单的点击事件冒泡
-            aiDropdown.addEventListener("click", (e) => {
-                e.stopPropagation();
-            });
-
-            // 获取所有可用的 prompts
-            const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
-            if (prompts.length > 0) {
-                prompts.forEach(([promptName, promptContent]) => {
-                    const promptItem = aiDropdown.createEl("div", {
-                        cls: "highlight-ai-dropdown-item",
-                        text: promptName
-                    });
-                    promptItem.addEventListener("click", async () => {
-                        aiDropdown.addClass("hidden");
-                        await this.handleAIAnalysis(highlight, promptName);
-                    });
-                });
-            } else {
-                // 如果没有可用的 prompts，显示提示信息
-                aiDropdown.createEl("div", {
-                    cls: "highlight-ai-dropdown-item",
-                    text: "请先在置中添加 Prompt"
-                });
-            }
-
-            // 添加点击事件
-            aiButton.addEventListener("click", (e) => {
-                e.stopPropagation();
-                if (aiDropdown.hasClass("hidden")) {
-                    aiDropdown.removeClass("hidden");
-                } else {
-                    aiDropdown.addClass("hidden");
-                }
-            });
-
-            // 添加document点击事件来关闭下拉菜单
-            document.addEventListener("click", () => {
-                if (!aiDropdown.hasClass("hidden")) {
-                    aiDropdown.addClass("hidden");
-                }
-            });
+            // 初始化 AI 按钮
+            this.initAIButton(leftButtons, highlight);
 
             // 右侧按钮组
             const rightButtons = actionButtons.createEl("div", {
@@ -405,155 +325,134 @@ export class CommentView extends ItemView {
         });
     }
 
-    private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
-        if (existingComment) {
-            // 编辑现有评论的逻辑
-            const commentEl = card.querySelector(`[data-comment-id="${existingComment.id}"]`);
-            if (!commentEl) return;
+    // 初始化 AI 按钮及其功能
+    private initAIButton(container: HTMLElement, highlight: HighlightInfo): HTMLElement {
+        // AI 按钮和下拉菜单容器
+        const aiContainer = container.createEl("div", {
+            cls: "highlight-ai-container"
+        });
 
-            const contentEl = commentEl.querySelector('.highlight-comment-content') as HTMLElement;
-            if (!contentEl) return;
+        // AI 按钮
+        const aiButton = aiContainer.createEl("button", {
+            cls: "highlight-action-btn highlight-ai-btn",
+            attr: { 'aria-label': '使用 AI 分析' }
+        });
 
-            const originalContent = contentEl.textContent || '';
+        // 创建一个包含正常图标和加载图标的容器
+        const aiButtonContent = aiButton.createEl("div", {
+            cls: "highlight-ai-btn-content"
+        });
 
-            // 创建编辑框
-            const textarea = document.createElement('textarea');
-            textarea.value = originalContent;
-            textarea.className = 'highlight-comment-input';
-            textarea.style.minHeight = `${contentEl.offsetHeight}px`;
+        // 正常状态的图标
+        const normalIcon = aiButtonContent.createEl("div", {
+            cls: "highlight-ai-icon"
+        });
+        setIcon(normalIcon, "bot-message-square");
 
-            // 替换内容为编辑框
-            contentEl.replaceWith(textarea);
+        // 加载状态的图标
+        const loadingIcon = aiButtonContent.createEl("div", {
+            cls: "highlight-ai-icon-loading hidden"
+        });
+        loadingIcon.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="2" x2="12" y2="6"/>
+                <line x1="12" y1="18" x2="12" y2="22"/>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+                <line x1="2" y1="12" x2="6" y2="12"/>
+                <line x1="18" y1="12" x2="22" y2="12"/>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+            </svg>
+        `;
 
-            // 隐藏底部的时间和按钮
-            const footer = commentEl.querySelector('.highlight-comment-footer');
-            if (footer) {
-                footer.addClass('hidden');
+        // 创建下拉菜单
+        const aiDropdown = aiContainer.createEl("div", {
+            cls: "highlight-ai-dropdown hidden"
+        });
+
+        // 防止下拉菜单的点击事件冒泡
+        aiDropdown.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+
+        // 初始化下拉菜单内容
+        this.updateDropdownContent(aiDropdown, highlight);
+
+        // 添加按钮点击事件
+        aiButton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (aiDropdown.hasClass("hidden")) {
+                // 关闭其他所有下拉菜单
+                this.containerEl.querySelectorAll('.highlight-ai-dropdown').forEach((dropdown) => {
+                    if (dropdown !== aiDropdown) {
+                        dropdown.addClass("hidden");
+                    }
+                });
+                aiDropdown.removeClass("hidden");
+            } else {
+                aiDropdown.addClass("hidden");
             }
+        });
 
-            // 添加快捷键提示和删除按钮
-            const actionHint = commentEl.createEl('div', {
-                cls: 'highlight-comment-actions-hint'
+        return aiContainer;
+    }
+
+    // 更新下拉菜单内容
+    private updateDropdownContent(dropdown: HTMLElement, highlight: HighlightInfo) {
+        // 清空现有内容
+        dropdown.empty();
+
+        // 获取所有可用的 prompts
+        const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
+        if (prompts.length > 0) {
+            prompts.forEach(([promptName, promptContent]) => {
+                const promptItem = dropdown.createEl("div", {
+                    cls: "highlight-ai-dropdown-item",
+                    text: promptName
+                });
+                promptItem.addEventListener("click", async () => {
+                    dropdown.addClass("hidden");
+                    await this.handleAIAnalysis(highlight, promptName);
+                });
             });
-
-            // 快捷键提示
-            actionHint.createEl('span', {
-                cls: 'highlight-comment-hint',
-                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
-            });
-
-            // 删除按钮
-            const deleteLink = actionHint.createEl('button', {
-                cls: 'highlight-comment-delete-link',
-                text: '删除评论'
-            });
-
-            deleteLink.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                await this.deleteComment(highlight, existingComment.id);
-            });
-
-            // 取消编辑
-            const cancelEdit = () => {
-                textarea.replaceWith(contentEl);
-                actionHint.remove();
-                footer?.removeClass('hidden');
-            };
-
-            // 保存编辑
-            const saveEdit = async () => {
-                const newContent = textarea.value.trim();
-                if (newContent && newContent !== originalContent) {
-                    await this.updateComment(highlight, existingComment.id, newContent);
-                    await this.updateHighlights();
-                } else {
-                    cancelEdit();
-                }
-            };
-
-            // 支持快捷键操作
-            textarea.onkeydown = async (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    cancelEdit();
-                } else if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await saveEdit();
-                }
-            };
-
-            // 聚焦到文本框
-            textarea.focus();
         } else {
-            // 添加新评论的逻辑
-            let commentsSection = card.querySelector('.highlight-comments-section');
-            
-            // 创建输入区域
-            const inputSection = document.createElement('div');
-            inputSection.className = 'highlight-comment-input';
-
-            // 创建文本框
-            const textarea = inputSection.createEl("textarea");
-
-            // 添加快捷键提示
-            inputSection.createEl('div', {
-                cls: 'highlight-comment-hint',
-                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
+            // 如果没有可用的 prompts，显示提示信息
+            dropdown.createEl("div", {
+                cls: "highlight-ai-dropdown-item",
+                text: "请先在设置中添加 Prompt"
             });
-
-            // 取消操作
-            const cancelAdd = () => {
-                inputSection.remove();
-                if (!commentsSection?.querySelector('.highlight-comment')) {
-                    commentsSection?.remove();
-                }
-            };
-
-            // 保存操作
-            const saveAdd = async () => {
-                const content = textarea.value.trim();
-                if (content) {
-                    await this.addComment(highlight, content);
-                    await this.updateHighlights();
-                } else {
-                    cancelAdd();
-                }
-            };
-
-            // 支持快捷键操作
-            textarea.onkeydown = async (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    cancelAdd();
-                } else if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await saveAdd();
-                }
-            };
-
-            // 如果还没有评论区域，创建一个
-            if (!commentsSection) {
-                commentsSection = card.createEl('div', {
-                    cls: 'highlight-comments-section'
-                });
-                
-                commentsSection.createEl('div', {
-                    cls: 'highlight-comments-list'
-                });
-            }
-
-            const commentsList = commentsSection.querySelector('.highlight-comments-list');
-            if (commentsList) {
-                commentsList.insertBefore(inputSection, commentsList.firstChild);
-            }
-
-            // 聚焦到文本框
-            textarea.focus();
         }
+    }
+
+    // 更新所有 AI 下拉菜单
+    updateAIDropdowns() {
+        const cards = this.containerEl.querySelectorAll('.highlight-card');
+        cards.forEach((card) => {
+            const highlight = (card as HTMLElement).dataset.highlight;
+            if (!highlight) return;
+
+            // 找到旧的 AI 容器并移除
+            const oldContainer = card.querySelector('.highlight-ai-container');
+            if (oldContainer) {
+                const leftButtons = oldContainer.parentElement;
+                if (leftButtons) {
+                    // 创建新的 AI 按钮
+                    const newContainer = this.initAIButton(leftButtons, JSON.parse(highlight));
+                    // 替换旧容器
+                    leftButtons.replaceChild(newContainer, oldContainer);
+                }
+            }
+        });
+
+        // 添加全局点击事件来关闭所有下拉菜单
+        document.addEventListener("click", () => {
+            this.containerEl.querySelectorAll('.highlight-ai-dropdown').forEach((dropdown) => {
+                if (!dropdown.hasClass("hidden")) {
+                    dropdown.addClass("hidden");
+                }
+            });
+        });
     }
 
     private extractHighlights(content: string): HighlightInfo[] {
@@ -855,31 +754,155 @@ export class CommentView extends ItemView {
         }
     }
 
-    // 更新 AI 下拉菜单
-    updateAIDropdowns() {
-        const aiDropdowns = this.containerEl.querySelectorAll('.highlight-ai-dropdown');
-        aiDropdowns.forEach((dropdown: HTMLElement) => {
-            // 清空现有选项
-            dropdown.empty();
+    private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
+        if (existingComment) {
+            // 编辑现有评论的逻辑
+            const commentEl = card.querySelector(`[data-comment-id="${existingComment.id}"]`);
+            if (!commentEl) return;
+
+            const contentEl = commentEl.querySelector('.highlight-comment-content') as HTMLElement;
+            if (!contentEl) return;
+
+            const originalContent = contentEl.textContent || '';
+
+            // 创建编辑框
+            const textarea = document.createElement('textarea');
+            textarea.value = originalContent;
+            textarea.className = 'highlight-comment-input';
+            textarea.style.minHeight = `${contentEl.offsetHeight}px`;
+
+            // 替换内容为编辑框
+            contentEl.replaceWith(textarea);
+
+            // 隐藏底部的时间和按钮
+            const footer = commentEl.querySelector('.highlight-comment-footer');
+            if (footer) {
+                footer.addClass('hidden');
+            }
+
+            // 添加快捷键提示和删除按钮
+            const actionHint = commentEl.createEl('div', {
+                cls: 'highlight-comment-actions-hint'
+            });
+
+            // 快捷键提示
+            actionHint.createEl('span', {
+                cls: 'highlight-comment-hint',
+                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
+            });
+
+            // 删除按钮
+            const deleteLink = actionHint.createEl('button', {
+                cls: 'highlight-comment-delete-link',
+                text: '删除评论'
+            });
+
+            deleteLink.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.deleteComment(highlight, existingComment.id);
+            });
+
+            // 取消编辑
+            const cancelEdit = () => {
+                textarea.replaceWith(contentEl);
+                actionHint.remove();
+                footer?.removeClass('hidden');
+            };
+
+            // 保存编辑
+            const saveEdit = async () => {
+                const newContent = textarea.value.trim();
+                if (newContent && newContent !== originalContent) {
+                    await this.updateComment(highlight, existingComment.id, newContent);
+                    await this.updateHighlights();
+                } else {
+                    cancelEdit();
+                }
+            };
+
+            // 支持快捷键操作
+            textarea.onkeydown = async (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    cancelEdit();
+                } else if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await saveEdit();
+                }
+            };
+
+            // 聚焦到文本框
+            textarea.focus();
+        } else {
+            // 添加新评论的逻辑
+            let commentsSection = card.querySelector('.highlight-comments-section');
             
-            // 重新添加选项
-            const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
-            if (prompts.length > 0) {
-                prompts.forEach(([promptName, promptContent]) => {
-                    const promptItem = dropdown.createEl("div", {
-                        cls: "highlight-ai-dropdown-item",
-                        text: promptName
-                    });
-                    promptItem.addEventListener("click", async () => {
-                        dropdown.addClass("hidden");
-                        const highlight = (dropdown.closest('.highlight-card') as HTMLElement)?.dataset?.highlight;
-                        if (highlight) {
-                            await this.handleAIAnalysis(JSON.parse(highlight), promptName);
-                        }
-                    });
+            // 创建输入区域
+            const inputSection = document.createElement('div');
+            inputSection.className = 'highlight-comment-input';
+
+            // 创建文本框
+            const textarea = inputSection.createEl("textarea");
+
+            // 添加快捷键提示
+            inputSection.createEl('div', {
+                cls: 'highlight-comment-hint',
+                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
+            });
+
+            // 取消操作
+            const cancelAdd = () => {
+                inputSection.remove();
+                if (!commentsSection?.querySelector('.highlight-comment')) {
+                    commentsSection?.remove();
+                }
+            };
+
+            // 保存操作
+            const saveAdd = async () => {
+                const content = textarea.value.trim();
+                if (content) {
+                    await this.addComment(highlight, content);
+                    await this.updateHighlights();
+                } else {
+                    cancelAdd();
+                }
+            };
+
+            // 支持快捷键操作
+            textarea.onkeydown = async (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    cancelAdd();
+                } else if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await saveAdd();
+                }
+            };
+
+            // 如果还没有评论区域，创建一个
+            if (!commentsSection) {
+                commentsSection = card.createEl('div', {
+                    cls: 'highlight-comments-section'
+                });
+                
+                commentsSection.createEl('div', {
+                    cls: 'highlight-comments-list'
                 });
             }
-        });
+
+            const commentsList = commentsSection.querySelector('.highlight-comments-list');
+            if (commentsList) {
+                commentsList.insertBefore(inputSection, commentsList.firstChild);
+            }
+
+            // 聚焦到文本框
+            textarea.focus();
+        }
     }
 
     async onload() {
