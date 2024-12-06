@@ -1,10 +1,11 @@
-.highlight-container {
-    padding: 12px;
-}
-
 /* 只针对评论插件内容移除内边距 */
 .workspace-leaf-content[data-type="comment-view"] .view-content {
     padding: 0 !important;
+}
+
+/* 高亮卡片 */
+.highlight-container {
+    padding: 12px;
 }
 
 .highlight-empty-state {
