@@ -771,7 +771,7 @@
     padding: 0.75em 0;
 }
 
-/* 设置项控制区域��式 */
+/* 设置项控制区域样式 */
 .ai-service-settings .setting-item-control {
     flex-shrink: 0;
     display: flex;
@@ -934,7 +934,7 @@ hr {
     z-index: 1;
 }
 
-/* 底部信息样式 */
+/* 底部信���样式 */
 .highlight-export-card-modern .highlight-export-footer {
     margin-top: 24px;
     padding-top: 20px;
@@ -970,7 +970,7 @@ hr {
     font-weight: 400;
 }
 
-/* 悬停效果 */
+/* 悬停效�� */
 .highlight-export-card-modern:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
@@ -1108,7 +1108,7 @@ hr {
     color: var(--text-normal);
 }
 
-/* 当在主视图中时，移除鼠标悬停效果和相关提示 */
+/* 当在视图中时，移鼠标悬停效果和相关提示 */
 .highlight-card.in-main-view {
     cursor: default;
 }
@@ -1161,7 +1161,7 @@ hr {
     white-space: nowrap;
 }
 
-/* 调整主视图中片内边距 */
+/* 调整主视图中片内 */
 .highlight-card.in-main-view .highlight-content {
     padding-top: 8px;
 }
@@ -1173,7 +1173,7 @@ hr {
     overflow: hidden;
 }
 
-/* 文件列表容器样式优化 */
+/* 文件表容器样式优化 */
 .highlight-file-list-container {
     width: 240px;
     border-right: 1px solid var(--background-modifier-border);
@@ -1213,7 +1213,7 @@ hr {
     letter-spacing: 1px;
 }
 
-/* 文件列表样式优化 */
+/* 件列表样式优化 */
 .highlight-file-list {
     padding: 8px;
 }
@@ -1414,6 +1414,22 @@ hr {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+/* 关闭按钮样式 */
+.highlight-chat-close {
+    padding: 2px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.highlight-chat-close:hover {
+    background-color: var(--background-modifier-hover);
+}
+
 .highlight-chat-history {
     flex: 1;
     overflow-y: auto;
@@ -1422,6 +1438,62 @@ hr {
     flex-direction: column;
     gap: 8px;
     background-color: var(--background-primary);
+    position: relative;
+}
+
+/* 拖拽区域基础样式 */
+.highlight-chat-dropzone {
+    position: sticky;
+    top: 0;
+    margin: 0 0 8px 0;
+    padding: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background-color: var(--background-primary);
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+/* 拖拽状态样式 */
+.highlight-chat-history.drag-over .highlight-chat-dropzone {
+    border-color: var(--interactive-accent);
+    background-color: var(--background-modifier-hover);
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 拖拽提示文本 */
+.highlight-chat-dropzone::before {
+    content: '拖拽高亮内容到此处';
+    opacity: 0.8;
+}
+
+/* 拖拽状态下的提示文本 */
+.highlight-chat-history.drag-over .highlight-chat-dropzone::before {
+    content: '松开以添加内容';
+    color: var(--interactive-accent);
+    opacity: 1;
+}
+
+/* 移除旧的拖拽样式 */
+.highlight-chat-history.drag-over::after {
+    display: none;
+}
+
+/* 拖拽动画 */
+@keyframes pulse {
+    0% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0.5;
+    }
 }
 
 .highlight-chat-input-container {
@@ -1438,7 +1510,7 @@ hr {
 
 .highlight-chat-input-container .highlight-comment-input textarea {
     width: 100%;
-    padding: 4px;
+    padding: 8px;
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     background-color: var(--background-primary);
@@ -1510,7 +1582,7 @@ hr {
     animation: blink 0.7s infinite;
 }
 
-/* 动画定义 */
+/* 动画定 */
 @keyframes blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
@@ -1543,4 +1615,260 @@ hr {
 
 .highlight-chat-history:hover::-webkit-scrollbar-thumb {
     background-color: var(--background-modifier-border-hover);
+}
+
+/* 聊天历史记录区域 */
+.highlight-chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background-color: var(--background-primary);
+    position: relative;
+}
+
+/* 拖拽状态样式 */
+.highlight-chat-history.drag-over::before {
+    content: '';
+    position: fixed;
+    pointer-events: none;
+    animation: pulse 1.5s infinite;
+    z-index: 1;
+    border: 2px dashed var(--interactive-accent);
+    border-radius: 8px;
+}
+
+/* 动态计算虚线框的位置 */
+.highlight-chat-history.drag-over {
+    position: relative;
+}
+
+.highlight-chat-history.drag-over::before {
+    top: var(--drag-guide-top);
+    left: var(--drag-guide-left);
+    right: var(--drag-guide-right);
+    bottom: var(--drag-guide-bottom);
+}
+
+/* 拖拽状态下的消息透明度 */
+.highlight-chat-history.drag-over .highlight-chat-message {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+/* 拖拽动画 */
+@keyframes pulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.3; }
+}
+
+/* 移除不需要的样式 */
+.highlight-chat-dropzone {
+    display: none;
+}
+
+/* 拖拽预览容器 */
+.highlight-chat-previews {
+    padding: 12px;
+    background-color: var(--background-primary);
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+/* 预览标题 */
+.highlight-chat-preview-header {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 预览卡片容器 */
+.highlight-chat-preview-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 2px; /* 增加卡片间距 */
+    padding: 4px 0;
+}
+
+/* 预览卡片 */
+.highlight-chat-preview-card {
+    position: relative;
+    padding: 8px 12px;
+    background-color: var(--background-secondary);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    min-height: 40px; /* 最小高度 */
+    max-height: 80px; /* 最大高度 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.highlight-chat-preview-card:first-child {
+    margin-top: 0;
+}
+/* 预览内容 */
+.highlight-chat-preview-content {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-normal);
+    display: -webkit-box;
+    display: -moz-box;
+    display: box;
+    -webkit-line-clamp: 3; /* 最多显示3行 */
+    -moz-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    -moz-box-orient: vertical;
+    box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 24px;
+    flex: 1; /* 让内容填充剩余空间 */
+}
+
+/* 兼容性回退 */
+@supports not ((display: -webkit-box) or (display: -moz-box) or (display: box)) {
+    .highlight-chat-preview-content {
+        max-height: 4.5em; /* 3行文本的大致高度 */
+        overflow: hidden;
+        position: relative;
+    }
+}
+
+/* 删除按钮 */
+.highlight-chat-preview-delete {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.highlight-chat-preview-card:hover .highlight-chat-preview-delete {
+    opacity: 1;
+}
+
+.highlight-chat-preview-delete:hover {
+    color: var(--color-base-00);
+    background-color: var(--background-modifier-error);
+}
+
+/* 简化的计数标签 */
+.highlight-chat-preview-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* 预览消息样式 */
+.highlight-chat-message-preview {
+    align-self: stretch;
+    max-width: 100%;
+    margin: 8px 0;
+    animation: fade-slide-up 0.2s ease;
+}
+
+/* 预览容器 */
+.highlight-chat-previews {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 预览卡片 */
+.highlight-chat-preview-card {
+    position: relative;
+    padding: 8px 12px;
+    background-color: var(--background-primary);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    min-height: 40px;
+    max-height: 80px;
+    margin-bottom: 8px;
+}
+
+.highlight-chat-preview-card:last-child {
+    margin-bottom: 0;
+}
+
+/* 拖拽目标区域的反馈 */
+.highlight-chat-history.drag-over {
+    position: relative;
+}
+
+.highlight-chat-history.drag-over::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 2px dashed var(--interactive-accent);
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0.6;
+    background-color: var(--background-primary-alt);
+}
+
+/* 移除其他可能冲突的样式 */
+.highlight-chat-history.drag-over .highlight-chat-message {
+    opacity: 1;
+}
+
+/* 拖拽过程中的光标样式 */
+.highlight-text-content {
+    cursor: grab;
+}
+
+.highlight-text-content:active {
+    cursor: grabbing;
+}
+
+/* 拖拽中的预览样式 */
+.highlight-dragging {
+    position: fixed;
+    pointer-events: none;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    width: 250px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    opacity: 0.95;
+    transform: scale(0.95);
+    color: var(--text-normal);
+    border-left: 3px solid var(--interactive-accent);
+}
+
+.highlight-dragging::before {
+    content: '✨';
+    margin-right: 8px;
+    color: var(--interactive-accent);
+    font-size: 14px;
+}
+
+.highlight-dragging-content {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

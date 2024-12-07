@@ -1,4 +1,4 @@
-import { ItemView, App } from "obsidian";
+import { ItemView, App, setIcon } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
 import { CommentInput } from './comment/CommentInput';
 import { HighlightInfo } from '../types';
@@ -9,7 +9,6 @@ export class ChatView {
     private isProcessing: boolean = false;
     private containerEl: HTMLElement;
     private draggedContents: HighlightInfo[] = [];
-    private dropZone: HTMLElement;
 
     constructor(app: App, private plugin: any) {
         if (ChatView.instance) {
@@ -37,7 +36,7 @@ export class ChatView {
         const closeButton = header.createEl("div", {
             cls: "highlight-chat-close"
         });
-        closeButton.innerHTML = "×";
+        setIcon(closeButton, "x");
         closeButton.addEventListener("click", () => this.close());
 
         const chatHistory = this.containerEl.createEl("div", {
@@ -67,33 +66,34 @@ export class ChatView {
                 try {
                     this.isProcessing = true;
                     
-                    // 如果有拖拽内容，添加到提示中
-                    let prompt = content;
-                    if (this.draggedContents.length > 0) {
-                        const textsToAnalyze = this.draggedContents
-                            .map(h => h.text)
-                            .join('\n\n---\n\n');
-                        prompt = `分析以下内容：\n\n${textsToAnalyze}\n\n用户提示：${content}`;
-                        this.draggedContents = []; // 清空拖拽内容
-                    }
-
                     // 先清空输入框
                     const textarea = inputContainer.querySelector('.highlight-comment-input textarea') as HTMLTextAreaElement;
                     if (textarea) {
-                        // 使用 requestAnimationFrame 确保在下一帧清空
                         requestAnimationFrame(() => {
                             textarea.value = '';
                             textarea.dispatchEvent(new Event('input'));
                         });
                     }
 
+                    // 准备发送的消息内容
+                    let messageToSend = content;
+
+                    // 如果有拖拽内容，先显示它们
+                    if (this.draggedContents.length > 0) {
+                        const textsToAnalyze = this.draggedContents
+                            .map(h => h.text)
+                            .join('\n\n---\n\n');
+                        messageToSend = `分析以下内容：\n\n${textsToAnalyze}\n\n用户提示：${content}`;
+                        this.draggedContents = []; // 清空拖拽内容数组
+                    }
+
+                    // 添加用户消息
                     this.addMessage(chatHistory, content, "user");
-                    const response = await this.chatService.sendMessage(prompt);
+                    
+                    // 获取并添加 AI 响应
+                    const response = await this.chatService.sendMessage(messageToSend);
                     this.addMessage(chatHistory, response.content, "assistant");
 
-                    // 重新显示拖拽区域
-                    this.dropZone.style.display = '';
-                    this.removeDraggedPreviews(chatHistory);
                 } catch (error) {
                     console.error('Failed to get AI response:', error);
                 } finally {
@@ -107,25 +107,39 @@ export class ChatView {
 
         commentInput.show();
 
-        // 添加拖拽目标区域
-        this.dropZone = chatHistory.createEl("div", {
-            cls: "highlight-chat-dropzone",
-            text: "将高亮内容拖拽到此处发送给 AI"
-        });
-
-        // 添加拖拽事件处理
-        this.dropZone.addEventListener("dragover", (e) => {
+        // 将拖拽事件处理器添加到整个历史区域
+        chatHistory.addEventListener("dragenter", (e) => {
             e.preventDefault();
-            this.dropZone.addClass("drag-over");
+            chatHistory.addClass("drag-over");
         });
 
-        this.dropZone.addEventListener("dragleave", () => {
-            this.dropZone.removeClass("drag-over");
-        });
-
-        this.dropZone.addEventListener("drop", async (e) => {
+        chatHistory.addEventListener("dragover", (e) => {
             e.preventDefault();
-            this.dropZone.removeClass("drag-over");
+            e.stopPropagation();
+            chatHistory.addClass("drag-over");
+
+            // 更新预览元素位置
+            const preview = document.querySelector('.highlight-dragging') as HTMLElement;
+            if (preview) {
+                preview.style.left = `${e.clientX + 10}px`;
+                preview.style.top = `${e.clientY + 10}px`;
+            }
+        });
+
+        chatHistory.addEventListener("dragleave", (e) => {
+            if (!chatHistory.contains(e.relatedTarget as Node)) {
+                chatHistory.removeClass("drag-over");
+                // 清除位置变量
+                chatHistory.style.removeProperty('--drag-guide-top');
+                chatHistory.style.removeProperty('--drag-guide-left');
+                chatHistory.style.removeProperty('--drag-guide-right');
+                chatHistory.style.removeProperty('--drag-guide-bottom');
+            }
+        });
+
+        chatHistory.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            chatHistory.removeClass("drag-over");
 
             const highlightData = e.dataTransfer?.getData("application/highlight");
             if (highlightData) {
@@ -134,7 +148,6 @@ export class ChatView {
                     if (!highlight.text) return;
 
                     this.draggedContents.push(highlight);
-                    
                     this.showDraggedPreviews(chatHistory);
                 } catch (error) {
                     console.error('Failed to process dropped highlight:', error);
@@ -187,55 +200,69 @@ export class ChatView {
     }
 
     private showDraggedPreviews(container: HTMLElement) {
-        // 先清除现有预览
+        // 移除旧的预览
         this.removeDraggedPreviews(container);
 
+        // 创建预览消息
+        const messageEl = container.createEl("div", {
+            cls: "highlight-chat-message highlight-chat-message-preview"
+        });
+
         // 创建预览容器
-        const previewsContainer = container.createEl("div", {
+        const previewsContainer = messageEl.createEl("div", {
             cls: "highlight-chat-previews"
         });
 
-        // 修改提示文本，添加可继续拖拽的提示
-        previewsContainer.createEl("div", {
-            cls: "highlight-chat-preview-header",
-            text: `已选择 ${this.draggedContents.length} 条内容（可继续拖入）：`
+        // 添加标题
+        const headerEl = previewsContainer.createEl("div", {
+            cls: "highlight-chat-preview-header"
         });
 
-        // 创建卡片堆叠容器
+        headerEl.createEl("span", {
+            cls: "highlight-chat-preview-count",
+            text: String(this.draggedContents.length)
+        });
+
+        headerEl.createSpan({
+            text: "条已选择内容"
+        });
+
+        // 创建卡片容器
         const cardsContainer = previewsContainer.createEl("div", {
             cls: "highlight-chat-preview-cards"
         });
 
-        // 为每个内容创建预览卡片
+        // 添加卡片
         this.draggedContents.forEach((content, index) => {
             const card = cardsContainer.createEl("div", {
                 cls: "highlight-chat-preview-card"
-            });
-
-            // 添加删除按钮
-            const deleteBtn = card.createEl("div", {
-                cls: "highlight-chat-preview-delete"
-            });
-            deleteBtn.innerHTML = "×";
-            deleteBtn.addEventListener("click", () => {
-                this.draggedContents.splice(index, 1);
-                if (this.draggedContents.length === 0) {
-                    this.dropZone.style.display = '';
-                    this.removeDraggedPreviews(container);
-                } else {
-                    this.showDraggedPreviews(container);
-                }
             });
 
             card.createEl("div", {
                 cls: "highlight-chat-preview-content",
                 text: content.text
             });
+
+            const deleteBtn = card.createEl("div", {
+                cls: "highlight-chat-preview-delete"
+            });
+            deleteBtn.innerHTML = "��";
+            deleteBtn.addEventListener("click", () => {
+                this.draggedContents.splice(index, 1);
+                if (this.draggedContents.length === 0) {
+                    messageEl.remove();
+                } else {
+                    this.showDraggedPreviews(container);
+                }
+            });
         });
+
+        // 滚动到底部
+        container.scrollTop = container.scrollHeight;
     }
 
     private removeDraggedPreviews(container: HTMLElement) {
-        const previews = container.querySelector('.highlight-chat-previews');
+        const previews = container.querySelector('.highlight-chat-message-preview');
         if (previews) {
             previews.remove();
         }
