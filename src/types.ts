@@ -6,15 +6,19 @@ export interface CommentItem {
 }
 
 export interface HighlightInfo {
+    id?: string;
     text: string;
     position: number;
-    paragraphOffset?: number;
+    paragraphOffset: number;
     paragraphText?: string;
+    paragraphId?: string;
+    backgroundColor?: string;
     comments?: CommentItem[];
-    id?: string;
     createdAt?: number;
     updatedAt?: number;
-    backgroundColor?: string;  // 新增：存储rgba颜色值
+    fileName?: string;
+    filePath?: string;
+    fileIcon?: string;
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'ollama';

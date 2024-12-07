@@ -3,6 +3,7 @@ import type CommentPlugin from "../../../main";
 import { HighlightContent } from "./HighlightContent";
 import { ActionButtons } from "./ActionButtons";
 import { CommentList } from "./CommentList";
+import { setIcon } from "obsidian";
 
 export class HighlightCard {
     private card: HTMLElement;
@@ -42,9 +43,8 @@ export class HighlightCard {
             const fileIcon = fileNameEl.createEl("span", {
                 cls: "highlight-card-filename-icon"
             });
-            fileIcon.innerHTML = `<svg viewBox="0 0 100 100" class="document" width="16" height="16">
-                <path fill="currentColor" stroke="currentColor" d="M85.714,14.286V85.714H14.286V14.286H85.714 M85.714,0H14.286 C6.396,0,0,6.396,0,14.286v71.429C0,93.604,6.396,100,14.286,100h71.429C93.604,100,100,93.604,100,85.714V14.286 C100,6.396,93.604,0,85.714,0L85.714,0z"/>
-            </svg>`;
+            
+            setIcon(fileIcon, 'file-text');  // 使用 Obsidian 的文本文件图标
 
             // 创建文件名文本
             fileNameEl.createEl("span", {

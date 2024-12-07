@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon } from "obsidian";
 import { CommentStore, HighlightComment, CommentItem } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
@@ -175,7 +175,7 @@ export class CommentView extends ItemView {
         this.highlights = highlights.map(highlight => {
             // 查找匹配的评论，优先使用文本匹配
             const storedComment = storedComments.find(c => {
-                // 先检查文本是否匹配
+                // 查找文本是否匹配
                 const textMatch = c.text === highlight.text;
                 if (textMatch && highlight.paragraphText) {
                     // 如果文本匹配，查是否在同一段落围内
@@ -217,6 +217,10 @@ export class CommentView extends ItemView {
             )) {
                 return true;
             }
+            // 在全部视图中也搜索文件名
+            if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
+                return true;
+            }
             return false;
         });
 
@@ -227,7 +231,7 @@ export class CommentView extends ItemView {
     private renderHighlights(highlightsToRender: HighlightInfo[]) {
         this.highlightContainer.empty();
 
-        if (!this.currentFile) {
+        if (!this.currentFile && !this.isDraggedToMainView) {
             this.highlightContainer.createEl("div", {
                 cls: "highlight-empty-state",
                 text: "请打开一个 Markdown 文件"
@@ -265,7 +269,8 @@ export class CommentView extends ItemView {
                     }
                 },
                 this.isDraggedToMainView,
-                this.currentFile?.basename
+                // 当显示全部高亮时（currentFile 为 null），使用高亮的 fileName，否则使用当前文件名
+                this.currentFile === null ? highlight.fileName : this.currentFile.basename
             );
 
             // 根据位置更新样式
@@ -275,7 +280,7 @@ export class CommentView extends ItemView {
                 // 找到文本内容元素并移除点击提示
                 const textContent = cardElement.querySelector('.highlight-text-content');
                 if (textContent) {
-                    textContent.removeAttribute('title');  // 移除 title 属性
+                    textContent.removeAttribute('title');
                 }
             } else {
                 cardElement.classList.remove('in-main-view');
@@ -294,18 +299,19 @@ export class CommentView extends ItemView {
         const paragraphs = content.split(/\n\n+/);
         let offset = 0;
 
-        paragraphs.forEach(paragraph => {
+        paragraphs.forEach((paragraph, index) => {
             let match;
             while ((match = highlightRegex.exec(paragraph)) !== null) {
-                const text = (match[1] || match[2] || match[4])?.trim(); // 更新索引以匹配新的捕获组
-                const backgroundColor = match[3]; // 获取颜色值（rgba 或 16进制）
+                const text = (match[1] || match[2] || match[4])?.trim();
+                const backgroundColor = match[3];
                 if (text) {
                     const highlight: HighlightInfo = {
                         text: text,
                         position: offset + match.index,
                         paragraphOffset: offset,
                         paragraphText: paragraph,
-                        backgroundColor: backgroundColor // 存储颜色信息
+                        paragraphId: `p-${index}-${Date.now()}`,
+                        backgroundColor: backgroundColor
                     };
                     highlights.push(highlight);
                 }
@@ -425,7 +431,7 @@ export class CommentView extends ItemView {
                 await this.deleteComment(highlight, existingComment.id);
             } : undefined,
             onCancel: () => {
-                // 取消时不需要特殊处理
+                // 消时不需要特殊处理
             }
         }).show();
     }
@@ -498,10 +504,7 @@ export class CommentView extends ItemView {
         const allIcon = allFilesItem.createEl("span", {
             cls: "highlight-file-item-icon"
         });
-        allIcon.innerHTML = `<svg viewBox="0 0 100 100" width="16" height="16">
-            <path fill="currentColor" stroke="currentColor" d="M80,20v60H20V20H80 M80,10H20c-5.5,0-10,4.5-10,10v60c0,5.5,4.5,10,10,10h60c5.5,0,10-4.5,10-10V20C90,14.5,85.5,10,80,10L80,10z"/>
-            <path fill="currentColor" stroke="currentColor" d="M30,40h40v5H30V40z M30,55h40v5H30V55z"/>
-        </svg>`;
+        setIcon(allIcon, 'documents');  // 使用 Obsidian 的文档集合图标
 
         // 创建"全部"文本
         allFilesItem.createEl("span", {
@@ -534,9 +537,7 @@ export class CommentView extends ItemView {
             const fileIcon = fileItem.createEl("span", {
                 cls: "highlight-file-item-icon"
             });
-            fileIcon.innerHTML = `<svg viewBox="0 0 100 100" class="document" width="16" height="16">
-                <path fill="currentColor" stroke="currentColor" d="M85.714,14.286V85.714H14.286V14.286H85.714 M85.714,0H14.286 C6.396,0,0,6.396,0,14.286v71.429C0,93.604,6.396,100,14.286,100h71.429C93.604,100,100,93.604,100,85.714V14.286 C100,6.396,93.604,0,85.714,0L85.714,0z"/>
-            </svg>`;
+            setIcon(fileIcon, 'file-text');  // 使用 Obsidian 的文本文件图标
 
             // 创建文件名
             fileItem.createEl("span", {
@@ -578,8 +579,9 @@ export class CommentView extends ItemView {
                         ...storedComment,
                         position: highlight.position,
                         paragraphOffset: highlight.paragraphOffset,
-                        fileName: file.basename,  // 添加文件名
-                        filePath: file.path       // 添加文件路径
+                        fileName: file.basename,
+                        filePath: file.path,
+                        fileIcon: 'file-text'  // 使用 Obsidian 的文本文件图标
                     };
                 }
 
@@ -589,8 +591,9 @@ export class CommentView extends ItemView {
                     comments: [],
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
-                    fileName: file.basename,  // 添加文件名
-                    filePath: file.path       // 添加文件路径
+                    fileName: file.basename,
+                    filePath: file.path,
+                    fileIcon: 'file-text'  // 使用 Obsidian 的文本文件图标
                 };
             });
 
