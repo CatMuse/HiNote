@@ -581,7 +581,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    overflow: auto;     /* 改为 auto，允许���容超出时滚动 */
+    overflow: auto;     /* 改为 auto，允许容超出时滚动 */
     padding: 12px 4px 4px 4px;      /* 添加内边距 */
 }
 
@@ -771,7 +771,7 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    justify-content: flex-end;  /* 确保内容右对齐 */
+    justify-content: flex-end;  /* 确保内容右��齐 */
     min-width: 200px;  /* 给定一个最小宽度 */
 }
 
@@ -1100,4 +1100,164 @@ hr {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-normal);
+}
+
+/* 当在主视图中时，移除鼠标悬停效果和相关提示 */
+.highlight-card.in-main-view {
+    cursor: default;
+}
+
+.highlight-card.in-main-view:hover {
+    background-color: var(--background-secondary);
+}
+
+.highlight-card.in-main-view .highlight-text-content {
+    cursor: default;
+}
+
+/* 隐藏主视图中的点击提示 */
+.highlight-card.in-main-view .highlight-text-content::after {
+    display: none;
+}
+
+/* 文件名显示样式 */
+.highlight-card-filename {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--background-modifier-border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.highlight-card-filename-icon {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+}
+
+.highlight-card-filename-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.highlight-card-filename-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 调整主视图中卡片的内边距 */
+.highlight-card.in-main-view .highlight-content {
+    padding-top: 8px;
+}
+
+/* 主容器布局 */
+.highlight-main-container {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* 文件列表容器样式 */
+.highlight-file-list-container {
+    width: 200px;
+    border-right: 1px solid var(--background-modifier-border);
+    display: none; /* 默认隐藏，在主视图中显示 */
+    overflow-y: auto;
+    background-color: var(--background-secondary);
+}
+
+/* 主内容区域样式 */
+.highlight-content-container {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 文件列表标题 */
+.highlight-file-list-header {
+    padding: 16px 12px 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.highlight-file-list-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+/* 文件列表样式 */
+.highlight-file-list {
+    padding: 8px 0;
+}
+
+/* 文件项样式 */
+.highlight-file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.highlight-file-item:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.highlight-file-item.is-active {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent);
+}
+
+.highlight-file-item-icon {
+    display: flex;
+    align-items: center;
+    color: currentColor;
+}
+
+.highlight-file-item-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 调整��有容器样式 */
+.highlight-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+/* 文件列表分隔线 */
+.highlight-file-list-separator {
+    height: 1px;
+    background-color: var(--background-modifier-border);
+    margin: 8px 12px;
+}
+
+/* "全部"选项特殊样式 */
+.highlight-file-item-all {
+    font-weight: 500;
+    color: var(--text-normal);
+    background-color: var(--background-modifier-border-hover);
+}
+
+.highlight-file-item-all:hover {
+    background-color: var(--background-modifier-border-hover);
+    opacity: 0.8;
+}
+
+.highlight-file-item-all.is-active {
+    background-color: var(--background-modifier-border-hover);
+    color: var(--text-accent);
 }

@@ -14,12 +14,15 @@ export const VIEW_TYPE_COMMENT = "comment-view";
 export class CommentView extends ItemView {
     private highlightContainer: HTMLElement;
     private searchContainer: HTMLElement;
+    private fileListContainer: HTMLElement;
+    private mainContentContainer: HTMLElement;
     private currentFile: TFile | null = null;
     private highlights: HighlightInfo[] = [];
     private commentStore: CommentStore;
     private searchInput: HTMLInputElement;
     private plugin: CommentPlugin;
     private locationService: LocationService;
+    private isDraggedToMainView: boolean = false;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -73,6 +76,13 @@ export class CommentView extends ItemView {
 
         window.addEventListener("open-comment-input", handleCommentInput as EventListener);
         this.register(() => window.removeEventListener("open-comment-input", handleCommentInput as EventListener));
+
+        // 添加视图位置变化的监听
+        this.registerEvent(
+            this.app.workspace.on('layout-change', () => {
+                this.checkViewPosition();
+            })
+        );
     }
 
     getViewType(): string {
@@ -91,8 +101,23 @@ export class CommentView extends ItemView {
         const container = this.containerEl.children[1];
         container.empty();
         
+        // 创建主容器
+        const mainContainer = container.createEl("div", {
+            cls: "highlight-main-container"
+        });
+
+        // 创建文件列表区域（只在主视图中显示）
+        this.fileListContainer = mainContainer.createEl("div", {
+            cls: "highlight-file-list-container"
+        });
+
+        // 创建右侧内容区域
+        this.mainContentContainer = mainContainer.createEl("div", {
+            cls: "highlight-content-container"
+        });
+        
         // 创建搜索区域
-        this.searchContainer = container.createEl("div", {
+        this.searchContainer = this.mainContentContainer.createEl("div", {
             cls: "highlight-search-container"
         });
 
@@ -110,8 +135,8 @@ export class CommentView extends ItemView {
             this.updateHighlightsList();
         }, 300));
 
-        // 创高亮列表容器
-        this.highlightContainer = container.createEl("div", {
+        // 创建高亮列表容器
+        this.highlightContainer = this.mainContentContainer.createEl("div", {
             cls: "highlight-container"
         });
 
@@ -121,6 +146,9 @@ export class CommentView extends ItemView {
             this.currentFile = activeFile;
             await this.updateHighlights();
         }
+
+        // 更新视图布局
+        this.updateViewLayout();
     }
 
     private debounce(func: Function, wait: number) {
@@ -147,10 +175,10 @@ export class CommentView extends ItemView {
         this.highlights = highlights.map(highlight => {
             // 查找匹配的评论，优先使用文本匹配
             const storedComment = storedComments.find(c => {
-                // 首先检查文本是否匹配
+                // 先检查文本是否匹配
                 const textMatch = c.text === highlight.text;
                 if (textMatch && highlight.paragraphText) {
-                    // 如果文本匹配，查是否在同一段落范围内
+                    // 如果文本匹配，查是否在同一段落围内
                     return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
                 }
                 return false;
@@ -235,8 +263,28 @@ export class CommentView extends ItemView {
                         await this.addComment(highlight, content);
                         await this.updateHighlights();
                     }
-                }
+                },
+                this.isDraggedToMainView,
+                this.currentFile?.basename
             );
+
+            // 根据位置更新样式
+            const cardElement = highlightCard.getElement();
+            if (this.isDraggedToMainView) {
+                cardElement.classList.add('in-main-view');
+                // 找到文本内容元素并移除点击提示
+                const textContent = cardElement.querySelector('.highlight-text-content');
+                if (textContent) {
+                    textContent.removeAttribute('title');  // 移除 title 属性
+                }
+            } else {
+                cardElement.classList.remove('in-main-view');
+                // 添加点击提示
+                const textContent = cardElement.querySelector('.highlight-text-content');
+                if (textContent) {
+                    textContent.setAttribute('title', '点击定位到文档位置');
+                }
+            }
         });
     }
 
@@ -339,6 +387,11 @@ export class CommentView extends ItemView {
     }
 
     private async jumpToHighlight(highlight: HighlightInfo) {
+        if (this.isDraggedToMainView) {
+            // 如果在主视图中，则不执行跳转
+            return;
+        }
+
         if (!this.currentFile) {
             new Notice("未找到当前文件");
             return;
@@ -379,6 +432,189 @@ export class CommentView extends ItemView {
 
     async onload() {
         // ... 其他代码保持不变 ...
+    }
+
+    // 添加新方法来检查视图位置
+    private checkViewPosition() {
+        const root = this.app.workspace.rootSplit;
+        const isInMainView = this.isViewInMainArea(this.leaf, root);
+        
+        if (this.isDraggedToMainView !== isInMainView) {
+            this.isDraggedToMainView = isInMainView;
+            this.updateViewLayout();  // 更新视图布局
+            this.updateHighlightsList();
+        }
+    }
+
+    // 添加新方法来递归检查视图是否在主区域
+    private isViewInMainArea(leaf: WorkspaceLeaf, parent: any): boolean {
+        if (!parent) return false;
+        if (parent.children) {
+            return parent.children.some((child: any) => {
+                if (child === leaf) {
+                    return true;
+                }
+                return this.isViewInMainArea(leaf, child);
+            });
+        }
+        return false;
+    }
+
+    // 添加新方法来更新视图布局
+    private async updateViewLayout() {
+        if (this.isDraggedToMainView) {
+            this.fileListContainer.style.display = "block";
+            await this.updateFileList();
+        } else {
+            this.fileListContainer.style.display = "none";
+        }
+    }
+
+    // 修改 updateFileList 方法
+    private async updateFileList() {
+        this.fileListContainer.empty();
+        
+        // 创建文件列表标题
+        const titleContainer = this.fileListContainer.createEl("div", {
+            cls: "highlight-file-list-header"
+        });
+
+        titleContainer.createEl("h3", {
+            text: "包含高亮的文件",
+            cls: "highlight-file-list-title"
+        });
+
+        // 创建文件列表
+        const fileList = this.fileListContainer.createEl("div", {
+            cls: "highlight-file-list"
+        });
+
+        // 添加"全部"选项
+        const allFilesItem = fileList.createEl("div", {
+            cls: `highlight-file-item highlight-file-item-all ${this.currentFile === null ? 'is-active' : ''}`
+        });
+
+        // 创建"全部"图标
+        const allIcon = allFilesItem.createEl("span", {
+            cls: "highlight-file-item-icon"
+        });
+        allIcon.innerHTML = `<svg viewBox="0 0 100 100" width="16" height="16">
+            <path fill="currentColor" stroke="currentColor" d="M80,20v60H20V20H80 M80,10H20c-5.5,0-10,4.5-10,10v60c0,5.5,4.5,10,10,10h60c5.5,0,10-4.5,10-10V20C90,14.5,85.5,10,80,10L80,10z"/>
+            <path fill="currentColor" stroke="currentColor" d="M30,40h40v5H30V40z M30,55h40v5H30V55z"/>
+        </svg>`;
+
+        // 创建"全部"文本
+        allFilesItem.createEl("span", {
+            text: "全部高亮",
+            cls: "highlight-file-item-name"
+        });
+
+        // 添加分隔线
+        fileList.createEl("div", {
+            cls: "highlight-file-list-separator"
+        });
+
+        // 添加"全部"选项的点击事件
+        allFilesItem.addEventListener("click", async () => {
+            this.currentFile = null;  // 清除当前文件选择
+            await this.updateAllHighlights();  // 新方法，用于获取所有文件的高亮
+            this.updateFileList();  // 更新选中状态
+        });
+
+        // 获取所有包含高亮的文件
+        const files = await this.getFilesWithHighlights();
+        
+        // 渲染文件列表
+        files.forEach(file => {
+            const fileItem = fileList.createEl("div", {
+                cls: `highlight-file-item ${this.currentFile?.path === file.path ? 'is-active' : ''}`
+            });
+
+            // 创建文件图标
+            const fileIcon = fileItem.createEl("span", {
+                cls: "highlight-file-item-icon"
+            });
+            fileIcon.innerHTML = `<svg viewBox="0 0 100 100" class="document" width="16" height="16">
+                <path fill="currentColor" stroke="currentColor" d="M85.714,14.286V85.714H14.286V14.286H85.714 M85.714,0H14.286 C6.396,0,0,6.396,0,14.286v71.429C0,93.604,6.396,100,14.286,100h71.429C93.604,100,100,93.604,100,85.714V14.286 C100,6.396,93.604,0,85.714,0L85.714,0z"/>
+            </svg>`;
+
+            // 创建文件名
+            fileItem.createEl("span", {
+                text: file.basename,
+                cls: "highlight-file-item-name"
+            });
+
+            // 添加点击事件
+            fileItem.addEventListener("click", async () => {
+                this.currentFile = file;
+                await this.updateHighlights();
+                this.updateFileList(); // 更新选中状态
+            });
+        });
+    }
+
+    // 添加新方法来获取所有文件的高亮
+    private async updateAllHighlights() {
+        const files = await this.getFilesWithHighlights();
+        const allHighlights: HighlightInfo[] = [];
+
+        for (const file of files) {
+            const content = await this.app.vault.read(file);
+            const highlights = this.extractHighlights(content);
+            const storedComments = this.commentStore.getFileComments(file);
+            
+            // 为每个高亮添加文件信息
+            const fileHighlights = highlights.map(highlight => {
+                const storedComment = storedComments.find(c => {
+                    const textMatch = c.text === highlight.text;
+                    if (textMatch && highlight.paragraphText) {
+                        return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
+                    }
+                    return false;
+                });
+
+                if (storedComment) {
+                    return {
+                        ...storedComment,
+                        position: highlight.position,
+                        paragraphOffset: highlight.paragraphOffset,
+                        fileName: file.basename,  // 添加文件名
+                        filePath: file.path       // 添加文件路径
+                    };
+                }
+
+                return {
+                    id: this.generateHighlightId(highlight),
+                    ...highlight,
+                    comments: [],
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    fileName: file.basename,  // 添加文件名
+                    filePath: file.path       // 添加文件路径
+                };
+            });
+
+            allHighlights.push(...fileHighlights);
+        }
+
+        this.highlights = allHighlights;
+        await this.updateHighlightsList();
+    }
+
+    // 添加新方法来获取所有包含高亮的文件
+    private async getFilesWithHighlights(): Promise<TFile[]> {
+        const files = this.app.vault.getMarkdownFiles();
+        const filesWithHighlights: TFile[] = [];
+
+        for (const file of files) {
+            const content = await this.app.vault.read(file);
+            const hasHighlight = /==.*?==|<mark>.*?<\/mark>|<span style="background:.*?">.*?<\/span>/g.test(content);
+            if (hasHighlight) {
+                filesWithHighlights.push(file);
+            }
+        }
+
+        return filesWithHighlights;
     }
 }
 
