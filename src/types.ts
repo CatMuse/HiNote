@@ -1,4 +1,9 @@
-import { CommentItem } from './CommentStore';
+export interface CommentItem {
+    id: string;
+    content: string;
+    createdAt: number;
+    updatedAt: number;
+}
 
 export interface HighlightInfo {
     text: string;

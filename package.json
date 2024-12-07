@@ -1,6 +1,6 @@
 {
 	"name": "highlight-comment",
-	"version": "0.1.0",
+	"version": "0.1.3",
 	"description": "Enhance your highlighted notes with comment management and export features.",
 	"main": "main.js",
 	"scripts": {
