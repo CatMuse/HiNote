@@ -8,6 +8,7 @@ import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import { CommentInput } from './components/comment/CommentInput';
+import { ChatModal } from './components/ChatModal';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -27,6 +28,7 @@ export class CommentView extends ItemView {
     private isLoading: boolean = false;
     private loadingIndicator: HTMLElement;
     private BATCH_SIZE = 20;
+    private floatingButton: HTMLElement | null = null;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -189,7 +191,7 @@ export class CommentView extends ItemView {
                 // 查找文本是否匹配
                 const textMatch = c.text === highlight.text;
                 if (textMatch && highlight.paragraphText) {
-                    // 如果文本匹配，查是否在同一段落围内
+                    // 如果文本匹配，查否在同一段落围内
                     return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
                 }
                 return false;
@@ -402,7 +404,7 @@ export class CommentView extends ItemView {
 
     private async jumpToHighlight(highlight: HighlightInfo) {
         if (this.isDraggedToMainView) {
-            // 如果在主视图中，则不执行跳转
+            // 如果在视图中，则不执行跳转
             return;
         }
 
@@ -479,8 +481,10 @@ export class CommentView extends ItemView {
         if (this.isDraggedToMainView) {
             this.fileListContainer.style.display = "block";
             await this.updateFileList();
+            this.createFloatingButton();
         } else {
             this.fileListContainer.style.display = "none";
+            this.removeFloatingButton();
         }
     }
 
@@ -752,6 +756,38 @@ export class CommentView extends ItemView {
             total += await this.getFileHighlightsCount(file);
         }
         return total;
+    }
+
+    // 添加创建浮动按钮的方法
+    private createFloatingButton() {
+        if (this.floatingButton) return;
+        
+        this.floatingButton = document.createElement('div');
+        this.floatingButton.className = 'highlight-floating-button';
+        
+        const icon = document.createElement('span');
+        setIcon(icon, 'message-circle');
+        this.floatingButton.appendChild(icon);
+        
+        // 修改点击事件，打开聊天窗口
+        this.floatingButton.addEventListener('click', () => {
+            new ChatModal(this.app, this.plugin).open();
+        });
+        
+        document.body.appendChild(this.floatingButton);
+    }
+
+    // 添加移除浮动按钮的方法
+    private removeFloatingButton() {
+        if (this.floatingButton) {
+            this.floatingButton.remove();
+            this.floatingButton = null;
+        }
+    }
+
+    // 在 onunload 方法中确保清理
+    onunload() {
+        this.removeFloatingButton();
     }
 }
 
