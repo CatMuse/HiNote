@@ -5,6 +5,7 @@ import { HighlightInfo, CommentUpdateEvent } from './types';
 import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
 import { AIButton } from './components/AIButton';
+import { LocationService } from './services/LocationService';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -16,11 +17,13 @@ export class CommentView extends ItemView {
     private commentStore: CommentStore;
     private searchInput: HTMLInputElement;
     private plugin: CommentPlugin;
+    private locationService: LocationService;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
         this.commentStore = commentStore;
         this.plugin = (this.app as any).plugins.plugins['highlight-comment'] as CommentPlugin;
+        this.locationService = new LocationService(this.app);
         
         // 监听文档切换
         this.registerEvent(
@@ -503,110 +506,7 @@ export class CommentView extends ItemView {
             new Notice("未找到当前文件");
             return;
         }
-
-        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
-        
-        if (markdownLeaves.length === 0) {
-            new Notice("未找到文档视图");
-            return;
-        }
-
-        // 找到当前文件对应的编辑器视图
-        const targetLeaf = markdownLeaves.find(leaf => {
-            const view = leaf.view as MarkdownView;
-            return view.file?.path === this.currentFile?.path;
-        });
-
-        if (!targetLeaf) {
-            new Notice("未找到对应的编辑器视图");
-            return;
-        }
-
-        const markdownView = targetLeaf.view as MarkdownView;
-
-        try {
-            // 先激活编辑器视图
-            await this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
-
-            // 等待编辑器准备就绪
-            await new Promise(resolve => setTimeout(resolve, 50));
-
-            const editor = markdownView.editor;
-            
-            // 使用编辑器的搜索功能定位到高亮文本
-            const content = editor.getValue();
-            let position = -1;
-
-            // 尝试所有可能的高亮格式，允许文本前后有空格
-            const highlightFormats = [
-                new RegExp(`==\\s*${escapeRegExp(highlight.text)}\\s*==`),
-                new RegExp(`<mark>\\s*${escapeRegExp(highlight.text)}\\s*</mark>`),
-                new RegExp(`<span style="background:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)">\\s*${escapeRegExp(highlight.text)}\\s*</span>`),
-                new RegExp(`<span style="background:#[0-9a-fA-F]{3,6}">\\s*${escapeRegExp(highlight.text)}\\s*</span>`)
-            ];
-
-            // 如果有背景色，优先使用对应的格式
-            if (highlight.backgroundColor) {
-                highlightFormats.unshift(
-                    new RegExp(`<span style="background:${escapeRegExp(highlight.backgroundColor)}">\\s*${escapeRegExp(highlight.text)}\\s*</span>`)
-                );
-            }
-
-            // 依次尝试每种格式
-            for (const format of highlightFormats) {
-                const match = format.exec(content);
-                if (match) {
-                    position = match.index;
-                    break;
-                }
-            }
-            
-            if (position !== -1) {
-                const pos = editor.offsetToPos(position);
-                
-                // 1. 确保编辑器已准备就绪
-                await new Promise(resolve => setTimeout(resolve, 50));
-
-                // 2. 先将目标行滚动到视图中央
-                editor.scrollIntoView({
-                    from: { line: pos.line, ch: 0 },
-                    to: { line: pos.line + 1, ch: 0 }
-                }, true);  // 居中对齐
-
-                // 3. 等待滚动完成
-                await new Promise(resolve => setTimeout(resolve, 50));
-
-                // 4. 调整位置，确保有足够上下文
-                editor.scrollIntoView({
-                    from: { line: Math.max(0, pos.line - 3), ch: 0 },
-                    to: { line: Math.min(editor.lineCount() - 1, pos.line + 3), ch: 0 }
-                }, true);
-
-                // 5. 查找段落末尾并设置光标位置
-                let nextLineNumber = pos.line;
-                const totalLines = editor.lineCount();
-                
-                while (nextLineNumber < totalLines - 1) {
-                    const currentLine = editor.getLine(nextLineNumber);
-                    const nextLine = editor.getLine(nextLineNumber + 1);
-                    
-                    if (currentLine.trim() !== '' && nextLine.trim() === '') {
-                        break;
-                    }
-                    nextLineNumber++;
-                }
-
-                editor.setCursor({
-                    line: nextLineNumber + 1,
-                    ch: 0
-                });
-            } else {
-                new Notice("未找到高亮内容");
-            }
-        } catch (error) {
-            console.error("定位失败:", error);
-            new Notice("定位失败，请重试");
-        }
+        await this.locationService.jumpToHighlight(highlight, this.currentFile.path);
     }
 
     // 修改导出图片功能的方法签名
@@ -716,7 +616,7 @@ export class CommentView extends ItemView {
             // 添加快捷键提示
             inputSection.createEl('div', {
                 cls: 'highlight-comment-hint',
-                text: 'Enter 保存，Shift + Enter 换行，Esc 取��'
+                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
             });
 
             // 取消操作
