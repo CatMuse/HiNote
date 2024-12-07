@@ -30,16 +30,21 @@ export class HighlightCard {
             }
         });
 
+        // 创建 content 容器
+        const contentEl = this.card.createEl("div", {
+            cls: "highlight-content"
+        });
+
         // 渲染高亮内容
         new HighlightContent(
-            this.card,
+            contentEl,
             this.highlight,
             this.options.onHighlightClick
         );
 
-        // 渲染操作按钮
+        // 渲染操作按钮 (在 content 容器内)
         new ActionButtons(
-            this.card,
+            contentEl,
             this.highlight,
             this.plugin,
             {
@@ -49,7 +54,7 @@ export class HighlightCard {
             }
         );
 
-        // 渲染评论列表
+        // 渲染评论列表 (在 card 容器内)
         new CommentList(
             this.card,
             this.highlight,

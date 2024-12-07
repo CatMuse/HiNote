@@ -6,6 +6,7 @@ import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
 import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
+import { HighlightCard } from './components/highlight/HighlightCard';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -58,8 +59,8 @@ export class CommentView extends ItemView {
                     });
 
                 if (highlightCard) {
-                    // 找到并点击添加评论按钮
-                    const addButton = highlightCard.querySelector('.highlight-add-comment-btn') as HTMLElement;
+                    // 更新按钮选择器以匹配新的 DOM 结构
+                    const addButton = highlightCard.querySelector('.highlight-action-buttons .highlight-action-buttons-right .highlight-add-comment-btn') as HTMLElement;
                     if (addButton) {
                         addButton.click();
                     }
@@ -219,187 +220,22 @@ export class CommentView extends ItemView {
             cls: "highlight-list"
         });
 
-        highlightsToRender.forEach((highlight, index) => {
-            const card = highlightList.createEl("div", {
-                cls: "highlight-card",
-                attr: {
-                    'data-highlight': JSON.stringify(highlight)
+        highlightsToRender.forEach((highlight) => {
+            const highlightCard = new HighlightCard(
+                highlightList,
+                highlight,
+                this.plugin,
+                {
+                    onHighlightClick: async (h) => await this.jumpToHighlight(h),
+                    onCommentAdd: (h) => this.showCommentInput(highlightCard.getElement(), h),
+                    onExport: (h) => this.exportHighlightAsImage(h),
+                    onCommentEdit: (h, c) => this.showCommentInput(highlightCard.getElement(), h, c),
+                    onAIResponse: async (content) => {
+                        await this.addComment(highlight, content);
+                        await this.updateHighlights();
+                    }
                 }
-            }) as HTMLElement;
-
-            // 高亮内容区域
-            const contentEl = card.createEl("div", {
-                cls: "highlight-content"
-            });
-
-            // 高亮文本容器
-            const textContainer = contentEl.createEl("div", {
-                cls: "highlight-text-container"
-            });
-
-            // 添加线装饰
-            const decorator = textContainer.createEl("div", {
-                cls: "highlight-text-decorator"
-            });
-
-            // 如果有背景色，应用到装饰器
-            if (highlight.backgroundColor) {
-                decorator.style.backgroundColor = highlight.backgroundColor;
-            }
-
-            // 高亮文本区域
-            const textEl = textContainer.createEl("div", {
-                cls: "highlight-text",
-                attr: { 'aria-label': '点击定位到文档位置' }
-            });
-
-            // 创建文本内容元素
-            const textContent = textEl.createEl("div", {
-                text: highlight.text,
-                cls: "highlight-text-content"
-            });
-
-            // 将点击事件监听器移到文本内容元素上
-            textContent.addEventListener("mousedown", async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                await this.jumpToHighlight(highlight);
-            });
-
-            // 操作按钮组
-            const actionButtons = contentEl.createEl("div", {
-                cls: "highlight-action-buttons"
-            });
-
-            // 左侧按钮组
-            const leftButtons = actionButtons.createEl("div", {
-                cls: "highlight-action-buttons-left"
-            });
-
-            // 初始化 AI 按钮
-            this.initAIButton(leftButtons, highlight);
-
-            // 右侧按钮组
-            const rightButtons = actionButtons.createEl("div", {
-                cls: "highlight-action-buttons-right"
-            });
-
-            // 添加评论按钮
-            const addCommentBtn = rightButtons.createEl("button", {
-                cls: "highlight-action-btn highlight-add-comment-btn",
-                attr: { 'aria-label': '添加评论' }
-            });
-            setIcon(addCommentBtn, "square-plus");
-            addCommentBtn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                this.showCommentInput(card, highlight);
-            });
-
-            // 分享按钮
-            const shareBtn = rightButtons.createEl("button", {
-                cls: "highlight-action-btn highlight-share-btn",
-                attr: { 'aria-label': '导出为图片' }
-            });
-            setIcon(shareBtn, "image-down");
-            shareBtn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                this.exportHighlightAsImage(highlight);
-            });
-
-            // 评论表区域 - 修复可能为 undefined 的问题
-            const comments = highlight.comments || [];
-            if (comments.length > 0) {  // 用安全的数组长度检查
-                const commentsSection = card.createEl("div", {
-                    cls: "highlight-comments-section"
-                });
-
-                const commentsList = commentsSection.createEl("div", {
-                    cls: "highlight-comments-list"
-                });
-
-                // 使用已经检查过的 comments 数组
-                comments.forEach(comment => {
-                    const commentEl = commentsList.createEl("div", {
-                        cls: "highlight-comment",
-                        attr: { 'data-comment-id': comment.id }
-                    });
-
-                    // 评论内容 - 添加双击事件
-                    const contentEl = commentEl.createEl("div", {
-                        text: comment.content,
-                        cls: "highlight-comment-content"
-                    });
-
-                    // 添加双击事件监听
-                    contentEl.addEventListener("dblclick", (e) => {
-                        e.stopPropagation();
-                        this.showCommentInput(card, highlight, comment);
-                    });
-
-                    // 创建底部操作栏
-                    const footer = commentEl.createEl("div", {
-                        cls: "highlight-comment-footer"
-                    });
-
-                    // 评论时间
-                    footer.createEl("div", {
-                        text: new Date(comment.createdAt).toLocaleString(),
-                        cls: "highlight-comment-time"
-                    });
-
-                    // 操作按钮容器
-                    const actions = footer.createEl("div", {
-                        cls: "highlight-comment-actions"
-                    });
-
-                });
-            }
-        });
-    }
-
-    // 初始化 AI 按钮及其功能
-    private initAIButton(container: HTMLElement, highlight: HighlightInfo): HTMLElement {
-        const aiContainer = container.createEl("div", {
-            cls: "highlight-ai-container"
-        });
-
-        new AIButton(
-            aiContainer, 
-            highlight, 
-            this.plugin,
-            async (content: string) => {
-                await this.addComment(highlight, content);
-                await this.updateHighlights();
-            }
-        );
-
-        return aiContainer;
-    }
-
-    // 更新所有 AI 下拉菜单
-    updateAIDropdowns() {
-        const cards = this.containerEl.querySelectorAll('.highlight-card');
-        cards.forEach((card) => {
-            const highlight = (card as HTMLElement).dataset.highlight;
-            if (!highlight) return;
-
-            const oldContainer = card.querySelector('.highlight-ai-container');
-            if (oldContainer) {
-                const leftButtons = oldContainer.parentElement;
-                if (leftButtons) {
-                    const newContainer = this.initAIButton(leftButtons, JSON.parse(highlight));
-                    leftButtons.replaceChild(newContainer, oldContainer);
-                }
-            }
-        });
-
-        // 添加全局点击事件来关闭所有下拉菜单
-        document.addEventListener("click", () => {
-            this.containerEl.querySelectorAll('.highlight-ai-dropdown').forEach((dropdown) => {
-                if (!dropdown.hasClass("hidden")) {
-                    dropdown.addClass("hidden");
-                }
-            });
+            );
         });
     }
 

@@ -34,7 +34,7 @@
 }
 
 .highlight-content {
-    padding: 12px;
+    padding: 6px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -81,15 +81,11 @@
     transition: opacity 0.2s ease, height 0.2s ease, margin 0.2s ease;
     height: 0;
     margin: 0;
+    padding: 0px 4px;
     visibility: hidden;
 }
 
-.highlight-action-buttons-left {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
+.highlight-action-buttons-left,
 .highlight-action-buttons-right {
     display: flex;
     gap: 8px;
@@ -99,7 +95,7 @@
 .highlight-card:hover .highlight-action-buttons {
     opacity: 1;
     height: auto;
-    margin-top: 12px;
+    margin-top: 4px;
     visibility: visible;
 }
 
@@ -136,6 +132,7 @@
     margin-bottom: 0;
     cursor: text;
     transition: background-color 0.2s ease;
+    padding: 2px;
 }
 
 .highlight-comment-content:hover {
@@ -282,7 +279,7 @@
 .highlight-comments-section {
     border-top: 1px solid var(--background-modifier-border);
     background-color: var(--background-secondary);
-    padding: 8px 12px;
+    padding: 8px;
 }
 
 .highlight-comments-list {
@@ -297,13 +294,6 @@
     border-radius: 6px;
     margin-bottom: 4px;
     position: relative;
-}
-
-.highlight-comment-content {
-    color: var(--text-normal);
-    font-size: 13px;
-    line-height: 1.5;
-    padding: 2px 0;
 }
 
 .highlight-search-container {
@@ -591,7 +581,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    overflow: auto;     /* 改为 auto，允许内容超出时滚动 */
+    overflow: auto;     /* 改为 auto，允许���容超出时滚动 */
     padding: 12px 4px 4px 4px;      /* 添加内边距 */
 }
 
