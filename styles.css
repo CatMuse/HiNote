@@ -724,14 +724,18 @@
     position: relative;
     width: 16px;
     height: 16px;
+    display: flex;  /* 添加 flex 布局 */
+    align-items: center;  /* 垂直居中 */
+    justify-content: center;  /* 水平居中 */
 }
 
 /* AI 图标基础样式 */
 .highlight-ai-icon,
 .highlight-ai-icon-loading {
     position: absolute;
-    top: 0;
-    left: 0;
+    display: flex;  /* 添加 flex 布局 */
+    align-items: center;  /* 垂直居中 */
+    justify-content: center;  /* 水平居中 */
     width: 100%;
     height: 100%;
     transition: opacity 0.2s ease;

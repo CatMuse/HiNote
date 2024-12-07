@@ -33,7 +33,7 @@ export class AIButton {
             attr: { 'aria-label': '使用 AI 分析' }
         });
 
-        // 创建一个包含正常图标和加载图标的容器
+        // 创建一个包含正常图标和加载���标的容器
         const aiButtonContent = aiButton.createEl("div", {
             cls: "highlight-ai-btn-content"
         });
@@ -48,18 +48,7 @@ export class AIButton {
         this.loadingIcon = aiButtonContent.createEl("div", {
             cls: "highlight-ai-icon-loading hidden"
         });
-        this.loadingIcon.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="2" x2="12" y2="6"/>
-                <line x1="12" y1="18" x2="12" y2="22"/>
-                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
-                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
-                <line x1="2" y1="12" x2="6" y2="12"/>
-                <line x1="18" y1="12" x2="22" y2="12"/>
-                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
-                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
-            </svg>
-        `;
+        setIcon(this.loadingIcon, "loader");
 
         // 创建下拉菜单
         this.dropdown = aiContainer.createEl("div", {
@@ -96,7 +85,7 @@ export class AIButton {
     }
 
     public updateDropdownContent() {
-        // 清空现有内容
+        // 清空���有内容
         this.dropdown.empty();
 
         // 获取所有可用的 prompts
