@@ -31,6 +31,7 @@
     margin-bottom: 12px;
     display: inline-block;
     width: 100%;
+    animation: fadeIn 0.3s ease;
 }
 
 .highlight-content {
@@ -299,20 +300,21 @@
 .highlight-search-container {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 10;
     padding: 12px;
     background-color: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
+    backdrop-filter: blur(10px);
 }
 
 .highlight-search-input {
     width: 100%;
-    padding: 8px 12px;
+    padding: 6px 12px;
     border-radius: 6px;
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     color: var(--text-normal);
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .highlight-search-input:focus {
@@ -581,7 +583,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    overflow: auto;     /* 改为 auto，允许容超出时滚动 */
+    overflow: auto;     /* 改为 auto，允许容超出时滚�� */
     padding: 12px 4px 4px 4px;      /* 添加内边距 */
 }
 
@@ -775,7 +777,7 @@
     min-width: 200px;  /* 给定一个最小宽度 */
 }
 
-/* AI 服务设置区域样式 */
+/* AI 服务���置区域样式 */
 .ai-service-settings {
     background-color: var(--background-secondary);
     border-radius: 8px;
@@ -1163,12 +1165,12 @@ hr {
 
 /* 文件列表容器样式优化 */
 .highlight-file-list-container {
-    width: 240px;  /* 增加宽度 */
+    width: 240px;
     border-right: 1px solid var(--background-modifier-border);
     display: none;
     overflow-y: auto;
-    background-color: var(--background-secondary);
-    padding-bottom: 20px;  /* 添加底部内边距 */
+    background-color: var(--background-primary);
+    padding: 0;
 }
 
 /* 主内容区域样式 */
@@ -1179,65 +1181,130 @@ hr {
     flex-direction: column;
 }
 
-/* 文件列表标题样式优化 */
+/* 文件列表标题样式优化 - 调整高度与搜索容器一致 */
 .highlight-file-list-header {
-    padding: 20px 16px 12px;
-    background-color: var(--background-secondary);
+    padding: 13px 16px;  /* 与搜索容器保持一致 */
+    background-color: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
-    position: sticky;  /* 使标题固定在顶部 */
+    position: sticky;
     top: 0;
     z-index: 10;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;  /* 垂直居中 */
 }
 
 .highlight-file-list-title {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 500;
+    margin: 4px;
+    font-size: 15px;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 /* 文件列表样式优化 */
 .highlight-file-list {
-    padding: 8px 0;
+    padding: 8px;
 }
 
 /* 文件项样式优化 */
 .highlight-file-item {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    padding: 6px 16px;
-    margin: 1px 8px;
-    border-radius: 4px;
+    padding: 6px 8px;
+    margin: 2px 0;
+    border-radius: 6px;
     cursor: pointer;
-    color: var(--text-muted);
-    font-size: 13px;
-    transition: all 0.1s ease;
+    transition: all 0.2s ease;
     position: relative;
-    min-height: 28px;
+    min-height: 32px;
+    width: 100%;
 }
 
 .highlight-file-item:hover {
-    color: var(--text-normal);
-    background-color: var(--background-primary-alt);
+    background-color: var(--background-modifier-hover);
 }
 
 .highlight-file-item.is-active {
-    color: var(--text-accent);
-    background-color: var(--background-primary);
+    background-color: var(--nav-item-background-active);
 }
 
-.highlight-file-item.is-active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background-color: var(--text-accent);
-    border-radius: 0 2px 2px 0;
+/* "全部"选项特殊样式优化 */
+.highlight-file-item-all {
+    font-weight: 500;
+    color: var(--text-normal);
+    background-color: var(--background-primary);
+    margin: 4px 0 8px;
+}
+
+.highlight-file-item-all:hover {
+    background-color: var(--background-modifier-hover);
+    transform: translateY(-1px);
+}
+
+.highlight-file-item-all.is-active {
+    background-color: var(--nav-item-background-active);
+    color: var(--text-accent);
+    transform: none;
+}
+
+/* 文件列表分隔线优化 */
+.highlight-file-list-separator {
+    height: 1px;
+    background-color: var(--background-modifier-border);
+    margin: 8px 0;
+    opacity: 0.6;
+}
+
+/* 高亮数量标签样式优化 */
+.highlight-file-item-count {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-faint);
+    background-color: var(--background-secondary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+/* 文件项左侧容器样式优化 */
+.highlight-file-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    margin-right: 8px;
+}
+
+/* 文件名样式优化 */
+.highlight-file-item-name {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.highlight-file-item:hover .highlight-file-item-name {
+    color: var(--text-normal);
+}
+
+.highlight-file-item.is-active .highlight-file-item-name {
+    color: var(--text-accent);
+    font-weight: 500;
 }
 
 /* 文件图标样式优化 */
@@ -1247,66 +1314,30 @@ hr {
     justify-content: center;
     width: 16px;
     height: 16px;
-    color: currentColor;
-    opacity: 0.8;
+    opacity: 0.7;
+    transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
-.highlight-file-item-icon svg {
-    width: 14px;
-    height: 14px;
+.highlight-file-item:hover .highlight-file-item-icon {
+    opacity: 0.9;
 }
 
-/* 文件名样式优化 */
-.highlight-file-item-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.4;
-    padding: 2px 0;
+.highlight-file-item.is-active .highlight-file-item-icon {
+    opacity: 1;
+    color: var(--text-accent);
 }
 
 /* 滚动条样式优化 */
 .highlight-file-list-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.highlight-file-list-container::-webkit-scrollbar-track {
-    background: transparent;
+    width: 4px;
 }
 
 .highlight-file-list-container::-webkit-scrollbar-thumb {
     background-color: var(--background-modifier-border);
-    border-radius: 3px;
+    border-radius: 2px;
 }
 
-.highlight-file-list-container::-webkit-scrollbar-thumb:hover {
+.highlight-file-list-container:hover::-webkit-scrollbar-thumb {
     background-color: var(--background-modifier-border-hover);
-}
-
-/* 文件列表分隔线优化 */
-.highlight-file-list-separator {
-    height: 1px;
-    background-color: var(--background-modifier-border);
-    margin: 8px 16px;
-    opacity: 0.5;
-}
-
-/* "全部"选项特殊样式优化 */
-.highlight-file-item-all {
-    font-weight: 500;
-    color: var(--text-normal);
-    margin: 0 8px;
-    border-radius: 4px;
-    background-color: var(--background-primary);
-}
-
-.highlight-file-item-all:hover {
-    background-color: var(--background-primary-alt);
-}
-
-.highlight-file-item-all.is-active {
-    background-color: var(--background-modifier-border);
-    color: var(--text-accent);
 }

@@ -23,6 +23,10 @@ export class CommentView extends ItemView {
     private plugin: CommentPlugin;
     private locationService: LocationService;
     private isDraggedToMainView: boolean = false;
+    private currentBatch: number = 0;
+    private isLoading: boolean = false;
+    private loadingIndicator: HTMLElement;
+    private BATCH_SIZE = 20;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -83,6 +87,13 @@ export class CommentView extends ItemView {
                 this.checkViewPosition();
             })
         );
+
+        // 创建加载指示器
+        this.loadingIndicator = createEl("div", {
+            cls: "highlight-loading-indicator",
+            text: "加载中..."
+        });
+        this.loadingIndicator.style.display = "none";
     }
 
     getViewType(): string {
@@ -90,7 +101,7 @@ export class CommentView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "ObsidianComment";
+        return "HighlightComment";
     }
 
     getIcon(): string {
@@ -228,18 +239,12 @@ export class CommentView extends ItemView {
         this.renderHighlights(filteredHighlights);
     }
 
-    private renderHighlights(highlightsToRender: HighlightInfo[]) {
-        this.highlightContainer.empty();
-
-        if (!this.currentFile && !this.isDraggedToMainView) {
-            this.highlightContainer.createEl("div", {
-                cls: "highlight-empty-state",
-                text: "请打开一个 Markdown 文件"
-            });
-            return;
+    private renderHighlights(highlightsToRender: HighlightInfo[], append = false) {
+        if (!append) {
+            this.highlightContainer.empty();
         }
 
-        if (highlightsToRender.length === 0) {
+        if (highlightsToRender.length === 0 && !append) {
             this.highlightContainer.createEl("div", {
                 cls: "highlight-empty-state",
                 text: this.searchInput.value.trim() 
@@ -249,9 +254,12 @@ export class CommentView extends ItemView {
             return;
         }
 
-        const highlightList = this.highlightContainer.createEl("div", {
-            cls: "highlight-list"
-        });
+        let highlightList = this.highlightContainer.querySelector('.highlight-list') as HTMLElement;
+        if (!highlightList) {
+            highlightList = this.highlightContainer.createEl("div", {
+                cls: "highlight-list"
+            });
+        }
 
         highlightsToRender.forEach((highlight) => {
             const highlightCard = new HighlightCard(
@@ -478,6 +486,13 @@ export class CommentView extends ItemView {
 
     // 修改 updateFileList 方法
     private async updateFileList() {
+        // 如果文件列表已经存在，只更新选中状态
+        if (this.fileListContainer.children.length > 0) {
+            this.updateFileListSelection();
+            return;
+        }
+
+        // 首次创建文件列表
         this.fileListContainer.empty();
         
         // 创建文件列表标题
@@ -485,8 +500,8 @@ export class CommentView extends ItemView {
             cls: "highlight-file-list-header"
         });
 
-        titleContainer.createEl("h3", {
-            text: "包含高亮的文件",
+        titleContainer.createEl("div", {
+            text: "HighlightComment",
             cls: "highlight-file-list-title"
         });
 
@@ -500,16 +515,30 @@ export class CommentView extends ItemView {
             cls: `highlight-file-item highlight-file-item-all ${this.currentFile === null ? 'is-active' : ''}`
         });
 
+        // 创建左侧内容容器
+        const allFilesLeft = allFilesItem.createEl("div", {
+            cls: "highlight-file-item-left"
+        });
+
         // 创建"全部"图标
-        const allIcon = allFilesItem.createEl("span", {
+        const allIcon = allFilesLeft.createEl("span", {
             cls: "highlight-file-item-icon"
         });
-        setIcon(allIcon, 'documents');  // 使用 Obsidian 的文档集合图标
+        setIcon(allIcon, 'documents');
 
         // 创建"全部"文本
-        allFilesItem.createEl("span", {
+        allFilesLeft.createEl("span", {
             text: "全部高亮",
             cls: "highlight-file-item-name"
+        });
+
+        // 获取所有文件的高亮总数
+        const totalHighlights = await this.getTotalHighlightsCount();
+        
+        // 创建高亮数量标签
+        allFilesItem.createEl("span", {
+            text: `${totalHighlights}`,
+            cls: "highlight-file-item-count"
         });
 
         // 添加分隔线
@@ -517,91 +546,179 @@ export class CommentView extends ItemView {
             cls: "highlight-file-list-separator"
         });
 
-        // 添加"全部"选项的点击事件
+        // 修改点击事件
         allFilesItem.addEventListener("click", async () => {
-            this.currentFile = null;  // 清除当前文件选择
-            await this.updateAllHighlights();  // 新方法，用于获取所有文件的高亮
-            this.updateFileList();  // 更新选中状态
+            this.currentFile = null;
+            this.updateFileListSelection();  // 先更新选中状态
+            await this.updateAllHighlights();  // 再加载内容
         });
 
         // 获取所有包含高亮的文件
         const files = await this.getFilesWithHighlights();
         
         // 渲染文件列表
-        files.forEach(file => {
+        for (const file of files) {
             const fileItem = fileList.createEl("div", {
-                cls: `highlight-file-item ${this.currentFile?.path === file.path ? 'is-active' : ''}`
+                cls: `highlight-file-item ${this.currentFile?.path === file.path ? 'is-active' : ''}`,
+                attr: {
+                    'data-path': file.path
+                }
+            });
+
+            // 创建左侧内容容器
+            const fileItemLeft = fileItem.createEl("div", {
+                cls: "highlight-file-item-left"
             });
 
             // 创建文件图标
-            const fileIcon = fileItem.createEl("span", {
+            const fileIcon = fileItemLeft.createEl("span", {
                 cls: "highlight-file-item-icon"
             });
-            setIcon(fileIcon, 'file-text');  // 使用 Obsidian 的文本文件图标
+            setIcon(fileIcon, 'file-text');
 
             // 创建文件名
-            fileItem.createEl("span", {
+            fileItemLeft.createEl("span", {
                 text: file.basename,
                 cls: "highlight-file-item-name"
             });
 
-            // 添加点击事件
-            fileItem.addEventListener("click", async () => {
-                this.currentFile = file;
-                await this.updateHighlights();
-                this.updateFileList(); // 更新选中状态
+            // 获取该文件的高亮数量
+            const highlightCount = await this.getFileHighlightsCount(file);
+            
+            // 创建高亮数量标签
+            fileItem.createEl("span", {
+                text: `${highlightCount}`,
+                cls: "highlight-file-item-count"
             });
+
+            // 修改点击事件
+            fileItem.addEventListener("click", async () => {
+                // 先更新选中状态，再加载内容
+                this.currentFile = file;
+                this.updateFileListSelection();
+                await this.updateHighlights();
+            });
+        }
+    }
+
+    // 添加新方法：只更新文件列表的选中状态
+    private updateFileListSelection() {
+        // 更新"全部"选项的选中状态
+        const allFilesItem = this.fileListContainer.querySelector('.highlight-file-item-all');
+        if (allFilesItem) {
+            allFilesItem.classList.toggle('is-active', this.currentFile === null);
+        }
+
+        // 更新文件项的选中状态
+        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all)');
+        fileItems.forEach((item: HTMLElement) => {
+            const isActive = this.currentFile?.path === item.getAttribute('data-path');
+            item.classList.toggle('is-active', isActive);
         });
     }
 
-    // 添加新方法来获取所有文件的高亮
+    // 添加新方法来获取所有包含高亮的文件
     private async updateAllHighlights() {
-        const files = await this.getFilesWithHighlights();
-        const allHighlights: HighlightInfo[] = [];
+        // 重置批次计数
+        this.currentBatch = 0;
+        this.highlights = [];
+        
+        // 清空容器并添加加载指示器
+        this.highlightContainer.empty();
+        this.highlightContainer.appendChild(this.loadingIndicator);
+        
+        // 初始加载
+        await this.loadMoreHighlights();
 
-        for (const file of files) {
-            const content = await this.app.vault.read(file);
-            const highlights = this.extractHighlights(content);
-            const storedComments = this.commentStore.getFileComments(file);
+        // 添加滚动监听
+        const handleScroll = this.debounce(async (e: Event) => {
+            const container = e.target as HTMLElement;
+            const { scrollTop, scrollHeight, clientHeight } = container;
             
-            // 为每个高亮添加文件信息
-            const fileHighlights = highlights.map(highlight => {
-                const storedComment = storedComments.find(c => {
-                    const textMatch = c.text === highlight.text;
-                    if (textMatch && highlight.paragraphText) {
-                        return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
-                    }
-                    return false;
-                });
+            // 当滚动到底部附近时加载更多
+            if (scrollHeight - scrollTop - clientHeight < 300) {
+                await this.loadMoreHighlights();
+            }
+        }, 100);
 
-                if (storedComment) {
+        // 注册和清理滚动监听
+        this.highlightContainer.addEventListener('scroll', handleScroll);
+        this.register(() => this.highlightContainer.removeEventListener('scroll', handleScroll));
+    }
+
+    // 添加新方法：加载更多高亮
+    private async loadMoreHighlights() {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        this.loadingIndicator.style.display = "block";
+
+        try {
+            const files = await this.getFilesWithHighlights();
+            const start = this.currentBatch * this.BATCH_SIZE;
+            const batch = files.slice(start, start + this.BATCH_SIZE);
+            
+            if (batch.length === 0) {
+                this.loadingIndicator.remove();
+                return;
+            }
+
+            // 处理这一批文件的高亮
+            const batchHighlights: HighlightInfo[] = [];
+            for (const file of batch) {
+                const content = await this.app.vault.read(file);
+                const highlights = this.extractHighlights(content);
+                const storedComments = this.commentStore.getFileComments(file);
+                
+                // 处理每个高亮
+                const fileHighlights = highlights.map(highlight => {
+                    const storedComment = storedComments.find(c => {
+                        const textMatch = c.text === highlight.text;
+                        if (textMatch && highlight.paragraphText) {
+                            return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
+                        }
+                        return false;
+                    });
+
+                    if (storedComment) {
+                        return {
+                            ...storedComment,
+                            position: highlight.position,
+                            paragraphOffset: highlight.paragraphOffset,
+                            fileName: file.basename,
+                            filePath: file.path,
+                            fileIcon: 'file-text'
+                        };
+                    }
+
                     return {
-                        ...storedComment,
-                        position: highlight.position,
-                        paragraphOffset: highlight.paragraphOffset,
+                        id: this.generateHighlightId(highlight),
+                        ...highlight,
+                        comments: [],
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
                         fileName: file.basename,
                         filePath: file.path,
-                        fileIcon: 'file-text'  // 使用 Obsidian 的文本文件图标
+                        fileIcon: 'file-text'
                     };
-                }
+                });
 
-                return {
-                    id: this.generateHighlightId(highlight),
-                    ...highlight,
-                    comments: [],
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    fileName: file.basename,
-                    filePath: file.path,
-                    fileIcon: 'file-text'  // 使用 Obsidian 的文本文件图标
-                };
-            });
+                batchHighlights.push(...fileHighlights);
+            }
 
-            allHighlights.push(...fileHighlights);
+            // 添加到现有高亮中
+            this.highlights.push(...batchHighlights);
+            
+            // 渲染新的高亮
+            await this.renderHighlights(batchHighlights, true);
+            this.currentBatch++;
+            
+        } catch (error) {
+            console.error('Error loading highlights:', error);
+            new Notice('加载高亮内容时出错');
+        } finally {
+            this.isLoading = false;
+            this.loadingIndicator.style.display = "none";
         }
-
-        this.highlights = allHighlights;
-        await this.updateHighlightsList();
     }
 
     // 添加新方法来获取所有包含高亮的文件
@@ -618,6 +735,23 @@ export class CommentView extends ItemView {
         }
 
         return filesWithHighlights;
+    }
+
+    // 添加新方法：获取文件的高亮数量
+    private async getFileHighlightsCount(file: TFile): Promise<number> {
+        const content = await this.app.vault.read(file);
+        const highlights = this.extractHighlights(content);
+        return highlights.length;
+    }
+
+    // 添加新方法：获取所有文件的高亮总数
+    private async getTotalHighlightsCount(): Promise<number> {
+        const files = await this.getFilesWithHighlights();
+        let total = 0;
+        for (const file of files) {
+            total += await this.getFileHighlightsCount(file);
+        }
+        return total;
     }
 }
 
