@@ -19,7 +19,7 @@ export class CommentView extends ItemView {
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
         this.commentStore = commentStore;
-        this.plugin = (this.app as any).plugins.plugins['obsidian-comment'] as CommentPlugin;
+        this.plugin = (this.app as any).plugins.plugins['highlight-comment'] as CommentPlugin;
         
         // 监听文档切换
         this.registerEvent(
