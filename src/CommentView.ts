@@ -8,7 +8,6 @@ import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import { CommentInput } from './components/comment/CommentInput';
-import { ChatModal } from './components/ChatModal';
 import { ChatView } from './components/ChatView';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
@@ -60,7 +59,7 @@ export class CommentView extends ItemView {
         const handleCommentInput = (e: CustomEvent) => {
             const { highlightId, text } = e.detail;
             
-            // 等待一下确保视图已经更新
+            // 等待一下��视图已经更新
             setTimeout(() => {
                 // 找到对应的高亮卡片
                 const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
@@ -192,7 +191,7 @@ export class CommentView extends ItemView {
                 // 查找文本是否匹配
                 const textMatch = c.text === highlight.text;
                 if (textMatch && highlight.paragraphText) {
-                    // 如果文本匹配，查否在同一���落围内
+                    // 如果文本匹配，查否在同一落围内
                     return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
                 }
                 return false;
@@ -225,13 +224,13 @@ export class CommentView extends ItemView {
             if (highlight.text.toLowerCase().includes(searchTerm)) {
                 return true;
             }
-            // 搜索评论内容
+            // 搜索评论内
             if (highlight.comments?.some(comment => 
                 comment.content.toLowerCase().includes(searchTerm)
             )) {
                 return true;
             }
-            // 在全部视图中也��索文件名
+            // 在全部视图中也索文件名
             if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
                 return true;
             }
@@ -405,7 +404,7 @@ export class CommentView extends ItemView {
 
     private async jumpToHighlight(highlight: HighlightInfo) {
         if (this.isDraggedToMainView) {
-            // 如果在视图中，则不执行跳转
+            // 如果在视图中，则不执行转
             return;
         }
 
@@ -622,13 +621,13 @@ export class CommentView extends ItemView {
         });
     }
 
-    // 添��新方法来获取所有包含高亮的文件
+    // 添加新方法来获取所有包含高亮的文件
     private async updateAllHighlights() {
         // 重置批次计数
         this.currentBatch = 0;
         this.highlights = [];
         
-        // 清空容器并添加加载指示器
+        // 清空容器并添加加载指示
         this.highlightContainer.empty();
         this.highlightContainer.appendChild(this.loadingIndicator);
         
@@ -770,9 +769,16 @@ export class CommentView extends ItemView {
         setIcon(icon, 'message-circle');
         this.floatingButton.appendChild(icon);
         
-        // 修改点击事件，打开聊天窗口
+        // 使用 getInstance 方法
         this.floatingButton.addEventListener('click', () => {
-            new ChatView(this.app, this.plugin).show();
+            try {
+                console.log('Opening chat view...');
+                const chatView = ChatView.getInstance(this.app, this.plugin);
+                chatView.show();
+                console.log('Chat view opened');
+            } catch (error) {
+                console.error('Failed to open chat view:', error);
+            }
         });
         
         document.body.appendChild(this.floatingButton);
