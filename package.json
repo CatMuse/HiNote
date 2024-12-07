@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-comment",
-	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"name": "highlight-comment",
+	"version": "0.1.0",
+	"description": "Enhance your highlighted notes with comment management and export features.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
