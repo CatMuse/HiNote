@@ -81,7 +81,7 @@
     transition: opacity 0.2s ease, height 0.2s ease, margin 0.2s ease;
     height: 0;
     margin: 0;
-    padding: 0px 4px;
+    padding: 2px 4px;
     visibility: hidden;
 }
 
