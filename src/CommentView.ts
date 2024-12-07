@@ -7,6 +7,7 @@ import { AIService } from './services/AIService';
 import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
 import { HighlightCard } from './components/highlight/HighlightCard';
+import { CommentInput } from './components/comment/CommentInput';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -358,154 +359,22 @@ export class CommentView extends ItemView {
     }
 
     private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
-        if (existingComment) {
-            // 编辑现有评论的逻辑
-            const commentEl = card.querySelector(`[data-comment-id="${existingComment.id}"]`);
-            if (!commentEl) return;
-
-            const contentEl = commentEl.querySelector('.highlight-comment-content') as HTMLElement;
-            if (!contentEl) return;
-
-            const originalContent = contentEl.textContent || '';
-
-            // 创建编辑框
-            const textarea = document.createElement('textarea');
-            textarea.value = originalContent;
-            textarea.className = 'highlight-comment-input';
-            textarea.style.minHeight = `${contentEl.offsetHeight}px`;
-
-            // 替换内容为编辑框
-            contentEl.replaceWith(textarea);
-
-            // 隐藏底部的时间和按钮
-            const footer = commentEl.querySelector('.highlight-comment-footer');
-            if (footer) {
-                footer.addClass('hidden');
-            }
-
-            // 添加快捷键提示和删除按钮
-            const actionHint = commentEl.createEl('div', {
-                cls: 'highlight-comment-actions-hint'
-            });
-
-            // 快捷键提示
-            actionHint.createEl('span', {
-                cls: 'highlight-comment-hint',
-                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
-            });
-
-            // 删除按钮
-            const deleteLink = actionHint.createEl('button', {
-                cls: 'highlight-comment-delete-link',
-                text: '删除评论'
-            });
-
-            deleteLink.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                await this.deleteComment(highlight, existingComment.id);
-            });
-
-            // 取消编辑
-            const cancelEdit = () => {
-                textarea.replaceWith(contentEl);
-                actionHint.remove();
-                footer?.removeClass('hidden');
-            };
-
-            // 保存编辑
-            const saveEdit = async () => {
-                const newContent = textarea.value.trim();
-                if (newContent && newContent !== originalContent) {
-                    await this.updateComment(highlight, existingComment.id, newContent);
-                    await this.updateHighlights();
+        new CommentInput(card, highlight, existingComment, {
+            onSave: async (content: string) => {
+                if (existingComment) {
+                    await this.updateComment(highlight, existingComment.id, content);
                 } else {
-                    cancelEdit();
-                }
-            };
-
-            // 支持快捷键操作
-            textarea.onkeydown = async (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    cancelEdit();
-                } else if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await saveEdit();
-                }
-            };
-
-            // 聚焦到文本框
-            textarea.focus();
-        } else {
-            // 添加新评论的逻辑
-            let commentsSection = card.querySelector('.highlight-comments-section');
-            
-            // 创建输入区域
-            const inputSection = document.createElement('div');
-            inputSection.className = 'highlight-comment-input';
-
-            // 创建文本框
-            const textarea = inputSection.createEl("textarea");
-
-            // 添加快捷键提示
-            inputSection.createEl('div', {
-                cls: 'highlight-comment-hint',
-                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
-            });
-
-            // 取消操作
-            const cancelAdd = () => {
-                inputSection.remove();
-                if (!commentsSection?.querySelector('.highlight-comment')) {
-                    commentsSection?.remove();
-                }
-            };
-
-            // 保存操作
-            const saveAdd = async () => {
-                const content = textarea.value.trim();
-                if (content) {
                     await this.addComment(highlight, content);
-                    await this.updateHighlights();
-                } else {
-                    cancelAdd();
                 }
-            };
-
-            // 支持快捷键操作
-            textarea.onkeydown = async (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    cancelAdd();
-                } else if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    await saveAdd();
-                }
-            };
-
-            // 如果还没有评论区域，创建一个
-            if (!commentsSection) {
-                commentsSection = card.createEl('div', {
-                    cls: 'highlight-comments-section'
-                });
-                
-                commentsSection.createEl('div', {
-                    cls: 'highlight-comments-list'
-                });
+                await this.updateHighlights();
+            },
+            onDelete: existingComment ? async () => {
+                await this.deleteComment(highlight, existingComment.id);
+            } : undefined,
+            onCancel: () => {
+                // 取消时不需要特殊处理
             }
-
-            const commentsList = commentsSection.querySelector('.highlight-comments-list');
-            if (commentsList) {
-                commentsList.insertBefore(inputSection, commentsList.firstChild);
-            }
-
-            // 聚焦到文本框
-            textarea.focus();
-        }
+        }).show();
     }
 
     async onload() {
