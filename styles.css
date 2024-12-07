@@ -583,7 +583,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
-    overflow: auto;     /* 改为 auto，允许容超出时滚动 */
+    overflow: auto;     /* 改为 auto，允许容超出时滚�� */
     padding: 12px 4px 4px 4px;      /* 添加内边距 */
 }
 
@@ -606,7 +606,7 @@
     background-color: var(--background-primary);  /* 添加背景色 */
 }
 
-/* 调导容器样式 */
+/* 调导容 */
 .highlight-export-container {
     width: 100%;
     padding: 24px;
@@ -777,7 +777,7 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    justify-content: flex-end;  /* 确保内容右齐 */
+    justify-content: flex-end;  /* 确保内右 */
     min-width: 200px;  /* 给定一个最小宽度 */
 }
 
@@ -833,7 +833,7 @@ hr {
     margin-right: auto;
 }
 
-/* 模板特定样式 */
+/* 板特定样式 */
 .highlight-export-card {
     transition: all 0.3s ease;
 }
@@ -1135,6 +1135,12 @@ hr {
     display: flex;
     align-items: center;
     gap: 6px;
+    cursor: grab;
+}
+
+.highlight-card-filename.dragging {
+    cursor: grabbing;
+    opacity: 0.7;
 }
 
 .highlight-card-filename-icon {
@@ -1185,7 +1191,7 @@ hr {
     flex-direction: column;
 }
 
-/* 文件列表标题样式优化 - 调整高度与搜索容器一致 */
+/* 文件列表标题样式优化 - 调整高度与索容器一致 */
 .highlight-file-list-header {
     padding: 13px 16px;  /* 与搜索容器保持一致 */
     background-color: var(--background-primary);
@@ -1375,139 +1381,144 @@ hr {
     color: var(--text-on-accent);
 }
 
-/* 聊天窗口样式 */
-.highlight-chat-container {
-    display: flex;
-    flex-direction: column;
+/* 修改聊天窗口样式 */
+.highlight-chat-window {
+    position: fixed !important;
+    right: 30px !important;
+    bottom: 90px !important;
     height: 60vh;
-    width: 500px;
+    width: 350px;
     max-width: 90vw;
+    border-radius: 12px;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden;
+    z-index: 1000;
 }
 
+/* 标题栏样式 */
+.highlight-chat-header {
+    padding: 12px 16px;
+    background-color: var(--background-secondary);
+    border-bottom: 1px solid var(--background-modifier-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 关闭按钮样式 */
+.highlight-chat-close {
+    cursor: pointer;
+    font-size: 20px;
+    color: var(--text-muted);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.highlight-chat-close:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+/* 拖拽手柄样式 */
+.highlight-drag-handle {
+    cursor: grab;
+    padding: 8px;
+    margin: -8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.highlight-card:hover .highlight-drag-handle {
+    opacity: 1;
+}
+
+.highlight-drag-handle.dragging {
+    cursor: grabbing;
+}
+
+/* 拖拽目标区域样式 */
+.highlight-chat-dropzone {
+    border: 2px dashed var(--background-modifier-border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 8px;
+    text-align: center;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.highlight-chat-dropzone.drag-over {
+    border-color: var(--interactive-accent);
+    background-color: var(--background-modifier-hover);
+    transform: scale(1.02);
+}
+
+/* 拖拽预览样式 */
+.highlight-drag-preview {
+    position: fixed;
+    top: -1000px;  /* 移出视图但保持可用于预览 */
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+
+/* 拖拽内容预览区域 */
+.highlight-chat-preview {
+    margin: 8px;
+    padding: 12px;
+    background-color: var(--background-modifier-form-field);
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.highlight-chat-preview-header {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.highlight-chat-preview-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-normal);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* 聊天历史记录区域 */
 .highlight-chat-history {
     flex: 1;
     overflow-y: auto;
     padding: 16px;
-    background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.highlight-chat-input-container {
+    gap: 16px;
     display: flex;
-    gap: 8px;
-    padding: 8px;
+    flex-direction: column;
+    padding-bottom: 70px; /* 为固定的输入框留出空间 */
+}
+
+/* 输入区域样式 */
+.highlight-chat-input-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-}
-
-.highlight-chat-input {
-    flex: 1;
-    min-height: 40px;
-    max-height: 120px;
-    padding: 8px;
-    border: none;
-    border-radius: 4px;
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: 14px;
-    line-height: 1.5;
-    resize: vertical;
-}
-
-.highlight-chat-input:focus {
-    outline: none;
-    background-color: var(--background-primary-alt);
-}
-
-.highlight-chat-send-btn {
-    align-self: flex-end;
-    padding: 8px 16px;
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
-
-.highlight-chat-send-btn:hover {
-    background-color: var(--interactive-accent-hover);
-}
-
-.highlight-chat-message {
-    margin-bottom: 16px;
-    max-width: 80%;
-}
-
-.highlight-chat-message-user {
-    margin-left: auto;
-}
-
-.highlight-chat-message-assistant {
-    margin-right: auto;
-}
-
-.highlight-chat-message-content {
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.highlight-chat-message-user .highlight-chat-message-content {
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-}
-
-.highlight-chat-message-assistant .highlight-chat-message-content {
-    background-color: var(--background-modifier-form-field);
-    color: var(--text-normal);
-}
-
-/* 修改聊天窗口样式 */
-.highlight-chat-modal {
-    position: fixed !important;
-    left: unset !important;
-    right: 30px !important;
-    top: unset !important;
-    bottom: 90px !important; /* 浮动按钮上方 */
-    transform: none !important;
-    max-height: 70vh;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* 修改遮罩层样式 */
-.highlight-chat-modal-overlay {
-    background-color: transparent !important;
-}
-
-/* 调整聊天容器样式 */
-.highlight-chat-container {
-    height: 50vh;
-    width: 300px;
-    max-width: 90vw;
-    border-radius: 12px;
-    overflow: hidden;
-    background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* 添加加载状态样式 */
-.highlight-chat-loading {
-    text-align: center;
-    padding: 8px;
-    color: var(--text-muted);
-    font-size: 12px;
-    margin: 8px 0;
-}
-
-/* 禁用状态的发送按钮 */
-.highlight-chat-send-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    border-top: 1px solid var(--background-modifier-border);
+    z-index: 1;
 }

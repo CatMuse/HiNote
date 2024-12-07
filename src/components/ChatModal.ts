@@ -1,5 +1,7 @@
 import { Modal, App, Notice } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
+import { CommentInput } from './comment/CommentInput';
+import { HighlightInfo } from '../types';
 
 export class ChatModal extends Modal {
     private chatService: ChatService;
@@ -28,70 +30,62 @@ export class ChatModal extends Modal {
     async onOpen() {
         const { contentEl } = this;
         
-        const chatContainer = contentEl.createEl("div", {
-            cls: "highlight-chat-container"
+        // 添加标题栏
+        const header = contentEl.createEl("div", {
+            cls: "highlight-chat-header",
+            text: "聊天"
         });
 
-        const chatHistory = chatContainer.createEl("div", {
+        const chatHistory = contentEl.createEl("div", {
             cls: "highlight-chat-history"
         });
 
-        const inputContainer = chatContainer.createEl("div", {
+        const inputContainer = contentEl.createEl("div", {
             cls: "highlight-chat-input-container"
         });
 
-        const textarea = inputContainer.createEl("textarea", {
-            cls: "highlight-chat-input",
-            attr: {
-                placeholder: "输入消息..."
-            }
-        });
-
-        const sendButton = inputContainer.createEl("button", {
-            cls: "highlight-chat-send-btn",
-            text: "发送"
-        });
-
-        const loadingIndicator = chatHistory.createEl("div", {
-            cls: "highlight-chat-loading",
-            text: "AI正在思考..."
-        });
-        loadingIndicator.style.display = "none";
-
-        const handleSend = async () => {
-            const message = textarea.value.trim();
-            if (!message || this.isProcessing) return;
-
-            try {
-                this.isProcessing = true;
-                sendButton.disabled = true;
-                loadingIndicator.style.display = "block";
-
-                this.addMessage(chatHistory, message, "user");
-                textarea.value = "";
-
-                const response = await this.chatService.sendMessage(message);
-                this.addMessage(chatHistory, response.content, "assistant");
-
-            } catch (error) {
-                console.error('Failed to get AI response:', error);
-            } finally {
-                this.isProcessing = false;
-                sendButton.disabled = false;
-                loadingIndicator.style.display = "none";
-            }
+        // 创建一个临时的 HighlightInfo 对象
+        const dummyHighlight: HighlightInfo = {
+            text: "",
+            position: 0,
+            paragraphOffset: 0,
+            paragraphId: "chat",
+            paragraphText: "",
+            createdAt: Date.now(),
+            updatedAt: Date.now()
         };
 
-        sendButton.addEventListener("click", handleSend);
+        // 使用 CommentInput 组件
+        const commentInput = new CommentInput(inputContainer, dummyHighlight, undefined, {
+            onSave: async (content: string) => {
+                if (!content || this.isProcessing) return;
 
-        textarea.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
+                try {
+                    this.isProcessing = true;
+                    this.addMessage(chatHistory, content, "user");
+
+                    const response = await this.chatService.sendMessage(content);
+                    this.addMessage(chatHistory, response.content, "assistant");
+
+                    // 找到并清空输入框
+                    const textarea = inputContainer.querySelector('.highlight-comment-input textarea') as HTMLTextAreaElement;
+                    if (textarea) {
+                        textarea.value = '';
+                        // 触发输入事件以更新状态
+                        textarea.dispatchEvent(new Event('input'));
+                    }
+                } catch (error) {
+                    console.error('Failed to get AI response:', error);
+                } finally {
+                    this.isProcessing = false;
+                }
+            },
+            onCancel: () => {
+                // 不需要处理取消事件
             }
         });
 
-        setTimeout(() => textarea.focus(), 0);
+        commentInput.show();
     }
 
     onClose() {

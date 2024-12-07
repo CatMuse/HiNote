@@ -9,6 +9,7 @@ import { LocationService } from './services/LocationService';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import { CommentInput } from './components/comment/CommentInput';
 import { ChatModal } from './components/ChatModal';
+import { ChatView } from './components/ChatView';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -191,7 +192,7 @@ export class CommentView extends ItemView {
                 // 查找文本是否匹配
                 const textMatch = c.text === highlight.text;
                 if (textMatch && highlight.paragraphText) {
-                    // 如果文本匹配，查否在同一段落围内
+                    // 如果文本匹配，查否在同一���落围内
                     return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
                 }
                 return false;
@@ -230,7 +231,7 @@ export class CommentView extends ItemView {
             )) {
                 return true;
             }
-            // 在全部视图中也搜索文件名
+            // 在全部视图中也��索文件名
             if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
                 return true;
             }
@@ -621,7 +622,7 @@ export class CommentView extends ItemView {
         });
     }
 
-    // 添加新方法来获取所有包含高亮的文件
+    // 添��新方法来获取所有包含高亮的文件
     private async updateAllHighlights() {
         // 重置批次计数
         this.currentBatch = 0;
@@ -771,7 +772,7 @@ export class CommentView extends ItemView {
         
         // 修改点击事件，打开聊天窗口
         this.floatingButton.addEventListener('click', () => {
-            new ChatModal(this.app, this.plugin).open();
+            new ChatView(this.app, this.plugin).show();
         });
         
         document.body.appendChild(this.floatingButton);

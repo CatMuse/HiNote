@@ -39,12 +39,40 @@ export class HighlightCard {
                 cls: "highlight-card-filename"
             });
 
+            // 添加拖拽属性到文件名区域
+            fileNameEl.setAttribute("draggable", "true");
+            
+            // 添加拖拽事件
+            fileNameEl.addEventListener("dragstart", (e) => {
+                e.dataTransfer?.setData("text/plain", this.highlight.text);
+                e.dataTransfer?.setData("application/highlight", JSON.stringify(this.highlight));
+                fileNameEl.addClass("dragging");
+                
+                // 添加拖拽预览
+                if (e.dataTransfer) {
+                    const previewEl = document.createElement('div');
+                    previewEl.className = 'highlight-drag-preview';
+                    previewEl.textContent = this.highlight.text.slice(0, 50) + (this.highlight.text.length > 50 ? '...' : '');
+                    document.body.appendChild(previewEl);
+                    
+                    // 设置拖拽图像
+                    e.dataTransfer.setDragImage(previewEl, 0, 0);
+                    
+                    // 延迟移除预览元素
+                    setTimeout(() => previewEl.remove(), 0);
+                }
+            });
+
+            fileNameEl.addEventListener("dragend", () => {
+                fileNameEl.removeClass("dragging");
+            });
+
             // 创建文件图标
             const fileIcon = fileNameEl.createEl("span", {
                 cls: "highlight-card-filename-icon"
             });
             
-            setIcon(fileIcon, 'file-text');  // 使用 Obsidian 的文本文件图标
+            setIcon(fileIcon, 'file-text');
 
             // 创建文件名文本
             fileNameEl.createEl("span", {
