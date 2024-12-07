@@ -4,6 +4,7 @@ import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
 import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
+import { AIButton } from './components/AIButton';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -233,7 +234,7 @@ export class CommentView extends ItemView {
                 cls: "highlight-text-container"
             });
 
-            // 添加竖线装饰
+            // 添加线装饰
             const decorator = textContainer.createEl("div", {
                 cls: "highlight-text-decorator"
             });
@@ -355,102 +356,21 @@ export class CommentView extends ItemView {
 
     // 初始化 AI 按钮及其功能
     private initAIButton(container: HTMLElement, highlight: HighlightInfo): HTMLElement {
-        // AI 按钮和下拉菜单容器
         const aiContainer = container.createEl("div", {
             cls: "highlight-ai-container"
         });
 
-        // AI 按钮
-        const aiButton = aiContainer.createEl("button", {
-            cls: "highlight-action-btn highlight-ai-btn",
-            attr: { 'aria-label': '使用 AI 分析' }
-        });
-
-        // 创建一个包含正常图标和加载图标的容器
-        const aiButtonContent = aiButton.createEl("div", {
-            cls: "highlight-ai-btn-content"
-        });
-
-        // 正常状态的图标
-        const normalIcon = aiButtonContent.createEl("div", {
-            cls: "highlight-ai-icon"
-        });
-        setIcon(normalIcon, "bot-message-square");
-
-        // 加载状态的图标
-        const loadingIcon = aiButtonContent.createEl("div", {
-            cls: "highlight-ai-icon-loading hidden"
-        });
-        loadingIcon.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="2" x2="12" y2="6"/>
-                <line x1="12" y1="18" x2="12" y2="22"/>
-                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
-                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
-                <line x1="2" y1="12" x2="6" y2="12"/>
-                <line x1="18" y1="12" x2="22" y2="12"/>
-                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
-                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
-            </svg>
-        `;
-
-        // 创建下拉菜单
-        const aiDropdown = aiContainer.createEl("div", {
-            cls: "highlight-ai-dropdown hidden"
-        });
-
-        // 防止下拉菜单的点击事件冒泡
-        aiDropdown.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
-
-        // 初始化下拉菜单内容
-        this.updateDropdownContent(aiDropdown, highlight);
-
-        // 添加按钮点击事件
-        aiButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (aiDropdown.hasClass("hidden")) {
-                // 关闭其他所有下拉菜单
-                this.containerEl.querySelectorAll('.highlight-ai-dropdown').forEach((dropdown) => {
-                    if (dropdown !== aiDropdown) {
-                        dropdown.addClass("hidden");
-                    }
-                });
-                aiDropdown.removeClass("hidden");
-            } else {
-                aiDropdown.addClass("hidden");
+        new AIButton(
+            aiContainer, 
+            highlight, 
+            this.plugin,
+            async (content: string) => {
+                await this.addComment(highlight, content);
+                await this.updateHighlights();
             }
-        });
+        );
 
         return aiContainer;
-    }
-
-    // 更新下拉菜单内容
-    private updateDropdownContent(dropdown: HTMLElement, highlight: HighlightInfo) {
-        // 清空现有内容
-        dropdown.empty();
-
-        // 获取所有可用的 prompts
-        const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
-        if (prompts.length > 0) {
-            prompts.forEach(([promptName, promptContent]) => {
-                const promptItem = dropdown.createEl("div", {
-                    cls: "highlight-ai-dropdown-item",
-                    text: promptName
-                });
-                promptItem.addEventListener("click", async () => {
-                    dropdown.addClass("hidden");
-                    await this.handleAIAnalysis(highlight, promptName);
-                });
-            });
-        } else {
-            // 如果没有可用的 prompts，显示提示信息
-            dropdown.createEl("div", {
-                cls: "highlight-ai-dropdown-item",
-                text: "请先在设置中添加 Prompt"
-            });
-        }
     }
 
     // 更新所有 AI 下拉菜单
@@ -460,14 +380,11 @@ export class CommentView extends ItemView {
             const highlight = (card as HTMLElement).dataset.highlight;
             if (!highlight) return;
 
-            // 找到旧的 AI 容器并移除
             const oldContainer = card.querySelector('.highlight-ai-container');
             if (oldContainer) {
                 const leftButtons = oldContainer.parentElement;
                 if (leftButtons) {
-                    // 创建新的 AI 按钮
                     const newContainer = this.initAIButton(leftButtons, JSON.parse(highlight));
-                    // 替换旧容器
                     leftButtons.replaceChild(newContainer, oldContainer);
                 }
             }
@@ -659,7 +576,7 @@ export class CommentView extends ItemView {
                 // 3. 等待滚动完成
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                // 4. 微调位置，确保有足够上下文
+                // 4. 调整位置，确保有足够上下文
                 editor.scrollIntoView({
                     from: { line: Math.max(0, pos.line - 3), ch: 0 },
                     to: { line: Math.min(editor.lineCount() - 1, pos.line + 3), ch: 0 }
@@ -684,7 +601,7 @@ export class CommentView extends ItemView {
                     ch: 0
                 });
             } else {
-                new Notice("未找到高亮内");
+                new Notice("未找到高亮内容");
             }
         } catch (error) {
             console.error("定位失败:", error);
@@ -701,84 +618,6 @@ export class CommentView extends ItemView {
         } catch (error) {
             console.error("Failed to load html2canvas:", error);
             new Notice("导出失败：无法加载必要的件");
-        }
-    }
-
-    private async handleAIAnalysis(highlight: HighlightInfo, promptName: string) {
-        try {
-            const aiService = new AIService(this.plugin.settings.ai);
-            const prompt = this.plugin.settings.ai.prompts[promptName];
-            
-            if (!prompt) {
-                throw new Error(`未找到名为 "${promptName}" 的 Prompt`);
-            }
-
-            // 修改查找高亮卡片的方式
-            const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
-                .find(card => {
-                    const textContent = card.querySelector('.highlight-text-content')?.textContent;
-                    return textContent === highlight.text;
-                });
-
-            if (!highlightCard) {
-                throw new Error('未找到对应的高亮卡片');
-            }
-
-            // 显示加载状态
-            const aiButton = highlightCard.querySelector('.highlight-ai-btn');
-            const normalIcon = aiButton?.querySelector('.highlight-ai-icon');
-            const loadingIcon = aiButton?.querySelector('.highlight-ai-icon-loading');
-            
-            if (normalIcon && loadingIcon) {
-                normalIcon.addClass('hidden');
-                loadingIcon.removeClass('hidden');
-            }
-
-            // 获取所有评论内容
-            const comments = highlight.comments || [];
-            const commentsText = comments.map(comment => comment.content).join('\n');
-
-            // 调用 AI 服务进行分析
-            const response = await aiService.generateResponse(
-                prompt,
-                highlight.text,
-                commentsText
-            );
-
-            // 直接添加 AI 分析结果作为新评论
-            await this.addComment(highlight, response);
-
-            // 更新高亮列表以显示新评论
-            await this.updateHighlights();
-
-            // 隐藏下拉菜单
-            const dropdown = highlightCard.querySelector('.highlight-ai-dropdown');
-            if (dropdown) {
-                dropdown.addClass('hidden');
-            }
-
-            // 恢复按钮状态
-            if (normalIcon && loadingIcon) {
-                normalIcon.removeClass('hidden');
-                loadingIcon.addClass('hidden');
-            }
-
-            // 显示成功通知
-            new Notice('AI 分析已添加为新评论');
-
-        } catch (error) {
-            console.error('AI 分析失败:', error);
-            new Notice(`AI 分析失败: ${error.message}`);
-            
-            // 恢复按钮状态
-            const aiButton = this.highlightContainer.querySelector('.highlight-ai-btn');
-            const normalIcon = aiButton?.querySelector('.highlight-ai-icon');
-            const loadingIcon = aiButton?.querySelector('.highlight-ai-icon-loading');
-            
-            if (normalIcon && loadingIcon) {
-                normalIcon.removeClass('hidden');
-                loadingIcon.addClass('hidden');
-            }
         }
     }
 
@@ -877,7 +716,7 @@ export class CommentView extends ItemView {
             // 添加快捷键提示
             inputSection.createEl('div', {
                 cls: 'highlight-comment-hint',
-                text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
+                text: 'Enter 保存，Shift + Enter 换行，Esc 取��'
             });
 
             // 取消操作
