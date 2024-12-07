@@ -1,138 +1,7 @@
-import { EditorView, ViewPlugin, DecorationSet, Decoration, WidgetType } from "@codemirror/view";
+import { EditorView, ViewPlugin, DecorationSet, Decoration } from "@codemirror/view";
 import { Plugin, MarkdownView } from "obsidian";
 import { CommentStore, HighlightComment, CommentItem } from "./CommentStore";
-import { CommentUpdateEvent } from "./types";
-
-class CommentWidget extends WidgetType {
-    constructor(
-        private plugin: Plugin,
-        private highlight: HighlightComment,
-        private paragraphHighlights: HighlightComment[],
-        private onClick: () => void
-    ) {
-        super();
-    }
-
-    eq(other: CommentWidget): boolean {
-        // 比较评论内容是否相同
-        return this.paragraphHighlights.length === other.paragraphHighlights.length &&
-               this.paragraphHighlights.every((h, i) => 
-                   h.text === other.paragraphHighlights[i].text &&
-                   h.comments.length === other.paragraphHighlights[i].comments.length
-               );
-    }
-
-    toDOM() {
-        const wrapper = document.createElement("span");
-        wrapper.addClass("highlight-comment-widget");
-        wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
-        wrapper.setAttribute('data-highlights', this.paragraphHighlights.map(h => h.text).join(','));
-        
-        const button = wrapper.createEl("button", {
-            cls: "highlight-comment-button highlight-comment-button-hidden"
-        });
-
-        // 评论图标和数量容器
-        const iconContainer = button.createEl("span", {
-            cls: "highlight-comment-icon-container"
-        });
-
-        // 更新评论图标为 Lucide 样式
-        iconContainer.innerHTML = `
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
-            </svg>
-        `;
-
-        // 获取所有评论
-        const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
-        const commentCount = allComments.length;
-
-        // 评论数量
-        if (commentCount > 0) {
-            iconContainer.createEl("span", {
-                cls: "highlight-comment-count",
-                text: commentCount.toString()
-            });
-            button.removeClass("highlight-comment-button-hidden");
-        }
-
-        // 创建预览弹窗
-        const tooltip = wrapper.createEl("div", {
-            cls: "highlight-comment-tooltip hidden"
-        });
-
-        const commentsList = tooltip.createEl("div", {
-            cls: "highlight-comment-tooltip-list"
-        });
-
-        if (commentCount > 0) {
-            allComments.slice(0, 3).forEach(comment => {
-                const commentItem = commentsList.createEl("div", {
-                    cls: "highlight-comment-tooltip-item"
-                });
-                
-                commentItem.createEl("div", {
-                    cls: "highlight-comment-tooltip-content",
-                    text: comment.content
-                });
-                
-                commentItem.createEl("div", {
-                    cls: "highlight-comment-tooltip-time",
-                    text: new Date(comment.createdAt).toLocaleString()
-                });
-            });
-
-            if (allComments.length > 3) {
-                tooltip.createEl("div", {
-                    cls: "highlight-comment-tooltip-more",
-                    text: `还有 ${allComments.length - 3} 条评论...`
-                });
-            }
-
-            // 只在有评论时添加悬停事件
-            button.addEventListener("mouseenter", () => {
-                tooltip.removeClass("hidden");
-            });
-
-            button.addEventListener("mouseleave", () => {
-                tooltip.addClass("hidden");
-            });
-        }
-
-        // 添加鼠标悬停事件 - 控制按钮显示
-        wrapper.addEventListener("mouseenter", () => {
-            button.removeClass("highlight-comment-button-hidden");
-        });
-
-        wrapper.addEventListener("mouseleave", () => {
-            if (commentCount === 0) {  // 只有在没有评论时才隐藏
-                button.addClass("highlight-comment-button-hidden");
-            }
-        });
-
-        // 点击事件
-        button.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.onClick();
-            
-            const event = new CustomEvent("open-comment-input", {
-                detail: {
-                    highlightId: this.highlight.id,
-                    text: this.highlight.text
-                }
-            });
-            window.dispatchEvent(event);
-        });
-
-        return wrapper;
-    }
-
-    destroy(dom: HTMLElement): void {
-        dom.remove();
-    }
-}
+import { CommentWidget } from "./editor/CommentWidget";
 
 export class HighlightDecorator {
     private plugin: Plugin;
@@ -275,7 +144,7 @@ export class HighlightDecorator {
                             comments: allComments
                         };
 
-                        // 在段落末尾添加评论小部件
+                        // 在段落末尾添加评论部件
                         const widget = Decoration.widget({
                             widget: new CommentWidget(
                                 this.plugin,
