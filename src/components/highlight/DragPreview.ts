@@ -3,16 +3,21 @@ export class DragPreview {
     private static dragImage: HTMLImageElement;
 
     static {
-        // 创建空的拖拽图像
         this.dragImage = new Image();
         this.dragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
     }
 
-    public static start(e: DragEvent, text: string) {
-        // 清理已存在的预览
+    public static start(e: DragEvent, text: string, options: {
+        showIcon?: boolean;
+        maxLength?: number;
+    } = {}) {
+        const {
+            showIcon = true,
+            maxLength = 30
+        } = options;
+
         this.clear();
 
-        // 创建预览元素
         this.instance = document.createElement('div');
         this.instance.className = 'highlight-dragging';
 
@@ -21,7 +26,7 @@ export class DragPreview {
         content.className = 'highlight-dragging-content';
         
         // 限制预览文本长度
-        const previewText = text.length > 30 ? text.slice(0, 30) + '...' : text;
+        const previewText = text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
         content.textContent = previewText;
         
         this.instance.appendChild(content);

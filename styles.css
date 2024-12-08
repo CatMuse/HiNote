@@ -934,7 +934,7 @@ hr {
     z-index: 1;
 }
 
-/* 底部信���样式 */
+/* 底部信息样式 */
 .highlight-export-card-modern .highlight-export-footer {
     margin-top: 24px;
     padding-top: 20px;
@@ -970,7 +970,7 @@ hr {
     font-weight: 400;
 }
 
-/* 悬停效�� */
+/* 悬停效果 */
 .highlight-export-card-modern:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
@@ -1161,7 +1161,7 @@ hr {
     white-space: nowrap;
 }
 
-/* 调整主视图中片内 */
+/* 调整主视图��片内 */
 .highlight-card.in-main-view .highlight-content {
     padding-top: 8px;
 }
@@ -1652,7 +1652,7 @@ hr {
     bottom: var(--drag-guide-bottom);
 }
 
-/* 拖拽状态下的消息透明度 */
+/* 拖拽状态下��消息透明度 */
 .highlight-chat-history.drag-over .highlight-chat-message {
     opacity: 0.5;
     transition: opacity 0.2s ease;
@@ -1729,7 +1729,6 @@ hr {
     box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-right: 24px;
     flex: 1; /* 让内容填充剩余空间 */
 }
 
@@ -1762,11 +1761,11 @@ hr {
 
 .highlight-chat-preview-card:hover .highlight-chat-preview-delete {
     opacity: 1;
+    background-color: var(--background-secondary);
 }
 
 .highlight-chat-preview-delete:hover {
-    color: var(--color-base-00);
-    background-color: var(--background-modifier-error);
+    color: var(--text-error);
 }
 
 /* 简化的计数标签 */
@@ -1856,11 +1855,9 @@ hr {
     opacity: 0.95;
     transform: scale(0.95);
     color: var(--text-normal);
-    border-left: 3px solid var(--interactive-accent);
 }
 
 .highlight-dragging::before {
-    content: '✨';
     margin-right: 8px;
     color: var(--interactive-accent);
     font-size: 14px;

@@ -246,7 +246,7 @@ export class ChatView {
             const deleteBtn = card.createEl("div", {
                 cls: "highlight-chat-preview-delete"
             });
-            deleteBtn.innerHTML = "��";
+            setIcon(deleteBtn, "x");
             deleteBtn.addEventListener("click", () => {
                 this.draggedContents.splice(index, 1);
                 if (this.draggedContents.length === 0) {

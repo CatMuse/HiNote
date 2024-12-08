@@ -53,35 +53,11 @@ export class HighlightContent {
             cls: "highlight-text-content"
         });
 
-        // 将点击事件监听器移到文本内容元素上
+        // 只保留点击事件
         textContent.addEventListener("mousedown", async (e) => {
             e.preventDefault();
             e.stopPropagation();
             await this.onHighlightClick(this.highlight);
-        });
-
-        // 在内容区域添加拖拽事件
-        textContent.setAttribute('draggable', 'true');
-        textContent.addEventListener('dragstart', (e) => {
-            e.stopPropagation();
-            
-            // 准备拖拽数据
-            const highlightData = {
-                text: this.highlight.text,
-                position: this.highlight.position,
-                paragraphId: this.highlight.paragraphId,
-                paragraphText: this.highlight.paragraphText
-            };
-            
-            // 设置拖拽数据
-            e.dataTransfer?.setData('application/highlight', JSON.stringify(highlightData));
-            
-            // 启动拖拽预览
-            DragPreview.start(e, this.highlight.text);
-        });
-
-        textContent.addEventListener('dragend', () => {
-            DragPreview.clear();
         });
     }
 

@@ -4,6 +4,7 @@ import { HighlightContent } from "./HighlightContent";
 import { ActionButtons } from "./ActionButtons";
 import { CommentList } from "./CommentList";
 import { setIcon } from "obsidian";
+import { DragPreview } from './DragPreview';
 
 export class HighlightCard {
     private card: HTMLElement;
@@ -48,23 +49,13 @@ export class HighlightCard {
                 e.dataTransfer?.setData("application/highlight", JSON.stringify(this.highlight));
                 fileNameEl.addClass("dragging");
                 
-                // 添加拖拽预览
-                if (e.dataTransfer) {
-                    const previewEl = document.createElement('div');
-                    previewEl.className = 'highlight-drag-preview';
-                    previewEl.textContent = this.highlight.text.slice(0, 50) + (this.highlight.text.length > 50 ? '...' : '');
-                    document.body.appendChild(previewEl);
-                    
-                    // 设置拖拽图像
-                    e.dataTransfer.setDragImage(previewEl, 0, 0);
-                    
-                    // 延迟移除预览元素
-                    setTimeout(() => previewEl.remove(), 0);
-                }
+                // 使用 DragPreview 替代原来的预览处理
+                DragPreview.start(e, this.highlight.text);
             });
 
             fileNameEl.addEventListener("dragend", () => {
                 fileNameEl.removeClass("dragging");
+                DragPreview.clear();
             });
 
             // 创建文件图标
