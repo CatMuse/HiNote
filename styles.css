@@ -1108,7 +1108,7 @@ hr {
     color: var(--text-normal);
 }
 
-/* 当在视图中时，移鼠标悬停效果和相关提示 */
+/* 当在视图中时，移鼠���悬停效果和相关提示 */
 .highlight-card.in-main-view {
     cursor: default;
 }
@@ -1161,7 +1161,7 @@ hr {
     white-space: nowrap;
 }
 
-/* 调整主视图��片内 */
+/* 调整主视图片内 */
 .highlight-card.in-main-view .highlight-content {
     padding-top: 8px;
 }
@@ -1441,60 +1441,6 @@ hr {
     position: relative;
 }
 
-/* 拖拽区域基础样式 */
-.highlight-chat-dropzone {
-    position: sticky;
-    top: 0;
-    margin: 0 0 8px 0;
-    padding: 8px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    background-color: var(--background-primary);
-    color: var(--text-muted);
-    font-size: 12px;
-    text-align: center;
-    transition: all 0.2s ease;
-    z-index: 1;
-}
-
-/* 拖拽状态样式 */
-.highlight-chat-history.drag-over .highlight-chat-dropzone {
-    border-color: var(--interactive-accent);
-    background-color: var(--background-modifier-hover);
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* 拖拽提示文本 */
-.highlight-chat-dropzone::before {
-    content: '拖拽高亮内容到此处';
-    opacity: 0.8;
-}
-
-/* 拖拽状态下的提示文本 */
-.highlight-chat-history.drag-over .highlight-chat-dropzone::before {
-    content: '松开以添加内容';
-    color: var(--interactive-accent);
-    opacity: 1;
-}
-
-/* 移除旧的拖拽样式 */
-.highlight-chat-history.drag-over::after {
-    display: none;
-}
-
-/* 拖拽动画 */
-@keyframes pulse {
-    0% {
-        opacity: 0.5;
-    }
-    50% {
-        opacity: 0.8;
-    }
-    100% {
-        opacity: 0.5;
-    }
-}
 
 .highlight-chat-input-container {
     flex-shrink: 0;
@@ -1517,6 +1463,7 @@ hr {
     font-size: 14px;
     line-height: 1.5;
     resize: none;
+    overflow-y: auto;
     transition: all 0.2s ease;
 }
 
@@ -1629,30 +1576,21 @@ hr {
     position: relative;
 }
 
-/* 拖拽状态样式 */
 .highlight-chat-history.drag-over::before {
     content: '';
-    position: fixed;
-    pointer-events: none;
-    animation: pulse 1.5s infinite;
-    z-index: 1;
-    border: 2px dashed var(--interactive-accent);
-    border-radius: 8px;
-}
-
-/* 动态计算虚线框的位置 */
-.highlight-chat-history.drag-over {
-    position: relative;
-}
-
-.highlight-chat-history.drag-over::before {
+    position: absolute;
     top: var(--drag-guide-top);
     left: var(--drag-guide-left);
     right: var(--drag-guide-right);
-    bottom: var(--drag-guide-bottom);
+    height: var(--drag-guide-height);  /* 使用计算出的高度而不是bottom */
+    border: 2px dashed var(--interactive-accent);
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0.6;
+    z-index: 1;
 }
 
-/* 拖拽状态下��消息透明度 */
+/* 拖拽状态下的消息透明度 */
 .highlight-chat-history.drag-over .highlight-chat-message {
     opacity: 0.5;
     transition: opacity 0.2s ease;
@@ -1663,11 +1601,6 @@ hr {
     0% { opacity: 0.3; }
     50% { opacity: 0.6; }
     100% { opacity: 0.3; }
-}
-
-/* 移除不需要的样式 */
-.highlight-chat-dropzone {
-    display: none;
 }
 
 /* 拖拽预览容器 */
@@ -1812,22 +1745,6 @@ hr {
     position: relative;
 }
 
-.highlight-chat-history.drag-over::before {
-    content: '';
-    position: absolute;
-    inset: 8px;
-    border: 2px dashed var(--interactive-accent);
-    border-radius: 8px;
-    pointer-events: none;
-    opacity: 0.6;
-    background-color: var(--background-primary-alt);
-}
-
-/* 移除其他可能冲突的样式 */
-.highlight-chat-history.drag-over .highlight-chat-message {
-    opacity: 1;
-}
-
 /* 拖拽过程中的光标样式 */
 .highlight-text-content {
     cursor: grab;
@@ -1868,4 +1785,33 @@ hr {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.highlight-chat-input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+}
+
+.highlight-chat-input {
+    flex: 1;
+    min-height: 36px;
+    max-height: 150px;
+    padding: 8px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background: var(--background-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    overflow-y: auto;
+}
+
+.highlight-chat-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
 }

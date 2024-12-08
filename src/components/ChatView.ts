@@ -1,6 +1,5 @@
 import { ItemView, App, setIcon } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
-import { CommentInput } from './comment/CommentInput';
 import { HighlightInfo } from '../types';
 
 export class ChatView {
@@ -47,6 +46,8 @@ export class ChatView {
             cls: "highlight-chat-input-container"
         });
 
+        this.setupChatInput(inputContainer);
+
         // 创建一个临时的 HighlightInfo 对象
         const dummyHighlight: HighlightInfo = {
             text: "",
@@ -57,55 +58,6 @@ export class ChatView {
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
-
-        // 使用 CommentInput 组件
-        const commentInput = new CommentInput(inputContainer, dummyHighlight, undefined, {
-            onSave: async (content: string) => {
-                if (!content || this.isProcessing) return;
-
-                try {
-                    this.isProcessing = true;
-                    
-                    // 先清空输入框
-                    const textarea = inputContainer.querySelector('.highlight-comment-input textarea') as HTMLTextAreaElement;
-                    if (textarea) {
-                        requestAnimationFrame(() => {
-                            textarea.value = '';
-                            textarea.dispatchEvent(new Event('input'));
-                        });
-                    }
-
-                    // 准备发送的消息内容
-                    let messageToSend = content;
-
-                    // 如果有拖拽内容，先显示它们
-                    if (this.draggedContents.length > 0) {
-                        const textsToAnalyze = this.draggedContents
-                            .map(h => h.text)
-                            .join('\n\n---\n\n');
-                        messageToSend = `分析以下内容：\n\n${textsToAnalyze}\n\n用户提示：${content}`;
-                        this.draggedContents = []; // 清空拖拽内容数组
-                    }
-
-                    // 添加用户消息
-                    this.addMessage(chatHistory, content, "user");
-                    
-                    // 获取并添加 AI 响应
-                    const response = await this.chatService.sendMessage(messageToSend);
-                    this.addMessage(chatHistory, response.content, "assistant");
-
-                } catch (error) {
-                    console.error('Failed to get AI response:', error);
-                } finally {
-                    this.isProcessing = false;
-                }
-            },
-            onCancel: () => {
-                // 不需要处理取消事件
-            }
-        });
-
-        commentInput.show();
 
         // 将拖拽事件处理器添加到整个历史区域
         chatHistory.addEventListener("dragenter", (e) => {
@@ -118,6 +70,17 @@ export class ChatView {
             e.stopPropagation();
             chatHistory.addClass("drag-over");
 
+            // 计算聊天历史区域的可视区域位置
+            const chatHistoryRect = chatHistory.getBoundingClientRect();
+            const visibleTop = chatHistory.scrollTop;  // 当前滚动位置
+            const visibleHeight = chatHistoryRect.height;  // 可视区域高度
+            
+            // 设置虚线框的位置，使其始终在可视区域内
+            chatHistory.style.setProperty('--drag-guide-top', `${visibleTop + 12}px`);  // 顶部留出16px边距
+            chatHistory.style.setProperty('--drag-guide-left', '12px');
+            chatHistory.style.setProperty('--drag-guide-right', '12px');
+            chatHistory.style.setProperty('--drag-guide-height', `${visibleHeight - 24}px`);  // 总高度减去上下边距
+
             // 更新预览元素位置
             const preview = document.querySelector('.highlight-dragging') as HTMLElement;
             if (preview) {
@@ -129,11 +92,6 @@ export class ChatView {
         chatHistory.addEventListener("dragleave", (e) => {
             if (!chatHistory.contains(e.relatedTarget as Node)) {
                 chatHistory.removeClass("drag-over");
-                // 清除位置变量
-                chatHistory.style.removeProperty('--drag-guide-top');
-                chatHistory.style.removeProperty('--drag-guide-left');
-                chatHistory.style.removeProperty('--drag-guide-right');
-                chatHistory.style.removeProperty('--drag-guide-bottom');
             }
         });
 
@@ -338,5 +296,87 @@ export class ChatView {
             ChatView.instance = new ChatView(app, plugin);
         }
         return ChatView.instance;
+    }
+
+    // 添加新的输入框实现
+    private setupChatInput(inputContainer: HTMLElement) {
+        // 创建输入框容器
+        const inputWrapper = inputContainer.createEl('div', {
+            cls: 'highlight-chat-input-wrapper'
+        });
+
+        // 创建文本输入框
+        const textarea = inputWrapper.createEl('textarea', {
+            cls: 'highlight-chat-input',
+            attr: {
+                placeholder: '输入消息...',
+                rows: '1'
+            }
+        });
+
+        // 自动调整高度
+        const adjustHeight = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`; // 最大高度150px
+        };
+
+        // 处理输入事件
+        textarea.addEventListener('input', () => {
+            adjustHeight();
+        });
+
+        // 处理按键事件
+        textarea.addEventListener('keydown', async (e: KeyboardEvent) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                await this.handleSendMessage(textarea);
+            }
+        });
+
+        return textarea;
+    }
+
+    // 处理发送消息
+    private async handleSendMessage(textarea: HTMLTextAreaElement) {
+        const content = textarea.value.trim();
+        if (!content || this.isProcessing) return;
+
+        try {
+            this.isProcessing = true;
+            
+            // 准备发送的消息内容
+            let messageToSend = content;
+
+            // 如果有拖拽内容，添加到消息中
+            if (this.draggedContents.length > 0) {
+                const textsToAnalyze = this.draggedContents
+                    .map(h => h.text)
+                    .join('\n\n---\n\n');
+                messageToSend = `分析以下内容：\n\n${textsToAnalyze}\n\n用户提示：${content}`;
+                this.draggedContents = [];
+            }
+
+            // 清空输入框
+            requestAnimationFrame(() => {
+                textarea.value = '';
+                textarea.style.height = 'auto';
+                textarea.dispatchEvent(new Event('input'));
+            });
+
+            // 添加用户消息
+            const chatHistory = this.containerEl.querySelector('.highlight-chat-history') as HTMLElement;
+            if (chatHistory) {
+                this.addMessage(chatHistory, content, "user");
+                
+                // 获取��添加 AI 响应
+                const response = await this.chatService.sendMessage(messageToSend);
+                this.addMessage(chatHistory, response.content, "assistant");
+            }
+
+        } catch (error) {
+            console.error('Failed to get AI response:', error);
+        } finally {
+            this.isProcessing = false;
+        }
     }
 } 

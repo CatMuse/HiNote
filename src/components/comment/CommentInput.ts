@@ -3,6 +3,9 @@ import { CommentItem, HighlightInfo } from "../../types";
 export class CommentInput {
     private textarea: HTMLTextAreaElement;
     private actionHint: HTMLElement;
+    private cancelEdit: () => void = () => {};
+    private isProcessing = false;
+    private boundHandleOutsideClick: (e: MouseEvent) => void;
 
     constructor(
         private card: HTMLElement,
@@ -13,7 +16,10 @@ export class CommentInput {
             onDelete?: () => Promise<void>;
             onCancel: () => void;
         }
-    ) {}
+    ) {
+        this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
+        document.addEventListener('click', this.boundHandleOutsideClick);
+    }
 
     public show() {
         if (this.existingComment) {
@@ -55,7 +61,7 @@ export class CommentInput {
         // 快捷键提示
         this.actionHint.createEl('span', {
             cls: 'highlight-comment-hint',
-            text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
+            text: 'Shift + Enter 换行'
         });
 
         // 删除按钮
@@ -84,7 +90,7 @@ export class CommentInput {
         // 添加快捷键提示
         inputSection.createEl('div', {
             cls: 'highlight-comment-hint',
-            text: 'Enter 保存，Shift + Enter 换行，Esc 取消'
+            text: 'Shift + Enter 换行'
         });
 
         // 添加到评论区域
@@ -109,44 +115,82 @@ export class CommentInput {
     }
 
     private setupKeyboardEvents(contentEl?: HTMLElement, footer?: Element) {
-        // 取消操作
-        const cancelEdit = () => {
+        this.cancelEdit = () => {
             if (this.existingComment) {
                 if (contentEl && footer) {
-                    this.textarea.replaceWith(contentEl);
-                    this.actionHint.remove();
-                    footer.removeClass('hidden');
+                    requestAnimationFrame(() => {
+                        this.textarea.replaceWith(contentEl);
+                        this.actionHint.remove();
+                        footer.removeClass('hidden');
+                        document.removeEventListener('click', this.boundHandleOutsideClick);
+                    });
                 }
             } else {
-                this.textarea.closest('.highlight-comment-input')?.remove();
-                if (!this.card.querySelector('.highlight-comment')) {
-                    this.card.querySelector('.highlight-comments-section')?.remove();
-                }
+                requestAnimationFrame(() => {
+                    this.textarea.closest('.highlight-comment-input')?.remove();
+                    if (!this.card.querySelector('.highlight-comment')) {
+                        this.card.querySelector('.highlight-comments-section')?.remove();
+                    }
+                    document.removeEventListener('click', this.boundHandleOutsideClick);
+                });
             }
             this.options.onCancel();
         };
 
-        // 保存操作
-        const saveEdit = async () => {
-            const content = this.textarea.value.trim();
-            if (content) {
-                await this.options.onSave(content);
-            } else {
-                cancelEdit();
-            }
-        };
-
-        // 支持快捷键操作
         this.textarea.onkeydown = async (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Enter' && e.shiftKey) {
+                return;
+            } else if (e.key === 'Enter') {
                 e.preventDefault();
-                e.stopPropagation();
-                cancelEdit();
-            } else if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                await saveEdit();
             }
         };
+    }
+
+    private handleOutsideClick(e: MouseEvent) {
+        if (!this.textarea || this.isProcessing) return;
+        
+        const clickedElement = e.target as HTMLElement;
+        const isOutside = !this.textarea.contains(clickedElement) && 
+                         !clickedElement.closest('.highlight-comment-actions-hint');
+        
+        if (isOutside) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            this.isProcessing = true;
+            const content = this.textarea.value.trim();
+            
+            if (content) {
+                // 先保存内容的引用
+                const currentContent = content;
+                // 保持输入框状态直到保存完成
+                this.textarea.disabled = true;
+                
+                this.options.onSave(currentContent)
+                    .then(() => {
+                        // 确保所有状态更新在一起完成
+                        requestAnimationFrame(() => {
+                            document.removeEventListener('click', this.boundHandleOutsideClick);
+                            this.isProcessing = false;
+                            this.textarea.disabled = false;
+                        });
+                    })
+                    .catch(() => {
+                        this.textarea.disabled = false;
+                        this.isProcessing = false;
+                    });
+            } else {
+                // 使用 requestAnimationFrame 确保状态更新的时机
+                requestAnimationFrame(() => {
+                    this.cancelEdit();
+                    this.isProcessing = false;
+                });
+            }
+        }
+    }
+
+    public destroy() {
+        document.removeEventListener('click', this.boundHandleOutsideClick);
+        this.isProcessing = false;
     }
 } 
