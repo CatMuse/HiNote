@@ -50,9 +50,9 @@ export class CommentWidget extends WidgetType {
         });
 
         const iconContainer = this.createIconContainer(button);
-        const tooltip = this.createTooltip(wrapper);
+        const tooltipData = this.createTooltip(wrapper);
         
-        this.setupEventListeners(wrapper, button, tooltip);
+        this.setupEventListeners(wrapper, button, tooltipData);
     }
 
     private createIconContainer(button: HTMLElement) {
@@ -81,9 +81,8 @@ export class CommentWidget extends WidgetType {
     }
 
     private createTooltip(wrapper: HTMLElement) {
-        const tooltip = wrapper.createEl("div", {
-            cls: "highlight-comment-tooltip hidden"
-        });
+        const tooltip = document.createElement("div");
+        tooltip.addClass("highlight-comment-tooltip", "hidden");
 
         const commentsList = tooltip.createEl("div", {
             cls: "highlight-comment-tooltip-list"
@@ -92,7 +91,16 @@ export class CommentWidget extends WidgetType {
         const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
         this.renderTooltipContent(commentsList, allComments, tooltip);
 
-        return tooltip;
+        document.body.appendChild(tooltip);
+
+        const updateTooltipPosition = () => {
+            const buttonRect = wrapper.getBoundingClientRect();
+            tooltip.style.position = 'fixed';
+            tooltip.style.top = `${buttonRect.bottom + 4}px`;
+            tooltip.style.left = `${buttonRect.right - tooltip.offsetWidth}px`;
+        };
+
+        return { tooltip, updateTooltipPosition };
     }
 
     private renderTooltipContent(commentsList: HTMLElement, comments: CommentItem[], tooltip: HTMLElement) {
@@ -122,13 +130,15 @@ export class CommentWidget extends WidgetType {
         }
     }
 
-    private setupEventListeners(wrapper: HTMLElement, button: HTMLElement, tooltip: HTMLElement) {
+    private setupEventListeners(wrapper: HTMLElement, button: HTMLElement, tooltipData: { tooltip: HTMLElement, updateTooltipPosition: () => void }) {
+        const { tooltip, updateTooltipPosition } = tooltipData;
         const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
         const commentCount = allComments.length;
 
         if (commentCount > 0) {
             button.addEventListener("mouseenter", () => {
                 tooltip.removeClass("hidden");
+                updateTooltipPosition();
             });
 
             button.addEventListener("mouseleave", () => {
@@ -162,6 +172,10 @@ export class CommentWidget extends WidgetType {
     }
 
     destroy(dom: HTMLElement): void {
+        const tooltip = document.querySelector(`.highlight-comment-tooltip[data-paragraph-id="${this.highlight.paragraphId}"]`);
+        if (tooltip) {
+            tooltip.remove();
+        }
         dom.remove();
     }
 
