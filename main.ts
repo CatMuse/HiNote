@@ -5,6 +5,7 @@ import { HighlightDecorator } from './src/HighlightDecorator';
 import { AISettingTab } from './src/settings/SettingTab';
 import { PluginSettings, DEFAULT_SETTINGS } from './src/types';
 import html2canvas from 'html2canvas';
+import { ChatView } from './src/components/ChatView';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
@@ -92,11 +93,26 @@ export default class CommentPlugin extends Plugin {
 			const end = performance.now();
 			console.log(`Comments loaded in ${end - start}ms`);
 		}
+
+		// 添加打开对话窗口的命令
+		this.addCommand({
+			id: 'open-chat-window',
+			name: '打开 AI 对话窗口',
+			callback: () => {
+				const chatView = ChatView.getInstance(this.app, this);
+				chatView.show();
+			}
+		});
 	}
 
 	onunload() {
 		// 清理视图
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
+
+		// 如果对话窗口打开，关闭它
+		if (ChatView.instance) {
+			ChatView.instance.close();
+		}
 	}
 
 	async loadSettings() {

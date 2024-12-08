@@ -3,12 +3,21 @@ import { ChatService, ChatMessage } from '../services/ChatService';
 import { HighlightInfo } from '../types';
 
 export class ChatView {
-    private static instance: ChatView | null = null;
+    public static instance: ChatView | null = null;
     private chatService: ChatService;
     private isProcessing: boolean = false;
     private containerEl: HTMLElement;
     private draggedContents: HighlightInfo[] = [];
     private chatHistory: { role: "user" | "assistant", content: string }[] = [];
+    private floatingButton: HTMLElement | null;
+    private currentPreviewContainer: HTMLElement | null = null;
+    private static savedState: {
+        chatHistory: { role: "user" | "assistant", content: string }[];
+        draggedContents: HighlightInfo[];
+        containerHTML: string | null;
+        currentPreviewContainer: boolean;  // 记录是否有活跃的预览容器
+    } | null = null;
+    private textarea: HTMLTextAreaElement | null = null;  // 添加输入框引用
 
     constructor(app: App, private plugin: any) {
         if (ChatView.instance) {
@@ -16,6 +25,7 @@ export class ChatView {
         }
 
         this.chatService = new ChatService(this.plugin);
+        this.floatingButton = document.querySelector('.highlight-floating-button');
         
         // 创建容器
         this.containerEl = document.createElement('div');
@@ -26,7 +36,7 @@ export class ChatView {
             cls: "highlight-chat-header"
         });
 
-        // 添加标题文本
+        // 添加标题
         header.createEl("div", {
             cls: "highlight-chat-title",
             text: "聊天"
@@ -111,10 +121,10 @@ export class ChatView {
                         existing => existing.text === highlight.text
                     );
 
-                    // 只有不重复的内容才添加
                     if (!isDuplicate) {
+                        // 直接在对话流中显示预览
                         this.draggedContents.push(highlight);
-                        this.showDraggedPreviews(chatHistory);
+                        this.showDraggedPreviewsInChat(chatHistory);
                     }
                 } catch (error) {
                     console.error('Failed to process dropped highlight:', error);
@@ -130,7 +140,7 @@ export class ChatView {
         let initialY: number;
 
         header.addEventListener("mousedown", (e) => {
-            if (e.target === closeButton) return; // 如果点击的是关闭按钮，不启动拖拽
+            if (e.target === closeButton) return; // 如果点击的是关闭按钮不启动拖拽
 
             isDragging = true;
             initialX = e.clientX - this.containerEl.offsetLeft;
@@ -163,76 +173,110 @@ export class ChatView {
             header.removeClass("dragging");
         });
 
+        // 恢复保存的状态
+        if (ChatView.savedState) {
+            // 恢复对话历史
+            this.chatHistory = ChatView.savedState.chatHistory;
+            this.draggedContents = ChatView.savedState.draggedContents;
+
+            // 恢复UI状态
+            const chatHistory = this.containerEl.querySelector('.highlight-chat-history');
+            if (chatHistory && ChatView.savedState.containerHTML) {
+                chatHistory.innerHTML = ChatView.savedState.containerHTML;
+                
+                // 重新绑定删除按钮事件
+                chatHistory.querySelectorAll('.highlight-chat-preview-delete').forEach((btn, index) => {
+                    btn.addEventListener('click', () => {
+                        const card = btn.closest('.highlight-chat-preview-card');
+                        if (card) {
+                            card.remove();
+                            this.draggedContents.splice(index, 1);
+                            this.updatePreviewCount();
+                        }
+                    });
+                });
+
+                // 如果有活跃的预览容器，恢复引用
+                if (ChatView.savedState.currentPreviewContainer) {
+                    this.currentPreviewContainer = chatHistory.querySelector('.highlight-chat-preview-cards');
+                }
+            }
+        }
+
         ChatView.instance = this;
     }
 
-    private showDraggedPreviews(container: HTMLElement) {
-        // 移除旧的预览
-        this.removeDraggedPreviews(container);
-
-        // 创建预览消息
-        const messageEl = container.createEl("div", {
-            cls: "highlight-chat-message highlight-chat-message-preview"
-        });
-
-        // 创建预览容器
-        const previewsContainer = messageEl.createEl("div", {
-            cls: "highlight-chat-previews"
-        });
-
-        // 添加标题
-        const headerEl = previewsContainer.createEl("div", {
-            cls: "highlight-chat-preview-header"
-        });
-
-        headerEl.createEl("span", {
-            cls: "highlight-chat-preview-count",
-            text: String(this.draggedContents.length)
-        });
-
-        headerEl.createSpan({
-            text: "条已选择内容"
-        });
-
-        // 创建卡片容器
-        const cardsContainer = previewsContainer.createEl("div", {
-            cls: "highlight-chat-preview-cards"
-        });
-
-        // 添加卡片
-        this.draggedContents.forEach((content, index) => {
-            const card = cardsContainer.createEl("div", {
-                cls: "highlight-chat-preview-card"
+    private showDraggedPreviewsInChat(container: HTMLElement) {
+        // 如果没有当前预览容器，创建一个新的
+        if (!this.currentPreviewContainer) {
+            const messageEl = container.createEl("div", {
+                cls: "highlight-chat-message highlight-chat-message-preview"
             });
 
-            card.createEl("div", {
-                cls: "highlight-chat-preview-content",
-                text: content.text
+            const previewsContainer = messageEl.createEl("div", {
+                cls: "highlight-chat-previews"
             });
 
-            const deleteBtn = card.createEl("div", {
-                cls: "highlight-chat-preview-delete"
+            // 添加标题
+            const headerEl = previewsContainer.createEl("div", {
+                cls: "highlight-chat-preview-header"
             });
-            setIcon(deleteBtn, "x");
-            deleteBtn.addEventListener("click", () => {
+
+            headerEl.createEl("span", {
+                cls: "highlight-chat-preview-count",
+                text: String(this.draggedContents.length)
+            });
+
+            headerEl.createSpan({
+                text: "条高亮笔记"
+            });
+
+            // 创建卡片容器
+            const cardsContainer = previewsContainer.createEl("div", {
+                cls: "highlight-chat-preview-cards"
+            });
+
+            this.currentPreviewContainer = cardsContainer;
+        }
+
+        // 添加新的高亮卡片到当前容器
+        const card = this.currentPreviewContainer.createEl("div", {
+            cls: "highlight-chat-preview-card"
+        });
+
+        const content = this.draggedContents[this.draggedContents.length - 1];
+        card.createEl("div", {
+            cls: "highlight-chat-preview-content",
+            text: content.text
+        });
+
+        const deleteBtn = card.createEl("div", {
+            cls: "highlight-chat-preview-delete"
+        });
+        setIcon(deleteBtn, "x");
+        deleteBtn.addEventListener("click", () => {
+            card.remove();
+            const index = this.draggedContents.indexOf(content);
+            if (index > -1) {
                 this.draggedContents.splice(index, 1);
-                if (this.draggedContents.length === 0) {
-                    messageEl.remove();
-                } else {
-                    this.showDraggedPreviews(container);
-                }
-            });
+            }
+            // 更新计数
+            const countEl = this.currentPreviewContainer?.closest('.highlight-chat-message-preview')
+                ?.querySelector('.highlight-chat-preview-count');
+            if (countEl) {
+                countEl.textContent = String(this.draggedContents.length);
+            }
         });
+
+        // 更新计数
+        const countEl = this.currentPreviewContainer.closest('.highlight-chat-message-preview')
+            ?.querySelector('.highlight-chat-preview-count');
+        if (countEl) {
+            countEl.textContent = String(this.draggedContents.length);
+        }
 
         // 滚动到底部
         container.scrollTop = container.scrollHeight;
-    }
-
-    private removeDraggedPreviews(container: HTMLElement) {
-        const previews = container.querySelector('.highlight-chat-message-preview');
-        if (previews) {
-            previews.remove();
-        }
     }
 
     show() {
@@ -241,20 +285,45 @@ export class ChatView {
         }
 
         // 设置初始位置
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        const chatWidth = 350;
-        const chatHeight = windowHeight * 0.6;
-
         this.containerEl.style.right = '30px';
-        this.containerEl.style.bottom = '90px';
+        this.containerEl.style.bottom = '42px';
         
         document.body.appendChild(this.containerEl);
+
+        // 隐藏浮动按钮
+        if (this.floatingButton) {
+            this.floatingButton.style.display = 'none';
+        }
+
+        // 如果有保存的状态，滚动到底部
+        if (ChatView.savedState) {
+            const chatHistory = this.containerEl.querySelector('.highlight-chat-history');
+            if (chatHistory) {
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+        }
+
+        // 聚焦输入框
+        requestAnimationFrame(() => {
+            this.textarea?.focus();
+        });
     }
 
     close() {
+        // 保存当前状态
+        ChatView.savedState = {
+            chatHistory: this.chatHistory,
+            draggedContents: this.draggedContents,
+            containerHTML: this.containerEl.querySelector('.highlight-chat-history')?.innerHTML || null,
+            currentPreviewContainer: !!this.currentPreviewContainer
+        };
+
         this.containerEl.remove();
         ChatView.instance = null;
+
+        if (this.floatingButton) {
+            this.floatingButton.style.display = 'flex';
+        }
     }
 
     private addMessage(container: HTMLElement, content: string, type: "user" | "assistant") {
@@ -309,13 +378,12 @@ export class ChatView {
 
     // 添加新的输入框实现
     private setupChatInput(inputContainer: HTMLElement) {
-        // 创建输入框容器
         const inputWrapper = inputContainer.createEl('div', {
             cls: 'highlight-chat-input-wrapper'
         });
 
-        // 创建文本输入框
-        const textarea = inputWrapper.createEl('textarea', {
+        // 保存输入框引用
+        this.textarea = inputWrapper.createEl('textarea', {
             cls: 'highlight-chat-input',
             attr: {
                 placeholder: '输入消息...',
@@ -325,24 +393,28 @@ export class ChatView {
 
         // 自动调整高度
         const adjustHeight = () => {
-            textarea.style.height = 'auto';
-            textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`; // 最大高度150px
+            if (this.textarea) {  // 添加空值检查
+                this.textarea.style.height = 'auto';
+                this.textarea.style.height = `${Math.min(this.textarea.scrollHeight, 150)}px`;
+            }
         };
 
-        // 处理输事件
-        textarea.addEventListener('input', () => {
+        // 处理输入事件
+        this.textarea.addEventListener('input', () => {
             adjustHeight();
         });
 
         // 处理按键事件
-        textarea.addEventListener('keydown', async (e: KeyboardEvent) => {
+        this.textarea.addEventListener('keydown', async (e: KeyboardEvent) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                await this.handleSendMessage(textarea);
+                if (this.textarea) {  // 添加空值检查
+                    await this.handleSendMessage(this.textarea);
+                }
             }
         });
 
-        return textarea;
+        return this.textarea;
     }
 
     // 处理发送消息
@@ -357,13 +429,11 @@ export class ChatView {
             let messageToSend = content;
             let userMessage = content;
 
-            // 如果有拖拽内容，将其作为单独的用户消息添加到历史记录
             if (this.draggedContents.length > 0) {
                 const textsToAnalyze = this.draggedContents
                     .map(h => h.text)
                     .join('\n\n---\n\n');
                 
-                // 先添加高亮内容作为用户消息
                 this.chatHistory.push({ 
                     role: "user", 
                     content: `以下是需要分析的内容：\n\n${textsToAnalyze}`
@@ -371,6 +441,15 @@ export class ChatView {
                 
                 messageToSend = content;
                 userMessage = `用户提示：${content}`;
+                
+                // 标记当前容器为已发送
+                if (this.currentPreviewContainer) {
+                    this.currentPreviewContainer.closest('.highlight-chat-message-preview')
+                        ?.addClass('sent');
+                    // 清空当前容器引用，这样下次拖入会创建新容器
+                    this.currentPreviewContainer = null;
+                }
+                // 清空待发送内容数组
                 this.draggedContents = [];
             }
 
@@ -403,6 +482,17 @@ export class ChatView {
             console.error('Failed to get AI response:', error);
         } finally {
             this.isProcessing = false;
+        }
+    }
+
+    // 添加更新预览计数的辅助方法
+    private updatePreviewCount() {
+        if (this.currentPreviewContainer) {
+            const countEl = this.currentPreviewContainer.closest('.highlight-chat-message-preview')
+                ?.querySelector('.highlight-chat-preview-count');
+            if (countEl) {
+                countEl.textContent = String(this.draggedContents.length);
+            }
         }
     }
 } 
