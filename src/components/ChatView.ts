@@ -8,6 +8,7 @@ export class ChatView {
     private isProcessing: boolean = false;
     private containerEl: HTMLElement;
     private draggedContents: HighlightInfo[] = [];
+    private chatHistory: { role: "user" | "assistant", content: string }[] = [];
 
     constructor(app: App, private plugin: any) {
         if (ChatView.instance) {
@@ -79,7 +80,7 @@ export class ChatView {
             chatHistory.style.setProperty('--drag-guide-top', `${visibleTop + 12}px`);  // 顶部留出16px边距
             chatHistory.style.setProperty('--drag-guide-left', '12px');
             chatHistory.style.setProperty('--drag-guide-right', '12px');
-            chatHistory.style.setProperty('--drag-guide-height', `${visibleHeight - 24}px`);  // 总高度减去上下边距
+            chatHistory.style.setProperty('--drag-guide-height', `${visibleHeight - 24}px`);  // 高度减去上下边距
 
             // 更新预览元素位置
             const preview = document.querySelector('.highlight-dragging') as HTMLElement;
@@ -105,8 +106,16 @@ export class ChatView {
                     const highlight = JSON.parse(highlightData);
                     if (!highlight.text) return;
 
-                    this.draggedContents.push(highlight);
-                    this.showDraggedPreviews(chatHistory);
+                    // 检查是否已存在相同内容
+                    const isDuplicate = this.draggedContents.some(
+                        existing => existing.text === highlight.text
+                    );
+
+                    // 只有不重复的内容才添加
+                    if (!isDuplicate) {
+                        this.draggedContents.push(highlight);
+                        this.showDraggedPreviews(chatHistory);
+                    }
                 } catch (error) {
                     console.error('Failed to process dropped highlight:', error);
                 }
@@ -320,7 +329,7 @@ export class ChatView {
             textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`; // 最大高度150px
         };
 
-        // 处理输入事件
+        // 处理输事件
         textarea.addEventListener('input', () => {
             adjustHeight();
         });
@@ -346,15 +355,27 @@ export class ChatView {
             
             // 准备发送的消息内容
             let messageToSend = content;
+            let userMessage = content;
 
-            // 如果有拖拽内容，添加到消息中
+            // 如果有拖拽内容，将其作为单独的用户消息添加到历史记录
             if (this.draggedContents.length > 0) {
                 const textsToAnalyze = this.draggedContents
                     .map(h => h.text)
                     .join('\n\n---\n\n');
-                messageToSend = `分析以下内容：\n\n${textsToAnalyze}\n\n用户提示：${content}`;
+                
+                // 先添加高亮内容作为用户消息
+                this.chatHistory.push({ 
+                    role: "user", 
+                    content: `以下是需要分析的内容：\n\n${textsToAnalyze}`
+                });
+                
+                messageToSend = content;
+                userMessage = `用户提示：${content}`;
                 this.draggedContents = [];
             }
+
+            // 添加用户消息到历史记录
+            this.chatHistory.push({ role: "user", content: userMessage });
 
             // 清空输入框
             requestAnimationFrame(() => {
@@ -363,14 +384,19 @@ export class ChatView {
                 textarea.dispatchEvent(new Event('input'));
             });
 
-            // 添加用户消息
-            const chatHistory = this.containerEl.querySelector('.highlight-chat-history') as HTMLElement;
-            if (chatHistory) {
-                this.addMessage(chatHistory, content, "user");
+            // 添加用户消息到UI
+            const chatHistoryEl = this.containerEl.querySelector('.highlight-chat-history') as HTMLElement;
+            if (chatHistoryEl) {
+                this.addMessage(chatHistoryEl, content, "user");
                 
-                // 获取��添加 AI 响应
-                const response = await this.chatService.sendMessage(messageToSend);
-                this.addMessage(chatHistory, response.content, "assistant");
+                // 获取 AI 响应，传入完整的对话历史
+                const response = await this.chatService.sendMessage(messageToSend, this.chatHistory);
+                
+                // 添加 AI 响应到历史记录
+                this.chatHistory.push({ role: "assistant", content: response.content });
+                
+                // 添加 AI 响应到UI
+                this.addMessage(chatHistoryEl, response.content, "assistant");
             }
 
         } catch (error) {

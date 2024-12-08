@@ -8,7 +8,6 @@ export interface ChatMessage {
 }
 
 export class ChatService {
-    private messages: ChatMessage[] = [];
     private ollamaService: OllamaService;
 
     constructor(private plugin: any) {
@@ -16,26 +15,33 @@ export class ChatService {
         this.ollamaService = new OllamaService(settings.host);
     }
 
-    async sendMessage(content: string): Promise<ChatMessage> {
-        const userMessage: ChatMessage = {
-            content,
-            type: "user",
-            timestamp: Date.now()
-        };
-        this.messages.push(userMessage);
-
+    async sendMessage(
+        content: string, 
+        history: { role: "user" | "assistant", content: string }[] = []
+    ): Promise<ChatMessage> {
         try {
             const model = this.plugin.settings.ai.ollama.model;
-            const response = await this.ollamaService.generateCompletion(model, content);
             
-            const assistantMessage: ChatMessage = {
+            // 将历史记录格式化为 Ollama 可接受的格式
+            const messages = history.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+            
+            // 添加当前消息
+            messages.push({
+                role: "user",
+                content: content
+            });
+
+            // 调用 Ollama 服务
+            const response = await this.ollamaService.chat(model, messages);
+
+            return {
                 content: response,
                 type: "assistant",
                 timestamp: Date.now()
             };
-            this.messages.push(assistantMessage);
-
-            return assistantMessage;
         } catch (error) {
             console.error('Error getting AI response:', error);
             new Notice('获取 AI 响应失败，请确保 Ollama 服务正在运行');
@@ -45,13 +51,5 @@ export class ChatService {
 
     async testConnection(): Promise<boolean> {
         return await this.ollamaService.testConnection();
-    }
-
-    getMessages(): ChatMessage[] {
-        return this.messages;
-    }
-
-    clearMessages() {
-        this.messages = [];
     }
 } 

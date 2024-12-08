@@ -41,7 +41,7 @@ export class OllamaService {
             const response = await this.makeRequest({
                 endpoint: '/api/tags',
                 method: 'GET'
-            });
+            }) as OllamaModelsResponse;
 
             console.log('Models response:', response);
 
@@ -49,8 +49,7 @@ export class OllamaService {
                 throw new Error('Invalid API response format');
             }
 
-            // Extract just the model names from the response
-            return response.models.map(model => model.name);
+            return response.models.map((model: OllamaModel) => model.name);
         } catch (error) {
             console.error('Failed to fetch models:', error);
             throw this.handleError(error);
@@ -101,6 +100,31 @@ export class OllamaService {
         } catch (error) {
             console.error('Failed to pull model:', error);
             throw new Error(`Failed to download model: ${error.message}`);
+        }
+    }
+
+    async chat(model: string, messages: { role: string, content: string }[]): Promise<string> {
+        try {
+            await this.ensureConnection();
+
+            const response = await this.makeRequest({
+                endpoint: '/api/chat',
+                method: 'POST',
+                body: JSON.stringify({
+                    model,
+                    messages,
+                    stream: false
+                })
+            });
+
+            if (!response || !response.message?.content) {
+                throw new Error('Invalid API response format');
+            }
+
+            return response.message.content;
+        } catch (error) {
+            console.error('Chat failed:', error);
+            throw this.handleError(error);
         }
     }
 
