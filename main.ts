@@ -20,16 +20,16 @@ export default class CommentPlugin extends Plugin {
 		// 将 html2canvas 添加到全局对象
 		(window as any).html2canvas = html2canvas;
 
-		// 添加导出样式
-		const styleEl = document.createElement('style');
-		styleEl.id = 'highlight-export-styles';
-		try {
-			const response = await fetch(`app://local/${this.manifest.dir}/src/templates/styles.css`);
-			styleEl.textContent = await response.text();
-		} catch (error) {
-			console.error('Failed to load export styles:', error);
-		}
-		document.head.appendChild(styleEl);
+		// 添加导出样式,这段代码好像没用，我删除之后导出依然可用
+		// const styleEl = document.createElement('style');
+		// styleEl.id = 'highlight-export-styles';
+		// try {
+		// 	const response = await fetch(`app://local/${this.manifest.dir}/src/templates/styles.css`);
+		// 	styleEl.textContent = await response.text();
+		// } catch (error) {
+		// 	console.error('Failed to load export styles:', error);
+		// }
+		// document.head.appendChild(styleEl);
 
 		// 初始化评论存储
 		this.commentStore = new CommentStore(this);
@@ -48,14 +48,13 @@ export default class CommentPlugin extends Plugin {
 		// 添加打开评论面板的功能按钮
 		this.addRibbonIcon(
 			'message-square-quote',
-			'打开评论面板',
+			'Highlight Comment',
 			async () => {
 				const { workspace } = this.app;
 				
-				// 检查评论面板是否已经打开
+				// 检查评论面板是否已经打开，如果已经打开，就激活它
 				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
 				if (existing.length) {
-					// 如果已经打开，就激活它
 					workspace.revealLeaf(existing[0]);
 					return;
 				}
@@ -81,7 +80,7 @@ export default class CommentPlugin extends Plugin {
 					this.app.vault.getFiles().map(file => file.path)
 				);
 				await this.commentStore.cleanupComments(existingFiles);
-			}, 60 * 60 * 1000) // 每小时检查一次
+			}, 24 * 60 * 60 * 1000) // 每天检查一次
 		);
 
 		// 监控评论加载性能
