@@ -60,27 +60,17 @@ export class CommentStore {
         
         // 确保 highlight 包含 paragraphId
         if (!highlight.paragraphId) {
-            // 获取当前的 MarkdownView 和 Editor
             const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-            const editor = view?.editor as Editor;
+            const editor = view?.editor;
+            const currentFile = view?.file;
             
-            if (editor) {
-                const doc = editor.getValue();
-                if (doc) {
-                    const paragraphs = doc.split(/\n\n+/);
-                    let offset = 0;
-                    for (const paragraph of paragraphs) {
-                        if (offset <= highlight.position && offset + paragraph.length >= highlight.position) {
-                            highlight.paragraphId = this.generateParagraphId(paragraph, offset);
-                            break;
-                        }
-                        offset += paragraph.length + 2;
-                    }
-                }
-            }
-            
-            if (!highlight.paragraphId) {
-                highlight.paragraphId = `p-${Date.now()}`; // fallback ID
+            if (editor && currentFile) {
+                const pos = editor.offsetToPos(highlight.position);
+                const blockId = currentFile.path + '#^' + this.getBlockId(editor, pos.line);
+                highlight.paragraphId = blockId;
+            } else {
+                highlight.paragraphId = `^${Math.random().toString(36).substr(2, 9)}`;
+                console.warn('Unable to get active view or file, using fallback ID');
             }
         }
         
@@ -88,22 +78,19 @@ export class CommentStore {
         await this.saveComments();
     }
 
-    // 新增：生成段落ID的辅助方法
-    private generateParagraphId(text: string, position: number): string {
-        // 1. 清理文本
-        const cleanText = text.trim()
-            .toLowerCase()
-            .replace(/[^\w\s]/g, '');
+    // 获取或生成 block ID
+    private getBlockId(editor: Editor, line: number): string {
+        const lineText = editor.getLine(line);
+        const blockIdMatch = lineText.match(/\^([a-zA-Z0-9-]+)$/);
         
-        // 2. 提取关键特征
-        const words = cleanText.split(/\s+/);
-        const firstWord = words[0] || '';
-        const lastWord = words[words.length - 1] || '';
-        const textLength = cleanText.length;
-        const positionRange = Math.floor(position / 500) * 500;
+        if (blockIdMatch) {
+            return blockIdMatch[1];
+        }
         
-        // 3. 组合特征生成ID
-        return `p-${firstWord}-${lastWord}-${textLength}-${positionRange}`;
+        // 如果没有 block ID，生成一个并添加到行尾
+        const newBlockId = Math.random().toString(36).substr(2, 9);
+        editor.setLine(line, `${lineText} ^${newBlockId}`);
+        return newBlockId;
     }
 
     async updateComment(file: TFile, highlightId: string, commentContent: string) {

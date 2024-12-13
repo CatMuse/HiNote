@@ -7,11 +7,10 @@ export interface CommentItem {
 
 export interface HighlightInfo {
     id?: string;
-    text: string;
+    text: string;          // 只保留高亮的文本内容
     position: number;
     paragraphOffset: number;
-    paragraphText?: string;
-    paragraphId?: string;
+    paragraphId?: string;  // 使用 paragraphId 来引用段落
     backgroundColor?: string;
     comments?: CommentItem[];
     createdAt?: number;
