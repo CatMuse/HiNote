@@ -39,11 +39,23 @@ export class ChatView {
         // 添加标题
         header.createEl("div", {
             cls: "highlight-chat-title",
-            text: "聊天"
+            text: "对话"
         });
 
+        // 添加按钮容器
+        const buttonsContainer = header.createEl("div", {
+            cls: "highlight-chat-buttons"
+        });
+
+        // 添加清空按钮
+        const clearButton = buttonsContainer.createEl("div", {
+            cls: "highlight-chat-clear"
+        });
+        setIcon(clearButton, "trash");
+        clearButton.addEventListener("click", () => this.clearChat());
+
         // 添加关闭按钮
-        const closeButton = header.createEl("div", {
+        const closeButton = buttonsContainer.createEl("div", {
             cls: "highlight-chat-close"
         });
         setIcon(closeButton, "x");
@@ -65,7 +77,6 @@ export class ChatView {
             position: 0,
             paragraphOffset: 0,
             paragraphId: "chat",
-            paragraphText: "",
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -140,7 +151,7 @@ export class ChatView {
         let initialY: number;
 
         header.addEventListener("mousedown", (e) => {
-            if (e.target === closeButton) return; // 如果点击的是关闭按钮不启动拖拽
+            if (e.target === closeButton || e.target === clearButton) return; // 如果点击的是关闭按钮或清空按钮不启动拖拽
 
             isDragging = true;
             initialX = e.clientX - this.containerEl.offsetLeft;
@@ -255,16 +266,22 @@ export class ChatView {
         });
         setIcon(deleteBtn, "x");
         deleteBtn.addEventListener("click", () => {
-            card.remove();
             const index = this.draggedContents.indexOf(content);
             if (index > -1) {
                 this.draggedContents.splice(index, 1);
-            }
-            // 更新计数
-            const countEl = this.currentPreviewContainer?.closest('.highlight-chat-message-preview')
-                ?.querySelector('.highlight-chat-preview-count');
-            if (countEl) {
-                countEl.textContent = String(this.draggedContents.length);
+                card.remove();
+                
+                // 如果是最后一个卡片，移除整个预览容器
+                if (this.draggedContents.length === 0) {
+                    const previewMessage = this.currentPreviewContainer?.closest('.highlight-chat-message-preview');
+                    if (previewMessage) {
+                        previewMessage.remove();
+                        this.currentPreviewContainer = null;
+                    }
+                } else {
+                    // 更新计数
+                    this.updatePreviewCount();
+                }
             }
         });
 
@@ -444,13 +461,15 @@ export class ChatView {
                 
                 // 标记当前容器为已发送
                 if (this.currentPreviewContainer) {
-                    this.currentPreviewContainer.closest('.highlight-chat-message-preview')
-                        ?.addClass('sent');
-                    // 清空当前容器引用，这样下次拖入会创建新容器
+                    const previewMessage = this.currentPreviewContainer.closest('.highlight-chat-message-preview');
+                    if (previewMessage) {
+                        previewMessage.addClass('sent');
+                    }
+                    // 重置容器引用，这样下次拖拽会创建新的容器
                     this.currentPreviewContainer = null;
+                    // 清空待发送内容数组，为下一组做准备
+                    this.draggedContents = [];
                 }
-                // 清空待发送内容数组
-                this.draggedContents = [];
             }
 
             // 添加用户消息到历史记录
@@ -488,11 +507,48 @@ export class ChatView {
     // 添加更新预览计数的辅助方法
     private updatePreviewCount() {
         if (this.currentPreviewContainer) {
-            const countEl = this.currentPreviewContainer.closest('.highlight-chat-message-preview')
-                ?.querySelector('.highlight-chat-preview-count');
+            const previewMessage = this.currentPreviewContainer.closest('.highlight-chat-message-preview');
+            const countEl = previewMessage?.querySelector('.highlight-chat-preview-count');
+            
             if (countEl) {
                 countEl.textContent = String(this.draggedContents.length);
+                
+                // 当没有高亮内容时，隐藏整个预览消息
+                if (this.draggedContents.length === 0 && previewMessage) {
+                    previewMessage.remove();
+                    this.currentPreviewContainer = null;
+                }
             }
+        }
+    }
+
+    // 清空对话内容
+    private clearChat() {
+        // 清空对话历史
+        this.chatHistory = [];
+        
+        // 清空拖拽内容
+        this.draggedContents = [];
+        
+        // 清空预览容器
+        if (this.currentPreviewContainer) {
+            const previewMessage = this.currentPreviewContainer.closest('.highlight-chat-message-preview');
+            if (previewMessage) {
+                previewMessage.remove();
+            }
+            this.currentPreviewContainer = null;
+        }
+
+        // 清空聊天历史区域
+        const chatHistoryEl = this.containerEl.querySelector('.highlight-chat-history');
+        if (chatHistoryEl) {
+            chatHistoryEl.innerHTML = '';
+        }
+
+        // 清空输入框
+        if (this.textarea) {
+            this.textarea.value = '';
+            this.textarea.style.height = 'auto';
         }
     }
 } 

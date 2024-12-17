@@ -1771,3 +1771,28 @@ hr {
     border-color: var(--interactive-accent);
     box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
 }
+
+.highlight-chat-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.highlight-chat-clear,
+.highlight-chat-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.highlight-chat-clear:hover,
+.highlight-chat-close:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+}
