@@ -413,21 +413,6 @@
     padding-right: 50px !important;
 }
 
-/* 添加箭头指示器 */
-.highlight-comment-tooltip::before {
-    content: '';
-    position: absolute;
-    top: -6px;
-    right: 10px;
-    width: 10px;
-    height: 10px;
-    background-color: var(--background-primary);
-    border-left: 1px solid var(--background-modifier-border);
-    border-top: 1px solid var(--background-modifier-border);
-    transform: rotate(45deg);
-    z-index: 99998;
-}
-
 /* 悬停效果 */
 .highlight-comment-button:hover {
     background-color: var(--background-modifier-hover);
