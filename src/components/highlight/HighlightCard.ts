@@ -8,6 +8,7 @@ import { DragPreview } from './DragPreview';
 
 export class HighlightCard {
     private card: HTMLElement;
+    private static selectedCard: HTMLElement | null = null;  
 
     constructor(
         private container: HTMLElement,
@@ -32,6 +33,15 @@ export class HighlightCard {
             attr: {
                 'data-highlight': JSON.stringify(this.highlight)
             }
+        });
+
+        // 添加点击事件用于切换选中状态
+        this.card.addEventListener("click", () => {
+            if (HighlightCard.selectedCard && HighlightCard.selectedCard !== this.card) {
+                HighlightCard.selectedCard.removeClass('selected');
+            }
+            this.card.addClass('selected');
+            HighlightCard.selectedCard = this.card;
         });
 
         // 在主视图中显示文件名

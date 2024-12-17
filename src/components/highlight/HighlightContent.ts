@@ -43,8 +43,7 @@ export class HighlightContent {
 
         // 高亮文本
         const textEl = this.textContainer.createEl("div", {
-            cls: "highlight-text",
-            attr: { 'aria-label': '点击定位到文档位置' }
+            cls: "highlight-text"
         });
 
         // 创建文本内容元素

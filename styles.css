@@ -29,6 +29,11 @@
     animation: fadeIn 0.3s ease;
 }
 
+.highlight-card.selected {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
 .highlight-content {
     padding: 6px;
     cursor: pointer;
@@ -48,7 +53,7 @@
 
 .highlight-text {
     position: relative;
-    color: var(--text-normal);
+    color: var(--text-muted);
     line-height: 1.5;
     font-size: 12px;
     flex-grow: 1;
@@ -74,11 +79,9 @@
     justify-content: space-between;
     align-items: center;
     opacity: 0;
-    transition: opacity 0.2s ease, height 0.2s ease, margin 0.2s ease;
     height: 0;
     margin: 0;
     padding: 2px 4px;
-    visibility: hidden;
 }
 
 .highlight-action-buttons-left,
@@ -88,7 +91,7 @@
     align-items: center;
 }
 
-.highlight-card:hover .highlight-action-buttons {
+.highlight-card.selected .highlight-action-buttons {
     opacity: 1;
     height: auto;
     margin-top: 4px;
@@ -106,11 +109,6 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-}
-
-.highlight-action-btn:hover {
-    color: var(--text-accent);
-    background-color: var(--background-modifier-hover);
 }
 
 .highlight-comment {
@@ -273,9 +271,10 @@
 }
 
 .highlight-comments-section {
-    border-top: 1px solid var(--background-modifier-border);
     background-color: var(--background-secondary);
     padding: 8px;
+    border-bottom-right-radius: 8px; /* 右下角圆角 */
+    border-bottom-left-radius: 8px; /* 左下角圆角 */
 }
 
 .highlight-comments-list {
@@ -486,34 +485,6 @@
 .highlight-comment-edit-area textarea:focus {
     outline: none;
     border-color: var(--interactive-accent);
-}
-
-/* 分享按钮样式 */
-.highlight-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-}
-
-.highlight-share-btn {
-    background: none;
-    border: none;
-    padding: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-    opacity: 0;
-    transition: all 0.2s ease;
-}
-
-.highlight-card:hover .highlight-share-btn {
-    opacity: 1;
-}
-
-.highlight-share-btn:hover {
-    color: var(--text-accent);
-    background-color: var(--background-modifier-hover);
-    border-radius: 4px;
 }
 
 /* 模板选择器样式 */
