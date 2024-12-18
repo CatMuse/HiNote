@@ -64,7 +64,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             model: 'qwen2.5:14b',
         },
         prompts: {
-            '总结评论': '请分析以下内容：\n\n{{highlight}}\n\n已有的评论：\n{{comment}}\n\n请给出你的见解：',
+            '🤔 洞察': '{{highlight}}，请让我从不同的角度重新审视以上这段话：请用一段话描述它背后的核心思想是什么？200字以内',
         }
     }
 };
