@@ -1135,9 +1135,15 @@ hr {
     width: 240px;
     border-right: 1px solid var(--background-modifier-border);
     display: none;
-    overflow-y: auto;
+    overflow: hidden;
     background-color: var(--background-primary);
     padding: 0;
+}
+
+.highlight-file-list {
+    padding: 8px;
+    overflow-y: auto;
+    height: calc(100% - 50px); /* 减去标题高度 */
 }
 
 /* 主内容区域样式 */
@@ -1293,20 +1299,6 @@ hr {
 .highlight-file-item.is-active .highlight-file-item-icon {
     opacity: 1;
     color: var(--text-accent);
-}
-
-/* 滚动条样式优化 */
-.highlight-file-list-container::-webkit-scrollbar {
-    width: 4px;
-}
-
-.highlight-file-list-container::-webkit-scrollbar-thumb {
-    background-color: var(--background-modifier-border);
-    border-radius: 2px;
-}
-
-.highlight-file-list-container:hover::-webkit-scrollbar-thumb {
-    background-color: var(--background-modifier-border-hover);
 }
 
 /* 添加浮动按钮样式 */
@@ -1501,24 +1493,6 @@ hr {
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-/* 滚动条样式 */
-.highlight-chat-history::-webkit-scrollbar {
-    width: 4px;
-}
-
-.highlight-chat-history::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.highlight-chat-history::-webkit-scrollbar-thumb {
-    background-color: var(--background-modifier-border);
-    border-radius: 2px;
-}
-
-.highlight-chat-history:hover::-webkit-scrollbar-thumb {
-    background-color: var(--background-modifier-border-hover);
 }
 
 /* 聊天历史记录区域 */
