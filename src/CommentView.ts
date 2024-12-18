@@ -198,8 +198,11 @@ export class CommentView extends ItemView {
             });
 
             if (storedComment) {
+                // 对评论按时间倒序排序
+                const sortedComments = [...storedComment.comments].sort((a, b) => b.updatedAt - a.updatedAt);
                 return {
                     ...storedComment,
+                    comments: sortedComments,
                     position: highlight.position, // 更新位置以匹配当前文档
                     paragraphOffset: highlight.paragraphOffset
                 };
@@ -684,8 +687,11 @@ export class CommentView extends ItemView {
                     });
 
                     if (storedComment) {
+                        // 对评论按时间倒序排序
+                        const sortedComments = [...storedComment.comments].sort((a, b) => b.updatedAt - a.updatedAt);
                         return {
                             ...storedComment,
+                            comments: sortedComments,
                             position: highlight.position,
                             paragraphOffset: highlight.paragraphOffset,
                             fileName: file.basename,
