@@ -47,6 +47,10 @@ export class CommentInput {
         // 替换内容为编辑框
         contentEl.replaceWith(this.textarea);
 
+        // 自动聚焦并将光标移到文本末尾
+        this.textarea.focus();
+        this.textarea.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
+
         // 隐藏底部的时间和按钮
         const footer = commentEl.querySelector('.highlight-comment-footer');
         if (footer) {
@@ -87,6 +91,9 @@ export class CommentInput {
         // 创建文本框
         this.textarea = inputSection.createEl("textarea");
 
+        // 自动聚焦输入框
+        this.textarea.focus();
+
         // 添加快捷键提示
         inputSection.createEl('div', {
             cls: 'highlight-comment-hint',
@@ -111,7 +118,6 @@ export class CommentInput {
         }
 
         this.setupKeyboardEvents();
-        this.textarea.focus();
     }
 
     private setupKeyboardEvents(contentEl?: HTMLElement, footer?: Element) {
@@ -138,10 +144,32 @@ export class CommentInput {
         };
 
         this.textarea.onkeydown = async (e: KeyboardEvent) => {
-            if (e.key === 'Enter' && e.shiftKey) {
-                return;
-            } else if (e.key === 'Enter') {
+            if (e.key === 'Enter') {
+                if (e.shiftKey) {
+                    return; // 保持 Shift+Enter 换行功能
+                }
                 e.preventDefault();
+                
+                if (this.isProcessing) return;
+                
+                const content = this.textarea.value.trim();
+                if (!content) return;
+
+                this.isProcessing = true;
+                this.textarea.disabled = true;
+
+                try {
+                    await this.options.onSave(content);
+                    // 保存成功后清理
+                    requestAnimationFrame(() => {
+                        document.removeEventListener('click', this.boundHandleOutsideClick);
+                        this.isProcessing = false;
+                        this.textarea.disabled = false;
+                    });
+                } catch (error) {
+                    this.textarea.disabled = false;
+                    this.isProcessing = false;
+                }
             }
         };
     }

@@ -19,6 +19,13 @@ export class AIButton {
         this.plugin = plugin;
         this.container = container;
         this.initButton();
+
+        // 添加全局点击事件来关闭下拉菜单
+        document.addEventListener('click', (e) => {
+            if (!this.container.contains(e.target as Node)) {
+                this.closeDropdown();
+            }
+        });
     }
 
     private initButton() {
@@ -157,6 +164,14 @@ export class AIButton {
 
     // 用于外部关闭下拉菜单
     public closeDropdown() {
+        if (!this.dropdown) return;
         this.dropdown.addClass("hidden");
+        // 强制更新 DOM
+        requestAnimationFrame(() => {
+            this.dropdown.style.display = 'none';
+            requestAnimationFrame(() => {
+                this.dropdown.style.removeProperty('display');
+            });
+        });
     }
 } 

@@ -29,6 +29,10 @@
     animation: fadeIn 0.3s ease;
 }
 
+.highlight-card:hover {
+    background-color: var(--background-modifier-hover);
+}
+
 .highlight-card.selected {
     border-color: var(--interactive-accent);
     box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -401,6 +405,9 @@
 
 .hidden {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 /* 修改编辑器容器样式确保有足够空间显示按钮 */
@@ -645,6 +652,13 @@
     min-width: 160px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 9999;
+}
+
+.highlight-ai-dropdown.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 .highlight-ai-dropdown-item {
@@ -1102,9 +1116,11 @@ hr {
     white-space: nowrap;
 }
 
-/* 调整主视图片内 */
-.highlight-card.in-main-view .highlight-content {
-    padding-top: 8px;
+/* 调整提示文本样式 */
+.highlight-comment-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-right: auto;
 }
 
 /* 主容布局 */

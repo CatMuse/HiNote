@@ -9,6 +9,7 @@ import { DragPreview } from './DragPreview';
 export class HighlightCard {
     private card: HTMLElement;
     private static selectedCard: HTMLElement | null = null;  
+    private isEditing: boolean = false;
 
     constructor(
         private container: HTMLElement,
@@ -36,12 +37,12 @@ export class HighlightCard {
         });
 
         // 添加点击事件用于切换选中状态
-        this.card.addEventListener("click", () => {
-            if (HighlightCard.selectedCard && HighlightCard.selectedCard !== this.card) {
-                HighlightCard.selectedCard.removeClass('selected');
+        this.card.addEventListener("click", (e) => {
+            // 如果正在编辑，不触发选中状态切换
+            if (this.isEditing) {
+                return;
             }
-            this.card.addClass('selected');
-            HighlightCard.selectedCard = this.card;
+            this.selectCard();
         });
 
         // 在主视图中显示文件名
@@ -110,8 +111,21 @@ export class HighlightCard {
         new CommentList(
             this.card,
             this.highlight,
-            (comment) => this.options.onCommentEdit(this.highlight, comment)
+            (comment) => {
+                this.isEditing = true;
+                this.selectCard(); // 在进入编辑模式时选中卡片
+                this.options.onCommentEdit(this.highlight, comment);
+            }
         );
+    }
+
+    // 添加选中卡片的方法
+    private selectCard() {
+        if (HighlightCard.selectedCard && HighlightCard.selectedCard !== this.card) {
+            HighlightCard.selectedCard.removeClass('selected');
+        }
+        this.card.addClass('selected');
+        HighlightCard.selectedCard = this.card;
     }
 
     public getElement(): HTMLElement {
@@ -120,6 +134,7 @@ export class HighlightCard {
 
     public update(highlight: HighlightInfo) {
         this.highlight = highlight;
+        this.isEditing = false; // 重置编辑状态
         this.card.empty();
         this.render();
     }

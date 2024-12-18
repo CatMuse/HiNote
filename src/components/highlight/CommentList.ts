@@ -43,7 +43,13 @@ export class CommentList {
             // 添加双击事件监听
             contentEl.addEventListener("dblclick", (e) => {
                 e.stopPropagation();
+                e.preventDefault(); // 阻止默认行为
                 this.onCommentEdit(comment);
+            });
+
+            // 阻止单击事件冒泡，避免与双击冲突
+            contentEl.addEventListener("click", (e) => {
+                e.stopPropagation();
             });
 
             // 创建底部操作栏
