@@ -65,7 +65,7 @@ export class CommentInput {
         // 快捷键提示
         this.actionHint.createEl('span', {
             cls: 'highlight-comment-hint',
-            text: 'Shift + Enter 换行'
+            text: 'Shift + Enter 换行, Enter 保存'
         });
 
         // 删除按钮
@@ -97,7 +97,7 @@ export class CommentInput {
         // 添加快捷键提示
         inputSection.createEl('div', {
             cls: 'highlight-comment-hint',
-            text: 'Shift + Enter 换行'
+            text: 'Shift + Enter 换行, Enter 保存'
         });
 
         // 添加到评论区域
