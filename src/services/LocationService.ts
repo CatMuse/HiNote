@@ -10,15 +10,36 @@ export class LocationService {
     public async jumpToHighlight(highlight: HighlightInfo, currentFilePath: string) {
         const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
         
-        if (markdownLeaves.length === 0) {
-            new Notice("未找到文档视图");
-            return;
+        // 找到当前文件对应的编辑器视图
+        let targetLeaf: WorkspaceLeaf | null = this.findTargetLeaf(markdownLeaves, currentFilePath);
+        
+        // 如果没有找到对应的视图，尝试打开文件
+        if (!targetLeaf) {
+            try {
+                // 先获取文件对象
+                const file = this.app.vault.getAbstractFileByPath(currentFilePath);
+                if (!file) {
+                    new Notice("未找到文件");
+                    return;
+                }
+                // 在新标签页中打开文件
+                const newLeaf = await this.app.workspace.getLeaf('tab');
+                if (!newLeaf) {
+                    new Notice("无法创建新标签页");
+                    return;
+                }
+                await newLeaf.openFile(file);
+                targetLeaf = newLeaf;
+            } catch (error) {
+                console.error("打开文件失败:", error);
+                new Notice("打开文件失败");
+                return;
+            }
         }
 
-        // 找到当前文件对应的编辑器视图
-        const targetLeaf = this.findTargetLeaf(markdownLeaves, currentFilePath);
+        // 再次检查确保 targetLeaf 不为 null
         if (!targetLeaf) {
-            new Notice("未找到对应的编辑器视图");
+            new Notice("无法打开文件视图");
             return;
         }
 
@@ -30,11 +51,12 @@ export class LocationService {
         }
     }
 
-    private findTargetLeaf(leaves: WorkspaceLeaf[], filePath: string): WorkspaceLeaf | undefined {
-        return leaves.find(leaf => {
+    private findTargetLeaf(leaves: WorkspaceLeaf[], filePath: string): WorkspaceLeaf | null {
+        const leaf = leaves.find(leaf => {
             const view = leaf.view as MarkdownView;
             return view.file?.path === filePath;
         });
+        return leaf || null;
     }
 
     private async scrollToHighlight(leaf: WorkspaceLeaf, highlight: HighlightInfo) {
