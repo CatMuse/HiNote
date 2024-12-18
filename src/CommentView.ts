@@ -186,13 +186,13 @@ export class CommentView extends ItemView {
         
         // 合并高亮和评论数据
         this.highlights = highlights.map(highlight => {
-            // 查找匹配的评论，优先使用文本匹配
+            // 查找匹配的评论，使用文本匹配和位置判断
             const storedComment = storedComments.find(c => {
                 // 查找文本是否匹配
                 const textMatch = c.text === highlight.text;
-                if (textMatch && highlight.paragraphText) {
-                    // 如果文本匹配，查否在同一落围内
-                    return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
+                if (textMatch) {
+                    // 如果文本匹配，检查是否在同一段落内
+                    return Math.abs(c.position - highlight.position) < 1000; // 使用一个合理的范围值
                 }
                 return false;
             });
@@ -319,7 +319,6 @@ export class CommentView extends ItemView {
                         text: text,
                         position: offset + match.index,
                         paragraphOffset: offset,
-                        paragraphText: paragraph,
                         paragraphId: `p-${index}-${Date.now()}`,
                         backgroundColor: backgroundColor
                     };
@@ -677,8 +676,9 @@ export class CommentView extends ItemView {
                 const fileHighlights = highlights.map(highlight => {
                     const storedComment = storedComments.find(c => {
                         const textMatch = c.text === highlight.text;
-                        if (textMatch && highlight.paragraphText) {
-                            return Math.abs(c.position - highlight.position) < highlight.paragraphText.length;
+                        if (textMatch) {
+                            // 如果文本匹配，检查是否在同一段落内
+                            return Math.abs(c.position - highlight.position) < 1000; // 使用一个合理的范围值
                         }
                         return false;
                     });
