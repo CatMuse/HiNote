@@ -131,6 +131,9 @@
     cursor: text;
     transition: background-color 0.2s ease;
     padding: 2px;
+    white-space: pre-wrap;       /* 保留空格和换行符 */
+    word-wrap: break-word;       /* 允许在单词内换行 */
+    word-break: break-word;      /* 在需要时在单词内换行 */
 }
 
 .highlight-comment-content:hover {
