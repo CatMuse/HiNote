@@ -1,5 +1,5 @@
 import { App, Notice } from 'obsidian';
-import { OllamaService } from './OllamaService';
+import { AIService } from './AIService';
 
 export interface ChatMessage {
     content: string;
@@ -8,11 +8,10 @@ export interface ChatMessage {
 }
 
 export class ChatService {
-    private ollamaService: OllamaService;
+    private aiService: AIService;
 
     constructor(private plugin: any) {
-        const settings = this.plugin.settings.ai.ollama;
-        this.ollamaService = new OllamaService(settings.host);
+        this.aiService = new AIService(this.plugin.settings.ai);
     }
 
     async sendMessage(
@@ -20,9 +19,7 @@ export class ChatService {
         history: { role: "user" | "assistant", content: string }[] = []
     ): Promise<ChatMessage> {
         try {
-            const model = this.plugin.settings.ai.ollama.model;
-            
-            // 将历史记录格式化为 Ollama 可接受的格式
+            // 将历史记录格式化为统一格式
             const messages = history.map(msg => ({
                 role: msg.role,
                 content: msg.content
@@ -34,8 +31,8 @@ export class ChatService {
                 content: content
             });
 
-            // 调用 Ollama 服务
-            const response = await this.ollamaService.chat(model, messages);
+            // 使用AIService处理消息
+            const response = await this.aiService.chat(messages);
 
             return {
                 content: response,
@@ -44,12 +41,12 @@ export class ChatService {
             };
         } catch (error) {
             console.error('Error getting AI response:', error);
-            new Notice('获取 AI 响应失败，请确保 Ollama 服务正在运行');
+            new Notice('获取 AI 响应失败，请检查服务配置和网络连接');
             throw error;
         }
     }
 
     async testConnection(): Promise<boolean> {
-        return await this.ollamaService.testConnection();
+        return await this.aiService.testConnection();
     }
-} 
+}

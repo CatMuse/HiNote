@@ -74,10 +74,6 @@
     flex-shrink: 0;
 }
 
-.highlight-text-content {
-    padding-bottom: 4px;
-}
-
 .highlight-action-buttons {
     display: flex;
     justify-content: space-between;
@@ -85,7 +81,7 @@
     opacity: 0;
     height: 0;
     margin: 0;
-    padding: 2px 4px;
+    padding: 0px 4px 2px 4px;
 }
 
 .highlight-action-buttons-left,
