@@ -336,7 +336,15 @@ export class CommentView extends ItemView {
     }
 
     private async addComment(highlight: HighlightInfo, content: string) {
-        if (!this.currentFile || !highlight.id) return;
+        const file = await this.getFileForHighlight(highlight);
+        if (!file) {
+            new Notice("未找到对应的文件");
+            return;
+        }
+
+        if (!highlight.comments) {
+            highlight.comments = [];
+        }
 
         const newComment: CommentItem = {
             id: `comment-${Date.now()}`,
@@ -345,13 +353,10 @@ export class CommentView extends ItemView {
             updatedAt: Date.now()
         };
 
-        if (!highlight.comments) {
-            highlight.comments = [];
-        }
         highlight.comments.push(newComment);
         highlight.updatedAt = Date.now();
 
-        await this.commentStore.addComment(this.currentFile, highlight as HighlightComment);
+        await this.commentStore.addComment(file, highlight as HighlightComment);
 
         // 触发更新评论按钮
         window.dispatchEvent(new CustomEvent("comment-updated", {
@@ -363,14 +368,15 @@ export class CommentView extends ItemView {
     }
 
     private async updateComment(highlight: HighlightInfo, commentId: string, content: string) {
-        if (!this.currentFile || !highlight.comments) return;
+        const file = await this.getFileForHighlight(highlight);
+        if (!file || !highlight.comments) return;
 
         const comment = highlight.comments.find(c => c.id === commentId);
         if (comment) {
             comment.content = content;
             comment.updatedAt = Date.now();
             highlight.updatedAt = Date.now();
-            await this.commentStore.addComment(this.currentFile, highlight as HighlightComment);
+            await this.commentStore.addComment(file, highlight as HighlightComment);
 
             // 触发更新评论按钮
             window.dispatchEvent(new CustomEvent("comment-updated", {
@@ -383,11 +389,12 @@ export class CommentView extends ItemView {
     }
 
     private async deleteComment(highlight: HighlightInfo, commentId: string) {
-        if (!this.currentFile || !highlight.comments) return;
+        const file = await this.getFileForHighlight(highlight);
+        if (!file || !highlight.comments) return;
 
         highlight.comments = highlight.comments.filter(c => c.id !== commentId);
         highlight.updatedAt = Date.now();
-        await this.commentStore.addComment(this.currentFile, highlight as HighlightComment);
+        await this.commentStore.addComment(file, highlight as HighlightComment);
 
         // 触发更新评论按钮
         window.dispatchEvent(new CustomEvent("comment-updated", {
@@ -399,6 +406,32 @@ export class CommentView extends ItemView {
 
         // 重新渲染高亮列表
         await this.updateHighlights();
+    }
+
+    private async getFileForHighlight(highlight: HighlightInfo): Promise<TFile | null> {
+        // 如果有当前文件，使用当前文件
+        if (this.currentFile) {
+            return this.currentFile;
+        }
+        // 如果是全部高亮视图，使用 highlight.filePath 获取文件
+        if (highlight.filePath) {
+            console.log('Trying to find file by path:', highlight.filePath);
+            const file = this.app.vault.getAbstractFileByPath(highlight.filePath);
+            if (file instanceof TFile) {
+                return file;
+            }
+        }
+        // 如果通过 filePath 找不到，尝试通过 fileName
+        if (highlight.fileName) {
+            console.log('Trying to find file by name:', highlight.fileName);
+            const files = this.app.vault.getFiles();
+            const file = files.find(f => f.basename === highlight.fileName || f.name === highlight.fileName);
+            if (file) {
+                return file;
+            }
+        }
+        console.log('Failed to find file. Highlight:', highlight);
+        return null;
     }
 
     private generateHighlightId(highlight: HighlightInfo): string {
