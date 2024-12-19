@@ -1389,12 +1389,6 @@ hr {
     position: relative;
 }
 
-
-.highlight-chat-input-container {
-    flex-shrink: 0;
-    background-color: var(--background-primary);
-}
-
 /* 聊天输入框样式 */
 .highlight-chat-input-container .highlight-comment-input {
     padding: 4px;
@@ -1576,6 +1570,7 @@ hr {
 .highlight-chat-preview-card:first-child {
     margin-top: 0;
 }
+
 /* 预览内容 */
 .highlight-chat-preview-content {
     font-size: 13px;
@@ -1748,7 +1743,7 @@ hr {
 
 .highlight-chat-buttons {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
 }
 
@@ -1768,5 +1763,28 @@ hr {
 .highlight-chat-clear:hover,
 .highlight-chat-close:hover {
     color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+}
+
+/* 聊天窗口标题栏样式 */
+.highlight-chat-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.highlight-chat-model {
+    color: var(--text-faint);
+    font-size: 12px;
+    background: none;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.highlight-chat-model:hover {
+    color: var(--text-muted);
     background-color: var(--background-modifier-hover);
 }

@@ -1,4 +1,4 @@
-import { ItemView, App, setIcon } from "obsidian";
+import { ItemView, App, setIcon, Menu, MenuItem, Notice } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
 import { HighlightInfo } from '../types';
 
@@ -18,12 +18,14 @@ export class ChatView {
         currentPreviewContainer: boolean;  // 记录是否有活跃的预览容器
     } | null = null;
     private textarea: HTMLTextAreaElement | null = null;  // 添加输入框引用
+    private app: App;
 
     constructor(app: App, private plugin: any) {
         if (ChatView.instance) {
             return ChatView.instance;
         }
 
+        this.app = app;
         this.chatService = new ChatService(this.plugin);
         this.floatingButton = document.querySelector('.highlight-floating-button');
         
@@ -36,10 +38,24 @@ export class ChatView {
             cls: "highlight-chat-header"
         });
 
-        // 添加标题
-        header.createEl("div", {
-            cls: "highlight-chat-title",
+        // 添加标题和模型名称
+        const titleContainer = header.createEl("div", {
+            cls: "highlight-chat-title"
+        });
+        
+        titleContainer.createEl("span", {
             text: "对话"
+        });
+
+        const modelSelector = titleContainer.createEl("div", {
+            cls: "highlight-chat-model",
+            text: this.getCurrentModelName()
+        });
+
+        // 添加点击事件处理
+        modelSelector.addEventListener('click', (e: MouseEvent) => {
+            e.stopPropagation();
+            this.showModelSelector(modelSelector, e);
         });
 
         // 添加按钮容器
@@ -51,7 +67,7 @@ export class ChatView {
         const clearButton = buttonsContainer.createEl("div", {
             cls: "highlight-chat-clear"
         });
-        setIcon(clearButton, "trash");
+        setIcon(clearButton, "eraser");
         clearButton.addEventListener("click", () => this.clearChat());
 
         // 添加关闭按钮
@@ -82,12 +98,12 @@ export class ChatView {
         };
 
         // 将拖拽事件处理器添加到整个历史区域
-        chatHistory.addEventListener("dragenter", (e) => {
+        chatHistory.addEventListener("dragenter", (e: DragEvent) => {
             e.preventDefault();
             chatHistory.addClass("drag-over");
         });
 
-        chatHistory.addEventListener("dragover", (e) => {
+        chatHistory.addEventListener("dragover", (e: DragEvent) => {
             e.preventDefault();
             e.stopPropagation();
             chatHistory.addClass("drag-over");
@@ -111,13 +127,13 @@ export class ChatView {
             }
         });
 
-        chatHistory.addEventListener("dragleave", (e) => {
+        chatHistory.addEventListener("dragleave", (e: DragEvent) => {
             if (!chatHistory.contains(e.relatedTarget as Node)) {
                 chatHistory.removeClass("drag-over");
             }
         });
 
-        chatHistory.addEventListener("drop", async (e) => {
+        chatHistory.addEventListener("drop", async (e: DragEvent) => {
             e.preventDefault();
             chatHistory.removeClass("drag-over");
 
@@ -150,7 +166,7 @@ export class ChatView {
         let initialX: number;
         let initialY: number;
 
-        header.addEventListener("mousedown", (e) => {
+        header.addEventListener("mousedown", (e: MouseEvent) => {
             if (e.target === closeButton || e.target === clearButton) return; // 如果点击的是关闭按钮或清空按钮不启动拖拽
 
             isDragging = true;
@@ -160,7 +176,7 @@ export class ChatView {
             header.addClass("dragging");
         });
 
-        document.addEventListener("mousemove", (e) => {
+        document.addEventListener("mousemove", (e: MouseEvent) => {
             if (!isDragging) return;
 
             e.preventDefault();
@@ -422,11 +438,11 @@ export class ChatView {
         });
 
         // 处理按键事件
-        this.textarea.addEventListener('keydown', async (e: KeyboardEvent) => {
+        this.textarea.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 if (this.textarea) {  // 添加空值检查
-                    await this.handleSendMessage(this.textarea);
+                    this.handleSendMessage(this.textarea);
                 }
             }
         });
@@ -550,5 +566,91 @@ export class ChatView {
             this.textarea.value = '';
             this.textarea.style.height = 'auto';
         }
+    }
+
+    private getCurrentModelName(): string {
+        const aiSettings = this.plugin.settings.ai;
+        switch (aiSettings.provider) {
+            case 'openai':
+                return ` - ${aiSettings.openai?.model || 'GPT-3.5'}`;
+            case 'anthropic':
+                return ` - ${aiSettings.anthropic?.model || 'Claude'}`;
+            case 'ollama':
+                return ` - ${aiSettings.ollama?.model || 'Qwen'}`;
+            default:
+                return '';
+        }
+    }
+
+    private async showModelSelector(selector: HTMLElement, e: MouseEvent) {
+        const menu = new Menu();
+        const aiSettings = this.plugin.settings.ai;
+
+        switch (aiSettings.provider) {
+            case 'openai':
+                const openaiModels = {
+                    'gpt-4o': 'GPT-4o',
+                    'gpt-4o-mini': 'GPT-4o-mini',
+                    'gpt-4': 'GPT-4',
+                    'gpt-4-turbo-preview': 'GPT-4 Turbo',
+                    'gpt-3.5-turbo': 'GPT-3.5 Turbo'
+                };
+                Object.entries(openaiModels).forEach(([id, name]) => {
+                    menu.addItem((item: MenuItem) => {
+                        item.setTitle(name)
+                            .setChecked(aiSettings.openai?.model === id)
+                            .onClick(async () => {
+                                if (!aiSettings.openai) aiSettings.openai = { apiKey: '', model: id };
+                                aiSettings.openai.model = id;
+                                await this.plugin.saveSettings();
+                                selector.textContent = this.getCurrentModelName();
+                            });
+                    });
+                });
+                break;
+
+            case 'anthropic':
+                const anthropicModels = [
+                    'claude-3-opus-20240229',
+                    'claude-3-sonnet-20240229',
+                    'claude-3-haiku-20240307'
+                ];
+                anthropicModels.forEach(model => {
+                    menu.addItem((item: MenuItem) => {
+                        item.setTitle(model)
+                            .setChecked(aiSettings.anthropic?.model === model)
+                            .onClick(async () => {
+                                if (!aiSettings.anthropic) aiSettings.anthropic = { apiKey: '', model: model };
+                                aiSettings.anthropic.model = model;
+                                await this.plugin.saveSettings();
+                                selector.textContent = this.getCurrentModelName();
+                            });
+                    });
+                });
+                break;
+
+            case 'ollama':
+                try {
+                    const models = await this.chatService.aiService.listOllamaModels();
+                    models.forEach(model => {
+                        menu.addItem((item: MenuItem) => {
+                            item.setTitle(model)
+                                .setChecked(aiSettings.ollama?.model === model)
+                                .onClick(async () => {
+                                    if (!aiSettings.ollama) aiSettings.ollama = { host: 'http://localhost:11434', model: model };
+                                    aiSettings.ollama.model = model;
+                                    await this.plugin.saveSettings();
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
+                    });
+                } catch (error) {
+                    new Notice('无法获取 Ollama 模型列表，请检查服务是否正常运行');
+                }
+                break;
+        }
+
+        const rect = selector.getBoundingClientRect();
+        menu.showAtPosition({ x: rect.left, y: rect.bottom });
     }
 } 

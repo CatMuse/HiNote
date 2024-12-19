@@ -8,7 +8,7 @@ export interface ChatMessage {
 }
 
 export class ChatService {
-    private aiService: AIService;
+    readonly aiService: AIService;
 
     constructor(private plugin: any) {
         this.aiService = new AIService(this.plugin.settings.ai);
