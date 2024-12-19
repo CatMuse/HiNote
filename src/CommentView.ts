@@ -598,21 +598,19 @@ export class CommentView extends ItemView {
         // 修改点击事件
         allFilesItem.addEventListener("click", async () => {
             this.currentFile = null;
-            this.updateFileListSelection();  // 先更新选中状态
-            await this.updateAllHighlights();  // 再加载内容
+            this.updateFileListSelection();
+            await this.updateAllHighlights();
         });
 
         // 获取所有包含高亮的文件
         const files = await this.getFilesWithHighlights();
         
-        // 渲染文件列表
+        // 为每个文件创建一个列表项
         for (const file of files) {
             const fileItem = fileList.createEl("div", {
-                cls: `highlight-file-item ${this.currentFile?.path === file.path ? 'is-active' : ''}`,
-                attr: {
-                    'data-path': file.path
-                }
+                cls: `highlight-file-item ${this.currentFile?.path === file.path ? 'is-active' : ''}`
             });
+            fileItem.setAttribute('data-path', file.path);
 
             // 创建左侧内容容器
             const fileItemLeft = fileItem.createEl("div", {
@@ -625,13 +623,20 @@ export class CommentView extends ItemView {
             });
             setIcon(fileIcon, 'file-text');
 
+            // 为文件图标添加双击事件
+            fileIcon.addEventListener("dblclick", async (e) => {
+                e.stopPropagation(); // 阻止事件冒泡
+                const leaf = this.getPreferredLeaf();
+                await leaf.openFile(file);
+            });
+
             // 创建文件名
             fileItemLeft.createEl("span", {
                 text: file.basename,
                 cls: "highlight-file-item-name"
             });
 
-            // 获取该文件的高亮数量
+            // 获取文件的高亮数量
             const highlightCount = await this.getFileHighlightsCount(file);
             
             // 创建高亮数量标签
@@ -640,9 +645,8 @@ export class CommentView extends ItemView {
                 cls: "highlight-file-item-count"
             });
 
-            // 修改点击事件
+            // 添加点击事件
             fileItem.addEventListener("click", async () => {
-                // 先更新选中状态，再加载内容
                 this.currentFile = file;
                 this.updateFileListSelection();
                 await this.updateHighlights();
@@ -869,7 +873,7 @@ export class CommentView extends ItemView {
         }
     }
 
-    // 添加新的方法来判断是否在全部高亮视图
+    // 添加新方法来判断是否在全部高亮视图
     private isInAllHighlightsView(): boolean {
         return this.currentFile === null;
     }
@@ -881,6 +885,25 @@ export class CommentView extends ItemView {
         } else {
             await this.updateHighlights();
         }
+    }
+
+    // 添加一个辅助方法来获取或创建拆分视图
+    private getPreferredLeaf(): WorkspaceLeaf {
+        // 获取所有叶子
+        const leaves = this.app.workspace.getLeavesOfType("markdown");
+        
+        // 如果当前叶子在主视图区域
+        if (this.isDraggedToMainView) {
+            // 找到一个不是当前叶子的其他叶子
+            const otherLeaf = leaves.find(leaf => leaf !== this.leaf);
+            if (otherLeaf) {
+                // 如果找到其他叶子，使用它
+                return otherLeaf;
+            }
+        }
+        
+        // 如果没有其他叶子，或者当前不在主视图，创建一个新的拆分视图
+        return this.app.workspace.getLeaf('split', 'vertical');
     }
 }
 
