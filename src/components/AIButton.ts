@@ -9,6 +9,7 @@ export class AIButton {
     private normalIcon: HTMLElement;
     private loadingIcon: HTMLElement;
     private plugin: CommentPlugin;
+    private boundClickHandler: (e: MouseEvent) => void;
 
     constructor(
         container: HTMLElement,
@@ -21,11 +22,30 @@ export class AIButton {
         this.initButton();
 
         // 添加全局点击事件来关闭下拉菜单
-        document.addEventListener('click', (e) => {
+        this.boundClickHandler = (e) => {
             if (!this.container.contains(e.target as Node)) {
                 this.closeDropdown();
             }
-        });
+        };
+        document.addEventListener('click', this.boundClickHandler);
+
+        // 注册到 CommentView
+        const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as any;
+        if (commentView && commentView.registerAIButton) {
+            commentView.registerAIButton(this);
+        }
+    }
+
+    // 添加销毁方法
+    destroy() {
+        // 移除事件监听器
+        document.removeEventListener('click', this.boundClickHandler);
+
+        // 从 CommentView 注销
+        const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as any;
+        if (commentView && commentView.unregisterAIButton) {
+            commentView.unregisterAIButton(this);
+        }
     }
 
     private initButton() {

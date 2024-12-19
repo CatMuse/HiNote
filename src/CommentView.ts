@@ -29,6 +29,7 @@ export class CommentView extends ItemView {
     private loadingIndicator: HTMLElement;
     private BATCH_SIZE = 20;
     private floatingButton: HTMLElement | null = null;
+    private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -802,6 +803,31 @@ export class CommentView extends ItemView {
     onunload() {
         this.removeFloatingButton();
     }
+
+    // Update AI-related dropdowns
+    updateAIDropdowns(): void {
+        // 更新所有 AIButton 实例的下拉菜单
+        this.aiButtons.forEach(button => {
+            button.updateDropdownContent();
+        });
+        // 触发事件以便其他组件也能更新
+        this.app.workspace.trigger('comment-view:update-ai-dropdowns');
+    }
+
+    // 注册 AIButton 实例
+    registerAIButton(button: AIButton): void {
+        this.aiButtons.push(button);
+    }
+
+    // 注销 AIButton 实例
+    unregisterAIButton(button: AIButton): void {
+        const index = this.aiButtons.indexOf(button);
+        if (index !== -1) {
+            this.aiButtons.splice(index, 1);
+        }
+    }
+
+    // ... 其他代码保持不变 ...
 }
 
 function escapeRegExp(str: string) {
