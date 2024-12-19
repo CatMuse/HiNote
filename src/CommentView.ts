@@ -174,6 +174,13 @@ export class CommentView extends ItemView {
     }
 
     private async updateHighlights() {
+        // 如果在全部高亮视图，使用 updateAllHighlights
+        if (this.isInAllHighlightsView()) {
+            await this.updateAllHighlights();
+            return;
+        }
+
+        // 以下是单文件视图的逻辑
         if (!this.currentFile) {
             this.renderHighlights([]);
             return;
@@ -187,24 +194,20 @@ export class CommentView extends ItemView {
         
         // 合并高亮和评论数据
         this.highlights = highlights.map(highlight => {
-            // 查找匹配的评论，使用文本匹配和位置判断
             const storedComment = storedComments.find(c => {
-                // 查找文本是否匹配
                 const textMatch = c.text === highlight.text;
                 if (textMatch) {
-                    // 如果文本匹配，检查是否在同一段落内
-                    return Math.abs(c.position - highlight.position) < 1000; // 使用一个合理的范围值
+                    return Math.abs(c.position - highlight.position) < 1000;
                 }
                 return false;
             });
 
             if (storedComment) {
-                // 对评论按时间倒序排序
                 const sortedComments = [...storedComment.comments].sort((a, b) => b.updatedAt - a.updatedAt);
                 return {
                     ...storedComment,
                     comments: sortedComments,
-                    position: highlight.position, // 更新位置以匹配当前文档
+                    position: highlight.position,
                     paragraphOffset: highlight.paragraphOffset
                 };
             }
@@ -365,6 +368,9 @@ export class CommentView extends ItemView {
                 comments: highlight.comments
             }
         }));
+
+        // 使用新的刷新方法
+        await this.refreshView();
     }
 
     private async updateComment(highlight: HighlightInfo, commentId: string, content: string) {
@@ -385,6 +391,9 @@ export class CommentView extends ItemView {
                     comments: highlight.comments
                 }
             }));
+
+            // 使用新的刷新方法
+            await this.refreshView();
         }
     }
 
@@ -404,8 +413,8 @@ export class CommentView extends ItemView {
             }
         }));
 
-        // 重新渲染高亮列表
-        await this.updateHighlights();
+        // 使用新的刷新方法
+        await this.refreshView();
     }
 
     private async getFileForHighlight(highlight: HighlightInfo): Promise<TFile | null> {
@@ -757,8 +766,8 @@ export class CommentView extends ItemView {
             this.currentBatch++;
             
         } catch (error) {
-            console.error('Error loading highlights:', error);
-            new Notice('加载高亮内容时出错');
+            console.error("Error loading highlights:", error);
+            new Notice("加载高亮内容时出错");
         } finally {
             this.isLoading = false;
             this.loadingIndicator.style.display = "none";
@@ -860,7 +869,19 @@ export class CommentView extends ItemView {
         }
     }
 
-    // ... 其他代码保持不变 ...
+    // 添加新的方法来判断是否在全部高亮视图
+    private isInAllHighlightsView(): boolean {
+        return this.currentFile === null;
+    }
+
+    // 修改更新视图的方法
+    private async refreshView() {
+        if (this.isInAllHighlightsView()) {
+            await this.updateAllHighlights();
+        } else {
+            await this.updateHighlights();
+        }
+    }
 }
 
 function escapeRegExp(str: string) {
