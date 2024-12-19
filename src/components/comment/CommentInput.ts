@@ -47,10 +47,6 @@ export class CommentInput {
         // 替换内容为编辑框
         contentEl.replaceWith(this.textarea);
 
-        // 自动聚焦并将光标移到文本末尾
-        this.textarea.focus();
-        this.textarea.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
-
         // 隐藏底部的时间和按钮
         const footer = commentEl.querySelector('.highlight-comment-footer');
         if (footer) {
@@ -82,6 +78,12 @@ export class CommentInput {
         }
 
         this.setupKeyboardEvents(contentEl, footer || undefined);
+
+        // 延迟一下再聚焦，确保DOM已经完全渲染
+        setTimeout(() => {
+            this.textarea.focus();
+            this.textarea.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
+        }, 50);
     }
 
     private showCreateMode() {
@@ -90,9 +92,6 @@ export class CommentInput {
 
         // 创建文本框
         this.textarea = inputSection.createEl("textarea");
-
-        // 自动聚焦输入框
-        this.textarea.focus();
 
         // 添加快捷键提示
         inputSection.createEl('div', {
@@ -118,6 +117,11 @@ export class CommentInput {
         }
 
         this.setupKeyboardEvents();
+        
+        // 延迟一下再聚焦，确保DOM已经完全渲染
+        setTimeout(() => {
+            this.textarea.focus();
+        }, 50);
     }
 
     private setupKeyboardEvents(contentEl?: HTMLElement, footer?: Element) {

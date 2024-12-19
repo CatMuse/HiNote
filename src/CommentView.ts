@@ -62,6 +62,11 @@ export class CommentView extends ItemView {
             
             // 等待一下��视图已经更新
             setTimeout(() => {
+                // 移除所有卡片的选中状态
+                this.highlightContainer.querySelectorAll('.highlight-card').forEach(card => {
+                    card.removeClass('selected');
+                });
+
                 // 找到对应的高亮卡片
                 const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
                     .find(card => {
@@ -70,6 +75,9 @@ export class CommentView extends ItemView {
                     });
 
                 if (highlightCard) {
+                    // 添加选中状态
+                    highlightCard.addClass('selected');
+                    
                     // 更新按钮选择器以匹配新的 DOM 结构
                     const addButton = highlightCard.querySelector('.highlight-action-buttons .highlight-action-buttons-right .highlight-add-comment-btn') as HTMLElement;
                     if (addButton) {
