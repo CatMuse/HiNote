@@ -1155,7 +1155,7 @@ hr {
 
 /* 文件表标题样式优化 - 调整高度与索容器一致 */
 .highlight-file-list-header {
-    padding: 13px 16px;  /* 与搜索容器保持一致 */
+    padding: 13.25px 16px;  /* 与搜索容器保持一致 */
     background-color: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
     position: sticky;
