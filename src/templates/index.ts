@@ -47,8 +47,7 @@ export const defaultTemplate: CardTemplate = {
         // 来源信息
         const source = document.createElement('div');
         source.className = 'highlight-export-source';
-        const docTitle = document.querySelector('.workspace-leaf.mod-active .view-header-title')?.textContent || 'Obsidian';
-        source.textContent = docTitle;
+        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
         footer.appendChild(source);
 
         // 日期信息
@@ -88,8 +87,7 @@ export const academicTemplate: CardTemplate = {
         
         const source = document.createElement('div');
         source.className = 'highlight-export-source';
-        const docTitle = document.querySelector('.workspace-leaf.mod-active .view-header-title')?.textContent || 'Obsidian';
-        source.textContent = `Source: ${docTitle}`;
+        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
         footer.appendChild(source);
 
         const date = document.createElement('div');
@@ -144,7 +142,7 @@ export const socialTemplate: CardTemplate = {
         
         const source = document.createElement('div');
         source.className = 'highlight-export-source';
-        source.textContent = document.querySelector('.workspace-leaf.mod-active .view-header-title')?.textContent || 'Obsidian';
+        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
         footer.appendChild(source);
 
         cardContainer.appendChild(footer);

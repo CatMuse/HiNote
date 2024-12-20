@@ -794,11 +794,12 @@ hr {
 
 /* 学术模板 */
 .highlight-export-card-academic {
-    padding: 24px;
+    padding: 12px 24px 24px 24px;
     background-color: var(--background-primary);
     border: 2px solid var(--background-modifier-border);
     font-family: "Times New Roman", Times, serif;
-    border-radius: 4px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .highlight-export-card-academic .highlight-export-quote {
@@ -905,8 +906,8 @@ hr {
     display: flex;
     align-items: center;
 }
-
-.highlight-export-card-modern .highlight-export-source::before {
+/* 删除来源前面的图标 */
+/* .highlight-export-card-modern .highlight-export-source::before {
     content: '';
     display: inline-block;
     width: 16px;
@@ -916,7 +917,7 @@ hr {
     background-size: contain;
     background-repeat: no-repeat;
     opacity: 0.6;
-}
+} */
 
 .highlight-export-card-modern .highlight-export-date {
     font-size: 0.85em;

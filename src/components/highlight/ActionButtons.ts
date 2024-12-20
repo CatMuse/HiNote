@@ -12,7 +12,7 @@ export class ActionButtons {
         private plugin: CommentPlugin,
         private options: {
             onCommentAdd: () => void;
-            onExport: () => void;
+            onExport: (highlight: HighlightInfo) => void;
             onAIResponse: (content: string) => Promise<void>;
         }
     ) {
@@ -66,7 +66,7 @@ export class ActionButtons {
         setIcon(shareBtn, "image-down");
         shareBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.options.onExport();
+            this.options.onExport(this.highlight);
         });
     }
 } 

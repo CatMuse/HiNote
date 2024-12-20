@@ -102,7 +102,14 @@ export class HighlightCard {
             this.plugin,
             {
                 onCommentAdd: () => this.options.onCommentAdd(this.highlight),
-                onExport: () => this.options.onExport(this.highlight),
+                onExport: () => {
+                    // 确保导出时包含文件名
+                    const highlightWithFileName = { ...this.highlight };
+                    if (this.fileName) {
+                        highlightWithFileName.fileName = this.fileName;
+                    }
+                    this.options.onExport(highlightWithFileName);
+                },
                 onAIResponse: this.options.onAIResponse
             }
         );
