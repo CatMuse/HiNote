@@ -552,14 +552,14 @@
     background-color: var(--background-primary);  /* 添加背景色 */
 }
 
-/*  */
-.highlight-export-container {
+/* 在ExportModel已经设置了样式 */
+/* .highlight-export-container {
     width: 100%;
     padding: 24px;
     background-color: var(--background-primary);
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
+} */
 
 /* 导出预览标题和择器容器 */
 .highlight-export-header {

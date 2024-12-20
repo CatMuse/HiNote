@@ -91,10 +91,10 @@ export class ExportPreviewModal extends Modal {
                 // 创建临时容器用于导出
                 const exportContainer = document.createElement('div');
                 exportContainer.className = 'highlight-export-container';
-                exportContainer.style.padding = '0';
+                exportContainer.style.padding = '20px';  // 添加内边距
                 exportContainer.style.margin = '0';
-                exportContainer.style.background = 'none';
-                exportContainer.style.width = '480px'; // 设置固定宽度
+                exportContainer.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';  // 添加渐变背景
+                exportContainer.style.width = '480px';
                 
                 const template = getTemplate(this.selectedTemplateId);
                 const cardElement = template.render(this.highlight);
@@ -133,6 +133,8 @@ export class ExportPreviewModal extends Modal {
 
     private updatePreview() {
         this.previewContainer.empty();
+        this.previewContainer.style.background = 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)';
+        this.previewContainer.style.padding = '20px';
         const template = getTemplate(this.selectedTemplateId);
         const cardElement = template.render(this.highlight);
         this.previewContainer.appendChild(cardElement);
