@@ -43,8 +43,6 @@ export class OllamaService {
                 method: 'GET'
             }) as OllamaModelsResponse;
 
-            console.log('Models response:', response);
-
             if (!response || !response.models) {
                 throw new Error('Invalid API response format');
             }
@@ -166,7 +164,6 @@ export class OllamaService {
         for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
             try {
                 const url = new URL(params.endpoint, this.baseUrl).toString();
-                console.log(`Making request to ${url} (attempt ${attempt}/${this.retryAttempts})`);
                 
                 const response = await requestUrl({
                     url,
@@ -178,10 +175,6 @@ export class OllamaService {
                     body: params.body,
                     throw: false
                 });
-
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-                console.log('Response body:', response.text);
 
                 if (response.status === 200) {
                     try {
