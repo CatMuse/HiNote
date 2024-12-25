@@ -98,13 +98,13 @@ export class HighlightDecorator {
 
                 paragraphs.forEach((paragraph) => {
                     // 在当前段落中查找高亮文本
-                    const highlightRegex = /==\s*(.*?)\s*==|<mark>\s*(.*?)\s*<\/mark>|<span style="background:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,6})">\s*(.*?)\s*<\/span>/g;
+                    const highlightRegex = /==\s*(.*?)\s*==|<mark(?:\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
                     let match;
                     const paragraphHighlights: HighlightComment[] = [];
 
                     while ((match = highlightRegex.exec(paragraph)) !== null) {
-                        const text = match[1] || match[2] || match[4];
-                        const backgroundColor = match[3];
+                        const text = match[1] || match[3] || match[5]; // 更新索引以匹配新的捕获组
+                        const backgroundColor = match[2] || match[4]; // 更新索引以匹配新的捕获组
                         if (text?.trim()) {
                             const from = offset + match.index;
                             const to = from + match[0].length;
@@ -206,20 +206,20 @@ export class HighlightDecorator {
             });
         });
 
-        // 更新"更多评论"提示
-        const moreEl = tooltip.querySelector('.highlight-comment-tooltip-more');
-        if (comments.length > 3) {
-            if (moreEl) {
-                moreEl.textContent = `还有 ${comments.length - 3} 条评论...`;
-                moreEl.removeClass('hidden');
-            } else {
-                tooltip.createEl('div', {
-                    cls: 'highlight-comment-tooltip-more',
-                    text: `还有 ${comments.length - 3} 条评论...`
-                });
-            }
-        } else if (moreEl) {
-            moreEl.addClass('hidden');
-        }
+        // // 更新"更多评论"提示,应该是重复代码，注释观察
+        // const moreEl = tooltip.querySelector('.highlight-comment-tooltip-more');
+        // if (comments.length > 3) {
+        //     if (moreEl) {
+        //         moreEl.textContent = `还有 ${comments.length - 3} 条评论...`;
+        //         moreEl.removeClass('hidden');
+        //     } else {
+        //         tooltip.createEl('div', {
+        //             cls: 'highlight-comment-tooltip-more',
+        //             text: `还有 ${comments.length - 3} 条评论...`
+        //         });
+        //     }
+        // } else if (moreEl) {
+        //     moreEl.addClass('hidden');
+        // }
     }
 } 

@@ -572,13 +572,15 @@ export class ChatView {
         const aiSettings = this.plugin.settings.ai;
         switch (aiSettings.provider) {
             case 'openai':
-                return ` - ${aiSettings.openai?.model || 'GPT-3.5'}`;
+                return aiSettings.openai?.model || 'GPT-4';
             case 'anthropic':
-                return ` - ${aiSettings.anthropic?.model || 'Claude'}`;
+                return aiSettings.anthropic?.model || 'Claude-3';
             case 'ollama':
-                return ` - ${aiSettings.ollama?.model || 'Qwen'}`;
+                return aiSettings.ollama?.model || 'Ollama';
+            case 'gemini':
+                return aiSettings.gemini?.model || 'Gemini Pro';
             default:
-                return '';
+                return 'Unknown Model';
         }
     }
 
@@ -647,6 +649,25 @@ export class ChatView {
                 } catch (error) {
                     new Notice('无法获取 Ollama 模型列表，请检查服务是否正常运行');
                 }
+                break;
+
+            case 'gemini':
+                const geminiModels = [
+                    'gemini-pro',
+                    'gemini-pro-vision'
+                ];
+                geminiModels.forEach(model => {
+                    menu.addItem((item: MenuItem) => {
+                        item.setTitle(model)
+                            .setChecked(aiSettings.gemini?.model === model)
+                            .onClick(async () => {
+                                if (!aiSettings.gemini) aiSettings.gemini = { apiKey: '', model: model };
+                                aiSettings.gemini.model = model;
+                                await this.plugin.saveSettings();
+                                selector.textContent = this.getCurrentModelName();
+                            });
+                    });
+                });
                 break;
         }
 

@@ -20,7 +20,7 @@ export interface HighlightInfo {
     fileIcon?: string;
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'ollama';
+export type AIProvider = 'openai' | 'anthropic' | 'ollama' | 'gemini';
 export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini' | 'gpt-4';
 export type AnthropicModel = string;
 
@@ -41,6 +41,11 @@ export interface AISettings {
         host: string;
         model: string;
         availableModels?: string[];
+    };
+    gemini?: {
+        apiKey: string;
+        model: string;
+        baseUrl?: string;
     };
     prompts: {
         [key: string]: string;

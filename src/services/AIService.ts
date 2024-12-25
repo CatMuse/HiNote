@@ -1,11 +1,13 @@
 import { AIProvider, AISettings } from '../types';
 import { OllamaService } from './OllamaService';
 import { AnthropicService } from './AnthropicService';
+import { GeminiService } from './GeminiService';
 import { requestUrl } from 'obsidian';
 
 export class AIService {
     private ollamaService: OllamaService;
     private anthropicService: AnthropicService | null = null;
+    private geminiService: GeminiService | null = null;
 
     constructor(private settings: AISettings) {
         if (settings.ollama?.host) {
@@ -15,6 +17,12 @@ export class AIService {
             this.anthropicService = new AnthropicService(
                 settings.anthropic.apiKey,
                 settings.anthropic.baseUrl
+            );
+        }
+        if (settings.gemini?.apiKey) {
+            this.geminiService = new GeminiService(
+                settings.gemini.apiKey,
+                settings.gemini.baseUrl
             );
         }
     }
@@ -35,6 +43,8 @@ export class AIService {
                 return await this.callAnthropic(promptWithContext);
             case 'ollama':
                 return await this.callOllama(promptWithContext);
+            case 'gemini':
+                return await this.callGemini(promptWithContext);
             default:
                 throw new Error('AI service not configured');
         }
@@ -48,6 +58,8 @@ export class AIService {
                 return await this.chatWithAnthropic(messages);
             case 'ollama':
                 return await this.chatWithOllama(messages);
+            case 'gemini':
+                return await this.chatWithGemini(messages);
             default:
                 throw new Error('AI service not configured');
         }
@@ -105,6 +117,13 @@ export class AIService {
         );
     }
 
+    private async chatWithGemini(messages: { role: string, content: string }[]): Promise<string> {
+        if (!this.geminiService) {
+            throw new Error('Gemini service not configured');
+        }
+        return await this.geminiService.chat(messages);
+    }
+
     private async callOpenAI(prompt: string): Promise<string> {
         return await this.chatWithOpenAI([{ role: 'user', content: prompt }]);
     }
@@ -131,6 +150,13 @@ export class AIService {
         );
     }
 
+    private async callGemini(prompt: string): Promise<string> {
+        if (!this.geminiService) {
+            throw new Error('Gemini service not configured');
+        }
+        return await this.geminiService.generateResponse(prompt);
+    }
+
     async testConnection(): Promise<boolean> {
         switch (this.settings.provider) {
             case 'openai':
@@ -147,6 +173,9 @@ export class AIService {
             case 'ollama':
                 if (!this.ollamaService) return false;
                 return await this.ollamaService.testConnection();
+            case 'gemini':
+                if (!this.geminiService) return false;
+                return await this.geminiService.testConnection();
             default:
                 return false;
         }

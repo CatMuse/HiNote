@@ -84,14 +84,14 @@ export class LocationService {
         const highlightFormats = [
             new RegExp(`==\\s*${this.escapeRegExp(highlight.text)}\\s*==`),
             new RegExp(`<mark>\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`),
-            new RegExp(`<span style="background:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)">\\s*${this.escapeRegExp(highlight.text)}\\s*</span>`),
-            new RegExp(`<span style="background:#[0-9a-fA-F]{3,6}">\\s*${this.escapeRegExp(highlight.text)}\\s*</span>`)
+            new RegExp(`<mark\\s+style="background(?:-color)?:(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})">\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`),
+            new RegExp(`<span\\s+style="background(?:-color)?:(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})">\\s*${this.escapeRegExp(highlight.text)}\\s*</span>`)
         ];
 
         // 如果有背景色，优先使用对应的格式
         if (highlight.backgroundColor) {
             highlightFormats.unshift(
-                new RegExp(`<span style="background:${this.escapeRegExp(highlight.backgroundColor)}">\\s*${this.escapeRegExp(highlight.text)}\\s*</span>`)
+                new RegExp(`<(?:mark|span)\\s+style="background(?:-color)?:${this.escapeRegExp(highlight.backgroundColor)}">\\s*${this.escapeRegExp(highlight.text)}\\s*</(?:mark|span)>`)
             );
         }
 

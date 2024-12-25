@@ -319,7 +319,7 @@ export class CommentView extends ItemView {
     }
 
     private extractHighlights(content: string): HighlightInfo[] {
-        const highlightRegex = /==\s*(.*?)\s*==|<mark>\s*(.*?)\s*<\/mark>|<span style="background:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,6})">\s*(.*?)\s*<\/span>/g;
+        const highlightRegex = /==\s*(.*?)\s*==|<mark(?:\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
         const highlights: HighlightInfo[] = [];
         const paragraphs = content.split(/\n\n+/);
         let offset = 0;
@@ -327,8 +327,8 @@ export class CommentView extends ItemView {
         paragraphs.forEach((paragraph, index) => {
             let match;
             while ((match = highlightRegex.exec(paragraph)) !== null) {
-                const text = (match[1] || match[2] || match[4])?.trim();
-                const backgroundColor = match[3];
+                const text = (match[1] || match[3] || match[5])?.trim();
+                const backgroundColor = match[2] || match[4];
                 if (text) {
                     const highlight: HighlightInfo = {
                         text: text,

@@ -30,7 +30,8 @@ export class AISettingTab extends PluginSettingTab {
                 .addOptions({
                     'openai': 'OpenAI',
                     'anthropic': 'Anthropic',
-                    'ollama': 'Ollama (本地服务)'
+                    'ollama': 'Ollama (本地服务)',
+                    'gemini': 'Google Gemini'
                 })
                 .setValue(this.plugin.settings.ai.provider)
                 .onChange(async (value: AIProvider) => {
@@ -54,6 +55,9 @@ export class AISettingTab extends PluginSettingTab {
                 break;
             case 'ollama':
                 this.displayOllamaSettings();
+                break;
+            case 'gemini':
+                this.displayGeminiSettings();
                 break;
         }
 
@@ -604,6 +608,131 @@ export class AISettingTab extends PluginSettingTab {
             
         // 保存设置
         this.plugin.saveSettings();
+    }
+
+    private async verifyGeminiApiKey(apiKey: string): Promise<boolean> {
+        try {
+            const baseUrl = this.plugin.settings.ai.gemini?.baseUrl || 'https://generativelanguage.googleapis.com';
+            const response = await requestUrl({
+                url: `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`,
+                method: 'GET'
+            });
+            return response.status === 200;
+        } catch (error) {
+            console.error('Error verifying Gemini API key:', error);
+            return false;
+        }
+    }
+
+    private getDefaultGeminiModels(): {id: string, name: string}[] {
+        return [
+            { id: 'gemini-pro', name: 'Gemini Pro' },
+            { id: 'gemini-pro-vision', name: 'Gemini Pro Vision' }
+        ];
+    }
+
+    private displayGeminiSettings() {
+        const container = this.containerEl.createEl('div', {
+            cls: 'ai-service-settings'
+        });
+
+        container.createEl('h3', { text: 'Google Gemini 设置' });
+
+        // 创建模型设置容器
+        const modelContainer = container.createEl('div', {
+            cls: 'model-setting-container'
+        });
+
+        // API Key 设置
+        new Setting(container)
+            .setName('API Key')
+            .setDesc('输入你的 Google Gemini API Key')
+            .addText(text => text
+                .setPlaceholder('AIza...')
+                .setValue(this.plugin.settings.ai.gemini?.apiKey || '')
+                .onChange(async (value) => {
+                    if (!this.plugin.settings.ai.gemini) {
+                        this.plugin.settings.ai.gemini = {
+                            apiKey: '',
+                            model: 'gemini-pro'
+                        };
+                    }
+                    this.plugin.settings.ai.gemini.apiKey = value;
+                    await this.plugin.saveSettings();
+                })
+                .inputEl.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        const apiKey = this.plugin.settings.ai.gemini?.apiKey;
+                        if (!apiKey) {
+                            new Notice('请先输入 API Key');
+                            return;
+                        }
+
+                        // 显示验证中的提示
+                        new Notice('正在验证 API Key...');
+
+                        // 验证 API Key
+                        const isValid = await this.verifyGeminiApiKey(apiKey);
+                        if (isValid) {
+                            new Notice('API Key 验证成功！');
+                            // 刷新模型列表
+                            this.createGeminiModelDropdown(modelContainer);
+                        } else {
+                            new Notice('API Key 验证失败，请检查后重试');
+                        }
+                    }
+                }));
+
+        // 添加模型选择
+        this.createGeminiModelDropdown(modelContainer);
+
+        // 自定义 API 地址
+        new Setting(container)
+            .setName('自定义 API 地址')
+            .setDesc('如果使用自定义 API 代理，请输入完整的 API 地址')
+            .addText(text => text
+                .setPlaceholder('https://generativelanguage.googleapis.com')
+                .setValue(this.plugin.settings.ai.gemini?.baseUrl || '')
+                .onChange(async (value) => {
+                    if (!this.plugin.settings.ai.gemini) {
+                        this.plugin.settings.ai.gemini = {
+                            apiKey: '',
+                            model: 'gemini-pro'
+                        };
+                    }
+                    this.plugin.settings.ai.gemini.baseUrl = value;
+                    await this.plugin.saveSettings();
+                }));
+    }
+
+    private createGeminiModelDropdown(container: HTMLElement) {
+        const models = this.getDefaultGeminiModels();
+
+        new Setting(container)
+            .setName('模型')
+            .setDesc('选择要使用的 Gemini 模型')
+            .addDropdown(dropdown => {
+                // 添加所有可用的模型
+                const options: { [key: string]: string } = {};
+                models.forEach(model => {
+                    options[model.id] = model.name;
+                });
+
+                return dropdown
+                    .addOptions(options)
+                    .setValue(this.plugin.settings.ai.gemini?.model || 'gemini-pro')
+                    .onChange(async (value) => {
+                        if (!this.plugin.settings.ai.gemini) {
+                            this.plugin.settings.ai.gemini = {
+                                apiKey: '',
+                                model: value
+                            };
+                        } else {
+                            this.plugin.settings.ai.gemini.model = value;
+                        }
+                        await this.plugin.saveSettings();
+                    });
+            });
     }
 
     private displayPromptSettings() {
