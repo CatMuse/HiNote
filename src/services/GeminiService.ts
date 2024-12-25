@@ -77,6 +77,19 @@ export class GeminiService {
         }
     }
 
+    async listModels(): Promise<{ id: string; name: string }[]> {
+        // 返回默认模型列表
+        return [
+            { id: 'gemini-pro', name: 'Gemini Pro' },
+            { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro' },
+            { id: 'gemini-pro-vision', name: 'Gemini Pro Vision' },
+            { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash' },
+            { id: 'gemini-exp-1121', name: 'Gemini Exp 1121' },
+            { id: 'gemini-exp-1114', name: 'Gemini Exp 1114' },
+            { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Exp' }
+        ];
+    }
+
     async testConnection(): Promise<boolean> {
         try {
             const response = await requestUrl({

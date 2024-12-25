@@ -652,22 +652,23 @@ export class ChatView {
                 break;
 
             case 'gemini':
-                const geminiModels = [
-                    'gemini-pro',
-                    'gemini-pro-vision'
-                ];
-                geminiModels.forEach(model => {
-                    menu.addItem((item: MenuItem) => {
-                        item.setTitle(model)
-                            .setChecked(aiSettings.gemini?.model === model)
-                            .onClick(async () => {
-                                if (!aiSettings.gemini) aiSettings.gemini = { apiKey: '', model: model };
-                                aiSettings.gemini.model = model;
-                                await this.plugin.saveSettings();
-                                selector.textContent = this.getCurrentModelName();
-                            });
+                try {
+                    const models = await this.chatService.aiService.listGeminiModels();
+                    models.forEach(model => {
+                        menu.addItem((item: MenuItem) => {
+                            item.setTitle(model.name)
+                                .setChecked(aiSettings.gemini?.model === model.id)
+                                .onClick(async () => {
+                                    if (!aiSettings.gemini) aiSettings.gemini = { apiKey: '', model: model.id };
+                                    aiSettings.gemini.model = model.id;
+                                    await this.plugin.saveSettings();
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
                     });
-                });
+                } catch (error) {
+                    new Notice('无法获取 Gemini 模型列表，请检查 API Key 和网络连接');
+                }
                 break;
         }
 

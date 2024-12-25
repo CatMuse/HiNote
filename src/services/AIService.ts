@@ -187,4 +187,11 @@ export class AIService {
         }
         return await this.ollamaService.listModels();
     }
+
+    async listGeminiModels(): Promise<{id: string, name: string}[]> {
+        if (!this.geminiService) {
+            throw new Error('Gemini service not configured');
+        }
+        return await this.geminiService.listModels();
+    }
 }

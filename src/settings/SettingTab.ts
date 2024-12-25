@@ -1,9 +1,10 @@
-import { App, PluginSettingTab, Setting, TextComponent, Notice, TextAreaComponent, Modal, requestUrl } from 'obsidian';
+import { App, PluginSettingTab, Setting, TextComponent, Notice, TextAreaComponent, Modal, requestUrl, DropdownComponent } from 'obsidian';
 import { AIProvider, OpenAIModel, AnthropicModel, PluginSettings } from '../types';
 import { OllamaService } from '../services/OllamaService';
 import { CommentView } from '../CommentView';
 import { setIcon } from 'obsidian';  // 添加 setIcon 导入
 import { PromptSettingsTab } from './PromptSettingsTab';  // 导入新的 PromptSettingsTab
+import { GeminiService } from '../services/GeminiService';  // 添加 GeminiService 的导入语句
 
 export class AISettingTab extends PluginSettingTab {
     plugin: any;  // 修改为具体的插件类型
@@ -19,36 +20,35 @@ export class AISettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        // AI 服务设置区域
-        containerEl.createEl('h2', { text: 'AI 服务设置' });
-
-        // AI 提供商选择
+        // AI 服务设置
         new Setting(containerEl)
-            .setName('AI 服务提供商')
-            .setDesc('选择要使用的 AI 服务')
-            .addDropdown(dropdown => dropdown
-                .addOptions({
+            .setName('AI 服务')
+            .setDesc('选择要使用的 AI 服务提供商')
+            .addDropdown(dropdown => {
+                const options: Record<AIProvider, string> = {
                     'openai': 'OpenAI',
+                    'gemini': 'Gemini',
                     'anthropic': 'Anthropic',
-                    'ollama': 'Ollama (本地服务)',
-                    'gemini': 'Google Gemini'
-                })
-                .setValue(this.plugin.settings.ai.provider)
-                .onChange(async (value: AIProvider) => {
-                    this.plugin.settings.ai.provider = value;
-                    await this.plugin.saveSettings();
+                    'ollama': 'Ollama (本地服务)'
+                };
 
-                    // 刷新设置界面以显示相应的配置选项
-                    this.display();
-                }));
+                return dropdown
+                    .addOptions(options)
+                    .setValue(this.plugin.settings.ai.provider)
+                    .onChange(async (value: AIProvider) => {
+                        this.plugin.settings.ai.provider = value;
+                        await this.plugin.saveSettings();
+                        this.display();
+                    });
+            });
 
-        // 添加分隔线
-        containerEl.createEl('hr');
-
-        // 根据选择的提供商显示相应的设置
+        // 根据选择的服务显示相应的设置
         switch (this.plugin.settings.ai.provider) {
             case 'openai':
                 this.displayOpenAISettings();
+                break;
+            case 'gemini':
+                this.displayGeminiSettings();
                 break;
             case 'anthropic':
                 this.displayAnthropicSettings();
@@ -56,15 +56,9 @@ export class AISettingTab extends PluginSettingTab {
             case 'ollama':
                 this.displayOllamaSettings();
                 break;
-            case 'gemini':
-                this.displayGeminiSettings();
-                break;
         }
 
-        // 添加分隔线
-        containerEl.createEl('hr');
-
-        // Prompt 设置区域
+        // 显示提示词设置
         this.displayPromptSettings();
     }
 
@@ -157,7 +151,7 @@ export class AISettingTab extends PluginSettingTab {
         // API Key 设置
         new Setting(container)
             .setName('API Key')
-            .setDesc('输入你的 OpenAI API Key')
+            .setDesc('输入你的 OpenAI API Key，Enter 验证')
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.plugin.settings.ai.openai?.apiKey || '')
@@ -281,7 +275,7 @@ export class AISettingTab extends PluginSettingTab {
         // API Key 设置
         new Setting(container)
             .setName('API Key')
-            .setDesc('输入你的 Anthropic API Key')
+            .setDesc('输入你的 Anthropic API Key，Enter 验证')
             .addText(text => text
                 .setPlaceholder('sk-ant-...')
                 .setValue(this.plugin.settings.ai.anthropic?.apiKey || '')
@@ -614,7 +608,7 @@ export class AISettingTab extends PluginSettingTab {
         try {
             const baseUrl = this.plugin.settings.ai.gemini?.baseUrl || 'https://generativelanguage.googleapis.com';
             const response = await requestUrl({
-                url: `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`,
+                url: `${baseUrl}/v1/models?key=${apiKey}`,
                 method: 'GET'
             });
             return response.status === 200;
@@ -624,11 +618,50 @@ export class AISettingTab extends PluginSettingTab {
         }
     }
 
-    private getDefaultGeminiModels(): {id: string, name: string}[] {
-        return [
-            { id: 'gemini-pro', name: 'Gemini Pro' },
-            { id: 'gemini-pro-vision', name: 'Gemini Pro Vision' }
-        ];
+    private async createGeminiModelDropdown(container: HTMLElement) {
+        try {
+            const modelSetting = new Setting(container)
+                .setName('模型')
+                .setDesc('选择要使用的 Gemini 模型');
+
+            // 默认模型列表
+            const defaultModels = {
+                'gemini-pro': 'Gemini Pro',
+                'gemini-1.5-pro-latest': 'Gemini 1.5 Pro',
+                'gemini-pro-vision': 'Gemini Pro Vision',
+                'gemini-1.5-flash-latest': 'Gemini 1.5 Flash',
+                'gemini-exp-1121': 'Gemini Exp 1121',
+                'gemini-exp-1114': 'Gemini Exp 1114',
+                'gemini-2.0-flash-exp': 'Gemini 2.0 Flash Exp'
+            };
+
+            modelSetting.addDropdown(dropdown => {
+                return dropdown
+                    .addOptions(defaultModels)
+                    .setValue(this.plugin.settings.ai.gemini?.model || 'gemini-pro')
+                    .onChange(async (value) => {
+                        if (!this.plugin.settings.ai.gemini) {
+                            this.plugin.settings.ai.gemini = {
+                                apiKey: '',
+                                model: value
+                            };
+                        }
+                        this.plugin.settings.ai.gemini.model = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+            // 注释掉 API 获取逻辑
+            /*
+            if (this.plugin.settings.ai.gemini?.apiKey) {
+                this.updateGeminiModels(dropdown);
+            }
+            */
+
+        } catch (error) {
+            console.error('Error creating Gemini model dropdown:', error);
+            new Notice('无法创建模型选择下拉菜单');
+        }
     }
 
     private displayGeminiSettings() {
@@ -636,17 +669,12 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'Google Gemini 设置' });
-
-        // 创建模型设置容器
-        const modelContainer = container.createEl('div', {
-            cls: 'model-setting-container'
-        });
+        container.createEl('h3', { text: 'Gemini 设置' });
 
         // API Key 设置
         new Setting(container)
             .setName('API Key')
-            .setDesc('输入你的 Google Gemini API Key')
+            .setDesc('输入你的 Gemini API Key，Enter 验证')
             .addText(text => text
                 .setPlaceholder('AIza...')
                 .setValue(this.plugin.settings.ai.gemini?.apiKey || '')
@@ -676,12 +704,18 @@ export class AISettingTab extends PluginSettingTab {
                         if (isValid) {
                             new Notice('API Key 验证成功！');
                             // 刷新模型列表
-                            this.createGeminiModelDropdown(modelContainer);
+                            modelContainer.empty();
+                            await this.createGeminiModelDropdown(modelContainer);
                         } else {
                             new Notice('API Key 验证失败，请检查后重试');
                         }
                     }
                 }));
+
+        // 创建模型设置容器
+        const modelContainer = container.createEl('div', {
+            cls: 'model-setting-container'
+        });
 
         // 添加模型选择
         this.createGeminiModelDropdown(modelContainer);
@@ -703,36 +737,6 @@ export class AISettingTab extends PluginSettingTab {
                     this.plugin.settings.ai.gemini.baseUrl = value;
                     await this.plugin.saveSettings();
                 }));
-    }
-
-    private createGeminiModelDropdown(container: HTMLElement) {
-        const models = this.getDefaultGeminiModels();
-
-        new Setting(container)
-            .setName('模型')
-            .setDesc('选择要使用的 Gemini 模型')
-            .addDropdown(dropdown => {
-                // 添加所有可用的模型
-                const options: { [key: string]: string } = {};
-                models.forEach(model => {
-                    options[model.id] = model.name;
-                });
-
-                return dropdown
-                    .addOptions(options)
-                    .setValue(this.plugin.settings.ai.gemini?.model || 'gemini-pro')
-                    .onChange(async (value) => {
-                        if (!this.plugin.settings.ai.gemini) {
-                            this.plugin.settings.ai.gemini = {
-                                apiKey: '',
-                                model: value
-                            };
-                        } else {
-                            this.plugin.settings.ai.gemini.model = value;
-                        }
-                        await this.plugin.saveSettings();
-                    });
-            });
     }
 
     private displayPromptSettings() {
