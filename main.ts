@@ -102,6 +102,76 @@ export default class CommentPlugin extends Plugin {
 				chatView.show();
 			}
 		});
+
+		// 添加切换评论面板的命令
+		this.addCommand({
+			id: 'toggle-comment-panel',
+			name: '切换评论面板',
+			callback: async () => {
+				const { workspace } = this.app;
+				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+				
+				if (existing.length) {
+					// 如果面板已打开，关闭它
+					existing.forEach(leaf => leaf.detach());
+				} else {
+					// 如果面板未打开，在右侧打开它
+					const leaf = workspace.getRightLeaf(false);
+					if (leaf) {
+						await leaf.setViewState({
+							type: VIEW_TYPE_COMMENT,
+							active: true,
+						});
+					}
+				}
+			},
+		});
+
+		// 添加切换评论面板位置的命令
+		this.addCommand({
+			id: 'toggle-comment-panel-location',
+			name: '切换评论面板位置',
+			callback: async () => {
+				const { workspace } = this.app;
+				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+				
+				if (existing.length) {
+					const currentLeaf = existing[0];
+					// 检查面板是否在右侧侧边栏
+					const isInSidebar = currentLeaf.getRoot() === workspace.rightSplit;
+					
+					// 保存当前状态
+					const state = currentLeaf.getViewState();
+					
+					// 移除当前面板
+					currentLeaf.detach();
+					
+					// 在新位置创建面板
+					let newLeaf;
+					if (isInSidebar) {
+						// 如果在侧边栏，移到主区域
+						newLeaf = workspace.getLeaf('split');
+					} else {
+						// 如果在主区域，移到侧边栏
+						newLeaf = workspace.getRightLeaf(false);
+					}
+					
+					// 恢复状态
+					if (newLeaf) {
+						await newLeaf.setViewState(state);
+					}
+				} else {
+					// 如果面板未打开，在右侧打开它
+					const leaf = workspace.getRightLeaf(false);
+					if (leaf) {
+						await leaf.setViewState({
+							type: VIEW_TYPE_COMMENT,
+							active: true,
+						});
+					}
+				}
+			},
+		});
 	}
 
 	onunload() {
