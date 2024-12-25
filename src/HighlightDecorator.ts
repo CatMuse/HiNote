@@ -6,6 +6,7 @@ import { CommentWidget } from "./editor/CommentWidget";
 export class HighlightDecorator {
     private plugin: Plugin;
     private commentStore: CommentStore;
+    private highlightPlugin: any;
 
     constructor(plugin: Plugin, commentStore: CommentStore) {
         this.plugin = plugin;
@@ -183,7 +184,22 @@ export class HighlightDecorator {
             decorations: v => v.decorations
         });
 
+        this.highlightPlugin = highlightPlugin;
         this.plugin.registerEditorExtension([highlightPlugin]);
+    }
+
+    disable() {
+        // 移除编辑器扩展
+        if (this.highlightPlugin) {
+            const view = this.getActiveMarkdownView();
+            if (view?.editor) {
+                // 刷新编辑器以移除所有装饰器
+                view.editor.refresh();
+            }
+        }
+
+        // 移除所有高亮评论按钮
+        document.querySelectorAll('.highlight-comment-widget').forEach(el => el.remove());
     }
 
     private updateTooltipContent(tooltip: Element, comments: CommentItem[]) {

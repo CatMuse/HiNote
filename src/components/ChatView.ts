@@ -595,7 +595,6 @@ export class ChatView {
                     'gpt-4o-mini': 'GPT-4o-mini',
                     'gpt-4': 'GPT-4',
                     'gpt-4-turbo-preview': 'GPT-4 Turbo',
-                    'gpt-3.5-turbo': 'GPT-3.5 Turbo'
                 };
                 Object.entries(openaiModels).forEach(([id, name]) => {
                     menu.addItem((item: MenuItem) => {
