@@ -1,7 +1,7 @@
 {
 	"id": "highlight-comment",
 	"name": "Highlight Comment",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"minAppVersion": "0.15.0",
 	"description": "Enhance your highlighted notes with comment management and export features.",
 	"author": "Kai",
