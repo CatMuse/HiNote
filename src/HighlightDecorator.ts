@@ -99,7 +99,7 @@ export class HighlightDecorator {
 
                 paragraphs.forEach((paragraph) => {
                     // 在当前段落中查找高亮文本
-                    const highlightRegex = /==\s*(.*?)\s*==|<mark(?:\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
+                    const highlightRegex = /==\s*(.*?)\s*==|<mark(?:\s+style="[^"]*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})[^"]*")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
                     let match;
                     const paragraphHighlights: HighlightComment[] = [];
 

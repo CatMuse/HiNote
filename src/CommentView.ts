@@ -319,7 +319,7 @@ export class CommentView extends ItemView {
     }
 
     private extractHighlights(content: string): HighlightInfo[] {
-        const highlightRegex = /==\s*(.*?)\s*==|<mark(?:\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
+        const highlightRegex = /==\s*(.*?)\s*==|<mark(?:\s+style="[^"]*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})[^"]*")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
         const highlights: HighlightInfo[] = [];
         const paragraphs = content.split(/\n\n+/);
         let offset = 0;
