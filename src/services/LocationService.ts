@@ -84,14 +84,14 @@ export class LocationService {
         const highlightFormats = [
             new RegExp(`==\\s*${this.escapeRegExp(highlight.text)}\\s*==`),
             new RegExp(`<mark>\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`),
-            new RegExp(`<mark\\s+style="background(?:-color)?:(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})">\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`),
-            new RegExp(`<span\\s+style="background(?:-color)?:(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})">\\s*${this.escapeRegExp(highlight.text)}\\s*</span>`)
+            new RegExp(`<mark\\s+style="[^"]*?background(?:-color)?:\\s*(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})[^"]*">\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`),
+            new RegExp(`<span\\s+style="[^"]*?background(?:-color)?:\\s*(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})[^"]*">\\s*${this.escapeRegExp(highlight.text)}\\s*</span>`)
         ];
 
         // 如果有背景色，优先使用对应的格式
         if (highlight.backgroundColor) {
             highlightFormats.unshift(
-                new RegExp(`<(?:mark|span)\\s+style="background(?:-color)?:${this.escapeRegExp(highlight.backgroundColor)}">\\s*${this.escapeRegExp(highlight.text)}\\s*</(?:mark|span)>`)
+                new RegExp(`<(?:mark|span)\\s+style="[^"]*?background(?:-color)?:\\s*${this.escapeRegExp(highlight.backgroundColor)}[^"]*">\\s*${this.escapeRegExp(highlight.text)}\\s*</(?:mark|span)>`)
             );
         }
 
@@ -101,6 +101,13 @@ export class LocationService {
             if (match) {
                 return match.index;
             }
+        }
+
+        // 如果上面的格式都没找到，尝试更宽松的匹配
+        const looseFormat = new RegExp(`<mark[^>]*>\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`);
+        const looseMatch = looseFormat.exec(content);
+        if (looseMatch) {
+            return looseMatch.index;
         }
 
         return -1;
