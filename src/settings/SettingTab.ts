@@ -5,6 +5,7 @@ import { CommentView } from '../CommentView';
 import { setIcon } from 'obsidian';  // 添加 setIcon 导入
 import { PromptSettingsTab } from './PromptSettingsTab';  // 导入新的 PromptSettingsTab
 import { GeminiService } from '../services/GeminiService';  // 添加 GeminiService 的导入语句
+import { t } from '../i18n'; // 导入新的翻译系统
 
 export class AISettingTab extends PluginSettingTab {
     plugin: any;  // 修改为具体的插件类型
@@ -22,14 +23,14 @@ export class AISettingTab extends PluginSettingTab {
 
         // AI 服务设置
         new Setting(containerEl)
-            .setName('AI Service')
-            .setDesc('Select the AI service provider')
+            .setName(t('AI Service'))
+            .setDesc(t('Select the AI service provider'))
             .addDropdown(dropdown => {
                 const options: Record<AIProvider, string> = {
-                    'openai': 'OpenAI',
-                    'gemini': 'Gemini',
-                    'anthropic': 'Anthropic',
-                    'ollama': 'Ollama (Local)'
+                    'openai': t('OpenAI'),
+                    'gemini': t('Gemini'),
+                    'anthropic': t('Anthropic'),
+                    'ollama': t('Ollama (Local)')
                 };
 
                 return dropdown
@@ -71,8 +72,8 @@ export class AISettingTab extends PluginSettingTab {
         };
 
         return new Setting(container)
-            .setName('Model')
-            .setDesc('Select the OpenAI model to use')
+            .setName(t('Model'))
+            .setDesc(t('Select the OpenAI model to use'))
             .addDropdown(dropdown => {
                 // 使用传入的模型列表或默认选项
                 const options: {[key: string]: string} = {};
@@ -110,7 +111,7 @@ export class AISettingTab extends PluginSettingTab {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch models');
+            throw new Error(t('Failed to fetch models'));
         }
 
         const data = await response.json();
@@ -144,12 +145,12 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'OpenAI Settings' });
+        container.createEl('h3', { text: t('OpenAI Settings') });
 
         // API Key 设置
         new Setting(container)
-            .setName('API Key')
-            .setDesc('Enter your OpenAI API Key and press Enter to validate')
+            .setName(t('API Key'))
+            .setDesc(t('Enter your OpenAI API Key and press Enter to validate'))
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.plugin.settings.ai.openai?.apiKey || '')

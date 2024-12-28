@@ -1,3 +1,5 @@
+import { LocaleKey } from './i18n/locales';
+
 export interface CommentItem {
     id: string;
     content: string;
@@ -20,9 +22,9 @@ export interface HighlightInfo {
     fileIcon?: string;
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'ollama' | 'gemini';
-export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini' | 'gpt-4';
-export type AnthropicModel = string;
+export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama';
+export type OpenAIModel = 'gpt-3.5-turbo' | 'gpt-4';
+export type AnthropicModel = 'claude-2' | 'claude-instant-1';
 
 export interface AISettings {
     provider: AIProvider;
@@ -62,7 +64,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         provider: 'ollama',
         openai: {
             apiKey: '',
-            model: 'gpt-4o',
+            model: 'gpt-4',
         },
         ollama: {
             host: 'http://localhost:11434',
@@ -86,4 +88,4 @@ declare global {
     interface WindowEventMap {
         'comment-updated': CustomEvent<CommentUpdateEvent>;
     }
-} 
+}
