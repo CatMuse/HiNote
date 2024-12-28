@@ -22,14 +22,14 @@ export class AISettingTab extends PluginSettingTab {
 
         // AI 服务设置
         new Setting(containerEl)
-            .setName('AI 服务')
-            .setDesc('选择要使用的 AI 服务提供商')
+            .setName('AI Service')
+            .setDesc('Select the AI service provider')
             .addDropdown(dropdown => {
                 const options: Record<AIProvider, string> = {
                     'openai': 'OpenAI',
                     'gemini': 'Gemini',
                     'anthropic': 'Anthropic',
-                    'ollama': 'Ollama (本地服务)'
+                    'ollama': 'Ollama (Local)'
                 };
 
                 return dropdown
@@ -71,8 +71,8 @@ export class AISettingTab extends PluginSettingTab {
         };
 
         return new Setting(container)
-            .setName('模型')
-            .setDesc('选择要使用的 OpenAI 模型')
+            .setName('Model')
+            .setDesc('Select the OpenAI model to use')
             .addDropdown(dropdown => {
                 // 使用传入的模型列表或默认选项
                 const options: {[key: string]: string} = {};
@@ -144,12 +144,12 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'OpenAI 设置' });
+        container.createEl('h3', { text: 'OpenAI Settings' });
 
         // API Key 设置
         new Setting(container)
             .setName('API Key')
-            .setDesc('输入你的 OpenAI API Key，Enter 验证')
+            .setDesc('Enter your OpenAI API Key and press Enter to validate')
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.plugin.settings.ai.openai?.apiKey || '')
@@ -168,11 +168,11 @@ export class AISettingTab extends PluginSettingTab {
                     if (e.key === 'Enter') {
                         const apiKey = this.plugin.settings.ai.openai?.apiKey;
                         if (!apiKey) {
-                            new Notice('请先输入 API Key');
+                            new Notice('Please enter your API Key');
                             return;
                         }
 
-                        new Notice('正在验证 API Key...');
+                        new Notice('Validating API Key...');
 
                         try {
                             const models = await this.fetchAvailableModels(apiKey);
@@ -183,13 +183,13 @@ export class AISettingTab extends PluginSettingTab {
                                     modelContainer.empty();
                                     this.createOrUpdateModelDropdown(modelContainer, models);
                                 }
-                                new Notice('API Key 验证成功！已加载可用模型');
+                                new Notice('API Key verification successful! Available model loaded.');
                             } else {
-                                new Notice('未找到可用的模型');
+                                new Notice('No available models found.');
                             }
                         } catch (error) {
-                            console.error('API Key 验证失败:', error);
-                            new Notice('API Key 验证失败，请检查是否正确');
+                            console.error('API Key verification failed:', error);
+                            new Notice('API Key verification failed. Please check your API Key.');
                         }
                     }
                 }));
@@ -204,8 +204,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // 自定义 API 地址
         new Setting(container)
-            .setName('自定义 API 地址')
-            .setDesc('如果使用自定义 API 代理，请输入完整的 API 地址')
+            .setName('Custom API Address')
+            .setDesc('If using a custom API proxy, please enter the full API address')
             .addText(text => text
                 .setPlaceholder('https://api.openai.com/v1')
                 .setValue(this.plugin.settings.ai.openai?.baseUrl || '')
@@ -263,7 +263,7 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'Anthropic 设置' });
+        container.createEl('h3', { text: 'Anthropic Settings' });
 
         // 创建模型设置容器（需要在 API Key 验证时使用）
         const modelContainer = container.createEl('div', {
@@ -273,7 +273,7 @@ export class AISettingTab extends PluginSettingTab {
         // API Key 设置
         new Setting(container)
             .setName('API Key')
-            .setDesc('输入你的 Anthropic API Key，Enter 验证')
+            .setDesc('Enter your Anthropic API Key, press Enter to verify.')
             .addText(text => text
                 .setPlaceholder('sk-ant-...')
                 .setValue(this.plugin.settings.ai.anthropic?.apiKey || '')
@@ -292,11 +292,11 @@ export class AISettingTab extends PluginSettingTab {
                     if (e.key === 'Enter') {
                         const apiKey = this.plugin.settings.ai.anthropic?.apiKey;
                         if (!apiKey) {
-                            new Notice('请先输入 API Key');
+                            new Notice('Please enter your API Key');
                             return;
                         }
 
-                        new Notice('正在验证 API Key...');
+                        new Notice('Validating API Key...');
 
                         try {
                             const isValid = await this.verifyAnthropicApiKey(apiKey);
@@ -304,13 +304,13 @@ export class AISettingTab extends PluginSettingTab {
                                 // 创建或更新模型选择设置
                                 modelContainer.empty();
                                 this.createAnthropicModelDropdown(modelContainer);
-                                new Notice('API Key 验证成功！');
+                                new Notice('API Key verification successful!');
                             } else {
-                                new Notice('API Key 验证失败，请检查是否正确');
+                                new Notice('API Key verification failed. Please check your API Key.');
                             }
                         } catch (error) {
-                            console.error('API Key 验证失败:', error);
-                            new Notice('API Key 验证失败，请检查是否正确');
+                            console.error('API Key verification failed:', error);
+                            new Notice('API Key verification failed. Please check your API Key.');
                         }
                     }
                 }));
@@ -323,8 +323,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // 自定义 API 地址
         new Setting(container)
-            .setName('自定义 API 地址')
-            .setDesc('如果使用自定义 API 代理，请输入完整的 API 地址')
+            .setName('Custom API Address')
+            .setDesc('If using a custom API proxy, please enter the full API address')
             .addText(text => text
                 .setPlaceholder('https://api.anthropic.com')
                 .setValue(this.plugin.settings.ai.anthropic?.baseUrl || '')
@@ -344,8 +344,8 @@ export class AISettingTab extends PluginSettingTab {
         const models = this.getDefaultAnthropicModels();
         
         new Setting(container)
-            .setName('模型')
-            .setDesc('选择要使用的 Anthropic 模型')
+            .setName('Model')
+            .setDesc('Select the Anthropic model to use')
             .addDropdown(dropdown => {
                 const options = Object.fromEntries(
                     models.map(model => [model.id, model.name])
@@ -619,8 +619,8 @@ export class AISettingTab extends PluginSettingTab {
     private async createGeminiModelDropdown(container: HTMLElement) {
         try {
             const modelSetting = new Setting(container)
-                .setName('模型')
-                .setDesc('选择要使用的 Gemini 模型');
+                .setName('Model')
+                .setDesc('Select the Gemini model to use');
 
             // 默认模型列表
             const defaultModels = {
@@ -658,7 +658,7 @@ export class AISettingTab extends PluginSettingTab {
 
         } catch (error) {
             console.error('Error creating Gemini model dropdown:', error);
-            new Notice('无法创建模型选择下拉菜单');
+            new Notice('Unable to create model selection dropdown menu.');
         }
     }
 
@@ -667,12 +667,12 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'Gemini 设置' });
+        container.createEl('h3', { text: 'Gemini Settings' });
 
         // API Key 设置
         new Setting(container)
             .setName('API Key')
-            .setDesc('输入你的 Gemini API Key，Enter 验证')
+            .setDesc('Enter your Gemini API Key and press Enter to validate')
             .addText(text => text
                 .setPlaceholder('AIza...')
                 .setValue(this.plugin.settings.ai.gemini?.apiKey || '')
@@ -690,22 +690,22 @@ export class AISettingTab extends PluginSettingTab {
                     if (e.key === 'Enter') {
                         const apiKey = this.plugin.settings.ai.gemini?.apiKey;
                         if (!apiKey) {
-                            new Notice('请先输入 API Key');
+                            new Notice('Please enter your API Key first');
                             return;
                         }
 
                         // 显示验证中的提示
-                        new Notice('正在验证 API Key...');
+                        new Notice('Verifying API Key...');
 
                         // 验证 API Key
                         const isValid = await this.verifyGeminiApiKey(apiKey);
                         if (isValid) {
-                            new Notice('API Key 验证成功！');
+                            new Notice('API Key verification successful!');
                             // 刷新模型列表
                             modelContainer.empty();
                             await this.createGeminiModelDropdown(modelContainer);
                         } else {
-                            new Notice('API Key 验证失败，请检查后重试');
+                            new Notice('API Key verification failed. Please check your API Key.');
                         }
                     }
                 }));
@@ -720,8 +720,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // 自定义 API 地址
         new Setting(container)
-            .setName('自定义 API 地址')
-            .setDesc('如果使用自定义 API 代理，请输入完整的 API 地址')
+            .setName('Custom API Address')
+            .setDesc('If using a custom API proxy, please enter the full API address')
             .addText(text => text
                 .setPlaceholder('https://generativelanguage.googleapis.com')
                 .setValue(this.plugin.settings.ai.gemini?.baseUrl || '')

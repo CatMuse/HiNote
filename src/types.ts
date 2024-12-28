@@ -69,7 +69,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             model: 'qwen2.5:14b',
         },
         prompts: {
-            '🤔 洞察': '{{highlight}}，请让我从不同的角度重新审视以上这段话：请用一段话描述它背后的核心思想是什么？200字以内',
+            '🤔 Key Insight': '{{highlight}}.Please reinterpret the above content from a fresh perspective and summarize its core idea within 200 characters.',
         }
     }
 };

@@ -24,7 +24,7 @@ export class PromptSettingsTab {
 
         // 标题
         headerContainer.createEl('div', { 
-            text: 'Prompt 模板设置',
+            text: 'Prompt Settings',
             cls: 'prompt-settings-title'
         });
 
@@ -32,7 +32,7 @@ export class PromptSettingsTab {
         const addButton = headerContainer.createEl('button', {
             cls: 'prompt-add-btn',
             attr: {
-                'aria-label': '添加'
+                'aria-label': 'Add'
             }
         });
         setIcon(addButton, 'plus');
@@ -59,14 +59,14 @@ export class PromptSettingsTab {
         const nameInput = newPromptSection.createEl('input', {
             cls: 'prompt-name-input',
             attr: { 
-                placeholder: '输入 Prompt 名称',
+                placeholder: 'Input Prompt Name',
                 type: 'text'
             }
         });
 
         const contentArea = new TextAreaComponent(newPromptSection);
         contentArea
-            .setPlaceholder('输入 Prompt 内容\n可用参数：\n{{highlight}} - 当前高亮的文本\n{{comment}} - 已有的评论')
+            .setPlaceholder('Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment')
             .setValue('');
         contentArea.inputEl.style.minHeight = '100px';
         contentArea.inputEl.style.width = '100%';
@@ -77,7 +77,7 @@ export class PromptSettingsTab {
         // Save button
         const saveBtn = buttonsContainer.createEl('button', {
             cls: 'prompt-save-btn',
-            text: '保存'
+            text: 'Save'
         });
         saveBtn.onclick = async () => {
             const name = nameInput.value;
@@ -92,7 +92,7 @@ export class PromptSettingsTab {
                 
                 newPromptSection.remove();
                 this.displayPromptList(container);
-                new Notice('Prompt 已添加');
+                new Notice('Prompt added');
 
                 // 更新所有 AI 下拉菜单
                 const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
@@ -105,7 +105,7 @@ export class PromptSettingsTab {
         // Cancel button
         const cancelBtn = buttonsContainer.createEl('button', {
             cls: 'prompt-cancel-btn',
-            text: '取消'
+            text: 'Cancel'
         });
         cancelBtn.onclick = () => {
             newPromptSection.remove();
@@ -145,7 +145,7 @@ export class PromptSettingsTab {
             const editBtn = buttonContainer.createEl('button', {
                 cls: 'prompt-edit-btn',
                 attr: {
-                    'aria-label': '编辑'
+                    'aria-label': 'Edit'
                 }
             });
             setIcon(editBtn, 'square-pen');
@@ -172,20 +172,20 @@ export class PromptSettingsTab {
             // Save button
             const saveBtn = editButtonsContainer.createEl('button', {
                 cls: 'prompt-save-btn',
-                text: '保存'
+                text: 'Save'
             });
 
             // Cancel button
             const cancelBtn = editButtonsContainer.createEl('button', {
                 cls: 'prompt-cancel-btn',
-                text: '取消'
+                text: 'Cancel'
             });
 
             // Delete button (moved to edit mode)
             const deleteBtn = editButtonsContainer.createEl('button', {
                 cls: 'prompt-delete-btn',
                 attr: {
-                    'aria-label': '删除'
+                    'aria-label': 'Delete'
                 }
             });
             setIcon(deleteBtn, 'trash-2');
@@ -222,7 +222,7 @@ export class PromptSettingsTab {
                     
                     // 重新显示列表
                     this.displayPromptList(container);
-                    new Notice('Prompt 已更新');
+                    new Notice('Prompt updated');
 
                     // 更新所有 AI 下拉菜单
                     const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;

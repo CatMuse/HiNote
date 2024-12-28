@@ -102,7 +102,7 @@ export class CommentView extends ItemView {
         // 创建加载指示器
         this.loadingIndicator = createEl("div", {
             cls: "highlight-loading-indicator",
-            text: "加载中..."
+            text: "Loading..."
         });
         this.loadingIndicator.style.display = "none";
     }
@@ -265,8 +265,8 @@ export class CommentView extends ItemView {
             this.highlightContainer.createEl("div", {
                 cls: "highlight-empty-state",
                 text: this.searchInput.value.trim() 
-                    ? "没有找到匹配的内容" 
-                    : "当前文档没有高亮内容"
+                    ? "No matching content found." 
+                    : "The current document has no highlighted content."
             });
             return;
         }
@@ -312,7 +312,7 @@ export class CommentView extends ItemView {
                 // 添加点击提示
                 const textContent = cardElement.querySelector('.highlight-text-content');
                 if (textContent) {
-                    textContent.setAttribute('title', '点击定位到文档位置');
+                    textContent.setAttribute('title', 'Click to jump to the document position');
                 }
             }
         });
@@ -349,7 +349,7 @@ export class CommentView extends ItemView {
     private async addComment(highlight: HighlightInfo, content: string) {
         const file = await this.getFileForHighlight(highlight);
         if (!file) {
-            new Notice("未找到对应的文件");
+            new Notice("No corresponding file found.");
             return;
         }
 
@@ -462,7 +462,7 @@ export class CommentView extends ItemView {
         }
 
         if (!this.currentFile) {
-            new Notice("未找到当前文件");
+            new Notice("No corresponding file found.");
             return;
         }
         await this.locationService.jumpToHighlight(highlight, this.currentFile.path);
@@ -476,7 +476,7 @@ export class CommentView extends ItemView {
             new ExportPreviewModal(this.app, highlight, html2canvas).open();
         } catch (error) {
             console.error("Failed to load html2canvas:", error);
-            new Notice("导出失败：无法加载必要的件");
+            new Notice("Export failed: Failed to load necessary components.");
         }
     }
 
@@ -585,7 +585,7 @@ export class CommentView extends ItemView {
 
         // 创建"全部"文本
         allFilesLeft.createEl("span", {
-            text: "全部高亮",
+            text: "All Highlight",
             cls: "highlight-file-item-name"
         });
 
