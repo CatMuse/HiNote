@@ -2,6 +2,7 @@ import { Setting, TextAreaComponent, Notice } from 'obsidian';
 import { setIcon } from 'obsidian';
 import { CommentView } from '../CommentView';
 import { PluginSettings } from '../types';
+import { t } from '../i18n'; // 导入新的翻译系统
 
 export class PromptSettingsTab {
     private plugin: any;
@@ -24,7 +25,7 @@ export class PromptSettingsTab {
 
         // 标题
         headerContainer.createEl('div', { 
-            text: 'Prompt Settings',
+            text: t('Prompt Settings'),
             cls: 'prompt-settings-title'
         });
 
@@ -32,7 +33,7 @@ export class PromptSettingsTab {
         const addButton = headerContainer.createEl('button', {
             cls: 'prompt-add-btn',
             attr: {
-                'aria-label': 'Add'
+                'aria-label': t('Add Prompt')
             }
         });
         setIcon(addButton, 'plus');
@@ -59,14 +60,14 @@ export class PromptSettingsTab {
         const nameInput = newPromptSection.createEl('input', {
             cls: 'prompt-name-input',
             attr: { 
-                placeholder: 'Input Prompt Name',
+                placeholder: t('Input Prompt Name'),
                 type: 'text'
             }
         });
 
         const contentArea = new TextAreaComponent(newPromptSection);
         contentArea
-            .setPlaceholder('Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment')
+            .setPlaceholder(t('Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment'))
             .setValue('');
         contentArea.inputEl.style.minHeight = '100px';
         contentArea.inputEl.style.width = '100%';
@@ -77,7 +78,7 @@ export class PromptSettingsTab {
         // Save button
         const saveBtn = buttonsContainer.createEl('button', {
             cls: 'prompt-save-btn',
-            text: 'Save'
+            text: t('Save')
         });
         saveBtn.onclick = async () => {
             const name = nameInput.value;
@@ -92,7 +93,7 @@ export class PromptSettingsTab {
                 
                 newPromptSection.remove();
                 this.displayPromptList(container);
-                new Notice('Prompt added');
+                new Notice(t('Prompt added'));
 
                 // 更新所有 AI 下拉菜单
                 const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
@@ -105,7 +106,7 @@ export class PromptSettingsTab {
         // Cancel button
         const cancelBtn = buttonsContainer.createEl('button', {
             cls: 'prompt-cancel-btn',
-            text: 'Cancel'
+            text: t('Cancel')
         });
         cancelBtn.onclick = () => {
             newPromptSection.remove();
@@ -145,7 +146,7 @@ export class PromptSettingsTab {
             const editBtn = buttonContainer.createEl('button', {
                 cls: 'prompt-edit-btn',
                 attr: {
-                    'aria-label': 'Edit'
+                    'aria-label': t('Edit')
                 }
             });
             setIcon(editBtn, 'square-pen');
@@ -172,20 +173,20 @@ export class PromptSettingsTab {
             // Save button
             const saveBtn = editButtonsContainer.createEl('button', {
                 cls: 'prompt-save-btn',
-                text: 'Save'
+                text: t('Save')
             });
 
             // Cancel button
             const cancelBtn = editButtonsContainer.createEl('button', {
                 cls: 'prompt-cancel-btn',
-                text: 'Cancel'
+                text: t('Cancel')
             });
 
             // Delete button (moved to edit mode)
             const deleteBtn = editButtonsContainer.createEl('button', {
                 cls: 'prompt-delete-btn',
                 attr: {
-                    'aria-label': 'Delete'
+                    'aria-label': t('Delete')
                 }
             });
             setIcon(deleteBtn, 'trash-2');
@@ -222,7 +223,7 @@ export class PromptSettingsTab {
                     
                     // 重新显示列表
                     this.displayPromptList(container);
-                    new Notice('Prompt updated');
+                    new Notice(t('Prompt updated'));
 
                     // 更新所有 AI 下拉菜单
                     const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;

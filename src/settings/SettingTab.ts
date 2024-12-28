@@ -169,11 +169,11 @@ export class AISettingTab extends PluginSettingTab {
                     if (e.key === 'Enter') {
                         const apiKey = this.plugin.settings.ai.openai?.apiKey;
                         if (!apiKey) {
-                            new Notice('Please enter your API Key');
+                            new Notice(t('Please enter your API Key'));
                             return;
                         }
 
-                        new Notice('Validating API Key...');
+                        new Notice(t('Validating API Key...'));
 
                         try {
                             const models = await this.fetchAvailableModels(apiKey);
@@ -184,13 +184,13 @@ export class AISettingTab extends PluginSettingTab {
                                     modelContainer.empty();
                                     this.createOrUpdateModelDropdown(modelContainer, models);
                                 }
-                                new Notice('API Key verification successful! Available model loaded.');
+                                new Notice(t('API Key verification successful!'));
                             } else {
-                                new Notice('No available models found.');
+                                new Notice(t('No available models found.'));
                             }
                         } catch (error) {
                             console.error('API Key verification failed:', error);
-                            new Notice('API Key verification failed. Please check your API Key.');
+                            new Notice(t('API Key verification failed. Please check your API Key.'));
                         }
                     }
                 }));
@@ -205,8 +205,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // 自定义 API 地址
         new Setting(container)
-            .setName('Custom API Address')
-            .setDesc('If using a custom API proxy, please enter the full API address')
+            .setName(t('Custom API Address'))
+            .setDesc(t('If using a custom API proxy, please enter the full API address'))
             .addText(text => text
                 .setPlaceholder('https://api.openai.com/v1')
                 .setValue(this.plugin.settings.ai.openai?.baseUrl || '')
@@ -264,7 +264,7 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'Anthropic Settings' });
+        container.createEl('h3', { text: t('Anthropic Settings') });
 
         // 创建模型设置容器（需要在 API Key 验证时使用）
         const modelContainer = container.createEl('div', {
@@ -273,8 +273,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // API Key 设置
         new Setting(container)
-            .setName('API Key')
-            .setDesc('Enter your Anthropic API Key, press Enter to verify.')
+            .setName(t('API Key'))
+            .setDesc(t('Enter your Anthropic API Key, press Enter to verify.'))
             .addText(text => text
                 .setPlaceholder('sk-ant-...')
                 .setValue(this.plugin.settings.ai.anthropic?.apiKey || '')
@@ -293,11 +293,11 @@ export class AISettingTab extends PluginSettingTab {
                     if (e.key === 'Enter') {
                         const apiKey = this.plugin.settings.ai.anthropic?.apiKey;
                         if (!apiKey) {
-                            new Notice('Please enter your API Key');
+                            new Notice(t('Please enter your API Key'));
                             return;
                         }
 
-                        new Notice('Validating API Key...');
+                        new Notice(t('Validating API Key...'));
 
                         try {
                             const isValid = await this.verifyAnthropicApiKey(apiKey);
@@ -305,13 +305,13 @@ export class AISettingTab extends PluginSettingTab {
                                 // 创建或更新模型选择设置
                                 modelContainer.empty();
                                 this.createAnthropicModelDropdown(modelContainer);
-                                new Notice('API Key verification successful!');
+                                new Notice(t('API Key verification successful!'));
                             } else {
-                                new Notice('API Key verification failed. Please check your API Key.');
+                                new Notice(t('API Key verification failed. Please check your API Key.'));
                             }
                         } catch (error) {
                             console.error('API Key verification failed:', error);
-                            new Notice('API Key verification failed. Please check your API Key.');
+                            new Notice(t('API Key verification failed. Please check your API Key.'));
                         }
                     }
                 }));
@@ -324,8 +324,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // 自定义 API 地址
         new Setting(container)
-            .setName('Custom API Address')
-            .setDesc('If using a custom API proxy, please enter the full API address')
+            .setName(t('Custom API Address'))
+            .setDesc(t('If using a custom API proxy, please enter the full API address'))
             .addText(text => text
                 .setPlaceholder('https://api.anthropic.com')
                 .setValue(this.plugin.settings.ai.anthropic?.baseUrl || '')
@@ -345,8 +345,8 @@ export class AISettingTab extends PluginSettingTab {
         const models = this.getDefaultAnthropicModels();
         
         new Setting(container)
-            .setName('Model')
-            .setDesc('Select the Anthropic model to use')
+            .setName(t('Model'))
+            .setDesc(t('Select the Anthropic model to use'))
             .addDropdown(dropdown => {
                 const options = Object.fromEntries(
                     models.map(model => [model.id, model.name])
@@ -380,7 +380,7 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'Ollama Settings' });
+        container.createEl('h3', { text: t('Ollama Settings') });
 
         // Set default host if not configured
         const defaultHost = 'http://localhost:11434';
@@ -400,8 +400,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // Server address setting
         const hostSetting = new Setting(container)
-            .setName('Server Address')
-            .setDesc('Ollama server address (default: http://localhost:11434)')
+            .setName(t('Server Address'))
+            .setDesc(t('Ollama server address (default: http://localhost:11434)'))
             .addText(text => {
                 text.setPlaceholder('http://localhost:11434')
                     .setValue(this.plugin.settings.ai.ollama?.host || defaultHost)
@@ -429,14 +429,14 @@ export class AISettingTab extends PluginSettingTab {
         // Add test connection button
         hostSetting.addButton(button => 
             button
-                .setButtonText('Test Connection')
+                .setButtonText(t('Test Connection'))
                 .onClick(async () => {
                     const host = this.plugin.settings.ai.ollama?.host || defaultHost;
                     try {
                         const ollamaService = new OllamaService(host);
                         const isConnected = await ollamaService.testConnection();
                         if (isConnected) {
-                            new Notice('Successfully connected to Ollama service');
+                            new Notice(t('Successfully connected to Ollama service'));
                             // Try to load models
                             const models = await ollamaService.listModels();
                             if (models.length > 0) {
@@ -444,16 +444,16 @@ export class AISettingTab extends PluginSettingTab {
                                 modelContainer.empty();
                                 this.updateOllamaModelDropdown(modelContainer, models);
                             } else {
-                                new Notice('No models found. Please download models using "ollama pull"');
+                                new Notice(t('No models found. Please download models using ollama'));
                                 this.showDefaultOllamaModels(modelContainer);
                             }
                         } else {
-                            new Notice('Could not connect to Ollama service');
+                            new Notice(t('Could not connect to Ollama service'));
                             this.showDefaultOllamaModels(modelContainer);
                         }
                     } catch (error) {
                         console.error('Ollama connection error:', error);
-                        new Notice('Failed to connect to Ollama service. Please check the server address.');
+                        new Notice(t('Failed to connect to Ollama service. Please check the server address.'));
                         this.showDefaultOllamaModels(modelContainer);
                     }
                 })
@@ -493,8 +493,8 @@ export class AISettingTab extends PluginSettingTab {
         container.empty();
         
         new Setting(container)
-            .setName('Model')
-            .setDesc('Currently selected model (Test connection to see all available models)')
+            .setName(t('Model'))
+            .setDesc(t('Currently selected model (Test connection to see all available models)'))
             .addDropdown(dropdown => {
                 const savedModel = this.plugin.settings.ai.ollama?.model || '';
                 const options: Record<string, string> = {
@@ -526,10 +526,10 @@ export class AISettingTab extends PluginSettingTab {
         const savedModels = this.plugin.settings.ai.ollama?.availableModels || [];
         
         new Setting(container)
-            .setName('Model')
+            .setName(t('Model'))
             .setDesc(savedModels.length 
-                ? 'Select a model to use' 
-                : 'No models available. Please click "Test Connection" to load models')
+                ? t('Select a model to use') 
+                : t('No models available. Please load an available model first.'))
             .addDropdown(dropdown => {
                 if (savedModels.length > 0) {
                     // 显示所有保存的模型
@@ -556,7 +556,7 @@ export class AISettingTab extends PluginSettingTab {
                         });
                 } else {
                     dropdown
-                        .addOption('', 'No models available')
+                        .addOption('', t('No models available'))
                         .setValue('')
                         .setDisabled(true);
                 }
@@ -582,8 +582,8 @@ export class AISettingTab extends PluginSettingTab {
         container.empty();
         
         new Setting(container)
-            .setName('Model')
-            .setDesc('Select a model to use')
+            .setName(t('Model'))
+            .setDesc(t('Select a model to use'))
             .addDropdown(dropdown => {
                 const options: { [key: string]: string } = {};
                 models.forEach(model => {
@@ -620,8 +620,8 @@ export class AISettingTab extends PluginSettingTab {
     private async createGeminiModelDropdown(container: HTMLElement) {
         try {
             const modelSetting = new Setting(container)
-                .setName('Model')
-                .setDesc('Select the Gemini model to use');
+                .setName(t('Model'))
+                .setDesc(t('Select the Gemini model to use'));
 
             // 默认模型列表
             const defaultModels = {
@@ -659,7 +659,7 @@ export class AISettingTab extends PluginSettingTab {
 
         } catch (error) {
             console.error('Error creating Gemini model dropdown:', error);
-            new Notice('Unable to create model selection dropdown menu.');
+            new Notice(t('Unable to create model selection dropdown menu.'));
         }
     }
 
@@ -668,12 +668,12 @@ export class AISettingTab extends PluginSettingTab {
             cls: 'ai-service-settings'
         });
 
-        container.createEl('h3', { text: 'Gemini Settings' });
+        container.createEl('h3', { text: t('Gemini Settings') });
 
         // API Key 设置
         new Setting(container)
-            .setName('API Key')
-            .setDesc('Enter your Gemini API Key and press Enter to validate')
+            .setName(t('API Key'))
+            .setDesc(t('Enter your Gemini API Key and press Enter to validate'))
             .addText(text => text
                 .setPlaceholder('AIza...')
                 .setValue(this.plugin.settings.ai.gemini?.apiKey || '')
@@ -691,22 +691,22 @@ export class AISettingTab extends PluginSettingTab {
                     if (e.key === 'Enter') {
                         const apiKey = this.plugin.settings.ai.gemini?.apiKey;
                         if (!apiKey) {
-                            new Notice('Please enter your API Key first');
+                            new Notice(t('Please enter your API Key first'));
                             return;
                         }
 
                         // 显示验证中的提示
-                        new Notice('Verifying API Key...');
+                        new Notice(t('Validating API Key...'));
 
                         // 验证 API Key
                         const isValid = await this.verifyGeminiApiKey(apiKey);
                         if (isValid) {
-                            new Notice('API Key verification successful!');
+                            new Notice(t('API Key verification successful!'));
                             // 刷新模型列表
                             modelContainer.empty();
                             await this.createGeminiModelDropdown(modelContainer);
                         } else {
-                            new Notice('API Key verification failed. Please check your API Key.');
+                            new Notice(t('API Key verification failed. Please check your API Key.'));
                         }
                     }
                 }));
@@ -721,8 +721,8 @@ export class AISettingTab extends PluginSettingTab {
 
         // 自定义 API 地址
         new Setting(container)
-            .setName('Custom API Address')
-            .setDesc('If using a custom API proxy, please enter the full API address')
+            .setName(t('Custom API Address'))
+            .setDesc(t('If using a custom API proxy, please enter the full API address'))
             .addText(text => text
                 .setPlaceholder('https://generativelanguage.googleapis.com')
                 .setValue(this.plugin.settings.ai.gemini?.baseUrl || '')
