@@ -2,6 +2,7 @@ import { setIcon, Notice } from "obsidian";
 import { HighlightInfo } from "../types";
 import { AIService } from "../services/AIService";
 import type CommentPlugin from "../../main";
+import { t } from "../i18n";
 
 export class AIButton {
     private container: HTMLElement;
@@ -57,7 +58,7 @@ export class AIButton {
         // AI 按钮
         const aiButton = aiContainer.createEl("button", {
             cls: "highlight-action-btn highlight-ai-btn",
-            attr: { 'aria-label': '使用 AI 分析' }
+            attr: { 'aria-label': t('Select Prompt') }
         });
 
         // 创建一个包含正常图标和加载���标的容器
@@ -132,7 +133,7 @@ export class AIButton {
             // 如果没有可用的 prompts，显示提示信息
             this.dropdown.createEl("div", {
                 cls: "highlight-ai-dropdown-item",
-                text: "请先在设置中添加 Prompt"
+                text: t("Please add Prompt in the settings")
             });
         }
     }
@@ -145,8 +146,8 @@ export class AIButton {
             const prompt = this.plugin.settings.ai.prompts[promptName];
             
             if (!prompt) {
-                throw new Error(`未找到名为 "${promptName}" 的 Prompt`);
-            }
+                throw new Error(t(`未找到名为 "${promptName}" 的 Prompt`));
+            } //这里没有替换翻译
 
             // 获取所有评论内容
             const comments = this.highlight.comments || [];
@@ -162,11 +163,11 @@ export class AIButton {
             // 添加 AI 分析结果作为新评论
             await this.onCommentAdd(response);
 
-            new Notice('AI 分析已添加为新评论');
+            new Notice(t('AI comments have been added'));
 
         } catch (error) {
-            console.error('AI 分析失败:', error);
-            new Notice(`AI 分析失败: ${error.message}`);
+            console.error('AI comments failed:', error);
+            new Notice(t(`AI comments failed:) ${error.message}`));
         } finally {
             this.setLoading(false);
         }

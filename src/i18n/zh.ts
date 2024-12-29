@@ -63,4 +63,31 @@ export default {
     "Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment": "输入 Prompt 内容\n可用参数:\n{{highlight}} - 当前高亮文本\n{{comment}} - 已存在的注释",
     "Prompt added": "Prompt 已添加",
     "Prompt updated": "Prompt 已更新",
+
+//CommentInput
+
+"Shift + Enter Wrap, Enter Save": "Shift + Enter 换行，Enter 保存",
+"Delete comment": "删除评论",
+
+//ActionButtons
+
+    "Add Comment": "添加评论",
+    "Export as Image": "导出为图片",
+
+//AIButton
+
+    "Select Prompt": "选择 Prompt",
+    "Please add Prompt in the settings first": "请先在设置中添加 Prompt",
+    "AI comments have been added": "AI 评论已添加",
+    "AI comments failed:": "AI 评论失败：",
+
+//ChatView
+
+"Chat": "对话",
+"Failed to process dropped highlight:": "无法处理删除的高亮：",
+"highlighted notes": "条高亮笔记",
+"Input message...": "输入消息...",
+"Unable to access the Ollama model, please check the service.": "无法访问 Ollama 模型，请检查服务是否正常运行",
+"Unable to get Gemini model list, please check API Key and network connection.": "无法获取 Gemini 模型列表，请检查 API Key 和网络连接",
+
 };

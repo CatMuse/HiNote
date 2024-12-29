@@ -1,4 +1,5 @@
 import { CommentItem, HighlightInfo } from "../../types";
+import { t } from "../../i18n";
 
 export class CommentInput {
     private textarea: HTMLTextAreaElement;
@@ -61,14 +62,14 @@ export class CommentInput {
         // 快捷键提示
         this.actionHint.createEl('span', {
             cls: 'highlight-comment-hint',
-            text: 'Shift + Enter 换行, Enter 保存'
+            text: t('Shift + Enter Wrap, Enter Save')
         });
 
         // 删除按钮
         if (this.options.onDelete) {
             const deleteLink = this.actionHint.createEl('button', {
                 cls: 'highlight-comment-delete-link',
-                text: '删除评论'
+                text: t('Delete comment')
             });
 
             deleteLink.addEventListener('click', async (e) => {
@@ -96,7 +97,7 @@ export class CommentInput {
         // 添加快捷键提示
         inputSection.createEl('div', {
             cls: 'highlight-comment-hint',
-            text: 'Shift + Enter 换行, Enter 保存'
+            text: t('Shift + Enter Wrap, Enter Save')
         });
 
         // 添加到评论区域

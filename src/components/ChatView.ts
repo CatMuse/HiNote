@@ -1,6 +1,7 @@
 import { ItemView, App, setIcon, Menu, MenuItem, Notice } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
 import { HighlightInfo } from '../types';
+import { t } from "src/i18n";
 
 export class ChatView {
     public static instance: ChatView | null = null;
@@ -44,7 +45,7 @@ export class ChatView {
         });
         
         titleContainer.createEl("span", {
-            text: "对话"
+            text: t("Chat")
         });
 
         const modelSelector = titleContainer.createEl("div", {
@@ -154,7 +155,7 @@ export class ChatView {
                         this.showDraggedPreviewsInChat(chatHistory);
                     }
                 } catch (error) {
-                    console.error('Failed to process dropped highlight:', error);
+                    console.error(t('Failed to process dropped highlight:'), error);
                 }
             }
         });
@@ -255,7 +256,7 @@ export class ChatView {
             });
 
             headerEl.createSpan({
-                text: "条高亮笔记"
+                text: t("highlighted notes")
             });
 
             // 创建卡片容器
@@ -419,7 +420,7 @@ export class ChatView {
         this.textarea = inputWrapper.createEl('textarea', {
             cls: 'highlight-chat-input',
             attr: {
-                placeholder: '输入消息...',
+                placeholder: t ('Input message...'),
                 rows: '1'
             }
         });
@@ -646,7 +647,7 @@ export class ChatView {
                         });
                     });
                 } catch (error) {
-                    new Notice('无法获取 Ollama 模型列表，请检查服务是否正常运行');
+                    new Notice(t('Unable to access the Ollama model, please check the service.'));
                 }
                 break;
 
@@ -666,7 +667,7 @@ export class ChatView {
                         });
                     });
                 } catch (error) {
-                    new Notice('无法获取 Gemini 模型列表，请检查 API Key 和网络连接');
+                    new Notice(t('Unable to get Gemini model list, please check API Key and network connection.'));
                 }
                 break;
         }

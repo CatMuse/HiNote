@@ -2,6 +2,7 @@ import { setIcon } from "obsidian";
 import { HighlightInfo } from "../../types";
 import { AIButton } from "../AIButton";
 import type CommentPlugin from "../../../main";
+import { t } from "../../i18n";
 
 export class ActionButtons {
     private container: HTMLElement;
@@ -50,7 +51,7 @@ export class ActionButtons {
         // 添加评论按钮
         const addCommentBtn = rightButtons.createEl("button", {
             cls: "highlight-action-btn highlight-add-comment-btn",
-            attr: { 'aria-label': '添加评论' }
+            attr: { 'aria-label': t('Add Comment') }
         });
         setIcon(addCommentBtn, "square-plus");
         addCommentBtn.addEventListener("click", (e) => {
@@ -61,7 +62,7 @@ export class ActionButtons {
         // 分享按钮
         const shareBtn = rightButtons.createEl("button", {
             cls: "highlight-action-btn highlight-share-btn",
-            attr: { 'aria-label': '导出为图片' }
+            attr: { 'aria-label': t('Export as Image') }
         });
         setIcon(shareBtn, "image-down");
         shareBtn.addEventListener("click", (e) => {
