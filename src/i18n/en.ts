@@ -118,4 +118,10 @@ export default {
     "Social Template": "Social Template",
     "Modern style suitable for social media sharing": "Modern style suitable for social media sharing",
 
+//main
+
+    "Open AI chat window": "Open AI chat window",
+    "Toggle comment panel": "Toggle comment panel",
+    "Toggle comment panel location": "Toggle comment panel location",
+
 };

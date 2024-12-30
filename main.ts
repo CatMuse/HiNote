@@ -6,6 +6,7 @@ import { AISettingTab } from './src/settings/SettingTab';
 import { PluginSettings, DEFAULT_SETTINGS } from './src/types';
 import html2canvas from 'html2canvas';
 import { ChatView } from './src/components/ChatView';
+import { t } from './src/i18n';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
@@ -87,16 +88,14 @@ export default class CommentPlugin extends Plugin {
 		const measureCommentPerformance = () => {
 			const start = performance.now();
 			
-			// 评论加载操作
-			
+			// 评论加载操作		
 			const end = performance.now();
-			console.log(`Comments loaded in ${end - start}ms`);
 		}
 
 		// 添加打开对话窗口的命令
 		this.addCommand({
 			id: 'open-chat-window',
-			name: '打开 AI 对话窗口',
+			name: t('Open AI chat window'),
 			callback: () => {
 				const chatView = ChatView.getInstance(this.app, this);
 				chatView.show();
@@ -106,7 +105,7 @@ export default class CommentPlugin extends Plugin {
 		// 添加切换评论面板的命令
 		this.addCommand({
 			id: 'toggle-comment-panel',
-			name: '切换评论面板',
+			name: t('Toggle comment panel'),
 			callback: async () => {
 				const { workspace } = this.app;
 				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
@@ -130,7 +129,7 @@ export default class CommentPlugin extends Plugin {
 		// 添加切换评论面板位置的命令
 		this.addCommand({
 			id: 'toggle-comment-panel-location',
-			name: '切换评论面板位置',
+			name: t('Toggle comment panel location'),
 			callback: async () => {
 				const { workspace } = this.app;
 				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);

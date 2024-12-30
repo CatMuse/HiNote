@@ -115,4 +115,10 @@ export default {
     "Social Template": "社交模板",
     "Modern style suitable for social media sharing": "适用于社交媒体分享的现代风格",
 
+//main
+
+    "Open AI chat window": "打开 AI 对话窗口",
+    "Toggle comment panel": "切换评论面板",
+    "Toggle comment panel location": "切换评论面板位置",
+
 };
