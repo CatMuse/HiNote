@@ -7,7 +7,7 @@ This AI-programmed Obsidian plugin can automatically extract highlighted text fr
 
 When you open a note with highlighted text, the sidebar automatically displays the highlighted text in card format. The following three formats of highlight tags are supported: `==`, `<mark>`, and `<span>`.
 
-GIF
+![Highlighted text retrieval](./doc/Highlighted text retrieval.jpg)
 
 ---
 ## Highlighted comments
@@ -23,7 +23,7 @@ GIF
 
 Export your highlighted text as beautifully designed knowledge cards for easy sharing.
 
-GIF
+![Export image](./doc/Export image.jpg)
 
 ---
 ## Extended features of the main view
@@ -34,7 +34,7 @@ Drag the right sidebar window to the main view to unlock more features, such as 
 - All Highlights: Shows all highlighted cards in the knowledge base, allowing you to focus more on the highlighted content.
 - AI Chat: You can open the AI chat window via the chat icon in the bottom right corner (see below for details).
 
-GIF
+![main view](./doc/main view.jpg)
 
 ---
 ## AI Comment
@@ -45,8 +45,6 @@ Next, configure your custom Prompt. Here, you can use two fields to obtain the h
 
 Finally, you can use your custom Prompt in the AI button on the highlighted card.
 
-GIF
-
 ---
 ## AI Chat
 
@@ -54,7 +52,7 @@ In the bottom right corner of the main view, you can click the conversation icon
 
 Additionally, you can drag highlighted cards into the conversation window as part of the dialogue, and it supports dragging in multiple highlighted items simultaneously.
 
-GIF
+![AI chat](./doc/AI chat.jpg)
 
 ---
 ## THANK YOU 🙏
