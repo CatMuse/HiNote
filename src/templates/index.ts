@@ -1,4 +1,5 @@
 import { HighlightInfo } from '../types';
+import { t } from '../i18n';
 
 // 卡片模板接口
 export interface CardTemplate {
@@ -11,8 +12,8 @@ export interface CardTemplate {
 // 默认模板（使用现代风格）
 export const defaultTemplate: CardTemplate = {
     id: 'default',
-    name: '默认模板',
-    description: '现代简约的知识卡片样式',
+    name: t('Default Template'),
+    description: t('Modern minimalist knowledge card style'),
     render: (highlight: HighlightInfo) => {
         const cardContainer = document.createElement('div');
         cardContainer.className = 'highlight-export-card highlight-export-card-modern';
@@ -71,8 +72,8 @@ export const defaultTemplate: CardTemplate = {
 // 学术模板
 export const academicTemplate: CardTemplate = {
     id: 'academic',
-    name: '学术模板',
-    description: '适合学术引用的正式样式',
+    name: t('Academic Template'),
+    description: t('Formal style suitable for academic citations'),
     render: (highlight: HighlightInfo) => {
         const cardContainer = document.createElement('div');
         cardContainer.className = 'highlight-export-card highlight-export-card-academic';
@@ -103,8 +104,8 @@ export const academicTemplate: CardTemplate = {
 // 社交媒体模板
 export const socialTemplate: CardTemplate = {
     id: 'social',
-    name: '社交模板',
-    description: '适合社交媒体分享的现代样式',
+    name: t('Social Template'),
+    description: t('Modern style suitable for social media sharing'),
     render: (highlight: HighlightInfo) => {
         const cardContainer = document.createElement('div');
         cardContainer.className = 'highlight-export-card highlight-export-card-social';

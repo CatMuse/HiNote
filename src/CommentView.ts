@@ -9,6 +9,7 @@ import { LocationService } from './services/LocationService';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
+import {t} from "./i18n";
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -102,7 +103,7 @@ export class CommentView extends ItemView {
         // 创建加载指示器
         this.loadingIndicator = createEl("div", {
             cls: "highlight-loading-indicator",
-            text: "Loading..."
+            text: t("Loading...")
         });
         this.loadingIndicator.style.display = "none";
     }
@@ -148,7 +149,7 @@ export class CommentView extends ItemView {
             cls: "highlight-search-input",
             attr: {
                 type: "text",
-                placeholder: "搜索高亮内容或评论...",
+                placeholder: t("Search..."),
             }
         });
 
@@ -265,8 +266,8 @@ export class CommentView extends ItemView {
             this.highlightContainer.createEl("div", {
                 cls: "highlight-empty-state",
                 text: this.searchInput.value.trim() 
-                    ? "No matching content found." 
-                    : "The current document has no highlighted content."
+                    ? t("No matching content found.") 
+                    : t("The current document has no highlighted content.")
             });
             return;
         }
@@ -349,7 +350,7 @@ export class CommentView extends ItemView {
     private async addComment(highlight: HighlightInfo, content: string) {
         const file = await this.getFileForHighlight(highlight);
         if (!file) {
-            new Notice("No corresponding file found.");
+            new Notice(t("No corresponding file found."));
             return;
         }
 
@@ -432,7 +433,6 @@ export class CommentView extends ItemView {
         }
         // 如果是全部高亮视图，使用 highlight.filePath 获取文件
         if (highlight.filePath) {
-            console.log('Trying to find file by path:', highlight.filePath);
             const file = this.app.vault.getAbstractFileByPath(highlight.filePath);
             if (file instanceof TFile) {
                 return file;
@@ -440,14 +440,12 @@ export class CommentView extends ItemView {
         }
         // 如果通过 filePath 找不到，尝试通过 fileName
         if (highlight.fileName) {
-            console.log('Trying to find file by name:', highlight.fileName);
             const files = this.app.vault.getFiles();
             const file = files.find(f => f.basename === highlight.fileName || f.name === highlight.fileName);
             if (file) {
                 return file;
             }
         }
-        console.log('Failed to find file. Highlight:', highlight);
         return null;
     }
 
@@ -462,7 +460,7 @@ export class CommentView extends ItemView {
         }
 
         if (!this.currentFile) {
-            new Notice("No corresponding file found.");
+            new Notice(t("No corresponding file found."));
             return;
         }
         await this.locationService.jumpToHighlight(highlight, this.currentFile.path);
@@ -476,7 +474,7 @@ export class CommentView extends ItemView {
             new ExportPreviewModal(this.app, highlight, html2canvas).open();
         } catch (error) {
             console.error("Failed to load html2canvas:", error);
-            new Notice("Export failed: Failed to load necessary components.");
+            new Notice(t("Export failed: Failed to load necessary components."));
         }
     }
 
@@ -585,7 +583,7 @@ export class CommentView extends ItemView {
 
         // 创建"全部"文本
         allFilesLeft.createEl("span", {
-            text: "All Highlight",
+            text: t("All Highlight"),
             cls: "highlight-file-item-name"
         });
 
@@ -833,10 +831,8 @@ export class CommentView extends ItemView {
         // 使用 getInstance 方法
         this.floatingButton.addEventListener('click', () => {
             try {
-                console.log('Opening chat view...');
                 const chatView = ChatView.getInstance(this.app, this.plugin);
                 chatView.show();
-                console.log('Chat view opened');
             } catch (error) {
                 console.error('Failed to open chat view:', error);
             }

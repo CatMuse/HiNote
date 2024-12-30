@@ -137,7 +137,7 @@
 }
 
 .highlight-comment-content::after {
-    content: '双击编辑';
+    content: 'dbl-click edit';
     display: none;
     font-size: 11px;
     color: var(--text-muted);

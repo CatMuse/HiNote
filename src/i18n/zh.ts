@@ -90,4 +90,29 @@ export default {
 "Unable to access the Ollama model, please check the service.": "无法访问 Ollama 模型，请检查服务是否正常运行",
 "Unable to get Gemini model list, please check API Key and network connection.": "无法获取 Gemini 模型列表，请检查 API Key 和网络连接",
 
+//ExportModal
+
+    "Download": "下载",
+    "Export successful!": "导出成功！",
+    "Export failed, please try again.": "导出失败，请重试",
+
+//CommentView
+
+    "Loading...": "加载中...",
+    "Search...": "搜索高亮或评论...",
+    "No matching content found.": "未找到匹配的内容。",
+    "The current document has no highlighted content.": "当前文档没有高亮内容。",
+    "No corresponding file found.": "未找到相应的文件。",
+    "Export failed: Failed to load necessary components.": "导出失败：加载必要组件失败。",
+    "All Highlight": "全部高亮",
+
+//index
+
+    "Default Template": "默认模板",
+    "Modern minimalist knowledge card style": "现代极简知识卡片风格",
+    "Academic Template": "学术模板",
+    "Formal style suitable for academic citations": "适用于学术引用的正式风格",
+    "Social Template": "社交模板",
+    "Modern style suitable for social media sharing": "适用于社交媒体分享的现代风格",
+
 };

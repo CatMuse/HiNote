@@ -2,6 +2,7 @@ import { App, Modal, Notice } from 'obsidian';
 import { HighlightInfo } from './types';
 import { getTemplate, templates } from './templates';
 import { CommentItem } from './CommentStore';
+import {t} from "src/i18n";
 
 interface Html2CanvasOptions {
     backgroundColor: string;
@@ -79,13 +80,13 @@ export class ExportPreviewModal extends Modal {
         // 取消按钮
         buttonContainer.createEl('button', {
             cls: 'highlight-btn',
-            text: '取消'
+            text: t('Cancel')
         }).addEventListener('click', () => this.close());
 
         // 下载按钮
         buttonContainer.createEl('button', {
             cls: 'highlight-btn highlight-btn-primary',
-            text: '下载'
+            text: t('Download')
         }).addEventListener('click', async () => {
             try {
                 // 创建临时容器用于导出
@@ -123,10 +124,10 @@ export class ExportPreviewModal extends Modal {
                 link.click();
 
                 this.close();
-                new Notice('导出成功！');
+                new Notice(t('Export successful!'));
             } catch (error) {
                 console.error('导出图片失败:', error);
-                new Notice('导出失败，请重试');
+                new Notice(t('Export failed, please try again'));
             }
         });
     }
