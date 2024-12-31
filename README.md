@@ -68,3 +68,5 @@ Additionally, you can drag highlighted cards into the conversation window as par
 ## THANK YOU 🙏
 
 If you like this plugin and want to say thanks, you can buy me a coffee here!
+
+![Buy me a coffee](./doc/buy-me-a-coffee.png)
