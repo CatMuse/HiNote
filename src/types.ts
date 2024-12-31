@@ -82,6 +82,25 @@ export interface CommentUpdateEvent {
     comments: CommentItem[];
 }
 
+export interface ChatMessageState {
+    type: 'user' | 'assistant' | 'preview';
+    content: string;
+    previewCards?: {
+        text: string;
+        createdAt: number;
+        updatedAt: number;
+        paragraphId: string;
+        position: number;
+        paragraphOffset: number;
+    }[];
+}
+
+export interface ChatViewState {
+    chatHistory: { role: "user" | "assistant", content: string }[];
+    draggedContents: HighlightInfo[];
+    currentPreviewContainer: boolean;
+}
+
 declare global {
     interface WindowEventMap {
         'comment-updated': CustomEvent<CommentUpdateEvent>;

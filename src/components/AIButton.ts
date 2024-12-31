@@ -1,8 +1,9 @@
-import { setIcon, Notice } from "obsidian";
+import { setIcon, Notice, ItemView } from "obsidian";
 import { HighlightInfo } from "../types";
 import { AIService } from "../services/AIService";
 import type CommentPlugin from "../../main";
 import { t } from "../i18n";
+import { CommentView } from "../CommentView";
 
 export class AIButton {
     private container: HTMLElement;
@@ -31,8 +32,9 @@ export class AIButton {
         document.addEventListener('click', this.boundClickHandler);
 
         // 注册到 CommentView
-        const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as any;
-        if (commentView && commentView.registerAIButton) {
+        const view = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view;
+        const commentView = view instanceof CommentView ? view : null;
+        if (commentView?.registerAIButton) {
             commentView.registerAIButton(this);
         }
     }
@@ -43,8 +45,9 @@ export class AIButton {
         document.removeEventListener('click', this.boundClickHandler);
 
         // 从 CommentView 注销
-        const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as any;
-        if (commentView && commentView.unregisterAIButton) {
+        const view = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view;
+        const commentView = view instanceof CommentView ? view : null;
+        if (commentView?.unregisterAIButton) {
             commentView.unregisterAIButton(this);
         }
     }

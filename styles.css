@@ -570,54 +570,6 @@
     transition: all 0.3s ease;
 }
 
-/* 学术模板 */
-.highlight-export-card-academic {
-    padding: 12px 24px 24px 24px;
-    background-color: var(--background-primary);
-    border: 2px solid var(--background-modifier-border);
-    font-family: "Times New Roman", Times, serif;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.highlight-export-card-academic .highlight-export-quote {
-    font-size: 1em;
-    line-height: 1.8;
-    font-style: italic;
-    color: var(--text-normal);
-    margin: 20px 0;
-}
-
-/* 交媒体模板 */
-.highlight-export-card-social {
-    padding: 20px;
-    background-color: var(--background-primary);
-    border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-}
-
-.highlight-export-card-social .highlight-export-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.highlight-export-card-social .highlight-export-logo {
-    margin-right: 10px;
-}
-
-.highlight-export-card-social .highlight-export-app-name {
-    font-weight: 600;
-    color: var(--text-normal);
-}
-
-.highlight-export-card-social .highlight-export-quote {
-    font-size: 1em;
-    line-height: 1.6;
-    color: var(--text-normal);
-    margin: 20px 0;
-}
-
 /* 默认模板（现代风格）样式优化 */
 .highlight-export-card-modern {
     padding: 24px;

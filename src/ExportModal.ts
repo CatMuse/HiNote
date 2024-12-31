@@ -2,7 +2,8 @@ import { App, Modal, Notice } from 'obsidian';
 import { HighlightInfo } from './types';
 import { getTemplate, templates } from './templates';
 import { CommentItem } from './CommentStore';
-import {t} from "src/i18n";
+import { t } from "src/i18n";
+import { exportStyles } from './styles/exportStyles';
 
 interface Html2CanvasOptions {
     backgroundColor: string;
@@ -138,24 +139,11 @@ export class ExportPreviewModal extends Modal {
 
     private getExportStyles(): string {
         return `
-            * {
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-                text-rendering: optimizeLegibility;
-                letter-spacing: 0;
-                word-spacing: normal;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            }
-            .highlight-export-container {
-                padding: 0;
+            body {
                 margin: 0;
                 background: none;
             }
-            .highlight-export-preview {
-                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                padding: 20px;
-            }
-            ${document.querySelector('#highlight-export-styles')?.innerHTML || ''}
+            ${exportStyles}
         `;
     }
 

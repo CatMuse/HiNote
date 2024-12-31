@@ -1,6 +1,7 @@
 import { WidgetType } from "@codemirror/view";
 import type { Plugin } from "obsidian";
 import { HighlightComment, CommentItem } from "../CommentStore";
+import { setIcon } from "obsidian";
 
 export class CommentWidget extends WidgetType {
     /**
@@ -98,13 +99,9 @@ export class CommentWidget extends WidgetType {
             cls: "highlight-comment-icon-container"
         });
 
-        // 使用 SVG 创建评论图标
-        iconContainer.innerHTML = `
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
-            </svg>
-        `;
-
+        // 使用 setIcon API 替代内联 SVG
+        setIcon(iconContainer, "message-circle");
+        
         // 如果有评论，显示评论数量
         const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
         const commentCount = allComments.length;

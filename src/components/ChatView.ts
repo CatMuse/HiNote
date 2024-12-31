@@ -1,6 +1,6 @@
 import { ItemView, App, setIcon, Menu, MenuItem, Notice } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
-import { HighlightInfo } from '../types';
+import { HighlightInfo, ChatViewState } from '../types';
 import { t } from "src/i18n";
 
 export class ChatView {
@@ -12,12 +12,7 @@ export class ChatView {
     private chatHistory: { role: "user" | "assistant", content: string }[] = [];
     private floatingButton: HTMLElement | null;
     private currentPreviewContainer: HTMLElement | null = null;
-    private static savedState: {
-        chatHistory: { role: "user" | "assistant", content: string }[];
-        draggedContents: HighlightInfo[];
-        containerHTML: string | null;
-        currentPreviewContainer: boolean;  // 记录是否有活跃的预览容器
-    } | null = null;
+    private static savedState: ChatViewState | null = null;
     private textarea: HTMLTextAreaElement | null = null;  // 添加输入框引用
     private app: App;
 
@@ -208,25 +203,26 @@ export class ChatView {
             this.draggedContents = ChatView.savedState.draggedContents;
 
             // 恢复UI状态
-            const chatHistory = this.containerEl.querySelector('.highlight-chat-history');
-            if (chatHistory && ChatView.savedState.containerHTML) {
-                chatHistory.innerHTML = ChatView.savedState.containerHTML;
-                
-                // 重新绑定删除按钮事件
-                chatHistory.querySelectorAll('.highlight-chat-preview-delete').forEach((btn, index) => {
-                    btn.addEventListener('click', () => {
-                        const card = btn.closest('.highlight-chat-preview-card');
-                        if (card) {
-                            card.remove();
-                            this.draggedContents.splice(index, 1);
-                            this.updatePreviewCount();
-                        }
-                    });
+            const chatHistory = this.containerEl.querySelector('.highlight-chat-history') as HTMLElement;
+            if (chatHistory) {
+                // 清空现有内容
+                while (chatHistory.firstChild) {
+                    chatHistory.removeChild(chatHistory.firstChild);
+                }
+
+                // 重建消息历史（恢复时不使用打字机效果）
+                this.chatHistory.forEach(msg => {
+                    this.addMessage(chatHistory, msg.content, msg.role, false);
                 });
+
+                // 如果有拖拽内容，重建预览卡片
+                if (this.draggedContents.length > 0) {
+                    this.showDraggedPreviewsInChat(chatHistory);
+                }
 
                 // 如果有活跃的预览容器，恢复引用
                 if (ChatView.savedState.currentPreviewContainer) {
-                    this.currentPreviewContainer = chatHistory.querySelector('.highlight-chat-preview-cards');
+                    this.currentPreviewContainer = chatHistory.querySelector('.highlight-chat-preview-cards') as HTMLElement;
                 }
             }
         }
@@ -347,7 +343,6 @@ export class ChatView {
         ChatView.savedState = {
             chatHistory: this.chatHistory,
             draggedContents: this.draggedContents,
-            containerHTML: this.containerEl.querySelector('.highlight-chat-history')?.innerHTML || null,
             currentPreviewContainer: !!this.currentPreviewContainer
         };
 
@@ -359,7 +354,7 @@ export class ChatView {
         }
     }
 
-    private addMessage(container: HTMLElement, content: string, type: "user" | "assistant") {
+    private addMessage(container: HTMLElement, content: string, type: "user" | "assistant", useTypeWriter: boolean = true) {
         const messageEl = container.createEl("div", {
             cls: `highlight-chat-message highlight-chat-message-${type}`
         });
@@ -368,11 +363,11 @@ export class ChatView {
             cls: "highlight-chat-message-content"
         });
 
-        if (type === "assistant") {
-            // 为 AI 回复添加打字机效果
+        if (type === "assistant" && useTypeWriter) {
+            // 为新的 AI 回复添加打字机效果
             this.typeWriter(contentEl, content);
         } else {
-            // 用户消息直接显示
+            // 用户消息或恢复的消息直接显示
             contentEl.textContent = content;
         }
 
@@ -498,10 +493,10 @@ export class ChatView {
                 textarea.dispatchEvent(new Event('input'));
             });
 
-            // 添加用户消息到UI
+            // 添加用户消息到UI（新消息使用打字机效果）
             const chatHistoryEl = this.containerEl.querySelector('.highlight-chat-history') as HTMLElement;
             if (chatHistoryEl) {
-                this.addMessage(chatHistoryEl, content, "user");
+                this.addMessage(chatHistoryEl, content, "user", true);
                 
                 // 获取 AI 响应，传入完整的对话历史
                 const response = await this.chatService.sendMessage(messageToSend, this.chatHistory);
@@ -509,8 +504,8 @@ export class ChatView {
                 // 添加 AI 响应到历史记录
                 this.chatHistory.push({ role: "assistant", content: response.content });
                 
-                // 添加 AI 响应到UI
-                this.addMessage(chatHistoryEl, response.content, "assistant");
+                // 添加 AI 响应到UI（新消息使用打字机效果）
+                this.addMessage(chatHistoryEl, response.content, "assistant", true);
             }
 
         } catch (error) {
@@ -558,7 +553,9 @@ export class ChatView {
         // 清空聊天历史区域
         const chatHistoryEl = this.containerEl.querySelector('.highlight-chat-history');
         if (chatHistoryEl) {
-            chatHistoryEl.innerHTML = '';
+            while (chatHistoryEl.firstChild) {
+                chatHistoryEl.removeChild(chatHistoryEl.firstChild);
+            }
         }
 
         // 清空输入框

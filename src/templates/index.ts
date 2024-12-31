@@ -22,15 +22,28 @@ export const defaultTemplate: CardTemplate = {
         const quoteSection = document.createElement('div');
         quoteSection.className = 'highlight-export-quote-section';
         
-        // 引号装饰
+        // 引用装饰
         const quoteDecoration = document.createElement('div');
         quoteDecoration.className = 'highlight-export-quote-decoration';
-        quoteDecoration.innerHTML = `
-            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1">
-                <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
-                <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
-            </svg>
-        `;
+
+        const quoteSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        quoteSvg.setAttribute("viewBox", "0 0 24 24");
+        quoteSvg.setAttribute("width", "48");
+        quoteSvg.setAttribute("height", "48");
+        quoteSvg.setAttribute("fill", "none");
+        quoteSvg.setAttribute("stroke", "currentColor");
+        quoteSvg.setAttribute("stroke-width", "1");
+
+        const path1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path1.setAttribute("d", "M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z");
+
+        const path2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path2.setAttribute("d", "M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z");
+
+        quoteSvg.appendChild(path1);
+        quoteSvg.appendChild(path2);
+        quoteDecoration.appendChild(quoteSvg);
+
         quoteSection.appendChild(quoteDecoration);
         
         // 引用内容
@@ -115,15 +128,43 @@ export const socialTemplate: CardTemplate = {
         
         const logo = document.createElement('div');
         logo.className = 'highlight-export-logo';
-        logo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="14.31" y1="8" x2="20.05" y2="17.94"/>
-            <line x1="9.69" y1="8" x2="21.17" y2="8"/>
-            <line x1="7.38" y1="12" x2="13.12" y2="2.06"/>
-            <line x1="9.69" y1="16" x2="3.95" y2="6.06"/>
-            <line x1="14.31" y1="16" x2="2.83" y2="16"/>
-            <line x1="16.62" y1="12" x2="10.88" y2="21.94"/>
-        </svg>`;
+
+        const logoSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        logoSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        logoSvg.setAttribute("width", "24");
+        logoSvg.setAttribute("height", "24");
+        logoSvg.setAttribute("viewBox", "0 0 24 24");
+        logoSvg.setAttribute("fill", "none");
+        logoSvg.setAttribute("stroke", "currentColor");
+        logoSvg.setAttribute("stroke-width", "2");
+        logoSvg.setAttribute("stroke-linecap", "round");
+        logoSvg.setAttribute("stroke-linejoin", "round");
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", "12");
+        circle.setAttribute("cy", "12");
+        circle.setAttribute("r", "10");
+
+        const lines = [
+            ["14.31", "8", "20.05", "17.94"],
+            ["9.69", "8", "21.17", "8"],
+            ["7.38", "12", "13.12", "2.06"],
+            ["9.69", "16", "3.95", "6.06"],
+            ["14.31", "16", "2.83", "16"],
+            ["16.62", "12", "10.88", "21.94"]
+        ].map(([x1, y1, x2, y2]) => {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            return line;
+        });
+
+        logoSvg.appendChild(circle);
+        lines.forEach(line => logoSvg.appendChild(line));
+        logo.appendChild(logoSvg);
+
         header.appendChild(logo);
         
         const appName = document.createElement('div');
