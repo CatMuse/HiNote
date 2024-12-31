@@ -5,7 +5,6 @@
 	"minAppVersion": "0.15.0",
 	"description": "Enhance your highlighted notes with comment management and export features.",
 	"author": "Kai",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"authorUrl": "https://github.com/KairosBrain",
 	"isDesktopOnly": false
 }
