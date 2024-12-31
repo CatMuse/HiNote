@@ -1,5 +1,3 @@
-import { LocaleKey } from './i18n/locales';
-
 export interface CommentItem {
     id: string;
     content: string;
