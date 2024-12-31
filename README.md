@@ -1,3 +1,14 @@
+<div align="center">
+	<h1>Highlight Comment</h1>
+	<img src="https://img.shields.io/github/downloads/KairosBrain/HighlightComment/total" alt="GitHub Downloads (all assets, all releases)" />
+	<img src="https://img.shields.io/github/v/release/KairosBrain/HighlightComment" alt="GitHub release (latest by date)" />
+	<img src="https://img.shields.io/github/last-commit/KairosBrain/HighlightComment" alt="GitHub last commit" />
+	<img src="https://img.shields.io/github/issues/KairosBrain/HighlightComment" alt="GitHub issues" />
+	<img src="https://img.shields.io/github/stars/KairosBrain/HighlightComment?style=social" alt="GitHub stars" />
+</div>
+
+[简体中文](./doc/README-ZH.md) | English
+
 This AI-programmed Obsidian plugin can automatically extract highlighted text from notes, allowing users to add comments, generate AI comments, and engage in dialogue with the highlighted text. Users can highlight text in various formats, export it as knowledge card images, and enjoy additional extended features in the main view.
 
 >  I have no development experience. This plugin was completed by me and an AI together. Please use it with caution as it is in the Beta version.
@@ -15,8 +26,6 @@ When you open a note with highlighted text, the sidebar automatically displays t
 The highlight comment feature allows you to quickly engage with highlighted text, preventing your ideas from slipping away. Simply click on the Widgets in the editing area or directly click the add comment button on the card to open the input box.
 
 >  All your highlight and comment data will be stored in the plugin's data.json file, giving you complete control.
-
-GIF 
 
 ---
 ## Export as image
