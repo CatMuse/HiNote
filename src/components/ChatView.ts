@@ -319,14 +319,13 @@ export class ChatView {
         }
 
         // 设置初始位置
-        this.containerEl.style.right = '30px';
-        this.containerEl.style.bottom = '42px';
+        this.containerEl.addClass("highlight-chat-window-position");
         
         document.body.appendChild(this.containerEl);
 
         // 隐藏浮动按钮
         if (this.floatingButton) {
-            this.floatingButton.style.display = 'none';
+            this.floatingButton.addClass("highlight-floating-button-hidden");
         }
 
         // 如果有保存的状态，滚动到底部
@@ -356,7 +355,7 @@ export class ChatView {
         ChatView.instance = null;
 
         if (this.floatingButton) {
-            this.floatingButton.style.display = 'flex';
+            this.floatingButton.removeClass("highlight-floating-button-hidden");
         }
     }
 

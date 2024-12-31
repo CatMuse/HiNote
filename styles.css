@@ -552,242 +552,20 @@
     background-color: var(--background-primary);  /* 添加背景色 */
 }
 
-/* 在ExportModel已经设置了样式 */
-/* .highlight-export-container {
-    width: 100%;
-    padding: 24px;
-    background-color: var(--background-primary);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-} */
-
-/* 导出预览标题和择器容器 */
-.highlight-export-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+/* 导出容器样式 */
+.highlight-export-container {
+    padding: 20px;
+    margin: 0;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    width: 480px;
 }
 
-/* 控制按钮容器 */
-.highlight-controls {
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--background-modifier-border);
-    margin-bottom: 8px;
+/* 预览容器样式 */
+.highlight-export-preview {
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-.highlight-toggle-all-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background: var(--background-primary);
-    color: var(--text-muted);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.highlight-toggle-all-btn:hover {
-    color: var(--text-normal);
-    background-color: var(--background-modifier-hover);
-    border-color: var(--text-muted);
-}
-
-.highlight-toggle-all-icon {
-    transition: transform 0.3s ease;
-}
-
-/* 删除编辑器容器的右侧 padding */
-.markdown-source-view,
-.markdown-source-view.mod-cm6 .cm-content {
-    padding-right: initial !important;
-}
-
-/* 修改评论按钮容器的样式 */
-.highlight-comment-widget {
-    position: absolute;
-    right: -32px;
-    top: 0;
-    transform: translateY(10%);
-    isolation: isolate;
-    z-index: 999;
-    height: 22px;
-    display: flex;
-    align-items: center;
-}
-
-/* AI 按钮和下拉菜单样式 */
-.highlight-ai-container {
-    position: relative;
-    z-index: 1000;
-}
-
-.highlight-ai-btn {
-    order: -1;
-}
-
-.highlight-ai-btn svg {
-    stroke: var(--text-muted);
-    transition: all 0.2s ease;
-}
-
-.highlight-ai-btn:hover svg {
-    stroke: var(--text-accent);
-    transform: scale(1.1);
-}
-
-.highlight-ai-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 4px;
-    background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    padding: 4px 0;
-    min-width: 160px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 9999;
-}
-
-.highlight-ai-dropdown.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-.highlight-ai-dropdown-item {
-    padding: 6px 12px;
-    font-size: 12px;
-    color: var(--text-normal);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.highlight-ai-dropdown-item:hover {
-    background-color: var(--background-modifier-hover);
-    color: var(--text-accent);
-}
-
-/* AI 按钮内容容器 */
-.highlight-ai-btn-content {
-    position: relative;
-    width: 16px;
-    height: 16px;
-    display: flex;  /* 添加 flex 布局 */
-    align-items: center;  /* 垂直居中 */
-    justify-content: center;  /* 水平居中 */
-}
-
-/* AI 图标基础样式 */
-.highlight-ai-icon,
-.highlight-ai-icon-loading {
-    position: absolute;
-    display: flex;  /* 添加 flex 布局 */
-    align-items: center;  /* 垂直居中 */
-    justify-content: center;  /* 水平居中 */
-    width: 100%;
-    height: 100%;
-    transition: opacity 0.2s ease;
-}
-
-/* 加载图标动画 */
-.highlight-ai-icon-loading svg {
-    animation: ai-loading-spin 1s linear infinite;
-}
-
-@keyframes ai-loading-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* AI 服务设置区域样式 */
-.ai-service-settings {
-    background-color: var(--background-secondary);
-    border-radius: 6px;
-    padding: 16px;
-    margin: 16px 0;
-}
-
-/* 设置项容器样式 */
-.ai-service-settings .setting-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75em 0;
-}
-
-/* 设置项控制区域样式 */
-.ai-service-settings .setting-item-control {
-    flex-shrink: 0;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: flex-end;  /* 确保内右 */
-    min-width: 200px;  /* 给定一个最小宽度 */
-}
-
-/* AI 服务设置区域样式 */
-.ai-service-settings {
-    background-color: var(--background-secondary);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-}
-
-.ai-service-settings h3 {
-    margin: 0 0 16px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-normal);
-}
-
-/* 分隔线样式 */
-hr {
-    margin: 8px 0;
-    border: none;
-    border-top: 1px solid var(--background-modifier-border);
-}
-
-/* 添加新的操作提示区域样式 */
-.highlight-comment-actions-hint {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px solid var(--background-modifier-border);
-}
-
-/* 删除链接样式 */
-.highlight-comment-delete-link {
-    border: none;
-    font-size: 12px;
-    padding: 4px 6px;
-    background-color: none;
-    box-shadow: none !important;
-}
-
-.highlight-comment-delete-link:hover {
-    color: var(--text-error);
-}
-
-/* 调整提示文本样式 */
-.highlight-comment-hint {
-    font-size: 11px;
-    color: var(--text-faint);
-    margin-right: auto;
-}
-
-/* 特定样式 */
 .highlight-export-card {
     transition: all 0.3s ease;
 }
@@ -905,24 +683,6 @@ hr {
     font-weight: 500;
     display: flex;
     align-items: center;
-}
-/* 删除来源前面的图标 */
-/* .highlight-export-card-modern .highlight-export-source::before {
-    content: '';
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    margin-right: 8px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.6;
-} */
-
-.highlight-export-card-modern .highlight-export-date {
-    font-size: 0.85em;
-    color: var(--text-muted);
-    font-weight: 400;
 }
 
 /* 悬停效果 */
@@ -1330,6 +1090,11 @@ hr {
     color: var(--text-on-accent);
 }
 
+/* 浮动按钮隐藏状态 */
+.highlight-floating-button-hidden {
+    display: none !important;
+}
+
 /* 聊天窗口基础样式 */
 .highlight-chat-window {
     position: fixed !important;
@@ -1348,6 +1113,8 @@ hr {
     overflow: hidden;
     z-index: 9999 !important;
     resize: both !important;
+    right: 30px;
+    bottom: 42px;
 }
 
 /* 聊天窗口组件样式 */
@@ -1562,14 +1329,11 @@ hr {
     transition: all 0.2s ease;
     min-height: 40px; /* 最小高度 */
     max-height: 80px; /* 最大高度 */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    margin-bottom: 8px;
 }
 
-.highlight-chat-preview-card:first-child {
-    margin-top: 0;
+.highlight-chat-preview-card:last-child {
+    margin-bottom: 0;
 }
 
 /* 预览内容 */
@@ -1788,4 +1552,352 @@ hr {
 .highlight-chat-model:hover {
     color: var(--text-muted);
     background-color: var(--background-modifier-hover);
+}
+
+/* AI 下拉菜单显示/隐藏状态 */
+.highlight-dropdown-hidden {
+    display: none !important;
+}
+
+/* 控制按钮容器 */
+.highlight-controls {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 8px;
+}
+
+.highlight-toggle-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.highlight-toggle-all-btn:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+    border-color: var(--text-muted);
+}
+
+.highlight-toggle-all-icon {
+    transition: transform 0.3s ease;
+}
+
+/* 删除编辑器容器的右侧 padding */
+.markdown-source-view,
+.markdown-source-view.mod-cm6 .cm-content {
+    padding-right: initial !important;
+}
+
+/* 修改评论按钮容器的样式 */
+.highlight-comment-widget {
+    position: absolute;
+    right: -32px;
+    top: 0;
+    transform: translateY(10%);
+    isolation: isolate;
+    z-index: 999;
+    height: 22px;
+    display: flex;
+    align-items: center;
+}
+
+/* AI 按钮和下拉菜单样式 */
+.highlight-ai-container {
+    position: relative;
+    z-index: 1000;
+}
+
+.highlight-ai-btn {
+    order: -1;
+}
+
+.highlight-ai-btn svg {
+    stroke: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.highlight-ai-btn:hover svg {
+    stroke: var(--text-accent);
+    transform: scale(1.1);
+}
+
+.highlight-ai-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 4px 0;
+    min-width: 160px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+}
+
+.highlight-ai-dropdown.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.highlight-ai-dropdown-item {
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.highlight-ai-dropdown-item:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent);
+}
+
+/* AI 按钮内容容器 */
+.highlight-ai-btn-content {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* AI 图标基础样式 */
+.highlight-ai-icon,
+.highlight-ai-icon-loading {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.2s ease;
+}
+
+/* 加载图标动画 */
+.highlight-ai-icon-loading svg {
+    animation: ai-loading-spin 1s linear infinite;
+}
+
+@keyframes ai-loading-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* AI 服务设置区域样式 */
+.ai-service-settings {
+    background-color: var(--background-secondary);
+    border-radius: 6px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+/* 设置项容器样式 */
+.ai-service-settings .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75em 0;
+}
+
+/* 设置项控制区域样式 */
+.ai-service-settings .setting-item-control {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 200px;
+}
+
+/* AI 服务设置区域样式 */
+.ai-service-settings {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.ai-service-settings h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+/* 分隔线样式 */
+hr {
+    margin: 8px 0;
+    border: none;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 添加新的操作提示区域样式 */
+.highlight-comment-actions-hint {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+/* 删除链接样式 */
+.highlight-comment-delete-link {
+    border: none;
+    font-size: 12px;
+    padding: 4px 6px;
+    background-color: none;
+    box-shadow: none !important;
+}
+
+.highlight-comment-delete-link:hover {
+    color: var(--text-error);
+}
+
+/* 调整提示文本样式 */
+.highlight-comment-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-right: auto;
+}
+
+/* 特定样式 */
+.highlight-export-card {
+    transition: all 0.3s ease;
+}
+
+/* 学术模板 */
+.highlight-export-card-academic {
+    padding: 12px 24px 24px 24px;
+    background-color: var(--background-primary);
+    border: 2px solid var(--background-modifier-border);
+    font-family: "Times New Roman", Times, serif;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.highlight-export-card-academic .highlight-export-quote {
+    font-size: 1em;
+    line-height: 1.8;
+    font-style: italic;
+    color: var(--text-normal);
+    margin: 20px 0;
+}
+
+/* 交媒体模板 */
+.highlight-export-card-social {
+    padding: 20px;
+    background-color: var(--background-primary);
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.highlight-export-card-social .highlight-export-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.highlight-export-card-social .highlight-export-logo {
+    margin-right: 10px;
+}
+
+.highlight-export-card-social .highlight-export-app-name {
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.highlight-export-card-social .highlight-export-quote {
+    font-size: 1em;
+    line-height: 1.6;
+    color: var(--text-normal);
+    margin: 20px 0;
+}
+
+/* 默认模板（现代风格）样式优化 */
+.highlight-export-card-modern {
+    padding: 24px;
+    background-color: var(--background-primary);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 背景装饰 */
+.highlight-export-card-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(to bottom right,
+        var(--interactive-accent) 0%,
+        var(--interactive-accent-hover) 100%);
+}
+
+/* 引号装饰 */
+.highlight-export-card-modern .highlight-export-quote-decoration {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    opacity: 0.06;
+    transform: scale(2);
+}
+
+/* 引用内容区域 */
+.highlight-export-card-modern .highlight-export-quote-section {
+    position: relative;
+    padding: 24px 0;
+}
+
+.highlight-export-card-modern .highlight-export-quote {
+    font-size: 1em;
+    line-height: 1.7;
+    color: var(--text-normal);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* 底部信息样式 */
+.highlight-export-card-modern .highlight-export-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--background-modifier-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.highlight-export-card-modern .highlight-export-source {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+/* AI 下拉菜单显示/隐藏状态 */
+.highlight-dropdown-hidden {
+    display: none !important;
 }

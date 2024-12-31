@@ -88,7 +88,7 @@ export default {
 
     "Chat": "Chat",
     "Failed to process dropped highlight:": "Failed to process dropped highlight:",
-    "highlighted notes": "highlighted notes",
+    "highlighted notes": " highlighted notes",
     "Input message...": "Input message...",
     "Unable to access the Ollama model, please check the service.": "Unable to access the Ollama model, please check the service.",
     "Unable to get Gemini model list, please check API Key and network connection.": "Unable to get Gemini model list, please check API Key and network connection.",

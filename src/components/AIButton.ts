@@ -189,9 +189,9 @@ export class AIButton {
         this.dropdown.addClass("hidden");
         // 强制更新 DOM
         requestAnimationFrame(() => {
-            this.dropdown.style.display = 'none';
+            this.dropdown.addClass('highlight-dropdown-hidden');
             requestAnimationFrame(() => {
-                this.dropdown.style.removeProperty('display');
+                this.dropdown.removeClass('highlight-dropdown-hidden');
             });
         });
     }

@@ -174,9 +174,6 @@ export default class CommentPlugin extends Plugin {
 	}
 
 	onunload() {
-		// 清理视图
-		this.app.workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
-
 		// 清理高亮装饰器
 		if (this.highlightDecorator) {
 			this.highlightDecorator.disable();

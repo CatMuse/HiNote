@@ -85,7 +85,7 @@ export default {
 
 "Chat": "对话",
 "Failed to process dropped highlight:": "无法处理删除的高亮：",
-"highlighted notes": "条高亮笔记",
+"highlighted notes": " 条高亮笔记",
 "Input message...": "输入消息...",
 "Unable to access the Ollama model, please check the service.": "无法访问 Ollama 模型，请检查服务是否正常运行",
 "Unable to get Gemini model list, please check API Key and network connection.": "无法获取 Gemini 模型列表，请检查 API Key 和网络连接",
