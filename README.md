@@ -20,7 +20,6 @@ This AI-programmed Obsidian plugin can automatically extract highlighted text fr
 When you open a note with highlighted text, the sidebar automatically displays the highlighted text in card format. The following three formats of highlight tags are supported: `==`, `<mark>`, and `<span>`.
 
 ![Highlighted text retrieval](./doc/highlighted-text-retrieval.jpg)
-![Highlighted text retrieval](./doc/highlight.mp4)
 
 ---
 ## Highlighted comments
