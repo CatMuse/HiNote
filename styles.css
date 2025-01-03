@@ -23,7 +23,7 @@
     transition: all 0.2s ease;
     break-inside: avoid;
     page-break-inside: avoid;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     display: inline-block;
     width: 100%;
     animation: fadeIn 0.3s ease;
@@ -114,7 +114,7 @@
 .highlight-comment {
     padding: 8px;
     background-color: var(--background-primary);
-    border-radius: 6px;
+    border-radius: 4px;
     margin-bottom: 4px;
     position: relative;
 }
@@ -480,7 +480,7 @@
 
 /* 模板选择器样式 */
 .highlight-template-selector {
-    padding: 0 0 8px 0;
+    padding: 0 0 16px 0;
     position: relative;  /* 添加相对定位 */
     z-index: 1;         /* 确保选择器在按钮上方 */
 }
@@ -564,77 +564,11 @@
 .highlight-export-preview {
     padding: 20px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 4px;
 }
 
 .highlight-export-card {
     transition: all 0.3s ease;
-}
-
-/* 默认模板（现代风格）样式优化 */
-.highlight-export-card-modern {
-    padding: 24px;
-    background-color: var(--background-primary);
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    position: relative;
-    overflow: hidden;
-}
-
-/* 背景装饰 */
-.highlight-export-card-modern::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: linear-gradient(to bottom right,
-        var(--interactive-accent) 0%,
-        var(--interactive-accent-hover) 100%);
-}
-
-/* 引号装饰 */
-.highlight-export-card-modern .highlight-export-quote-decoration {
-    position: absolute;
-    top: 24px;
-    right: 24px;
-    opacity: 0.06;
-    transform: scale(2);
-}
-
-/* 引用内容区域 */
-.highlight-export-card-modern .highlight-export-quote-section {
-    position: relative;
-    padding: 24px 0;
-}
-
-.highlight-export-card-modern .highlight-export-quote {
-    font-size: 1em;
-    line-height: 1.7;
-    color: var(--text-normal);
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    margin: 0;
-    position: relative;
-    z-index: 1;
-}
-
-/* 底部信息样式 */
-.highlight-export-card-modern .highlight-export-footer {
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--background-modifier-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.highlight-export-card-modern .highlight-export-source {
-    font-size: 0.9em;
-    color: var(--text-muted);
-    font-weight: 500;
-    display: flex;
-    align-items: center;
 }
 
 /* 悬停效果 */
