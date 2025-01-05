@@ -101,23 +101,28 @@ export class ExportPreviewModal extends Modal {
 
                 const canvas = await this.html2canvasInstance(exportContainer, {
                     backgroundColor: null,
-                    scale: 2, // 降低缩放比例
+                    scale: window.devicePixelRatio * 2, // 使用设备像素比的2倍来确保清晰度
                     useCORS: true,
                     allowTaint: true,
                     logging: false,
-                    onclone: (clonedDoc: Document) => {
+                    imageTimeout: 0, // 禁用图片超时
+                    removeContainer: true, // 自动移除临时容器
+                    onclone: async (clonedDoc: Document) => {
                         const style = clonedDoc.createElement('style');
                         style.textContent = this.getExportStyles();
                         clonedDoc.head.appendChild(style);
+                        
+                        // 给样式应用一个短暂的延时，确保样式完全加载
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 });
 
-                // 清理临时容器
-                document.body.removeChild(exportContainer);
+                // 优化 canvas 导出质量
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
 
                 const link = document.createElement('a');
                 link.download = `highlight-${this.selectedTemplateId}-${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
+                link.href = dataUrl;
                 link.click();
 
                 this.close();
