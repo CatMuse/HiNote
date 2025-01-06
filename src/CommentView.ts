@@ -1,13 +1,15 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon } from "obsidian";
-import { CommentStore, HighlightComment, CommentItem } from './CommentStore';
+import { CommentStore, HighlightComment, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
 import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
 import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
+import { ExportService } from './services/ExportService';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import { CommentInput } from './components/comment/CommentInput';
+import { FileCommentCard } from './components/comment/FileCommentCard';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
 
@@ -24,6 +26,7 @@ export class CommentView extends ItemView {
     private searchInput: HTMLInputElement;
     private plugin: CommentPlugin;
     private locationService: LocationService;
+    private exportService: ExportService;
     private isDraggedToMainView: boolean = false;
     private currentBatch: number = 0;
     private isLoading: boolean = false;
@@ -37,6 +40,7 @@ export class CommentView extends ItemView {
         this.commentStore = commentStore;
         this.plugin = (this.app as any).plugins.plugins['highlight-comment'] as CommentPlugin;
         this.locationService = new LocationService(this.app);
+        this.exportService = new ExportService(this.app, this.commentStore);
         
         // 监听文档切换
         this.registerEvent(
@@ -153,6 +157,54 @@ export class CommentView extends ItemView {
             }
         });
 
+        // 创建图标按钮容器
+        const iconButtonsContainer = this.searchContainer.createEl("div", {
+            cls: "highlight-search-icons"
+        });
+
+        // 添加 message-square-plus 图标按钮
+        const addCommentButton = iconButtonsContainer.createEl("button", {
+            cls: "highlight-icon-button"
+        });
+        setIcon(addCommentButton, "message-square-plus");
+        addCommentButton.setAttribute("aria-label", t("Add File Comment"));
+
+        // 添加评论按钮点击事件
+        addCommentButton.addEventListener("click", () => {
+            if (!this.currentFile) {
+                new Notice(t("Please open a file first."));
+                return;
+            }
+
+            this.showFileCommentInput();
+        });
+
+        // 添加 square-arrow-out-up-right 图标按钮
+        const exportButton = iconButtonsContainer.createEl("button", {
+            cls: "highlight-icon-button"
+        });
+        setIcon(exportButton, "square-arrow-out-up-right");
+        exportButton.setAttribute("aria-label", t("Export"));
+
+        // 添加导出按钮点击事件
+        exportButton.addEventListener("click", async () => {
+            if (!this.currentFile) {
+                new Notice(t("Please open a file first."));
+                return;
+            }
+
+            try {
+                const newFile = await this.exportService.exportHighlightsToNote(this.currentFile);
+                new Notice(t("Successfully exported highlights to: ") + newFile.path);
+                
+                // 打开新创建的文件
+                const leaf = this.app.workspace.getLeaf();
+                await leaf.openFile(newFile);
+            } catch (error) {
+                new Notice(t("Failed to export highlights: ") + error.message);
+            }
+        });
+
         // 添加搜索事件监听
         this.searchInput.addEventListener("input", this.debounce(() => {
             this.updateHighlightsList();
@@ -235,6 +287,46 @@ export class CommentView extends ItemView {
 
     private async updateHighlightsList() {
         const searchTerm = this.searchInput.value.toLowerCase().trim();
+        
+        // 清空容器
+        this.highlightContainer.empty();
+
+        // 如果有当前文件，获取并显示文件级评论
+        if (this.currentFile) {
+            const fileComments = this.commentStore.getFileOnlyComments(this.currentFile);
+            if (fileComments.length > 0) {
+                const fileCommentsContainer = this.highlightContainer.createEl("div", {
+                    cls: "file-comments-container"
+                });
+
+                fileComments
+                    .filter(comment => 
+                        !searchTerm || comment.content.toLowerCase().includes(searchTerm)
+                    )
+                    .sort((a, b) => b.updatedAt - a.updatedAt)
+                    .forEach(comment => {
+                        new FileCommentCard(fileCommentsContainer, comment, {
+                            onEdit: async (updatedComment) => {
+                                await this.commentStore.updateFileComment(
+                                    this.currentFile!,
+                                    updatedComment.id,
+                                    updatedComment.content
+                                );
+                                await this.updateHighlightsList();
+                            },
+                            onDelete: async (comment) => {
+                                await this.commentStore.deleteFileComment(
+                                    this.currentFile!,
+                                    comment.id
+                                );
+                                await this.updateHighlightsList();
+                            }
+                        });
+                    });
+            }
+        }
+
+        // 过滤并显示高亮评论
         const filteredHighlights = this.highlights.filter(highlight => {
             // 搜索高亮文本
             if (highlight.text.toLowerCase().includes(searchTerm)) {
@@ -909,8 +1001,35 @@ export class CommentView extends ItemView {
         // 如果没有其他叶子，或者当前不在主视图，创建一个新的拆分视图
         return this.app.workspace.getLeaf('split', 'vertical');
     }
-}
 
-function escapeRegExp(str: string) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+    private showFileCommentInput() {
+        // 创建一个临时的容器
+        const container = this.highlightContainer.createEl("div", {
+            cls: "highlight-card file-comment-input-container"
+        });
+        
+        // 将容器插入到列表最前面
+        if (this.highlightContainer.firstChild) {
+            this.highlightContainer.insertBefore(container, this.highlightContainer.firstChild);
+        } else {
+            this.highlightContainer.appendChild(container);
+        }
+
+        // 使用 CommentInput 组件
+        const input = new CommentInput(
+            container,
+            { text: "", position: 0, paragraphOffset: 0 }, // 虚拟的 HighlightInfo
+            undefined,
+            {
+                onSave: async (content: string) => {
+                    await this.commentStore.addFileComment(this.currentFile!, content);
+                    await this.updateHighlightsList();
+                },
+                onCancel: () => {
+                    container.remove();
+                }
+            }
+        );
+        input.show();
+    }
 }

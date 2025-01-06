@@ -101,6 +101,14 @@ export interface ChatViewState {
     currentPreviewContainer: boolean;
 }
 
+export interface FileComment {
+    id: string;
+    content: string;
+    createdAt: number;
+    updatedAt: number;
+    filePath: string;
+}
+
 declare global {
     interface WindowEventMap {
         'comment-updated': CustomEvent<CommentUpdateEvent>;

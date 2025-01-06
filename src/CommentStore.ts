@@ -1,4 +1,4 @@
-import { Plugin, TFile, MarkdownView, Editor } from "obsidian";
+import { Plugin, TFile, MarkdownView, Editor, App } from "obsidian";
 
 export interface CommentItem {
     id: string;           // 评论的唯一ID
@@ -17,6 +17,14 @@ export interface HighlightComment {
     updatedAt: number;    
 }
 
+export interface FileComment {
+    id: string;
+    content: string;
+    createdAt: number;
+    updatedAt: number;
+    filePath: string;
+}
+
 export interface FileComments {
     [highlightId: string]: HighlightComment;
 }
@@ -25,10 +33,16 @@ export interface CommentsData {
     [filePath: string]: FileComments;
 }
 
+export interface FileCommentsData {
+    [filePath: string]: FileComment[];
+}
+
 export class CommentStore {
     private plugin: Plugin;
     private data: CommentsData = {};
+    private fileCommentsData: FileCommentsData = {};
     private comments: Map<string, HighlightComment[]> = new Map();
+    private fileComments: Map<string, FileComment[]> = new Map();
     private commentCache: Map<string, HighlightComment[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
@@ -40,17 +54,33 @@ export class CommentStore {
     async loadComments() {
         const data = await this.plugin.loadData();
         this.data = data?.comments || {};
+        this.fileCommentsData = data?.fileComments || {};
+
+        // 将 data 转换为正确的格式
+        this.comments = new Map(
+            Object.entries(this.data).map(([key, value]) => [
+                key,
+                Object.values(value as { [key: string]: HighlightComment })
+            ])
+        );
+
+        this.fileComments = new Map(Object.entries(this.fileCommentsData));
     }
 
     async saveComments() {
         await this.plugin.saveData({
-            comments: this.data
+            comments: this.data,
+            fileComments: Object.fromEntries(this.fileComments)
         });
     }
 
     getFileComments(file: TFile): HighlightComment[] {
         const comments = this.data[file.path] || {};
         return Object.values(comments).sort((a, b) => a.position - b.position);
+    }
+
+    getFileOnlyComments(file: TFile): FileComment[] {
+        return this.fileComments.get(file.path) || [];
     }
 
     async addComment(file: TFile, highlight: HighlightComment) {
@@ -78,19 +108,21 @@ export class CommentStore {
         await this.saveComments();
     }
 
-    // 获取或生成 block ID
-    private getBlockId(editor: Editor, line: number): string {
-        const lineText = editor.getLine(line);
-        const blockIdMatch = lineText.match(/\^([a-zA-Z0-9-]+)$/);
-        
-        if (blockIdMatch) {
-            return blockIdMatch[1];
-        }
-        
-        // 如果没有 block ID，生成一个并添加到行尾
-        const newBlockId = Math.random().toString(36).substr(2, 9);
-        editor.setLine(line, `${lineText} ^${newBlockId}`);
-        return newBlockId;
+    async addFileComment(file: TFile, content: string): Promise<FileComment> {
+        const fileComment: FileComment = {
+            id: `file-comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            content,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            filePath: file.path
+        };
+
+        const comments = this.fileComments.get(file.path) || [];
+        comments.push(fileComment);
+        this.fileComments.set(file.path, comments);
+
+        await this.saveComments();
+        return fileComment;
     }
 
     async updateComment(file: TFile, highlightId: string, commentContent: string) {
@@ -116,11 +148,35 @@ export class CommentStore {
         }
     }
 
+    async updateFileComment(file: TFile, commentId: string, content: string): Promise<void> {
+        const comments = this.fileComments.get(file.path) || [];
+        const comment = comments.find(c => c.id === commentId);
+        if (comment) {
+            comment.content = content;
+            comment.updatedAt = Date.now();
+            await this.saveComments();
+        }
+    }
+
     async removeComment(file: TFile, highlightId: string) {
         if (this.data[file.path]?.[highlightId]) {
             delete this.data[file.path][highlightId];
             if (Object.keys(this.data[file.path]).length === 0) {
                 delete this.data[file.path];
+            }
+            await this.saveComments();
+        }
+    }
+
+    async deleteFileComment(file: TFile, commentId: string): Promise<void> {
+        const comments = this.fileComments.get(file.path) || [];
+        const index = comments.findIndex(c => c.id === commentId);
+        if (index !== -1) {
+            comments.splice(index, 1);
+            if (comments.length === 0) {
+                this.fileComments.delete(file.path);
+            } else {
+                this.fileComments.set(file.path, comments);
             }
             await this.saveComments();
         }
@@ -132,6 +188,12 @@ export class CommentStore {
         for (const filePath of Object.keys(this.data)) {
             if (!existingFiles.has(filePath)) {
                 delete this.data[filePath];
+                changed = true;
+            }
+        }
+        for (const filePath of Object.keys(this.fileCommentsData)) {
+            if (!existingFiles.has(filePath)) {
+                delete this.fileCommentsData[filePath];
                 changed = true;
             }
         }
@@ -203,6 +265,22 @@ export class CommentStore {
 
     async clearAllComments() {
         this.data = {};
+        this.fileCommentsData = {};
         await this.saveComments();
+    }
+
+    // 获取或生成 block ID
+    private getBlockId(editor: Editor, line: number): string {
+        const lineText = editor.getLine(line);
+        const blockIdMatch = lineText.match(/\^([a-zA-Z0-9-]+)$/);
+        
+        if (blockIdMatch) {
+            return blockIdMatch[1];
+        }
+        
+        // 如果没有 block ID，生成一个并添加到行尾
+        const newBlockId = Math.random().toString(36).substr(2, 9);
+        editor.setLine(line, `${lineText} ^${newBlockId}`);
+        return newBlockId;
     }
 } 

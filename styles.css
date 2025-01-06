@@ -10,6 +10,53 @@
     font-size: 13px;
 }
 
+/* 搜索区域样式 */
+.highlight-search-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.highlight-search-input {
+    flex: 1;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    font-size: 13px;
+}
+
+.highlight-search-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+.highlight-search-icons {
+    display: flex;
+    gap: 4px;
+}
+
+.highlight-icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.highlight-icon-button:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+}
+
 .highlight-list {
     column-count: auto;
     column-width: 250px;
