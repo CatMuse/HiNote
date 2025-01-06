@@ -7,12 +7,15 @@
 	<img src="https://img.shields.io/github/stars/KairosBrain/HighlightComment?style=social" alt="GitHub stars" />
 </div>
 
+---
 
 简体中文 | [English](./README.md)
 
 这款由 AI 编程的 Obsidian 插件能够自动提取笔记中的高亮文本，支持用户添加评论、生成 AI 评论及与高亮文本进行对话。用户可以使用多种格式进行文本高亮，并将其导出为知识卡片图片，同时在主视图中享受更多扩展功能。
 
 >  我完全没有研发经验，这款插件是我和 AI 共同完成，作为 Beta 版请谨慎使用。
+
+[![HighlightComment Plugin Tutorial](https://img.youtube.com/vi/M3K80g5MYM8/maxresdefault.jpg)](https://www.youtube.com/watch?v=M3K80g5MYM8)
 
 ---
 ## 高亮文本获取
