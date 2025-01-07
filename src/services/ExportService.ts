@@ -121,7 +121,8 @@ export class ExportService {
         const patterns = [
             /==(.*?)==/g,                          // ==text== 格式
             /<mark[^>]*style="background:\s*#[0-9A-Fa-f]{6,8};?">(.*?)<\/mark>/g,                // <mark>text</mark> 格式
-            /<span[^>]*style="background:\s*rgba\(\d{1,3},\s*\d{1,3},\s*\d{1,3},\s*\d?\.?\d+\)">(.+?)<\/span>/g  // <span>text</span> 格式
+            /<span[^>]*style="background:\s*rgba\(\d{1,3},\s*\d{1,3},\s*\d{1,3},\s*\d?\.?\d+\)">(.+?)<\/span>/g,
+            /<span[^>]*style="background:\s*#[0-9A-Fa-f]{6,8};?">(.*?)<\/span>/g  // <span>text</span> 格式
         ];
 
         for (const regex of patterns) {
