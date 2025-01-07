@@ -25,7 +25,7 @@ export class ExportService {
         const content = await this.generateExportContent(sourceFile, highlights);
 
         // 创建新文件
-        const fileName = `${sourceFile.basename} - Highlights ${window.moment().format("YYYY-MM-DD-HHmm")}`;
+        const fileName = `${sourceFile.basename} - Highlights ${window.moment().format("YYYYMMDDHHmm")}`;
         const newFile = await this.app.vault.create(
             `${fileName}.md`,
             content
@@ -78,27 +78,27 @@ export class ExportService {
     private async generateExportContent(file: TFile, highlights: HighlightInfo[]): Promise<string> {
         const lines: string[] = [];
         
-        // 添加标题
-        lines.push(`# ${file.basename} - Highlights`);
-        lines.push("");
-        lines.push(`> [!info] Source`);
-        lines.push(`> File: ${file.path}`);
-        lines.push(`> Created: ${window.moment().format("YYYY-MM-DD HH:mm:ss")}`);
+        // 添加标题 - 使用双链接格式
+        lines.push(`[[${file.basename}]] - HighlightsNotes`);
         lines.push("");
 
         // 添加高亮和评论内容
         for (const highlight of highlights) {
+            // 添加高亮内容
             lines.push("> [!quote] Highlight");
             lines.push(`> ${highlight.text}`);
+            lines.push("> ");
+            lines.push("> ---");
+            lines.push("> ");
             
+            // 添加评论内容
             if (highlight.comments && highlight.comments.length > 0) {
-                lines.push("");
-                lines.push("> [!note] Comments");
                 for (const comment of highlight.comments) {
-                    lines.push(`> ${comment.content}`);
+                    lines.push(">> [!note] Comment");
+                    lines.push(`>> ${comment.content}`);
                     if (comment.updatedAt) {
                         const date = window.moment(comment.updatedAt);
-                        lines.push(`> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                        lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
                     }
                     lines.push(">");
                 }
@@ -114,20 +114,34 @@ export class ExportService {
      */
     private extractHighlights(content: string): HighlightInfo[] {
         const highlights: HighlightInfo[] = [];
-        const regex = /==(.*?)==/g;
-        let match;
-        let position = 0;
+        
+        // 匹配所有格式的高亮
+        const patterns = [
+            /==(.*?)==/g,                          // ==text== 格式
+            /<mark>(.*?)<\/mark>/g,                // <mark>text</mark> 格式
+            /<span>(.*?)<\/span>/g  // <span>text</span> 格式
+        ];
 
-        while ((match = regex.exec(content)) !== null) {
-            highlights.push({
-                text: match[1],
-                position: match.index,
-                paragraphOffset: this.getParagraphOffset(content, match.index)
-            });
-            position = regex.lastIndex;
+        for (const regex of patterns) {
+            let match;
+            while ((match = regex.exec(content)) !== null) {
+                // 检查这个位置是否已经有高亮（避免重复）
+                const isDuplicate = highlights.some(h => 
+                    Math.abs(h.position - match.index) < 10 && h.text === match[1]
+                );
+
+                if (!isDuplicate) {
+                    highlights.push({
+                        text: match[1],
+                        position: match.index,
+                        paragraphOffset: this.getParagraphOffset(content, match.index)
+                    });
+                }
+            }
         }
 
-        return highlights;
+        // 按位置排序
+        return highlights.sort((a, b) => a.position - b.position);
     }
 
     /**
