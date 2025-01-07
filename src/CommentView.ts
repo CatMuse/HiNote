@@ -175,7 +175,6 @@ export class CommentView extends ItemView {
                 new Notice(t("Please open a file first."));
                 return;
             }
-
             this.showFileCommentInput();
         });
 
@@ -183,8 +182,8 @@ export class CommentView extends ItemView {
         const exportButton = iconButtonsContainer.createEl("button", {
             cls: "highlight-icon-button"
         });
-        setIcon(exportButton, "square-arrow-out-up-right");
-        exportButton.setAttribute("aria-label", t("Export"));
+        setIcon(exportButton, "file-symlink");
+        exportButton.setAttribute("aria-label", t("Export as notes"));
 
         // 添加导出按钮点击事件
         exportButton.addEventListener("click", async () => {
