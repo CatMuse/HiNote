@@ -88,11 +88,13 @@ export class ExportService {
             lines.push("> [!quote] Highlight");
             lines.push(`> ${highlight.text}`);
             lines.push("> ");
-            lines.push("> ---");
-            lines.push("> ");
             
-            // 添加评论内容
+            // 如果有评论内容，添加分割线
             if (highlight.comments && highlight.comments.length > 0) {
+                lines.push("> ---");
+                lines.push("> ");
+                
+                // 添加评论内容
                 for (const comment of highlight.comments) {
                     lines.push(">> [!note] Comment");
                     lines.push(`>> ${comment.content}`);
@@ -118,23 +120,25 @@ export class ExportService {
         // 匹配所有格式的高亮
         const patterns = [
             /==(.*?)==/g,                          // ==text== 格式
-            /<mark>(.*?)<\/mark>/g,                // <mark>text</mark> 格式
-            /<span>(.*?)<\/span>/g  // <span>text</span> 格式
+            /<mark[^>]*style="background:\s*#[0-9A-Fa-f]{6,8};?">(.*?)<\/mark>/g,                // <mark>text</mark> 格式
+            /<span[^>]*style="background:\s*rgba\(\d{1,3},\s*\d{1,3},\s*\d{1,3},\s*\d?\.?\d+\)">(.+?)<\/span>/g  // <span>text</span> 格式
         ];
 
         for (const regex of patterns) {
-            let match;
+            let match: RegExpExecArray | null;
             while ((match = regex.exec(content)) !== null) {
-                // 检查这个位置是否已经有高亮（避免重复）
+                // 使用类型断言明确告诉 TypeScript match 不为 null
+                const nonNullMatch = match as RegExpExecArray;
+                
                 const isDuplicate = highlights.some(h => 
-                    Math.abs(h.position - match.index) < 10 && h.text === match[1]
+                    Math.abs(h.position - nonNullMatch.index) < 10 && h.text === nonNullMatch[1]
                 );
 
                 if (!isDuplicate) {
                     highlights.push({
-                        text: match[1],
-                        position: match.index,
-                        paragraphOffset: this.getParagraphOffset(content, match.index)
+                        text: nonNullMatch[1],
+                        position: nonNullMatch.index,
+                        paragraphOffset: this.getParagraphOffset(content, nonNullMatch.index)
                     });
                 }
             }
