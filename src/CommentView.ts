@@ -9,7 +9,6 @@ import { LocationService } from './services/LocationService';
 import { ExportService } from './services/ExportService';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import { CommentInput } from './components/comment/CommentInput';
-import { FileCommentCard } from './components/comment/FileCommentCard';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
 
@@ -169,15 +168,6 @@ export class CommentView extends ItemView {
         setIcon(addCommentButton, "message-square-plus");
         addCommentButton.setAttribute("aria-label", t("Add File Comment"));
 
-        // 添加评论按钮点击事件
-        addCommentButton.addEventListener("click", () => {
-            if (!this.currentFile) {
-                new Notice(t("Please open a file first."));
-                return;
-            }
-            this.showFileCommentInput();
-        });
-
         // 添加 square-arrow-out-up-right 图标按钮
         const exportButton = iconButtonsContainer.createEl("button", {
             cls: "highlight-icon-button"
@@ -289,41 +279,6 @@ export class CommentView extends ItemView {
         
         // 清空容器
         this.highlightContainer.empty();
-
-        // 如果有当前文件，获取并显示文件级评论
-        if (this.currentFile) {
-            const fileComments = this.commentStore.getFileOnlyComments(this.currentFile);
-            if (fileComments.length > 0) {
-                const fileCommentsContainer = this.highlightContainer.createEl("div", {
-                    cls: "file-comments-container"
-                });
-
-                fileComments
-                    .filter(comment => 
-                        !searchTerm || comment.content.toLowerCase().includes(searchTerm)
-                    )
-                    .sort((a, b) => b.updatedAt - a.updatedAt)
-                    .forEach(comment => {
-                        new FileCommentCard(fileCommentsContainer, comment, {
-                            onEdit: async (updatedComment) => {
-                                await this.commentStore.updateFileComment(
-                                    this.currentFile!,
-                                    updatedComment.id,
-                                    updatedComment.content
-                                );
-                                await this.updateHighlightsList();
-                            },
-                            onDelete: async (comment) => {
-                                await this.commentStore.deleteFileComment(
-                                    this.currentFile!,
-                                    comment.id
-                                );
-                                await this.updateHighlightsList();
-                            }
-                        });
-                    });
-            }
-        }
 
         // 过滤并显示高亮评论
         const filteredHighlights = this.highlights.filter(highlight => {
@@ -999,36 +954,5 @@ export class CommentView extends ItemView {
         
         // 如果没有其他叶子，或者当前不在主视图，创建一个新的拆分视图
         return this.app.workspace.getLeaf('split', 'vertical');
-    }
-
-    private showFileCommentInput() {
-        // 创建一个临时的容器
-        const container = this.highlightContainer.createEl("div", {
-            cls: "highlight-card file-comment-input-container"
-        });
-        
-        // 将容器插入到列表最前面
-        if (this.highlightContainer.firstChild) {
-            this.highlightContainer.insertBefore(container, this.highlightContainer.firstChild);
-        } else {
-            this.highlightContainer.appendChild(container);
-        }
-
-        // 使用 CommentInput 组件
-        const input = new CommentInput(
-            container,
-            { text: "", position: 0, paragraphOffset: 0 }, // 虚拟的 HighlightInfo
-            undefined,
-            {
-                onSave: async (content: string) => {
-                    await this.commentStore.addFileComment(this.currentFile!, content);
-                    await this.updateHighlightsList();
-                },
-                onCancel: () => {
-                    container.remove();
-                }
-            }
-        );
-        input.show();
     }
 }
