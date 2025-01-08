@@ -44,32 +44,42 @@ export class ExportService {
         // 获取已存储的评论
         const storedComments = this.commentStore.getFileComments(file);
         
-        // 合并高亮和评论数据
-        return highlights.map(highlight => {
-            const storedComment = storedComments.find(c => {
+        // 分离虚拟高亮和普通高亮
+        const virtualHighlights = storedComments.filter(c => c.isVirtual && c.comments && c.comments.length > 0);
+        const normalHighlights = storedComments.filter(c => !c.isVirtual);
+        
+        // 处理普通高亮
+        const processedHighlights = highlights.map(highlight => {
+            const storedComment = normalHighlights.find(c => {
                 const textMatch = c.text === highlight.text;
-                if (textMatch) {
+                // 如果存储的评论没有 position，则不进行位置匹配
+                if (textMatch && typeof c.position === 'number' && typeof highlight.position === 'number') {
                     return Math.abs(c.position - highlight.position) < 1000;
                 }
-                return false;
+                return textMatch;
             });
 
             if (storedComment) {
                 return {
                     ...storedComment,
-                    position: highlight.position,
-                    paragraphOffset: highlight.paragraphOffset
+                    position: highlight.position ?? 0,
+                    paragraphOffset: highlight.paragraphOffset ?? 0
                 };
             }
 
             return {
                 id: this.generateHighlightId(highlight),
                 ...highlight,
+                position: highlight.position ?? 0,
+                paragraphOffset: highlight.paragraphOffset ?? 0,
                 comments: [],
                 createdAt: Date.now(),
                 updatedAt: Date.now()
             };
         });
+
+        // 合并虚拟高亮和普通高亮，虚拟高亮放在前面
+        return [...virtualHighlights, ...processedHighlights];
     }
 
     /**
@@ -84,25 +94,44 @@ export class ExportService {
 
         // 添加高亮和评论内容
         for (const highlight of highlights) {
-            // 添加高亮内容
-            lines.push("> [!quote] Highlight");
-            lines.push(`> ${highlight.text}`);
-            lines.push("> ");
+            if (highlight.isVirtual) {
+                // 虚拟高亮使用不同的格式
+                lines.push("> [!note] File Comment");
+                lines.push("> ");
+            } else {
+                // 普通高亮
+                lines.push("> [!quote] Highlight");
+                lines.push(`> ${highlight.text}`);
+                lines.push("> ");
+            }
             
             // 如果有评论内容，添加分割线
             if (highlight.comments && highlight.comments.length > 0) {
-                lines.push("> ---");
-                lines.push("> ");
+                if (!highlight.isVirtual) {
+                    lines.push("> ---");
+                    lines.push("> ");
+                }
                 
                 // 添加评论内容
                 for (const comment of highlight.comments) {
-                    lines.push(">> [!note] Comment");
-                    lines.push(`>> ${comment.content}`);
+                    if (highlight.isVirtual) {
+                        // 虚拟高亮的评论直接显示，不需要额外的缩进
+                        lines.push(`> ${comment.content}`);
+                    } else {
+                        // 普通高亮的评论使用双层缩进
+                        lines.push(">> [!note] Comment");
+                        lines.push(`>> ${comment.content}`);
+                    }
+                    
                     if (comment.updatedAt) {
                         const date = window.moment(comment.updatedAt);
-                        lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                        if (highlight.isVirtual) {
+                            lines.push(`> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                        } else {
+                            lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                        }
                     }
-                    lines.push(">");
+                    lines.push(highlight.isVirtual ? ">" : ">");
                 }
             }
             lines.push("");
@@ -132,7 +161,7 @@ export class ExportService {
                 const nonNullMatch = match as RegExpExecArray;
                 
                 const isDuplicate = highlights.some(h => 
-                    Math.abs(h.position - nonNullMatch.index) < 10 && h.text === nonNullMatch[1]
+                    typeof h.position === 'number' && Math.abs(h.position - nonNullMatch.index) < 10 && h.text === nonNullMatch[1]
                 );
 
                 if (!isDuplicate) {
@@ -146,7 +175,7 @@ export class ExportService {
         }
 
         // 按位置排序
-        return highlights.sort((a, b) => a.position - b.position);
+        return highlights.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     }
 
     /**
