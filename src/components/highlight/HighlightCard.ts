@@ -30,7 +30,7 @@ export class HighlightCard {
 
     private render() {
         this.card = this.container.createEl("div", {
-            cls: "highlight-card",
+            cls: `highlight-card ${this.highlight.isVirtual ? 'virtual-highlight-card' : ''}`,
             attr: {
                 'data-highlight': JSON.stringify(this.highlight)
             }

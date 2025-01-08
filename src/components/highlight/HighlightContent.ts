@@ -46,10 +46,10 @@ export class HighlightContent {
             cls: "highlight-text"
         });
 
-        // 创建文本内容元素
+        // 创建文本内容元素，如果是虚拟高亮则使用 displayText
         const textContent = textEl.createEl("div", {
-            text: this.highlight.text,
-            cls: "highlight-text-content"
+            text: this.highlight.isVirtual ? this.highlight.displayText : this.highlight.text,
+            cls: `highlight-text-content ${this.highlight.isVirtual ? 'virtual-highlight' : ''}`
         });
 
         // 只保留点击事件

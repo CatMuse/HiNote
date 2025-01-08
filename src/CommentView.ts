@@ -33,6 +33,7 @@ export class CommentView extends ItemView {
     private BATCH_SIZE = 20;
     private floatingButton: HTMLElement | null = null;
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
+    private currentEditingHighlightId: string | null | undefined = null;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -168,6 +169,54 @@ export class CommentView extends ItemView {
         setIcon(addCommentButton, "message-square-plus");
         addCommentButton.setAttribute("aria-label", t("Add File Comment"));
 
+        // 添加文件评论按钮点击事件
+        addCommentButton.addEventListener("click", async () => {
+            if (!this.currentFile) {
+                new Notice(t("Please open a file first."));
+                return;
+            }
+
+            // 生成唯一标识符
+            const timestamp = Date.now();
+            const uniqueId = `file-comment-${timestamp}`;
+            
+            // 创建虚拟高亮信息
+            const virtualHighlight: HighlightComment = {
+                id: uniqueId,
+                text: `__virtual_highlight_${timestamp}__`,  // 这个文本不会显示给用户
+                filePath: this.currentFile.path,
+                fileType: this.currentFile.extension,
+                displayText: t("File Comment"),  // 这是显示给用户看的文本
+                isVirtual: true,  // 标记这是一个虚拟高亮
+                position: 0,  // 给一个默认位置
+                paragraphOffset: 0,  // 给一个默认偏移量
+                paragraphId: `${this.currentFile.path}#^virtual-${timestamp}`,  // 生成一个虚拟段落ID
+                createdAt: timestamp,
+                updatedAt: timestamp,
+                comments: []  // 初始化空的评论数组
+            };
+
+            // 先保存到 CommentStore
+            await this.commentStore.addComment(this.currentFile, virtualHighlight);
+
+            // 将虚拟高亮添加到高亮列表的最前面
+            this.highlights.unshift(virtualHighlight);
+            
+            // 重新渲染高亮列表
+            this.renderHighlights(this.highlights);
+
+            // 找到新创建的高亮卡片
+            setTimeout(() => {
+                const highlightCard = this.highlightContainer.querySelector('.highlight-card') as HTMLElement;
+                if (highlightCard) {
+                    // 自动打开评论输入框
+                    this.showCommentInput(highlightCard, virtualHighlight);
+                    // 滚动到顶部
+                    this.highlightContainer.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }, 100);
+        });
+
         // 添加 square-arrow-out-up-right 图标按钮
         const exportButton = iconButtonsContainer.createEl("button", {
             cls: "highlight-icon-button"
@@ -246,32 +295,32 @@ export class CommentView extends ItemView {
         this.highlights = highlights.map(highlight => {
             const storedComment = storedComments.find(c => {
                 const textMatch = c.text === highlight.text;
-                if (textMatch) {
+                if (textMatch && highlight.position !== undefined && c.position !== undefined) {
                     return Math.abs(c.position - highlight.position) < 1000;
                 }
-                return false;
+                return textMatch; // 如果没有位置信息，只比较文本
             });
 
             if (storedComment) {
-                const sortedComments = [...storedComment.comments].sort((a, b) => b.updatedAt - a.updatedAt);
                 return {
-                    ...storedComment,
-                    comments: sortedComments,
-                    position: highlight.position,
-                    paragraphOffset: highlight.paragraphOffset
+                    ...highlight,
+                    id: storedComment.id,
+                    comments: storedComment.comments,
+                    createdAt: storedComment.createdAt,
+                    updatedAt: storedComment.updatedAt
                 };
             }
 
-            return {
-                id: this.generateHighlightId(highlight),
-                ...highlight,
-                comments: [],
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            };
+            return highlight;
         });
 
-        await this.updateHighlightsList();
+        // 添加虚拟高亮到列表最前面
+        const virtualHighlights = storedComments
+            .filter(c => c.isVirtual && c.comments && c.comments.length > 0); // 只保留有评论的虚拟高亮
+        this.highlights.unshift(...virtualHighlights);
+
+        // 渲染高亮列表
+        this.renderHighlights(this.highlights);
     }
 
     private async updateHighlightsList() {
@@ -458,7 +507,18 @@ export class CommentView extends ItemView {
 
         highlight.comments = highlight.comments.filter(c => c.id !== commentId);
         highlight.updatedAt = Date.now();
-        await this.commentStore.addComment(file, highlight as HighlightComment);
+
+        // 如果是虚拟高亮且没有评论了，则删除整个高亮
+        if (highlight.isVirtual && highlight.comments.length === 0) {
+            // 从 CommentStore 中删除高亮
+            await this.commentStore.removeComment(file, highlight as HighlightComment);
+            
+            // 从当前高亮列表中移除
+            this.highlights = this.highlights.filter(h => h.id !== highlight.id);
+        } else {
+            // 否则只更新评论
+            await this.commentStore.addComment(file, highlight as HighlightComment);
+        }
 
         // 触发更新评论按钮
         window.dispatchEvent(new CustomEvent("comment-updated", {
@@ -525,6 +585,7 @@ export class CommentView extends ItemView {
     }
 
     private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
+        this.currentEditingHighlightId = highlight.id;
         new CommentInput(card, highlight, existingComment, {
             onSave: async (content: string) => {
                 if (existingComment) {
@@ -537,8 +598,17 @@ export class CommentView extends ItemView {
             onDelete: existingComment ? async () => {
                 await this.deleteComment(highlight, existingComment.id);
             } : undefined,
-            onCancel: () => {
-                // 消时不需要特殊处理
+            onCancel: async () => {
+                const currentHighlight = this.highlights.find(h => h.id === this.currentEditingHighlightId);
+                if (currentHighlight?.isVirtual && (!currentHighlight.comments || currentHighlight.comments.length === 0)) {
+                    // 如果是虚拟高亮且没有评论，删除它
+                    const file = await this.getFileForHighlight(currentHighlight);
+                    if (file) {
+                        await this.commentStore.removeComment(file, currentHighlight as HighlightComment);
+                        this.highlights = this.highlights.filter(h => h.id !== currentHighlight.id);
+                        await this.refreshView();
+                    }
+                }
             }
         }).show();
     }
@@ -778,11 +848,11 @@ export class CommentView extends ItemView {
                 const fileHighlights = highlights.map(highlight => {
                     const storedComment = storedComments.find(c => {
                         const textMatch = c.text === highlight.text;
-                        if (textMatch) {
-                            // 如果文本匹配，检查是否在同一段落内
+                        if (textMatch && highlight.position !== undefined && c.position !== undefined) {
+                            // 如果文本匹配且都有位置信息，检查是否在同一段落内
                             return Math.abs(c.position - highlight.position) < 1000; // 使用一个合理的范围值
                         }
-                        return false;
+                        return textMatch; // 如果没有位置信息，只比较文本
                     });
 
                     if (storedComment) {

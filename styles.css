@@ -36,18 +36,18 @@
 
 .highlight-search-icons {
     display: flex;
-    gap: 4px;
+    gap: 8px;
 }
 
 .highlight-icon-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 6px;
     border-radius: 4px;
     border: none;
     background: none;
-    color: var(--text-muted);
+    color: var(--icon-color);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -1833,4 +1833,33 @@ hr {
 /* AI 下拉菜单显示/隐藏状态 */
 .highlight-dropdown-hidden {
     display: none !important;
+}
+
+/* 虚拟高亮的样式  */
+.virtual-highlight {
+    font-style: italic;
+    color: var(--text-muted);
+    background-color: var(--background-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.highlight-card .virtual-highlight::before {
+    content: "📝";  /* 使用笔记图标 */
+    margin-right: 6px;
+}
+
+/* 虚拟高亮卡片样式 */
+.virtual-highlight-card .highlight-content {
+    display: none;  /* 隐藏整个高亮内容区域 */
+}
+
+.virtual-highlight-card {
+    padding-top: 0;  /* 移除顶部内边距 */
+}
+
+.virtual-highlight-card .highlight-comments-section {
+    margin-top: 0;  /* 移除评论区域的顶部边距 */
+    border-radius: 8px;
 }

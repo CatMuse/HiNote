@@ -15,6 +15,12 @@ export interface HighlightComment {
     comments: CommentItem[];  
     createdAt: number;    
     updatedAt: number;    
+    isVirtual?: boolean;  // 新增：是否是虚拟高亮
+    filePath?: string;    // 新增：文件路径
+    fileType?: string;    // 新增：文件类型
+    displayText?: string; // 新增：显示文本
+    paragraphOffset?: number; // 新增：段落偏移量
+    backgroundColor?: string; // 新增：背景颜色
 }
 
 export interface FileComment {
@@ -76,7 +82,14 @@ export class CommentStore {
 
     getFileComments(file: TFile): HighlightComment[] {
         const comments = this.data[file.path] || {};
-        return Object.values(comments).sort((a, b) => a.position - b.position);
+        // 修改排序逻辑，虚拟高亮始终在最前面
+        return Object.values(comments).sort((a, b) => {
+            const aIsVirtual = (a as any).isVirtual || false;
+            const bIsVirtual = (b as any).isVirtual || false;
+            if (aIsVirtual && !bIsVirtual) return -1;
+            if (!aIsVirtual && bIsVirtual) return 1;
+            return a.position - b.position;
+        });
     }
 
     getFileOnlyComments(file: TFile): FileComment[] {
@@ -88,6 +101,13 @@ export class CommentStore {
             this.data[file.path] = {};
         }
         
+        // 如果是虚拟高亮，直接使用已有的 paragraphId
+        if ((highlight as any).isVirtual) {
+            this.data[file.path][highlight.id] = highlight;
+            await this.saveComments();
+            return;
+        }
+
         // 确保 highlight 包含 paragraphId
         if (!highlight.paragraphId) {
             const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
@@ -99,11 +119,10 @@ export class CommentStore {
                 const blockId = currentFile.path + '#^' + this.getBlockId(editor, pos.line);
                 highlight.paragraphId = blockId;
             } else {
-                highlight.paragraphId = `^${Math.random().toString(36).substr(2, 9)}`;
-                console.warn('Unable to get active view or file, using fallback ID');
+                highlight.paragraphId = file.path + '#^' + Date.now();
             }
         }
-        
+
         this.data[file.path][highlight.id] = highlight;
         await this.saveComments();
     }
@@ -158,11 +177,12 @@ export class CommentStore {
         }
     }
 
-    async removeComment(file: TFile, highlightId: string) {
-        if (this.data[file.path]?.[highlightId]) {
-            delete this.data[file.path][highlightId];
-            if (Object.keys(this.data[file.path]).length === 0) {
-                delete this.data[file.path];
+    async removeComment(file: TFile, highlight: HighlightComment) {
+        const filePath = file.path;
+        if (this.data[filePath]?.[highlight.id]) {
+            delete this.data[filePath][highlight.id];
+            if (Object.keys(this.data[filePath]).length === 0) {
+                delete this.data[filePath];
             }
             await this.saveComments();
         }

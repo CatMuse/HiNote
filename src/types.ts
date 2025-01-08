@@ -8,8 +8,8 @@ export interface CommentItem {
 export interface HighlightInfo {
     id?: string;
     text: string;          // 只保留高亮的文本内容
-    position: number;
-    paragraphOffset: number;
+    position?: number;     // 修改为可选
+    paragraphOffset?: number;  // 修改为可选
     paragraphId?: string;  // 使用 paragraphId 来引用段落
     backgroundColor?: string;
     comments?: CommentItem[];
@@ -18,6 +18,10 @@ export interface HighlightInfo {
     fileName?: string;
     filePath?: string;
     fileIcon?: string;
+    isVirtual?: boolean;  // 标记是否为虚拟高亮
+    displayText?: string; // 显示给用户看的文本
+    timestamp?: number;   // 添加时间戳
+    fileType?: string;    // 文件类型
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama';
