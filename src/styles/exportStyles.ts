@@ -7,6 +7,15 @@ export const exportStyles = `
         background-color: #ffffff;
         border-radius: 12px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        
+        /* 添加更严格的文本控制 */
+        font-size: 16px;
+        line-height: 1.6;
+        letter-spacing: normal;
+        word-spacing: normal;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     /* 现代风格模板 */
@@ -37,6 +46,11 @@ export const exportStyles = `
     .highlight-export-card-modern .highlight-export-quote-section {
         position: relative;
         padding: 24px 0;
+        /* 确保引用部分的文本样式一致性 */
+        font-size: inherit;
+        line-height: inherit;
+        letter-spacing: inherit;
+        word-spacing: inherit;
     }
 
     .highlight-export-card-modern .highlight-export-quote {
@@ -44,32 +58,20 @@ export const exportStyles = `
         line-height: 1.7;
         color: #333333;
         font-weight: 400;
-        letter-spacing: -0.01em;
         margin: 0;
         position: relative;
         z-index: 1;
+        /* 确保引用文本的样式一致性 */
+        letter-spacing: normal;
+        word-spacing: normal;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
     }
 
-    .highlight-export-card-modern .highlight-export-footer {
-        margin-top: 24px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .highlight-export-card-modern .highlight-export-source {
-        font-size: 0.9em;
-        color: #666666;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-    }
-
-    .highlight-export-card-modern:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    /* 确保所有文本元素继承基础样式 */
+    .highlight-export-card * {
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
     }
 
     /* 导出预览容器 */

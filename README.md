@@ -7,12 +7,15 @@
 	<img src="https://img.shields.io/github/stars/KairosBrain/HighlightComment?style=social" alt="GitHub stars" />
 </div>
 
+---
 
 [简体中文](./README-ZH.md) | English
 
 This AI-programmed Obsidian plugin can automatically extract highlighted text from notes, allowing users to add comments, generate AI comments, and engage in dialogue with the highlighted text. Users can highlight text in various formats, export it as knowledge card images, and enjoy additional extended features in the main view.
 
 >  I have no development experience. This plugin was completed by me and an AI together. Please use it with caution as it is in the Beta version.
+
+[![HighlightComment Plugin Tutorial](https://img.youtube.com/vi/M3K80g5MYM8/maxresdefault.jpg)](https://www.youtube.com/watch?v=M3K80g5MYM8)
 
 ---
 ## Highlighted text retrieval
