@@ -49,7 +49,7 @@ export default class CommentPlugin extends Plugin {
 		// 添加打开评论面板的功能按钮
 		this.addRibbonIcon(
 			'message-square-quote',
-			'Highlight Comment',
+			'HiNote',
 			async () => {
 				const { workspace } = this.app;
 				
