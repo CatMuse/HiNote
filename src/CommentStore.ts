@@ -97,6 +97,10 @@ export class CommentStore {
     }
 
     async addComment(file: TFile, highlight: HighlightComment) {
+        if (!highlight.id) {
+            throw new Error("Highlight ID is required");
+        }
+        
         if (!this.data[file.path]) {
             this.data[file.path] = {};
         }

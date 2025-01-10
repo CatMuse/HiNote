@@ -426,9 +426,11 @@ export class CommentView extends ItemView {
                 const text = (match[1] || match[3] || match[5])?.trim();
                 const backgroundColor = match[2] || match[4];
                 if (text) {
+                    const position = offset + match.index;
                     const highlight: HighlightInfo = {
+                        id: `highlight-${position}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         text: text,
-                        position: offset + match.index,
+                        position: position,
                         paragraphOffset: offset,
                         paragraphId: `p-${index}-${Date.now()}`,
                         backgroundColor: backgroundColor
@@ -449,12 +451,17 @@ export class CommentView extends ItemView {
             return;
         }
 
+        // 确保高亮有 ID
+        if (!highlight.id) {
+            highlight.id = this.generateHighlightId(highlight);
+        }
+
         if (!highlight.comments) {
             highlight.comments = [];
         }
 
         const newComment: CommentItem = {
-            id: `comment-${Date.now()}`,
+            id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             content,
             createdAt: Date.now(),
             updatedAt: Date.now()
@@ -556,7 +563,7 @@ export class CommentView extends ItemView {
     }
 
     private generateHighlightId(highlight: HighlightInfo): string {
-        return `highlight-${highlight.position}-${Date.now()}`;
+        return `highlight-${highlight.position}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 
     private async jumpToHighlight(highlight: HighlightInfo) {

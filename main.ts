@@ -186,20 +186,62 @@ export default class CommentPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const loadedData = await this.loadData();
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
-		
-		// Ensure AI settings exist
-		if (!this.settings.ai) {
-			this.settings.ai = DEFAULT_SETTINGS.ai;
-		}
+        const loadedData = await this.loadData();
+        
+        // 深度合并函数
+        const deepMerge = <T extends object>(target: T, source: Partial<T>): T => {
+            if (!source) return target;
+            const merged = { ...target };
+            for (const key in source) {
+                if (source[key] instanceof Object && target[key] instanceof Object) {
+                    merged[key] = deepMerge(target[key] as object, source[key] as object) as any;
+                } else if (source[key] !== undefined && source[key] !== null) {
+                    merged[key] = source[key];
+                }
+            }
+            return merged;
+        };
 
-		// Initialize or update Ollama settings with default values
-		this.settings.ai.ollama = {
-			host: this.settings.ai.ollama?.host || 'http://localhost:11434',
-			model: this.settings.ai.ollama?.model || 'qwen2.5:14b'
-		};
-	}
+        // 如果有已保存的数据，使用它；否则使用默认设置
+        if (loadedData && loadedData.ai) {
+            this.settings = deepMerge<PluginSettings>(DEFAULT_SETTINGS, loadedData);
+        } else {
+            this.settings = { ...DEFAULT_SETTINGS };
+        }
+
+        // 确保基本结构存在
+        if (!this.settings.ai) {
+            this.settings.ai = { ...DEFAULT_SETTINGS.ai };
+        }
+
+        // 确保所有服务的设置结构存在，但保留现有值
+        const services = ['openai', 'anthropic', 'gemini', 'ollama'] as const;
+        type ServiceKey = typeof services[number];
+        
+        for (const service of services) {
+            const key = service as ServiceKey;
+            const defaultValue = DEFAULT_SETTINGS.ai[key];
+            if (defaultValue) {
+                this.settings.ai = {
+                    ...this.settings.ai,
+                    [key]: this.settings.ai[key] || { ...defaultValue }
+                };
+            }
+        }
+
+        // 确保 prompts 对象存在，但保留现有的提示词
+        if (!this.settings.ai.prompts) {
+            this.settings.ai.prompts = { ...DEFAULT_SETTINGS.ai.prompts };
+        }
+
+        // 如果没有选择 provider，使用默认值
+        if (!this.settings.ai.provider) {
+            this.settings.ai.provider = DEFAULT_SETTINGS.ai.provider;
+        }
+
+        // 保存合并后的设置
+        await this.saveSettings();
+    }
 
 	async saveSettings() {
 		await this.saveData(this.settings);

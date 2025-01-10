@@ -63,17 +63,28 @@ export interface PluginSettings {
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     ai: {
-        provider: 'ollama',
+        provider: 'ollama',  // 默认使用 ollama，但会被用户的选择覆盖
         openai: {
             apiKey: '',
             model: 'gpt-4',
+            baseUrl: ''
+        },
+        anthropic: {
+            apiKey: '',
+            model: 'claude-2',
+            baseUrl: ''
+        },
+        gemini: {
+            apiKey: '',
+            model: 'gemini-pro',
+            baseUrl: ''
         },
         ollama: {
             host: 'http://localhost:11434',
-            model: 'qwen2.5:14b',
+            model: 'qwen2.5:14b'
         },
         prompts: {
-            '🤔 Key Insight': '{{highlight}}.Please reinterpret the above content from a fresh perspective and summarize its core idea within 200 characters.',
+            '🤔 Key Insight': '{{highlight}}.Please reinterpret the above content from a fresh perspective and summarize its core idea within 200 characters.'
         }
     }
 };
