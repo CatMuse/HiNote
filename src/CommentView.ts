@@ -2,12 +2,12 @@ import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, 
 import { CommentStore, HighlightComment, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
+import { HighlightCard } from './components/highlight/HighlightCard';
 import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
 import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
 import { ExportService } from './services/ExportService';
-import { HighlightCard } from './components/highlight/HighlightCard';
 import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
@@ -375,16 +375,17 @@ export class CommentView extends ItemView {
         }
 
         highlightsToRender.forEach((highlight) => {
-            const highlightCard = new HighlightCard(
+            let highlightCard: HighlightCard;
+            highlightCard = new HighlightCard(
                 highlightList,
                 highlight,
                 this.plugin,
                 {
-                    onHighlightClick: async (h) => await this.jumpToHighlight(h),
-                    onCommentAdd: (h) => this.showCommentInput(highlightCard.getElement(), h),
-                    onExport: (h) => this.exportHighlightAsImage(h),
-                    onCommentEdit: (h, c) => this.showCommentInput(highlightCard.getElement(), h, c),
-                    onAIResponse: async (content) => {
+                    onHighlightClick: async (h: HighlightInfo) => await this.jumpToHighlight(h),
+                    onCommentAdd: (h: HighlightInfo) => this.showCommentInput(highlightCard.getElement(), h),
+                    onExport: (h: HighlightInfo) => this.exportHighlightAsImage(h),
+                    onCommentEdit: (h: HighlightInfo, c: CommentItem) => this.showCommentInput(highlightCard.getElement(), h, c),
+                    onAIResponse: async (content: string) => {
                         await this.addComment(highlight, content);
                         await this.updateHighlights();
                     }

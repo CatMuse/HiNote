@@ -58,7 +58,17 @@ export interface AISettings {
 
 export interface PluginSettings {
     ai: AISettings;
+    comments?: Record<string, Record<string, HighlightInfo>>;
+    fileComments?: Record<string, FileComment[]>;
     // ... 其他插件设置
+}
+
+export interface FileComment {
+    id: string;
+    content: string;
+    createdAt: number;
+    updatedAt: number;
+    filePath: string;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
@@ -114,14 +124,6 @@ export interface ChatViewState {
     chatHistory: { role: "user" | "assistant", content: string }[];
     draggedContents: HighlightInfo[];
     currentPreviewContainer: boolean;
-}
-
-export interface FileComment {
-    id: string;
-    content: string;
-    createdAt: number;
-    updatedAt: number;
-    filePath: string;
 }
 
 declare global {
