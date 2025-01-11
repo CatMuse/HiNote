@@ -108,6 +108,11 @@ export default {
     "No corresponding file found.": "No corresponding file found.",
     "Export failed: Failed to load necessary components.": "Export failed: Failed to load necessary components.",
     "All Highlight": "All Highlight",
+    "Export as notes": "Export as notes",
+    "Add File Comment": "Add File Comment",
+    "File Comment": "File Comment",
+    "Successfully exported highlights to: ": "Successfully exported highlights to: ",
+    "Failed to export highlights: ": "Failed to export highlights: ",
 
 //index
 

@@ -27,10 +27,10 @@ export class AISettingTab extends PluginSettingTab {
             .setDesc(t('Select the AI service provider'))
             .addDropdown(dropdown => {
                 const options: Record<AIProvider, string> = {
-                    'openai': t('OpenAI'),
-                    'gemini': t('Gemini'),
-                    'anthropic': t('Anthropic'),
-                    'ollama': t('Ollama (Local)')
+                    'openai': 'OpenAI',
+                    'gemini': 'Gemini',
+                    'anthropic': 'Anthropic',
+                    'ollama': 'Ollama (Local)'
                 };
 
                 return dropdown

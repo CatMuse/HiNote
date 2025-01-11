@@ -105,6 +105,11 @@ export default {
     "No corresponding file found.": "未找到相应的文件。",
     "Export failed: Failed to load necessary components.": "导出失败：加载必要组件失败。",
     "All Highlight": "全部高亮",
+    "Export as notes": "导出为笔记",
+    "Add File Comment": "添加文件评论",
+    "File Comment": "文件评论",
+    "Successfully exported highlights to: ": "成功导出高亮到：",
+    "Failed to export highlights: ": "无法导出高亮：",
 
 //index
 

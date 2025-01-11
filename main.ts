@@ -21,17 +21,6 @@ export default class CommentPlugin extends Plugin {
 		// 将 html2canvas 添加到全局对象
 		(window as any).html2canvas = html2canvas;
 
-		// 添加导出样式,这段代码好像没用，我删除之后导出依然可用
-		// const styleEl = document.createElement('style');
-		// styleEl.id = 'highlight-export-styles';
-		// try {
-		// 	const response = await fetch(`app://local/${this.manifest.dir}/src/templates/styles.css`);
-		// 	styleEl.textContent = await response.text();
-		// } catch (error) {
-		// 	console.error('Failed to load export styles:', error);
-		// }
-		// document.head.appendChild(styleEl);
-
 		// 初始化评论存储
 		this.commentStore = new CommentStore(this);
 		await this.commentStore.loadComments();
@@ -188,46 +177,115 @@ export default class CommentPlugin extends Plugin {
 	async loadSettings() {
         const loadedData = await this.loadData();
         
-        // 深度合并函数
-        const deepMerge = <T extends Record<string, any>>(target: T, source: Partial<T>): T => {
-            if (!source) return target;
-            const merged = { ...target };
-            for (const key in source) {
-                if (typeof source[key] === 'object' && source[key] !== null && 
-                    typeof target[key] === 'object' && target[key] !== null) {
-                    merged[key] = deepMerge(
-                        target[key],
-                        source[key] as Partial<T[Extract<keyof T, string>]>
-                    );
-                } else if (source[key] !== undefined) {
-                    merged[key] = source[key] as T[Extract<keyof T, string>];
+        // 初始化设置
+        if (!this.settings) {
+            this.settings = {
+                ai: {
+                    provider: DEFAULT_SETTINGS.ai.provider,
+                    openai: DEFAULT_SETTINGS.ai.openai ? { ...DEFAULT_SETTINGS.ai.openai } : undefined,
+                    anthropic: DEFAULT_SETTINGS.ai.anthropic ? { ...DEFAULT_SETTINGS.ai.anthropic } : undefined,
+                    gemini: DEFAULT_SETTINGS.ai.gemini ? { ...DEFAULT_SETTINGS.ai.gemini } : undefined,
+                    ollama: DEFAULT_SETTINGS.ai.ollama ? { ...DEFAULT_SETTINGS.ai.ollama } : undefined,
+                    prompts: { ...DEFAULT_SETTINGS.ai.prompts }
                 }
-            }
-            return merged;
-        };
+            };
+        }
 
-        // 初始化设置对象
-        this.settings = { ...DEFAULT_SETTINGS };
+        if (loadedData?.ai) {
+            // 分别合并每个服务提供商的设置
+            if (loadedData.ai.provider) {
+                this.settings.ai.provider = loadedData.ai.provider;
+            }
+            if (loadedData.ai.openai && this.settings.ai.openai) {
+                this.settings.ai.openai = {
+                    apiKey: loadedData.ai.openai.apiKey || this.settings.ai.openai.apiKey,
+                    model: loadedData.ai.openai.model || this.settings.ai.openai.model,
+                    baseUrl: loadedData.ai.openai.baseUrl
+                };
+            }
+            if (loadedData.ai.anthropic && this.settings.ai.anthropic) {
+                this.settings.ai.anthropic = {
+                    apiKey: loadedData.ai.anthropic.apiKey || this.settings.ai.anthropic.apiKey,
+                    model: loadedData.ai.anthropic.model || this.settings.ai.anthropic.model,
+                    availableModels: loadedData.ai.anthropic.availableModels,
+                    baseUrl: loadedData.ai.anthropic.baseUrl
+                };
+            }
+            if (loadedData.ai.gemini && this.settings.ai.gemini) {
+                this.settings.ai.gemini = {
+                    apiKey: loadedData.ai.gemini.apiKey || this.settings.ai.gemini.apiKey,
+                    model: loadedData.ai.gemini.model || this.settings.ai.gemini.model,
+                    baseUrl: loadedData.ai.gemini.baseUrl
+                };
+            }
+            if (loadedData.ai.ollama && this.settings.ai.ollama) {
+                this.settings.ai.ollama = {
+                    host: loadedData.ai.ollama.host || this.settings.ai.ollama.host,
+                    model: loadedData.ai.ollama.model || this.settings.ai.ollama.model,
+                    availableModels: loadedData.ai.ollama.availableModels
+                };
+            }
+            if (loadedData.ai.prompts) {
+                this.settings.ai.prompts = {
+                    ...this.settings.ai.prompts,
+                    ...loadedData.ai.prompts
+                };
+            }
+        }
 
-        if (loadedData) {
-            // 保留评论数据
-            if (loadedData.comments) {
-                this.settings.comments = loadedData.comments;
-            }
-            if (loadedData.fileComments) {
-                this.settings.fileComments = loadedData.fileComments;
-            }
-
-            // 合并 AI 设置
-            if (loadedData.ai) {
-                this.settings.ai = deepMerge(DEFAULT_SETTINGS.ai, loadedData.ai);
-            }
+        // 保留评论数据
+        if (loadedData?.comments) {
+            this.settings.comments = loadedData.comments;
+        }
+        if (loadedData?.fileComments) {
+            this.settings.fileComments = loadedData.fileComments;
         }
 
         await this.saveSettings();
     }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+    async saveSettings() {
+        // 确保所有必要的对象都存在
+        if (!this.settings.ai) {
+            this.settings.ai = { ...DEFAULT_SETTINGS.ai };
+        }
+        
+        // 确保每个服务提供商的设置都存在并且有必需的字段
+        if (!this.settings.ai.openai) {
+            this.settings.ai.openai = {
+                apiKey: '',  // 提供默认值
+                model: 'gpt-4',  // 提供默认值
+                baseUrl: DEFAULT_SETTINGS.ai.openai?.baseUrl
+            };
+        }
+        if (!this.settings.ai.anthropic) {
+            this.settings.ai.anthropic = {
+                apiKey: '',  // 提供默认值
+                model: 'claude-2',  // 提供默认值
+                availableModels: DEFAULT_SETTINGS.ai.anthropic?.availableModels,
+                baseUrl: DEFAULT_SETTINGS.ai.anthropic?.baseUrl
+            };
+        }
+        if (!this.settings.ai.gemini) {
+            this.settings.ai.gemini = {
+                apiKey: '',  // 提供默认值
+                model: 'gemini-pro',  // 提供默认值
+                baseUrl: DEFAULT_SETTINGS.ai.gemini?.baseUrl
+            };
+        }
+        if (!this.settings.ai.ollama) {
+            this.settings.ai.ollama = {
+                host: 'http://localhost:11434',  // 提供默认值
+                model: 'qwen2.5:14b',  // 提供默认值
+                availableModels: DEFAULT_SETTINGS.ai.ollama?.availableModels
+            };
+        }
+        
+        // 确保 prompts 对象存在
+        if (!this.settings.ai.prompts) {
+            this.settings.ai.prompts = { ...DEFAULT_SETTINGS.ai.prompts };
+        }
+        
+        await this.saveData(this.settings);
+    }
 }

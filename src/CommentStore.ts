@@ -74,7 +74,12 @@ export class CommentStore {
     }
 
     async saveComments() {
+        // 先加载当前的数据
+        const currentData = await this.plugin.loadData() || {};
+        
+        // 更新评论数据，保持其他数据不变
         await this.plugin.saveData({
+            ...currentData,  // 保持其他设置不变
             comments: this.data,
             fileComments: Object.fromEntries(this.fileComments)
         });
