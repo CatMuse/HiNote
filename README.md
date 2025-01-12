@@ -1,5 +1,5 @@
 <div align="center">
-	<h1>Highlight Comment</h1>
+	<h1>HiNote</h1>
 	<img src="https://img.shields.io/github/downloads/KairosBrain/HighlightComment/total" alt="GitHub Downloads (all assets, all releases)" />
 	<img src="https://img.shields.io/github/v/release/KairosBrain/HighlightComment" alt="GitHub release (latest by date)" />
 	<img src="https://img.shields.io/github/last-commit/KairosBrain/HighlightComment" alt="GitHub last commit" />
