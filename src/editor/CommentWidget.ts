@@ -102,16 +102,24 @@ export class CommentWidget extends WidgetType {
         // 使用 setIcon API 替代内联 SVG
         setIcon(iconContainer, "message-circle");
         
+        // 添加调试日志
+        console.log('[CommentWidget] paragraphHighlights:', this.paragraphHighlights);
+        
         // 如果有评论，显示评论数量
         const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
+        console.log('[CommentWidget] allComments:', allComments);
+        
         const commentCount = allComments.length;
+        console.log('[CommentWidget] commentCount:', commentCount);
 
         if (commentCount > 0) {
+            console.log('[CommentWidget] Creating comment count element');
             iconContainer.createEl("span", {
                 cls: "highlight-comment-count",
                 text: commentCount.toString()
             });
             button.removeClass("highlight-comment-button-hidden");
+            console.log('[CommentWidget] Comment count element created and button shown');
         }
 
         return iconContainer;
@@ -192,26 +200,48 @@ export class CommentWidget extends WidgetType {
      */
     private setupEventListeners(wrapper: HTMLElement, button: HTMLElement, tooltipData: { tooltip: HTMLElement, updateTooltipPosition: () => void }) {
         const { tooltip, updateTooltipPosition } = tooltipData;
+        const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
+        const commentCount = allComments.length;
 
-        // 鼠标悬停时显示工具提示
-        wrapper.addEventListener("mouseenter", () => {
-            if (this.paragraphHighlights.some(h => h.comments && h.comments.length > 0)) {
-                button.removeClass("highlight-comment-button-hidden");
+        // 如果有评论，添加工具提示的显示/隐藏事件，并保持按钮始终可见
+        if (commentCount > 0) {
+            button.removeClass("highlight-comment-button-hidden");
+            
+            button.addEventListener("mouseenter", () => {
                 tooltip.removeClass("hidden");
                 updateTooltipPosition();
-            }
-        });
+            });
 
-        // 鼠标离开时隐藏工具提示
-        wrapper.addEventListener("mouseleave", () => {
+            button.addEventListener("mouseleave", () => {
+                tooltip.addClass("hidden");
+            });
+        } else {
+            // 如果没有评论，默认隐藏按钮
             button.addClass("highlight-comment-button-hidden");
-            tooltip.addClass("hidden");
-        });
+            
+            // 鼠标悬停在高亮区域时显示按钮
+            wrapper.addEventListener("mouseenter", () => {
+                button.removeClass("highlight-comment-button-hidden");
+            });
 
-        // 点击按钮时打开评论面板
+            wrapper.addEventListener("mouseleave", () => {
+                button.addClass("highlight-comment-button-hidden");
+            });
+        }
+
+        // 点击按钮时触发评论输入事件
         button.addEventListener("click", (e) => {
+            e.preventDefault();
             e.stopPropagation();
             this.onClick();
+
+            const event = new CustomEvent("open-comment-input", {
+                detail: {
+                    highlightId: this.highlight.id,
+                    text: this.highlight.text
+                }
+            });
+            window.dispatchEvent(event);
         });
 
         // 监听窗口大小改变事件，更新工具提示位置

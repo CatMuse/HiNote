@@ -107,13 +107,19 @@ export class HighlightDecorator {
                         ...highlight,
                         id: highlight.id || `highlight-${Date.now()}-${highlight.position}`,
                         comments: highlight.comments || [],
-                        position: highlight.position,  // 确保 position 存在
-                        paragraphOffset: highlight.paragraphOffset || 0,  // 确保 paragraphOffset 存在
-                        paragraphId: highlight.paragraphId || `p-${highlight.paragraphOffset || 0}`,  // 确保 paragraphId 存在
-                        createdAt: highlight.createdAt || Date.now(),  // 确保 createdAt 存在
-                        updatedAt: highlight.updatedAt || Date.now(),  // 确保 updatedAt 存在
-                        text: highlight.text  // text 已经存在，因为它是必需的
+                        position: highlight.position,
+                        paragraphOffset: highlight.paragraphOffset || 0,
+                        paragraphId: highlight.paragraphId || `p-${highlight.paragraphOffset || 0}`,
+                        createdAt: highlight.createdAt || Date.now(),
+                        updatedAt: highlight.updatedAt || Date.now(),
+                        text: highlight.text
                     };
+
+                    // 从 CommentStore 中获取最新的评论数据
+                    const storedHighlight = this.commentStore.getHighlightComments(commentHighlight);
+                    if (storedHighlight && storedHighlight.length > 0) {
+                        commentHighlight.comments = storedHighlight[0].comments || [];
+                    }
 
                     // 找到高亮所在的段落
                     let paragraphStartPos = 0;
@@ -132,6 +138,7 @@ export class HighlightDecorator {
 
                 // 为每个段落添加 CommentWidget
                 for (const [offset, paragraphHighlights] of paragraphMap.entries()) {
+
                     // 找到段落中最后一个高亮的位置
                     const lastHighlight = paragraphHighlights[paragraphHighlights.length - 1];
                     if (!lastHighlight) continue;
@@ -168,6 +175,12 @@ export class HighlightDecorator {
                         updatedAt: highlight.updatedAt || Date.now(),
                         text: highlight.text
                     };
+
+                    // 从 CommentStore 中获取最新的评论数据
+                    const storedHighlight = this.commentStore.getHighlightComments(commentHighlight);
+                    if (storedHighlight && storedHighlight.length > 0) {
+                        commentHighlight.comments = storedHighlight[0].comments || [];
+                    }
 
                     // 获取原始的匹配文本，包括标签
                     const originalLength = highlight.originalLength ?? highlight.text.length + 4;
@@ -293,21 +306,5 @@ export class HighlightDecorator {
                 text: new Date(comment.createdAt).toLocaleString()
             });
         });
-
-        // // 更新"更多评论"提示,应该是重复代码，注释观察
-        // const moreEl = tooltip.querySelector('.highlight-comment-tooltip-more');
-        // if (comments.length > 3) {
-        //     if (moreEl) {
-        //         moreEl.textContent = `还有 ${comments.length - 3} 条评论...`;
-        //         moreEl.removeClass('hidden');
-        //     } else {
-        //         tooltip.createEl('div', {
-        //             cls: 'highlight-comment-tooltip-more',
-        //             text: `还有 ${comments.length - 3} 条评论...`
-        //         });
-        //     }
-        // } else if (moreEl) {
-        //     moreEl.addClass('hidden');
-        // }
     }
 }

@@ -13,7 +13,7 @@ type RegexMatch = [
 
 export class HighlightService {
     // 统一的高亮正则表达式
-    private static readonly HIGHLIGHT_REGEX = /==\s*(.*?)\s*==|<mark(?:\s+style="[^"]*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})[^"]*")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
+    private static readonly HIGHLIGHT_REGEX = /==\s*(.*?)\s*==|<mark(?:\s+class="[^"]*"|\s+style="[^"]*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})[^"]*")*\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
 
     // 简单的高亮检测正则表达式（用于快速检查文件是否包含高亮）
     private static readonly SIMPLE_HIGHLIGHT_REGEX = /==.*?==|<mark[^>]*>.*?<\/mark>|<span[^>]*style="[^"]*background[^"]*"[^>]*>.*?<\/span>/g;
