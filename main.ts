@@ -187,6 +187,9 @@ export default class CommentPlugin extends Plugin {
                     gemini: DEFAULT_SETTINGS.ai.gemini ? { ...DEFAULT_SETTINGS.ai.gemini } : undefined,
                     ollama: DEFAULT_SETTINGS.ai.ollama ? { ...DEFAULT_SETTINGS.ai.ollama } : undefined,
                     prompts: { ...DEFAULT_SETTINGS.ai.prompts }
+                },
+                export: {
+                    exportPath: DEFAULT_SETTINGS.export.exportPath
                 }
             };
         }
@@ -230,6 +233,12 @@ export default class CommentPlugin extends Plugin {
                     ...this.settings.ai.prompts,
                     ...loadedData.ai.prompts
                 };
+            }
+        }
+
+        if (loadedData?.export) {
+            if (loadedData.export.exportPath) {
+                this.settings.export.exportPath = loadedData.export.exportPath;
             }
         }
 
@@ -284,6 +293,13 @@ export default class CommentPlugin extends Plugin {
         // 确保 prompts 对象存在
         if (!this.settings.ai.prompts) {
             this.settings.ai.prompts = { ...DEFAULT_SETTINGS.ai.prompts };
+        }
+        
+        // 确保 export 对象存在
+        if (!this.settings.export) {
+            this.settings.export = {
+                exportPath: DEFAULT_SETTINGS.export.exportPath
+            };
         }
         
         await this.saveData(this.settings);

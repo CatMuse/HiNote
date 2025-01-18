@@ -126,4 +126,9 @@ export default {
     "Toggle comment panel": "切换评论面板",
     "Toggle comment panel location": "切换评论面板位置",
 
+// Settings
+'General Settings': '通用设置',
+'Export Path': '导出路径',
+'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': '设置高亮笔记的导出路径。留空则使用 vault 根目录。路径应相对于 vault 根目录。',
+
 };

@@ -58,6 +58,9 @@ export interface AISettings {
 
 export interface PluginSettings {
     ai: AISettings;
+    export: {
+        exportPath: string;  // 导出路径，相对于 vault 根目录
+    };
     comments?: Record<string, Record<string, HighlightInfo>>;
     fileComments?: Record<string, FileComment[]>;
     // ... 其他插件设置
@@ -96,6 +99,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         prompts: {
             '🤔 Key Insight': '{{highlight}}.Please reinterpret the above content from a fresh perspective and summarize its core idea within 200 characters.'
         }
+    },
+    export: {
+        exportPath: ''  // 默认为空，表示保存在 vault 根目录
     }
 };
 

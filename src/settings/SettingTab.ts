@@ -6,6 +6,7 @@ import { setIcon } from 'obsidian';  // 添加 setIcon 导入
 import { PromptSettingsTab } from './PromptSettingsTab';  // 导入新的 PromptSettingsTab
 import { GeminiService } from '../services/GeminiService';  // 添加 GeminiService 的导入语句
 import { t } from '../i18n'; // 导入新的翻译系统
+import { GeneralSettingsTab } from './GeneralSettingsTab';  // 添加导入
 
 export class AISettingTab extends PluginSettingTab {
     plugin: any;  // 修改为具体的插件类型
@@ -20,6 +21,9 @@ export class AISettingTab extends PluginSettingTab {
     display(): void {
         const { containerEl } = this;
         containerEl.empty();
+
+        // 添加通用设置
+        new GeneralSettingsTab(this.plugin, containerEl).display();
 
         // AI 服务设置
         new Setting(containerEl)

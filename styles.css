@@ -657,6 +657,9 @@
 
 .prompt-list {
     margin-top: 12px;
+    display: flex;
+    flex-direction: column; /* 元素垂直排列 */
+    gap: 8px; /* 设置元素之间的间距 */
 }
 
 .prompt-item {

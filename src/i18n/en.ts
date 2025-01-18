@@ -129,4 +129,9 @@ export default {
     "Toggle comment panel": "Toggle comment panel",
     "Toggle comment panel location": "Toggle comment panel location",
 
+// Settings
+    'General Settings': 'General Settings',
+    'Export Path': 'Export Path',
+    'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': 'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.',
+
 };

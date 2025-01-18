@@ -24,10 +24,26 @@ export class ExportService {
         // 生成导出内容
         const content = await this.generateExportContent(sourceFile, highlights);
 
+        // 获取导出路径
+        const exportPath = (this.app as any).plugins.plugins['highlight-comment'].settings.export.exportPath;
+        
         // 创建新文件
         const fileName = `${sourceFile.basename} - Highlights ${window.moment().format("YYYYMMDDHHmm")}`;
+        
+        // 如果设置了导出路径，确保目录存在
+        let fullPath = fileName;
+        if (exportPath) {
+            // 确保目录存在
+            const folderPath = this.app.vault.getAbstractFileByPath(exportPath);
+            if (!folderPath) {
+                await this.app.vault.createFolder(exportPath);
+            }
+            fullPath = `${exportPath}/${fileName}`;
+        }
+
+        // 创建新文件
         const newFile = await this.app.vault.create(
-            `${fileName}.md`,
+            `${fullPath}.md`,
             content
         );
 
