@@ -186,6 +186,7 @@ export default class CommentPlugin extends Plugin {
                     anthropic: DEFAULT_SETTINGS.ai.anthropic ? { ...DEFAULT_SETTINGS.ai.anthropic } : undefined,
                     gemini: DEFAULT_SETTINGS.ai.gemini ? { ...DEFAULT_SETTINGS.ai.gemini } : undefined,
                     ollama: DEFAULT_SETTINGS.ai.ollama ? { ...DEFAULT_SETTINGS.ai.ollama } : undefined,
+                    deepseek: DEFAULT_SETTINGS.ai.deepseek ? { ...DEFAULT_SETTINGS.ai.deepseek } : undefined,
                     prompts: { ...DEFAULT_SETTINGS.ai.prompts }
                 },
                 export: {
@@ -226,6 +227,13 @@ export default class CommentPlugin extends Plugin {
                     host: loadedData.ai.ollama.host || this.settings.ai.ollama.host,
                     model: loadedData.ai.ollama.model || this.settings.ai.ollama.model,
                     availableModels: loadedData.ai.ollama.availableModels
+                };
+            }
+            if (loadedData.ai.deepseek && this.settings.ai.deepseek) {
+                this.settings.ai.deepseek = {
+                    apiKey: loadedData.ai.deepseek.apiKey || this.settings.ai.deepseek.apiKey,
+                    model: loadedData.ai.deepseek.model || this.settings.ai.deepseek.model,
+                    baseUrl: loadedData.ai.deepseek.baseUrl
                 };
             }
             if (loadedData.ai.prompts) {
@@ -287,6 +295,13 @@ export default class CommentPlugin extends Plugin {
                 host: 'http://localhost:11434',  // 提供默认值
                 model: 'qwen2.5:14b',  // 提供默认值
                 availableModels: DEFAULT_SETTINGS.ai.ollama?.availableModels
+            };
+        }
+        if (!this.settings.ai.deepseek) {
+            this.settings.ai.deepseek = {
+                apiKey: '',  // 提供默认值
+                model: 'deepseek-chat',  // 提供默认值
+                baseUrl: DEFAULT_SETTINGS.ai.deepseek?.baseUrl
             };
         }
         
