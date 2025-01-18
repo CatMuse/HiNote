@@ -2,12 +2,14 @@ import { AIProvider, AISettings } from '../types';
 import { OllamaService } from './OllamaService';
 import { AnthropicService } from './AnthropicService';
 import { GeminiService } from './GeminiService';
+import { DeepseekService } from './DeepseekService';
 import { requestUrl } from 'obsidian';
 
 export class AIService {
     private ollamaService: OllamaService;
     private anthropicService: AnthropicService | null = null;
     private geminiService: GeminiService | null = null;
+    private deepseekService: DeepseekService | null = null;
 
     constructor(private settings: AISettings) {
         if (settings.ollama?.host) {
@@ -23,6 +25,12 @@ export class AIService {
             this.geminiService = new GeminiService(
                 settings.gemini.apiKey,
                 settings.gemini.baseUrl
+            );
+        }
+        if (settings.deepseek?.apiKey) {
+            this.deepseekService = new DeepseekService(
+                settings.deepseek.apiKey,
+                settings.deepseek.baseUrl
             );
         }
     }
@@ -45,6 +53,8 @@ export class AIService {
                 return await this.callOllama(promptWithContext);
             case 'gemini':
                 return await this.callGemini(promptWithContext);
+            case 'deepseek':
+                return await this.callDeepseek(promptWithContext);
             default:
                 throw new Error('AI service not configured');
         }
@@ -60,6 +70,8 @@ export class AIService {
                 return await this.chatWithOllama(messages);
             case 'gemini':
                 return await this.chatWithGemini(messages);
+            case 'deepseek':
+                return await this.chatWithDeepseek(messages);
             default:
                 throw new Error('AI service not configured');
         }
@@ -124,6 +136,13 @@ export class AIService {
         return await this.geminiService.chat(messages);
     }
 
+    private async chatWithDeepseek(messages: { role: string, content: string }[]): Promise<string> {
+        if (!this.deepseekService) {
+            throw new Error('Deepseek service not configured');
+        }
+        return await this.deepseekService.chat(messages);
+    }
+
     private async callOpenAI(prompt: string): Promise<string> {
         return await this.chatWithOpenAI([{ role: 'user', content: prompt }]);
     }
@@ -157,6 +176,13 @@ export class AIService {
         return await this.geminiService.generateResponse(prompt);
     }
 
+    private async callDeepseek(prompt: string): Promise<string> {
+        if (!this.deepseekService) {
+            throw new Error('Deepseek service not configured');
+        }
+        return await this.deepseekService.generateResponse(prompt);
+    }
+
     async testConnection(): Promise<boolean> {
         switch (this.settings.provider) {
             case 'openai':
@@ -176,6 +202,9 @@ export class AIService {
             case 'gemini':
                 if (!this.geminiService) return false;
                 return await this.geminiService.testConnection();
+            case 'deepseek':
+                if (!this.deepseekService) return false;
+                return await this.deepseekService.testConnection();
             default:
                 return false;
         }

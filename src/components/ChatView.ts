@@ -576,6 +576,8 @@ export class ChatView {
                 return aiSettings.ollama?.model || 'Ollama';
             case 'gemini':
                 return aiSettings.gemini?.model || 'Gemini Pro';
+            case 'deepseek':
+                return aiSettings.deepseek?.model || 'Deepseek Chat';
             default:
                 return 'Unknown Model';
         }
@@ -665,6 +667,25 @@ export class ChatView {
                 } catch (error) {
                     new Notice(t('Unable to get Gemini model list, please check API Key and network connection.'));
                 }
+                break;
+
+            case 'deepseek':
+                const deepseekModels = [
+                    { id: 'deepseek-chat', name: 'Deepseek Chat' },
+                    { id: 'deepseek-coder', name: 'Deepseek Coder' }
+                ];
+                deepseekModels.forEach(model => {
+                    menu.addItem((item: MenuItem) => {
+                        item.setTitle(model.name)
+                            .setChecked(aiSettings.deepseek?.model === model.id)
+                            .onClick(async () => {
+                                if (!aiSettings.deepseek) aiSettings.deepseek = { apiKey: '', model: model.id };
+                                aiSettings.deepseek.model = model.id;
+                                await this.plugin.saveSettings();
+                                selector.textContent = this.getCurrentModelName();
+                            });
+                    });
+                });
                 break;
         }
 

@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting, TextComponent, Notice, TextAreaComponent, Modal, requestUrl, DropdownComponent } from 'obsidian';
-import { AIProvider, OpenAIModel, AnthropicModel, PluginSettings } from '../types';
+import { AIProvider, OpenAIModel, AnthropicModel, DeepseekModel, PluginSettings } from '../types';
 import { OllamaService } from '../services/OllamaService';
 import { CommentView } from '../CommentView';
 import { setIcon } from 'obsidian';  // 添加 setIcon 导入
@@ -34,7 +34,8 @@ export class AISettingTab extends PluginSettingTab {
                     'openai': 'OpenAI',
                     'gemini': 'Gemini',
                     'anthropic': 'Anthropic',
-                    'ollama': 'Ollama (Local)'
+                    'ollama': 'Ollama (Local)',
+                    'deepseek': 'Deepseek'
                 };
 
                 return dropdown
@@ -60,6 +61,9 @@ export class AISettingTab extends PluginSettingTab {
                 break;
             case 'ollama':
                 this.displayOllamaSettings();
+                break;
+            case 'deepseek':
+                this.displayDeepseekSettings();
                 break;
         }
 
@@ -605,6 +609,146 @@ export class AISettingTab extends PluginSettingTab {
             
         // 保存设置
         this.plugin.saveSettings();
+    }
+
+    private async verifyDeepseekApiKey(apiKey: string): Promise<boolean> {
+        try {
+            const baseUrl = this.plugin.settings.ai.deepseek?.baseUrl || 'https://api.deepseek.com';
+            const response = await requestUrl({
+                url: `${baseUrl}/chat/completions`,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'deepseek-chat',
+                    messages: [{
+                        role: 'user',
+                        content: 'Hi'
+                    }],
+                    max_tokens: 1
+                })
+            });
+
+            return response.status === 200;
+        } catch (error) {
+            console.error('Error verifying Deepseek API key:', error);
+            return false;
+        }
+    }
+
+    private getDefaultDeepseekModels(): {id: string, name: string}[] {
+        return [
+            { id: 'deepseek-chat', name: 'Deepseek Chat' },
+            { id: 'deepseek-coder', name: 'Deepseek Coder' }
+        ];
+    }
+
+    private displayDeepseekSettings() {
+        const container = this.containerEl.createEl('div', {
+            cls: 'ai-service-settings'
+        });
+
+        container.createEl('h3', { text: t('Deepseek Settings') });
+
+        // 创建模型设置容器
+        const modelContainer = container.createEl('div', {
+            cls: 'model-setting-container'
+        });
+
+        // API Key 设置
+        new Setting(container)
+            .setName(t('API Key'))
+            .setDesc(t('Enter your Deepseek API Key, press Enter to verify.'))
+            .addText(text => text
+                .setPlaceholder('sk-...')
+                .setValue(this.plugin.settings.ai.deepseek?.apiKey || '')
+                .onChange(async (value) => {
+                    if (!this.plugin.settings.ai.deepseek) {
+                        this.plugin.settings.ai.deepseek = {
+                            apiKey: '',
+                            model: 'deepseek-chat'
+                        };
+                    }
+                    this.plugin.settings.ai.deepseek.apiKey = value;
+                    await this.plugin.saveSettings();
+                })
+                .inputEl.addEventListener('keydown', async (e) => {
+                    if (e.key === 'Enter') {
+                        const apiKey = this.plugin.settings.ai.deepseek?.apiKey;
+                        if (!apiKey) {
+                            new Notice(t('Please enter your API Key'));
+                            return;
+                        }
+
+                        new Notice(t('Validating API Key...'));
+
+                        try {
+                            const isValid = await this.verifyDeepseekApiKey(apiKey);
+                            if (isValid) {
+                                // 创建或更新模型选择设置
+                                modelContainer.empty();
+                                this.createDeepseekModelDropdown(modelContainer);
+                                new Notice(t('API Key verification successful!'));
+                            } else {
+                                new Notice(t('API Key verification failed. Please check your API Key.'));
+                            }
+                        } catch (error) {
+                            console.error('API Key verification failed:', error);
+                            new Notice(t('API Key verification failed. Please check your API Key.'));
+                        }
+                    }
+                }));
+
+        // 显示默认的模型选择
+        this.createDeepseekModelDropdown(modelContainer);
+
+        // 自定义 API 地址
+        new Setting(container)
+            .setName(t('Custom API Address'))
+            .setDesc(t('If using a custom API proxy, please enter the full API address'))
+            .addText(text => text
+                .setPlaceholder('https://api.deepseek.com')
+                .setValue(this.plugin.settings.ai.deepseek?.baseUrl || '')
+                .onChange(async (value) => {
+                    if (!this.plugin.settings.ai.deepseek) {
+                        this.plugin.settings.ai.deepseek = {
+                            apiKey: '',
+                            model: 'deepseek-chat'
+                        };
+                    }
+                    this.plugin.settings.ai.deepseek.baseUrl = value;
+                    await this.plugin.saveSettings();
+                }));
+    }
+
+    private createDeepseekModelDropdown(container: HTMLElement) {
+        const models = this.getDefaultDeepseekModels();
+        
+        new Setting(container)
+            .setName(t('Model'))
+            .setDesc(t('Select the Deepseek model to use'))
+            .addDropdown(dropdown => {
+                const options = Object.fromEntries(
+                    models.map(model => [model.id, model.name])
+                );
+
+                dropdown
+                    .addOptions(options)
+                    .setValue(this.plugin.settings.ai.deepseek?.model || 'deepseek-chat')
+                    .onChange(async (value: DeepseekModel) => {
+                        if (!this.plugin.settings.ai.deepseek) {
+                            this.plugin.settings.ai.deepseek = {
+                                apiKey: '',
+                                model: value
+                            };
+                        } else {
+                            this.plugin.settings.ai.deepseek.model = value;
+                        }
+                        await this.plugin.saveSettings();
+                    });
+            });
     }
 
     private async verifyGeminiApiKey(apiKey: string): Promise<boolean> {

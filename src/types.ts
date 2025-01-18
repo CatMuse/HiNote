@@ -25,9 +25,10 @@ export interface HighlightInfo {
     originalLength?: number;  // 原始匹配文本的长度，包括标签
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama';
+export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek';
 export type OpenAIModel = 'gpt-3.5-turbo' | 'gpt-4';
 export type AnthropicModel = 'claude-2' | 'claude-instant-1';
+export type DeepseekModel = 'deepseek-chat' | 'deepseek-coder';
 
 export interface AISettings {
     provider: AIProvider;
@@ -50,6 +51,11 @@ export interface AISettings {
     gemini?: {
         apiKey: string;
         model: string;
+        baseUrl?: string;
+    };
+    deepseek?: {
+        apiKey: string;
+        model: DeepseekModel;
         baseUrl?: string;
     };
     prompts: {
@@ -96,6 +102,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         ollama: {
             host: 'http://localhost:11434',
             model: 'qwen2.5:14b'
+        },
+        deepseek: {
+            apiKey: '',
+            model: 'deepseek-chat',
+            baseUrl: ''
         },
         prompts: {
             '🤔 Key Insight': '{{highlight}}.Please reinterpret the above content from a fresh perspective and summarize its core idea within 200 characters.'
