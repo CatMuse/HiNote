@@ -28,6 +28,10 @@ export class CommentList {
 
     private renderComments() {
         const comments = this.highlight.comments || [];
+        
+        // 按更新时间倒序排序
+        comments.sort((a, b) => b.updatedAt - a.updatedAt);
+        
         comments.forEach(comment => {
             const commentEl = this.container.createEl("div", {
                 cls: "highlight-comment",
@@ -59,7 +63,7 @@ export class CommentList {
 
             // 评论时间
             footer.createEl("div", {
-                text: new Date(comment.createdAt).toLocaleString(),
+                text: new Date(comment.updatedAt).toLocaleString(),
                 cls: "highlight-comment-time"
             });
 

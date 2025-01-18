@@ -137,11 +137,31 @@ export class ExportService {
                 for (const comment of highlight.comments) {
                     if (highlight.isVirtual) {
                         // 虚拟高亮的评论直接显示，不需要额外的缩进
-                        lines.push(`> ${comment.content}`);
+                        // 处理多行内容，确保每行都有正确的缩进
+                        const commentLines = comment.content
+                            .split('\n')
+                            .map(line => {
+                                line = line.trim();
+                                // 如果是空行，返回带缩进的空行
+                                if (!line) return '>';
+                                return `> ${line}`;
+                            })
+                            .join('\n');
+                        lines.push(commentLines);
                     } else {
                         // 普通高亮的评论使用双层缩进
                         lines.push(">> [!note] Comment");
-                        lines.push(`>> ${comment.content}`);
+                        // 处理多行内容，确保每行都有正确的缩进
+                        const commentLines = comment.content
+                            .split('\n')
+                            .map(line => {
+                                line = line.trim();
+                                // 如果是空行，返回带缩进的空行
+                                if (!line) return '>>';
+                                return `>> ${line}`;
+                            })
+                            .join('\n');
+                        lines.push(commentLines);
                     }
                     
                     if (comment.updatedAt) {
