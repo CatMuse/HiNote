@@ -192,46 +192,30 @@ export class CommentWidget extends WidgetType {
      */
     private setupEventListeners(wrapper: HTMLElement, button: HTMLElement, tooltipData: { tooltip: HTMLElement, updateTooltipPosition: () => void }) {
         const { tooltip, updateTooltipPosition } = tooltipData;
-        const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
-        const commentCount = allComments.length;
 
-        // 如果有评论，添加工具提示的显示/隐藏事件
-        if (commentCount > 0) {
-            button.addEventListener("mouseenter", () => {
+        // 鼠标悬停时显示工具提示
+        wrapper.addEventListener("mouseenter", () => {
+            if (this.paragraphHighlights.some(h => h.comments && h.comments.length > 0)) {
+                button.removeClass("highlight-comment-button-hidden");
                 tooltip.removeClass("hidden");
                 updateTooltipPosition();
-            });
-
-            button.addEventListener("mouseleave", () => {
-                tooltip.addClass("hidden");
-            });
-        }
-
-        // 鼠标悬停时显示/隐藏评论按钮
-        wrapper.addEventListener("mouseenter", () => {
-            button.removeClass("highlight-comment-button-hidden");
-        });
-
-        wrapper.addEventListener("mouseleave", () => {
-            if (commentCount === 0) {
-                button.addClass("highlight-comment-button-hidden");
             }
         });
 
-        // 点击评论按钮时触发评论输入事件
+        // 鼠标离开时隐藏工具提示
+        wrapper.addEventListener("mouseleave", () => {
+            button.addClass("highlight-comment-button-hidden");
+            tooltip.addClass("hidden");
+        });
+
+        // 点击按钮时打开评论面板
         button.addEventListener("click", (e) => {
-            e.preventDefault();
             e.stopPropagation();
             this.onClick();
-            
-            const event = new CustomEvent("open-comment-input", {
-                detail: {
-                    highlightId: this.highlight.id,
-                    text: this.highlight.text
-                }
-            });
-            window.dispatchEvent(event);
         });
+
+        // 监听窗口大小改变事件，更新工具提示位置
+        window.addEventListener("resize", updateTooltipPosition);
     }
 
     /**

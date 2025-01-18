@@ -312,4 +312,24 @@ export class CommentStore {
         editor.setLine(line, `${lineText} ^${newBlockId}`);
         return newBlockId;
     }
+
+    /**
+     * 获取高亮的评论
+     * @param highlight 高亮信息
+     * @returns 评论数组
+     */
+    getHighlightComments(highlight: { text: string; position?: number }): HighlightComment[] {
+        const activeFile = this.plugin.app.workspace.getActiveFile();
+        if (!activeFile) return [];
+
+        const fileComments = this.getFileComments(activeFile);
+        return fileComments.filter(c => {
+            const textMatch = c.text === highlight.text;
+            // 如果存储的评论没有 position，则不进行位置匹配
+            if (textMatch && typeof c.position === 'number' && typeof highlight.position === 'number') {
+                return Math.abs(c.position - highlight.position) < 1000;
+            }
+            return textMatch;
+        });
+    }
 } 

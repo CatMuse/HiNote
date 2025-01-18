@@ -22,6 +22,7 @@ export interface HighlightInfo {
     displayText?: string; // 显示给用户看的文本
     timestamp?: number;   // 添加时间戳
     fileType?: string;    // 文件类型
+    originalLength?: number;  // 原始匹配文本的长度，包括标签
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama';

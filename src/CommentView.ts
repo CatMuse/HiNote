@@ -11,6 +11,7 @@ import { ExportService } from './services/ExportService';
 import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
+import { HighlightService } from './services/HighlightService';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -26,6 +27,7 @@ export class CommentView extends ItemView {
     private plugin: CommentPlugin;
     private locationService: LocationService;
     private exportService: ExportService;
+    private highlightService: HighlightService;
     private isDraggedToMainView: boolean = false;
     private currentBatch: number = 0;
     private isLoading: boolean = false;
@@ -41,6 +43,7 @@ export class CommentView extends ItemView {
         this.plugin = (this.app as any).plugins.plugins['highlight-comment'] as CommentPlugin;
         this.locationService = new LocationService(this.app);
         this.exportService = new ExportService(this.app, this.commentStore);
+        this.highlightService = new HighlightService(this.app);
         
         // 监听文档切换
         this.registerEvent(
@@ -323,6 +326,10 @@ export class CommentView extends ItemView {
         this.renderHighlights(this.highlights);
     }
 
+    private extractHighlights(content: string): HighlightInfo[] {
+        return this.highlightService.extractHighlights(content);
+    }
+
     private async updateHighlightsList() {
         const searchTerm = this.searchInput.value.toLowerCase().trim();
         
@@ -413,36 +420,6 @@ export class CommentView extends ItemView {
                 }
             }
         });
-    }
-
-    private extractHighlights(content: string): HighlightInfo[] {
-        const highlightRegex = /==\s*(.*?)\s*==|<mark(?:\s+style="[^"]*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})[^"]*")?\s*>(.*?)<\/mark>|<span\s+style="background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8})">\s*(.*?)\s*<\/span>/g;
-        const highlights: HighlightInfo[] = [];
-        const paragraphs = content.split(/\n\n+/);
-        let offset = 0;
-
-        paragraphs.forEach((paragraph, index) => {
-            let match;
-            while ((match = highlightRegex.exec(paragraph)) !== null) {
-                const text = (match[1] || match[3] || match[5])?.trim();
-                const backgroundColor = match[2] || match[4];
-                if (text) {
-                    const position = offset + match.index;
-                    const highlight: HighlightInfo = {
-                        id: `highlight-${position}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        text: text,
-                        position: position,
-                        paragraphOffset: offset,
-                        paragraphId: `p-${index}-${Date.now()}`,
-                        backgroundColor: backgroundColor
-                    };
-                    highlights.push(highlight);
-                }
-            }
-            offset += paragraph.length + 2;
-        });
-
-        return highlights;
     }
 
     private async addComment(highlight: HighlightInfo, content: string) {
@@ -801,6 +778,11 @@ export class CommentView extends ItemView {
     }
 
     // 添加新方法来获取所有包含高亮的文件
+    async getFilesWithHighlights(): Promise<TFile[]> {
+        return this.highlightService.getFilesWithHighlights();
+    }
+
+    // 添加新方法来更新全部高亮
     private async updateAllHighlights() {
         // 重置批次计数
         this.currentBatch = 0;
@@ -908,27 +890,10 @@ export class CommentView extends ItemView {
         }
     }
 
-    // 添加新方法来获取所有包含高亮的文件
-    private async getFilesWithHighlights(): Promise<TFile[]> {
-        const files = this.app.vault.getMarkdownFiles();
-        const filesWithHighlights: TFile[] = [];
-
-        for (const file of files) {
-            const content = await this.app.vault.read(file);
-            const hasHighlight = /==.*?==|<mark>.*?<\/mark>|<span style="background:.*?">.*?<\/span>/g.test(content);
-            if (hasHighlight) {
-                filesWithHighlights.push(file);
-            }
-        }
-
-        return filesWithHighlights;
-    }
-
-    // 添加新方法：获取文件的高亮数量
+    // 添加新方法来获取文件的高亮数量
     private async getFileHighlightsCount(file: TFile): Promise<number> {
         const content = await this.app.vault.read(file);
-        const highlights = this.extractHighlights(content);
-        return highlights.length;
+        return this.extractHighlights(content).length;
     }
 
     // 添加新方法：获取所有文件的高亮总数

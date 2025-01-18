@@ -2,12 +2,17 @@ import { App, TFile } from "obsidian";
 import { HighlightInfo, CommentItem } from "../types";
 import { CommentStore } from "../CommentStore";
 import { t } from "../i18n";
+import { HighlightService } from "./HighlightService";
 
 export class ExportService {
+    private highlightService: HighlightService;
+
     constructor(
         private app: App,
         private commentStore: CommentStore
-    ) {}
+    ) {
+        this.highlightService = new HighlightService(app);
+    }
 
     /**
      * 导出文件的高亮和评论内容为新的笔记
@@ -55,7 +60,7 @@ export class ExportService {
      */
     private async getFileHighlights(file: TFile): Promise<HighlightInfo[]> {
         const content = await this.app.vault.read(file);
-        const highlights = this.extractHighlights(content);
+        const highlights = this.highlightService.extractHighlights(content);
         
         // 获取已存储的评论
         const storedComments = this.commentStore.getFileComments(file);
@@ -154,44 +159,6 @@ export class ExportService {
         }
 
         return lines.join("\n");
-    }
-
-    /**
-     * 从文本内容中提取高亮
-     */
-    private extractHighlights(content: string): HighlightInfo[] {
-        const highlights: HighlightInfo[] = [];
-        
-        // 匹配所有格式的高亮
-        const patterns = [
-            /==(.*?)==/g,                          // ==text== 格式
-            /<mark[^>]*style="background:\s*#[0-9A-Fa-f]{6,8};?">(.*?)<\/mark>/g,                // <mark>text</mark> 格式
-            /<span[^>]*style="background:\s*rgba\(\d{1,3},\s*\d{1,3},\s*\d{1,3},\s*\d?\.?\d+\)">(.+?)<\/span>/g,
-            /<span[^>]*style="background:\s*#[0-9A-Fa-f]{6,8};?">(.*?)<\/span>/g  // <span>text</span> 格式
-        ];
-
-        for (const regex of patterns) {
-            let match: RegExpExecArray | null;
-            while ((match = regex.exec(content)) !== null) {
-                // 使用类型断言明确告诉 TypeScript match 不为 null
-                const nonNullMatch = match as RegExpExecArray;
-                
-                const isDuplicate = highlights.some(h => 
-                    typeof h.position === 'number' && Math.abs(h.position - nonNullMatch.index) < 10 && h.text === nonNullMatch[1]
-                );
-
-                if (!isDuplicate) {
-                    highlights.push({
-                        text: nonNullMatch[1],
-                        position: nonNullMatch.index,
-                        paragraphOffset: this.getParagraphOffset(content, nonNullMatch.index)
-                    });
-                }
-            }
-        }
-
-        // 按位置排序
-        return highlights.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     }
 
     /**
