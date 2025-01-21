@@ -34,8 +34,8 @@ export class AISettingTab extends PluginSettingTab {
                     'openai': 'OpenAI',
                     'gemini': 'Gemini',
                     'anthropic': 'Anthropic',
-                    'ollama': 'Ollama (Local)',
-                    'deepseek': 'Deepseek'
+                    'deepseek': 'Deepseek',
+                    'ollama': 'Ollama (Local)'
                 };
 
                 return dropdown
@@ -652,11 +652,6 @@ export class AISettingTab extends PluginSettingTab {
 
         container.createEl('h3', { text: t('Deepseek Settings') });
 
-        // 创建模型设置容器
-        const modelContainer = container.createEl('div', {
-            cls: 'model-setting-container'
-        });
-
         // API Key 设置
         new Setting(container)
             .setName(t('API Key'))
@@ -700,6 +695,11 @@ export class AISettingTab extends PluginSettingTab {
                         }
                     }
                 }));
+                
+        // 创建模型设置容器
+        const modelContainer = container.createEl('div', {
+            cls: 'model-setting-container'
+        });
 
         // 显示默认的模型选择
         this.createDeepseekModelDropdown(modelContainer);
