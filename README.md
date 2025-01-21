@@ -18,6 +18,7 @@ This AI-programmed Obsidian plugin can automatically extract highlighted text fr
 [![HighlightComment Plugin Tutorial](https://img.youtube.com/vi/M3K80g5MYM8/maxresdefault.jpg)](https://www.youtube.com/watch?v=M3K80g5MYM8)
 
 ---
+
 ## Highlighted text retrieval
 
 When you open a note with highlighted text, the sidebar automatically displays the highlighted text in card format. The following three formats of highlight tags are supported: `==`, `<mark>`, and `<span>`.
@@ -25,13 +26,17 @@ When you open a note with highlighted text, the sidebar automatically displays t
 ![Highlighted text retrieval](./doc/highlighted-text-retrieval.jpg)
 
 ---
+
 ## Highlighted comments
 
 The highlight comment feature allows you to quickly engage with highlighted text, preventing your ideas from slipping away. Simply click on the Widgets in the editing area or directly click the add comment button on the card to open the input box.
 
+The note comment feature allows you to add your thoughts to the entire document without relying on any highlighted text. Click the add file comment on the right side of the search bar to open the input box at the top of the highlight list.
+
 >  All your highlight and comment data will be stored in the plugin's data.json file, giving you complete control.
 
 ---
+
 ## Export as image
 
 Export your highlighted text as beautifully designed knowledge cards for easy sharing.
@@ -39,6 +44,15 @@ Export your highlighted text as beautifully designed knowledge cards for easy sh
 ![Export image](./doc/export-image.jpg)
 
 ---
+
+## Export as note
+
+Export all your highlighted text and comments as a new note, displayed in Callout format.
+
+![export as file](./doc/export-as-file.jpg)
+
+---
+
 ## Extended features of the main view
 
 Drag the right sidebar window to the main view to unlock more features, such as a list of notes with highlighted text, all highlighted cards, and the AI chat window (see below for details).
@@ -50,6 +64,7 @@ Drag the right sidebar window to the main view to unlock more features, such as 
 ![main view](./doc/main-view.jpg)
 
 ---
+
 ## AI Comment
 
 AI can assist you in thinking and add the generated content as a comment below the highlighted text. First, you need to configure the AI provider, API Key, and model in the plugin's settings menu. Currently supported providers include OpenAI, Gemini, Anthropic, and Ollama.
@@ -59,6 +74,7 @@ Next, configure your custom Prompt. Here, you can use two fields to obtain the h
 Finally, you can use your custom Prompt in the AI button on the highlighted card.
 
 ---
+
 ## AI Chat
 
 In the bottom right corner of the main view, you can click the conversation icon or use the shortcut command (`Cmd+P`) to open the AI conversation window. This window can be freely dragged and resized. Within the conversation window, you can switch the AI service model and clear the current conversation content (note that once cleared, it cannot be restored, and exporting or saving is not supported at this time).
@@ -68,6 +84,7 @@ Additionally, you can drag highlighted cards into the conversation window as par
 ![AI chat](./doc/ai-chat.jpg)
 
 ---
+
 ## THANK YOU 🙏
 
 If you like this plugin and want to say thanks, you can buy me a coffee here!
