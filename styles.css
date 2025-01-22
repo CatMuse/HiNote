@@ -449,13 +449,6 @@
     margin-top: 4px;
 }
 
-.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
 /* 修改编辑器容器样式确保有足够空间显示按钮 */
 .markdown-source-view {
     padding-right: 40px !important;
@@ -1865,4 +1858,39 @@ hr {
 .virtual-highlight-card .highlight-comments-section {
     margin-top: 0;  /* 移除评论区域的顶部边距 */
     border-radius: 8px;
+}
+
+/* AI 按钮加载图标隐藏状态 */
+.highlight-ai-icon-loading.is-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* 评论页脚隐藏状态 */
+.highlight-comment-footer.is-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Prompt 编辑模式隐藏状态 */
+.prompt-display-mode.is-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* 在插件作用域内定义 hidden 类，避免影响其他插件 */
+.highlight-comment-plugin .hidden,
+.highlight-ai-icon-loading.hidden,
+.highlight-comment-footer.hidden,
+.prompt-display-mode.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
