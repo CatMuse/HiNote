@@ -132,7 +132,7 @@ export class CommentWidget extends WidgetType {
      */
     private createTooltip(wrapper: HTMLElement) {
         const tooltip = document.createElement("div");
-        tooltip.addClass("highlight-comment-tooltip", "hidden");
+        tooltip.addClass("highlight-comment-tooltip", "highlight-comment-tooltip-hidden");
 
         const commentsList = tooltip.createEl("div", {
             cls: "highlight-comment-tooltip-list"
@@ -208,12 +208,12 @@ export class CommentWidget extends WidgetType {
             button.removeClass("highlight-comment-button-hidden");
             
             button.addEventListener("mouseenter", () => {
-                tooltip.removeClass("hidden");
+                tooltip.removeClass("highlight-comment-tooltip-hidden");
                 updateTooltipPosition();
             });
 
             button.addEventListener("mouseleave", () => {
-                tooltip.addClass("hidden");
+                tooltip.addClass("highlight-comment-tooltip-hidden");
             });
         } else {
             // 如果没有评论，默认隐藏按钮

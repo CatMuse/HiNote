@@ -321,7 +321,7 @@ export class ChatView {
 
         // 隐藏浮动按钮
         if (this.floatingButton) {
-            this.floatingButton.addClass("highlight-floating-button-hidden");
+            this.floatingButton.addClass("highlight-comment-hidden");
         }
 
         // 如果有保存的状态，滚动到底部
@@ -350,7 +350,7 @@ export class ChatView {
         ChatView.instance = null;
 
         if (this.floatingButton) {
-            this.floatingButton.removeClass("highlight-floating-button-hidden");
+            this.floatingButton.removeClass("highlight-comment-hidden");
         }
     }
 

@@ -449,6 +449,10 @@
     margin-top: 4px;
 }
 
+.highlight-comment-tooltip.highlight-comment-tooltip-hidden {
+    display: none;
+}
+
 /* 修改编辑器容器样式确保有足够空间显示按钮 */
 .markdown-source-view {
     padding-right: 40px !important;
@@ -1860,8 +1864,64 @@ hr {
     border-radius: 8px;
 }
 
+/* 插件作用域内的隐藏类 */
+.highlight-comment-plugin .highlight-comment-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* 设置标签页样式 */
+.setting-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--background-modifier-border);
+    margin-bottom: 24px;
+    gap: 8px;
+}
+
+.setting-tab-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-weight: 500;
+}
+
+.setting-tab-btn:hover {
+    color: var(--text-normal);
+}
+
+.setting-tab-btn.active {
+    color: var(--text-accent);
+    border-bottom-color: var(--text-accent);
+}
+
+.setting-tab-content {
+    padding-top: 8px;
+}
+
+.setting-tab-pane {
+    display: none;
+}
+
+.setting-tab-pane.active {
+    display: block;
+}
+
+/* 插件专用隐藏类 */
+.highlight-comment-hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 /* AI 按钮加载图标隐藏状态 */
-.highlight-ai-icon-loading.is-hidden {
+.highlight-ai-icon-loading.highlight-comment-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -1869,7 +1929,7 @@ hr {
 }
 
 /* 评论页脚隐藏状态 */
-.highlight-comment-footer.is-hidden {
+.highlight-comment-footer.highlight-comment-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -1877,18 +1937,7 @@ hr {
 }
 
 /* Prompt 编辑模式隐藏状态 */
-.prompt-display-mode.is-hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-/* 在插件作用域内定义 hidden 类，避免影响其他插件 */
-.highlight-comment-plugin .hidden,
-.highlight-ai-icon-loading.hidden,
-.highlight-comment-footer.hidden,
-.prompt-display-mode.hidden {
+.prompt-display-mode.highlight-comment-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;

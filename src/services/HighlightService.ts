@@ -12,8 +12,16 @@ type RegexMatch = [
 ] & { index: number };     // 匹配位置
 
 export class HighlightService {
-    // 统一的高亮正则表达式
-    private static readonly HIGHLIGHT_REGEX = /==\s*(.*?)\s*==|<mark(?:\s+class="[^"]*"|\s+style=["'][^"']*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\))[^"']*["'])*\s*>(.*?)<\/mark>|<span\s+style=["']background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\))["']>\s*(.*?)\s*<\/span>/g;
+    // 分解高亮匹配的正则表达式为三个部分
+    private static readonly DOUBLE_EQUALS_REGEX = /==\s*(.*?)\s*==/;
+    private static readonly MARK_TAG_REGEX = /<mark(?:\s+class="[^"]*"|\s+style=["'][^"']*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\))[^"']*["'])*\s*>(.*?)<\/mark>/;
+    private static readonly SPAN_TAG_REGEX = /<span\s+style=["']background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\))["']>\s*(.*?)\s*<\/span>/;
+
+    // 组合成完整的高亮匹配正则表达式
+    private static readonly HIGHLIGHT_REGEX = new RegExp(
+        `${HighlightService.DOUBLE_EQUALS_REGEX.source}|${HighlightService.MARK_TAG_REGEX.source}|${HighlightService.SPAN_TAG_REGEX.source}`,
+        'g'
+    );
 
     // 简单的高亮检测正则表达式（用于快速检查文件是否包含高亮）
     private static readonly SIMPLE_HIGHLIGHT_REGEX = /==.*?==|<mark[^>]*>.*?<\/mark>|<span[^>]*style="[^"]*background[^"]*"[^>]*>.*?<\/span>/g;

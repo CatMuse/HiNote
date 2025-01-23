@@ -45,7 +45,7 @@ export default {
 "Ollama Settings": "Ollama 设置",
 "Server Address": "服务器地址",
 "Ollama server address (default: http://localhost:11434)": "Ollama 服务器地址（默认：http://localhost:11434）",
-"Test Connection": "验证",
+"Verify": "验证",
 "Successfully connected to Ollama service": "成功连接到 Ollama 服务",
 "No models found. Please download models using ollama": "未找到模型。请使用 ollama 下载模型",
 "Could not connect to Ollama service": "无法连接到 Ollama 服务",

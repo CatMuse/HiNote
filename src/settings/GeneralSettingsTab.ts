@@ -15,8 +15,6 @@ export class GeneralSettingsTab {
             cls: 'general-settings-container'
         });
 
-        container.createEl('h3', { text: t('General Settings') });
-
         // 导出路径设置
         new Setting(container)
             .setName(t('Export Path'))

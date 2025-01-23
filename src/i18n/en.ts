@@ -48,7 +48,7 @@ export default {
     "Ollama Settings": "Ollama Settings",
     "Server Address": "Server Address",
     "Ollama server address (default: http://localhost:11434)": "Ollama server address (default: http://localhost:11434)",
-    "Test Connection": "Test Connection",
+    "Verify": "Verify",
     "Successfully connected to Ollama service": "Successfully connected to Ollama service",
     "No models found. Please download models using ollama": "No models found. Please download models using ollama",
     "Could not connect to Ollama service": "Could not connect to Ollama service",

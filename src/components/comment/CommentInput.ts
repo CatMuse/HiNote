@@ -51,7 +51,7 @@ export class CommentInput {
         // 隐藏底部的时间和按钮
         const footer = commentEl.querySelector('.highlight-comment-footer');
         if (footer) {
-            footer.addClass('hidden');
+            footer.addClass('highlight-comment-hidden');
         }
 
         // 添加快捷键提示和删除按钮
@@ -132,7 +132,7 @@ export class CommentInput {
                     requestAnimationFrame(() => {
                         this.textarea.replaceWith(contentEl);
                         this.actionHint.remove();
-                        footer.removeClass('hidden');
+                        footer.removeClass('highlight-comment-hidden');
                         document.removeEventListener('click', this.boundHandleOutsideClick);
                     });
                 }

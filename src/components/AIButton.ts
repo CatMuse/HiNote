@@ -77,13 +77,13 @@ export class AIButton {
 
         // 加载状态的图标
         this.loadingIcon = aiButtonContent.createEl("div", {
-            cls: "highlight-ai-icon-loading hidden"
+            cls: "highlight-ai-icon-loading highlight-comment-hidden"
         });
         setIcon(this.loadingIcon, "loader");
 
         // 创建下拉菜单
         this.dropdown = aiContainer.createEl("div", {
-            cls: "highlight-ai-dropdown hidden"
+            cls: "highlight-ai-dropdown highlight-comment-hidden"
         });
 
         // 防止下拉菜单的点击事件冒泡
@@ -102,16 +102,16 @@ export class AIButton {
     }
 
     private toggleDropdown() {
-        if (this.dropdown.hasClass("hidden")) {
+        if (this.dropdown.hasClass("highlight-comment-hidden")) {
             // 关闭其他所有下拉菜单
             document.querySelectorAll('.highlight-ai-dropdown').forEach((dropdown) => {
                 if (dropdown !== this.dropdown) {
-                    dropdown.addClass("hidden");
+                    dropdown.addClass("highlight-comment-hidden");
                 }
             });
-            this.dropdown.removeClass("hidden");
+            this.dropdown.removeClass("highlight-comment-hidden");
         } else {
-            this.dropdown.addClass("hidden");
+            this.dropdown.addClass("highlight-comment-hidden");
         }
     }
 
@@ -128,7 +128,7 @@ export class AIButton {
                     text: promptName
                 });
                 promptItem.addEventListener("click", async () => {
-                    this.dropdown.addClass("hidden");
+                    this.dropdown.addClass("highlight-comment-hidden");
                     await this.handleAIAnalysis(promptName);
                 });
             });
@@ -178,18 +178,18 @@ export class AIButton {
 
     private setLoading(loading: boolean) {
         if (loading) {
-            this.normalIcon.addClass('hidden');
-            this.loadingIcon.removeClass('hidden');
+            this.normalIcon.addClass('highlight-comment-hidden');
+            this.loadingIcon.removeClass('highlight-comment-hidden');
         } else {
-            this.normalIcon.removeClass('hidden');
-            this.loadingIcon.addClass('hidden');
+            this.normalIcon.removeClass('highlight-comment-hidden');
+            this.loadingIcon.addClass('highlight-comment-hidden');
         }
     }
 
     // 用于外部关闭下拉菜单
     public closeDropdown() {
         if (!this.dropdown) return;
-        this.dropdown.addClass("hidden");
+        this.dropdown.addClass("highlight-comment-hidden");
         // 强制更新 DOM
         requestAnimationFrame(() => {
             this.dropdown.addClass('highlight-dropdown-hidden');
