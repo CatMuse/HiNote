@@ -68,6 +68,7 @@ export interface PluginSettings {
     export: {
         exportPath: string;  // 导出路径，相对于 vault 根目录
     };
+    excludePatterns?: string;  // 排除高亮的文件或格式列表（逗号分隔）
     comments?: Record<string, Record<string, HighlightInfo>>;
     fileComments?: Record<string, FileComment[]>;
     // ... 其他插件设置
@@ -82,6 +83,7 @@ export interface FileComment {
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
+    excludePatterns: '',  // 默认不排除任何文件
     ai: {
         provider: 'ollama',  // 默认使用 ollama，但会被用户的选择覆盖
         openai: {

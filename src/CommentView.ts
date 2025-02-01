@@ -5,13 +5,13 @@ import { HighlightInfo, CommentUpdateEvent } from './types';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import CommentPlugin from '../main';
 import { AIService } from './services/AIService';
+import { HighlightService } from './services/HighlightService';
 import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
 import { ExportService } from './services/ExportService';
 import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
-import { HighlightService } from './services/HighlightService';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -183,7 +183,7 @@ export class CommentView extends ItemView {
             const timestamp = Date.now();
             const uniqueId = `file-comment-${timestamp}`;
             
-            // 创建虚拟高亮信息
+            // 创建虚拟高亮信息，在文档的最顶部创建了一个不可见的高亮内容
             const virtualHighlight: HighlightComment = {
                 id: uniqueId,
                 text: `__virtual_highlight_${timestamp}__`,  // 这个文本不会显示给用户
@@ -284,6 +284,12 @@ export class CommentView extends ItemView {
 
         // 以下是单文件视图的逻辑
         if (!this.currentFile) {
+            this.renderHighlights([]);
+            return;
+        }
+
+        // 检查文件是否应该被排除
+        if (!this.highlightService.shouldProcessFile(this.currentFile)) {
             this.renderHighlights([]);
             return;
         }
@@ -657,7 +663,7 @@ export class CommentView extends ItemView {
         });
 
         titleContainer.createEl("div", {
-            text: "HighlightComment",
+            text: "HiNote",
             cls: "highlight-file-list-title"
         });
 
@@ -779,7 +785,18 @@ export class CommentView extends ItemView {
 
     // 添加新方法来获取所有包含高亮的文件
     async getFilesWithHighlights(): Promise<TFile[]> {
-        return this.highlightService.getFilesWithHighlights();
+        const allFiles = await this.app.vault.getMarkdownFiles();
+        const files = allFiles.filter(file => this.highlightService.shouldProcessFile(file));
+        const filesWithHighlights: TFile[] = [];
+        
+        for (const file of files) {
+            const content = await this.app.vault.read(file);
+            if (this.extractHighlights(content).length > 0) {
+                filesWithHighlights.push(file);
+            }
+        }
+        
+        return filesWithHighlights;
     }
 
     // 添加新方法来更新全部高亮

@@ -1,6 +1,7 @@
-import { TFile } from 'obsidian';
-import { HighlightInfo } from '../types';
+import { TFile, App } from 'obsidian';
+import { HighlightInfo, PluginSettings } from '../types';
 import { t } from '../i18n';
+import { ExcludePatternMatcher } from './ExcludePatternMatcher';
 
 type RegexMatch = [
     string,      // 完整匹配
@@ -26,13 +27,32 @@ export class HighlightService {
     // 简单的高亮检测正则表达式（用于快速检查文件是否包含高亮）
     private static readonly SIMPLE_HIGHLIGHT_REGEX = /==.*?==|<mark[^>]*>.*?<\/mark>|<span[^>]*style="[^"]*background[^"]*"[^>]*>.*?<\/span>/g;
 
-    constructor(private app: any) {}
+    private settings: PluginSettings;
+
+    constructor(private app: App) {
+        // 获取插件实例
+        const plugin = (app as any).plugins.plugins['highlight-comment'];
+        this.settings = plugin?.settings;
+
+        // 调试输出当前设置
+        console.debug('[HighlightService] Current settings:', this.settings);
+        console.debug('[HighlightService] Exclude patterns:', this.settings?.excludePatterns);
+    }
 
     /**
      * 检查文本是否包含高亮
      * @param content 要检查的文本内容
      * @returns 是否包含高亮
      */
+    /**
+     * 检查文件是否应该被处理（不在排除列表中）
+     * @param file 要检查的文件
+     * @returns 如果文件应该被处理则返回 true
+     */
+    shouldProcessFile(file: TFile): boolean {
+        return !ExcludePatternMatcher.shouldExclude(file, this.settings?.excludePatterns || '');
+    }
+
     hasHighlights(content: string): boolean {
         // 使用详细的正则表达式进行检查，确保不会漏掉任何高亮
         const regex = new RegExp(HighlightService.HIGHLIGHT_REGEX);
@@ -111,6 +131,12 @@ export class HighlightService {
         let totalHighlights = 0;
 
         for (const file of files) {
+            // 检查文件是否应该被排除
+            if (!this.shouldProcessFile(file)) {
+                console.debug(`[HighlightService] Skipping excluded file: ${file.path}`);
+                continue;
+            }
+
             const content = await this.app.vault.read(file);
             const highlights = this.extractHighlights(content);
             if (highlights.length > 0) {

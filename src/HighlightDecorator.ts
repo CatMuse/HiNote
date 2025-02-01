@@ -94,6 +94,17 @@ export class HighlightDecorator {
                 const doc = view.state.doc;
                 const text = doc.toString();
 
+                // 获取当前文件
+                const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+                if (!activeView || !activeView.file) {
+                    return Decoration.none;
+                }
+
+                // 检查文件是否应该被排除
+                if (!this.highlightService.shouldProcessFile(activeView.file)) {
+                    return Decoration.none;
+                }
+
                 // 使用 HighlightService 提取高亮
                 const highlights = this.highlightService.extractHighlights(text);
 

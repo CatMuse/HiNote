@@ -15,6 +15,29 @@ export class GeneralSettingsTab {
             cls: 'general-settings-container'
         });
 
+        // 排除设置
+        new Setting(container)
+            .setName(t('Exclusions'))
+            .setDesc(t('Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md'))
+            .addTextArea(text => {
+                text
+                    .setPlaceholder('folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md')
+                    .setValue(this.plugin.settings.excludePatterns || '')
+                    .onChange(async (value) => {
+                        // 将输入的文本分割成数组并处理
+                        const patterns = value
+                            .split(',')
+                            .map(pattern => pattern.trim())
+                            .filter(pattern => pattern.length > 0);
+                        
+                        this.plugin.settings.excludePatterns = value;
+                        await this.plugin.saveSettings();
+                    });
+                    
+                text.inputEl.rows = 6;
+                text.inputEl.cols = 40;
+            });
+
         // 导出路径设置
         new Setting(container)
             .setName(t('Export Path'))

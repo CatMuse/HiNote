@@ -1,10 +1,10 @@
 <div align="center">
 	<h1>HiNote</h1>
-	<img src="https://img.shields.io/github/downloads/KairosBrain/HighlightComment/total" alt="GitHub Downloads (all assets, all releases)" />
-	<img src="https://img.shields.io/github/v/release/KairosBrain/HighlightComment" alt="GitHub release (latest by date)" />
-	<img src="https://img.shields.io/github/last-commit/KairosBrain/HighlightComment" alt="GitHub last commit" />
-	<img src="https://img.shields.io/github/issues/KairosBrain/HighlightComment" alt="GitHub issues" />
-	<img src="https://img.shields.io/github/stars/KairosBrain/HighlightComment?style=social" alt="GitHub stars" />
+	<img src="https://img.shields.io/github/downloads/CatMuse/HiNote/total" alt="GitHub Downloads (all assets, all releases)" />
+	<img src="https://img.shields.io/github/v/release/CatMuse/HiNote" alt="GitHub release (latest by date)" />
+	<img src="https://img.shields.io/github/last-commit/CatMuse/HiNote" alt="GitHub last commit" />
+	<img src="https://img.shields.io/github/issues/CatMuse/HiNote" alt="GitHub issues" />
+	<img src="https://img.shields.io/github/stars/CatMuse/HiNote?style=social" alt="GitHub stars" />
 </div>
 
 ---
