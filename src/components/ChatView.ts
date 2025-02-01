@@ -310,26 +310,19 @@ export class ChatView {
     }
 
     show() {
+        // 如果容器已经存在，只需显示即可
         if (document.body.contains(this.containerEl)) {
-            return;
+            this.containerEl.removeClass('highlight-chat-hidden');
+        } else {
+            // 第一次创建时初始化
+            this.containerEl.addClass("highlight-chat-window");
+            this.containerEl.addClass("highlight-chat-window-position");
+            document.body.appendChild(this.containerEl);
         }
-
-        // 设置初始位置
-        this.containerEl.addClass("highlight-chat-window-position");
-        
-        document.body.appendChild(this.containerEl);
 
         // 隐藏浮动按钮
         if (this.floatingButton) {
             this.floatingButton.addClass("highlight-comment-hidden");
-        }
-
-        // 如果有保存的状态，滚动到底部
-        if (ChatView.savedState) {
-            const chatHistory = this.containerEl.querySelector('.highlight-chat-history');
-            if (chatHistory) {
-                chatHistory.scrollTop = chatHistory.scrollHeight;
-            }
         }
 
         // 聚焦输入框
@@ -339,15 +332,8 @@ export class ChatView {
     }
 
     close() {
-        // 保存当前状态
-        ChatView.savedState = {
-            chatHistory: this.chatHistory,
-            draggedContents: this.draggedContents,
-            currentPreviewContainer: !!this.currentPreviewContainer
-        };
-
-        this.containerEl.remove();
-        ChatView.instance = null;
+        // 只隐藏而不移除
+        this.containerEl.addClass('highlight-chat-hidden');
 
         if (this.floatingButton) {
             this.floatingButton.removeClass("highlight-comment-hidden");
@@ -356,12 +342,16 @@ export class ChatView {
 
     private addMessage(container: HTMLElement, content: string, type: "user" | "assistant", useTypeWriter: boolean = true) {
         const messageEl = container.createEl("div", {
-            cls: `highlight-chat-message highlight-chat-message-${type}`
+            cls: "highlight-chat-message"
         });
 
         const contentEl = messageEl.createEl("div", {
             cls: "highlight-chat-message-content"
         });
+
+        // 添加类型特定的样式
+        messageEl.addClass(`highlight-chat-message-${type}`);
+        contentEl.addClass(`highlight-chat-message-content-${type}`);
 
         if (type === "assistant" && useTypeWriter) {
             // 为新的 AI 回复添加打字机效果

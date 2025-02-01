@@ -1529,6 +1529,11 @@
     padding-right: initial !important;
 }
 
+/* 聊天窗口隐藏样式 */
+.highlight-chat-hidden {
+    display: none !important;
+}
+
 /* 修改评论按钮容器的样式 */
 .highlight-comment-widget {
     position: absolute;
