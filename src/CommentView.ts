@@ -737,7 +737,10 @@ export class CommentView extends ItemView {
 
             // 创建文件图标
             const fileIcon = fileItemLeft.createEl("span", {
-                cls: "highlight-file-item-icon"
+                cls: "highlight-file-item-icon",
+                attr: {
+                    'aria-label': t('Open (DoubleClick)'),
+                }
             });
             setIcon(fileIcon, 'file-text');
 

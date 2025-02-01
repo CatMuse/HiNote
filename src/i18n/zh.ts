@@ -127,9 +127,14 @@ export default {
     "Toggle comment panel location": "切换评论面板位置",
 
 // Settings
-'General Settings': '通用设置',
-'Export Path': '导出路径',
-'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': '设置高亮笔记的导出路径。留空则使用 vault 根目录。路径应相对于 vault 根目录。',
-"Exclusions": "排除",
-"Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md": "逗号分隔的路径，标签，笔记标题或文件扩展名，将从高亮中排除。例如：folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md",
+    'General Settings': '通用设置',
+    'Export Path': '导出路径',
+    'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': '设置高亮笔记的导出路径。留空则使用 vault 根目录。路径应相对于 vault 根目录。',
+    "Exclusions": "排除",
+    "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md": "逗号分隔的路径，标签，笔记标题或文件扩展名，将从高亮中排除。例如：folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md",
+
+// 其他
+
+    "Open (DoubleClick)": "双击打开"
+
 };

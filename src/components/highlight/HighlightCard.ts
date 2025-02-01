@@ -6,6 +6,7 @@ import { CommentList } from "./CommentList";
 import { setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import { DragPreview } from './DragPreview';
 import { VIEW_TYPE_COMMENT } from '../../CommentView';
+import {t} from "../../i18n";
 
 export class HighlightCard {
     private card: HTMLElement;
@@ -74,7 +75,7 @@ export class HighlightCard {
             const fileIcon = fileNameEl.createEl("span", {
                 cls: "highlight-card-filename-icon",
                 attr: {
-                    'aria-label': '双击打开文件',
+                    'aria-label': t('Open (DoubleClick)'),
                 }
             });
             

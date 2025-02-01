@@ -132,6 +132,11 @@ export default {
     'General Settings': 'General Settings',
     'Export Path': 'Export Path',
     'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': 'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.',
-"Exclusions": "Exclusions",
+    "Exclusions": "Exclusions",
     "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md": "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md",
+
+// 其他
+
+    "Open (DoubleClick)": "Open (DoubleClick)"
+
 };
