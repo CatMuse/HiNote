@@ -180,6 +180,7 @@ export default class CommentPlugin extends Plugin {
         // 初始化设置
         if (!this.settings) {
             this.settings = {
+                excludePatterns: DEFAULT_SETTINGS.excludePatterns,
                 ai: {
                     provider: DEFAULT_SETTINGS.ai.provider,
                     openai: DEFAULT_SETTINGS.ai.openai ? { ...DEFAULT_SETTINGS.ai.openai } : undefined,
@@ -193,6 +194,11 @@ export default class CommentPlugin extends Plugin {
                     exportPath: DEFAULT_SETTINGS.export.exportPath
                 }
             };
+        }
+
+        // 加载排除模式设置
+        if (loadedData?.excludePatterns !== undefined) {
+            this.settings.excludePatterns = loadedData.excludePatterns;
         }
 
         if (loadedData?.ai) {
