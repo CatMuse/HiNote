@@ -3,8 +3,9 @@ import type CommentPlugin from "../../../main";
 import { HighlightContent } from "./HighlightContent";
 import { ActionButtons } from "./ActionButtons";
 import { CommentList } from "./CommentList";
-import { setIcon } from "obsidian";
+import { setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import { DragPreview } from './DragPreview';
+import { VIEW_TYPE_COMMENT } from '../../CommentView';
 
 export class HighlightCard {
     private card: HTMLElement;
@@ -71,10 +72,56 @@ export class HighlightCard {
 
             // 创建文件图标
             const fileIcon = fileNameEl.createEl("span", {
-                cls: "highlight-card-filename-icon"
+                cls: "highlight-card-filename-icon",
+                attr: {
+                    'aria-label': '双击打开文件',
+                }
             });
             
             setIcon(fileIcon, 'file-text');
+
+            // 添加双击事件
+            fileIcon.addEventListener("dblclick", async (e) => {
+                e.stopPropagation(); // 阻止事件冒泡
+
+                // 获取文件路径，优先使用 highlight.filePath，如果不存在则使用 fileName
+                const filePath = this.highlight.filePath || this.fileName;
+                if (!filePath) return;
+
+                // 获取文件
+                const abstractFile = this.plugin.app.vault.getAbstractFileByPath(filePath);
+                if (!abstractFile || !(abstractFile instanceof TFile)) return;
+
+                // 先获取所有 markdown 叶子
+                const leaves = this.plugin.app.workspace.getLeavesOfType('markdown');
+                
+                // 获取当前活动的叶子
+                const activeLeaf = this.plugin.app.workspace.activeLeaf;
+                
+                // 尝试找到一个不是当前活动叶子的 markdown 叶子
+                let targetLeaf = leaves.find(leaf => leaf !== activeLeaf);
+                
+                // 如果没有找到其他叶子，创建一个新的
+                if (!targetLeaf) {
+                    targetLeaf = this.plugin.app.workspace.getLeaf('split', 'vertical');
+                }
+                
+                // 在目标 leaf 中打开文件
+                await targetLeaf.openFile(abstractFile);
+
+                // 定位到高亮位置
+                if (this.highlight.position !== undefined) {
+                    const view = targetLeaf.view;
+                    if (view.getViewType() === 'markdown') {
+                        const editor = (view as any).editor;
+                        if (editor) {
+                            const pos = editor.offsetToPos(this.highlight.position);
+                            editor.setCursor(pos);
+                            editor.scrollIntoView({from: pos, to: pos}, true);
+                        }
+                    }
+                }
+            });
 
             // 创建文件名文本
             fileNameEl.createEl("span", {

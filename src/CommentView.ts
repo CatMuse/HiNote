@@ -389,6 +389,11 @@ export class CommentView extends ItemView {
 
         highlightsToRender.forEach((highlight) => {
             let highlightCard: HighlightCard;
+            // 在具体文件视图下，确保高亮有 filePath
+            if (this.currentFile && !highlight.filePath) {
+                highlight.filePath = this.currentFile.path;
+            }
+
             highlightCard = new HighlightCard(
                 highlightList,
                 highlight,
@@ -422,7 +427,7 @@ export class CommentView extends ItemView {
                 // 添加点击提示
                 const textContent = cardElement.querySelector('.highlight-text-content');
                 if (textContent) {
-                    textContent.setAttribute('title', 'Click to jump to the document position');
+                    textContent.setAttribute('aria-label', 'Click to jump to the document position');
                 }
             }
         });
