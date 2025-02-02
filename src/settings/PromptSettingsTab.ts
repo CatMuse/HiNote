@@ -24,9 +24,8 @@ export class PromptSettingsTab {
         });
 
         // 标题
-        headerContainer.createEl('div', { 
+        headerContainer.createEl('h4', { 
             text: t('Prompt Settings'),
-            cls: 'prompt-settings-title'
         });
 
         // 添加按钮

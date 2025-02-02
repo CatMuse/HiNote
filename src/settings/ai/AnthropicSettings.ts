@@ -13,7 +13,7 @@ export class AnthropicSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h3', { text: t('Anthropic Settings') });
+        settingsContainer.createEl('h4', { text: t('Anthropic Settings') });
 
         // API Key 设置
         new Setting(settingsContainer)

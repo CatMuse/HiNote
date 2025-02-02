@@ -9,7 +9,7 @@ export class OllamaSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h3', { text: t('Ollama Settings') });
+        settingsContainer.createEl('h4', { text: t('Ollama Settings') });
 
         // Set default host if not configured
         const defaultHost = 'http://localhost:11434';
@@ -18,11 +18,6 @@ export class OllamaSettings extends BaseAIServiceSettings {
             this.plugin.settings.ai.ollama.host = defaultHost;
             await this.plugin.saveSettings();
         }
-
-        // Create model container first (needed for Test Connection button)
-        const modelContainer = settingsContainer.createEl('div', {
-            cls: 'model-setting-container'
-        });
 
         // Host setting with test connection button
         const hostSetting = new Setting(settingsContainer)
@@ -44,22 +39,17 @@ export class OllamaSettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Verify'))
                 .onClick(async () => {
-                    const ollamaService = new OllamaService(this.plugin);
+                    const host = this.plugin.settings.ai.ollama?.host || defaultHost;
+                    const ollamaService = new OllamaService(host);
                     try {
                         const models = await ollamaService.listModels();
                         if (models && models.length > 0) {
-                            const ollamaModels = models.map((modelName: string) => ({
-                                id: modelName,
-                                name: modelName
-                            }));
-
                             // Update available models in settings
                             this.plugin.settings.ai.ollama.availableModels = models;
                             await this.plugin.saveSettings();
 
-                            // Update model dropdown
-                            modelContainer.empty();
-                            this.createModelDropdown(modelContainer, ollamaModels, ollamaModels[0]);
+                            // 验证成功后更新模型选择下拉框
+                            this.displayOllamaModelDropdown(settingsContainer, models);
 
                             new Notice(t('Successfully connected to Ollama server!'));
                         } else {
@@ -71,20 +61,21 @@ export class OllamaSettings extends BaseAIServiceSettings {
                     }
                 }));
 
-        // Display model selection based on saved state
+        // 默认显示模型选择（如果有保存的模型列表）
         if (this.plugin.settings.ai.ollama?.availableModels?.length) {
-            const ollamaModels = this.plugin.settings.ai.ollama.availableModels.map((modelName: string | undefined) => ({
-                id: modelName,
-                name: modelName
-            }));
-            this.createModelDropdown(modelContainer, ollamaModels, ollamaModels[0]);
+            this.displayOllamaModelDropdown(settingsContainer, this.plugin.settings.ai.ollama.availableModels);
         }
     }
 
     private displayOllamaModelDropdown(container: HTMLElement, models: string[]) {
-        container.empty();
+        // 移除旧的模型选择（如果存在）
+        const existingModelSetting = container.querySelector('.model-setting');
+        if (existingModelSetting) {
+            existingModelSetting.remove();
+        }
 
-        new Setting(container)
+        // 创建新的设置项，并添加特定的类名以便后续识别
+        const modelSetting = new Setting(container)
             .setName(t('Model'))
             .setDesc(t('Select the Ollama model to use'))
             .addDropdown(dropdown => {
@@ -100,5 +91,8 @@ export class OllamaSettings extends BaseAIServiceSettings {
                         await this.plugin.saveSettings();
                     });
             });
+
+        // 为新创建的设置项添加类名
+        modelSetting.settingEl.addClass('model-setting');
     }
 }

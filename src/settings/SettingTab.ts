@@ -19,15 +19,23 @@ export class AISettingTab extends PluginSettingTab {
         containerEl.empty();
 
         // 添加主标题
-        containerEl.createEl('h2', { text: 'HiNote Settings' });
+        containerEl.createEl('h1', { text: 'HiNote Settings' });
 
         // 创建标签页容器
         const tabContainer = containerEl.createEl('div', { cls: 'setting-tabs' });
         const contentContainer = containerEl.createEl('div', { cls: 'setting-tab-content' });
 
         // 创建标签按钮
-        const generalTab = tabContainer.createEl('button', { text: t('General'), cls: 'setting-tab-btn active' });
-        const aiTab = tabContainer.createEl('button', { text: t('AI Service'), cls: 'setting-tab-btn' });
+        const generalTab = tabContainer.createEl('div', { 
+          text: t('General'),
+          cls: 'setting-tab-btn active',
+          attr: { role: 'button', tabindex: '0' }
+        });
+        const aiTab = tabContainer.createEl('div', { 
+          text: t('AI Service'),
+          cls: 'setting-tab-btn',
+          attr: { role: 'button', tabindex: '0' }
+        });
 
         // 创建内容容器
         const generalContent = contentContainer.createEl('div', { cls: 'setting-tab-pane active' });

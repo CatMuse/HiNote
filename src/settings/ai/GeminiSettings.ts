@@ -12,7 +12,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h3', { text: t('Gemini Settings') });
+        settingsContainer.createEl('h4', { text: t('Gemini Settings') });
 
         // API Key 设置
         new Setting(settingsContainer)

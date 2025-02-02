@@ -13,7 +13,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h3', { text: t('Deepseek Settings') });
+        settingsContainer.createEl('h4', { text: t('Deepseek Settings') });
 
         // API Key 设置
         new Setting(settingsContainer)

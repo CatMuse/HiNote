@@ -750,12 +750,6 @@
     gap: 8px;
 }
 
-.prompt-settings-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-normal);
-}
-
 /* 当在视图中时，移鼠标悬停效果和相关提示 */
 .highlight-card.in-main-view {
     cursor: default;
@@ -1671,11 +1665,13 @@
     margin: 16px 0;
 }
 
-.ai-service-settings h3 {
+.ai-service-settings h4 {
     margin: 0 0 16px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-normal);
+}
+
+.prompt-header h4{
+    margin-top: 0px;
+    margin-bottom: 0px;
 }
 
 /* 分隔线样式 */
@@ -1880,20 +1876,18 @@ hr {
 /* 设置标签页样式 */
 .setting-tabs {
     display: flex;
-    border-bottom: 2px solid var(--background-modifier-border);
     margin-bottom: 24px;
-    gap: 8px;
+    gap: 20px;
+    background-color: var(--background-secondary);
+    border-radius: var(--radius-m);
+    padding: 0px 12px;
 }
 
 .setting-tab-btn {
-    background: transparent;
-    border: none;
-    padding: 8px 16px;
+    padding: 8px 2px;
     cursor: pointer;
     color: var(--text-muted);
     border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    font-weight: 500;
 }
 
 .setting-tab-btn:hover {
@@ -1903,6 +1897,11 @@ hr {
 .setting-tab-btn.active {
     color: var(--text-accent);
     border-bottom-color: var(--text-accent);
+    font-weight: 600;
+}
+
+.setting-tab-btn:focus {
+    outline: none;
 }
 
 .setting-tab-content {

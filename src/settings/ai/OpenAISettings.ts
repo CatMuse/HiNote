@@ -13,7 +13,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        openAISettingsContainer.createEl('h3', { text: t('OpenAI Settings') });
+        openAISettingsContainer.createEl('h4', { text: t('OpenAI Settings') });
 
         // API Key 设置
         new Setting(openAISettingsContainer)
