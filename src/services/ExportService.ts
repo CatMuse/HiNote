@@ -124,11 +124,12 @@ export class ExportService {
                 lines.push("> [!quote] Highlight");
                 // 使用 Obsidian 的 Block ID
                 const cache = this.app.metadataCache.getFileCache(file);
-                if (cache?.sections) {
+                if (cache?.sections && typeof highlight.position === 'number') {
                     // 找到对应的段落
+                    const position = highlight.position || 0;
                     const section = cache.sections.find(section => 
-                        section.position.start.offset <= highlight.position && 
-                        section.position.end.offset >= highlight.position
+                        section.position.start.offset <= position && 
+                        section.position.end.offset >= position
                     );
                     
                     if (section?.id) {
