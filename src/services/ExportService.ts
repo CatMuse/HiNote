@@ -122,7 +122,24 @@ export class ExportService {
             } else {
                 // 普通高亮
                 lines.push("> [!quote] Highlight");
-                lines.push(`> ${highlight.text}`);
+                // 使用 Obsidian 的 Block ID
+                const cache = this.app.metadataCache.getFileCache(file);
+                if (cache?.sections) {
+                    // 找到对应的段落
+                    const section = cache.sections.find(section => 
+                        section.position.start.offset <= highlight.position && 
+                        section.position.end.offset >= highlight.position
+                    );
+                    
+                    if (section?.id) {
+                        // 使用 Obsidian 的 Block ID
+                        lines.push(`> ![[${file.basename}#^${section.id}]]`);
+                    } else {
+                        lines.push(`> ${highlight.text}`);
+                    }
+                } else {
+                    lines.push(`> ${highlight.text}`);
+                }
                 lines.push("> ");
             }
             

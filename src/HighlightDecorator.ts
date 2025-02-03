@@ -109,7 +109,7 @@ export class HighlightDecorator {
                 const highlights = this.highlightService.extractHighlights(text);
 
                 // 将高亮分组到段落中
-                const paragraphMap = new Map<number, HighlightComment[]>();
+                const paragraphMap = new Map<string, HighlightComment[]>();
                 for (const highlight of highlights) {
                     if (highlight.position === undefined) continue;
 
@@ -132,31 +132,21 @@ export class HighlightDecorator {
                         commentHighlight.comments = storedHighlight[0].comments || [];
                     }
 
-                    // 找到高亮所在的段落
-                    let paragraphStartPos = 0;
-                    const textBeforeOffset = text.slice(0, highlight.position);
-                    const lastNewlineMatch = textBeforeOffset.match(/\n\s*\n|\n\s*$|\n?$/g);
-                    
-                    if (lastNewlineMatch) {
-                        paragraphStartPos = lastNewlineMatch[lastNewlineMatch.length - 1].length + textBeforeOffset.lastIndexOf(lastNewlineMatch[lastNewlineMatch.length - 1]);
-                    }
-
-                    // 添加到段落的高亮列表中
-                    const highlightsInParagraph = paragraphMap.get(paragraphStartPos) || [];
+                    // 使用 paragraphId 作为 Map 的键
+                    const highlightsInParagraph = paragraphMap.get(commentHighlight.paragraphId) || [];
                     highlightsInParagraph.push(commentHighlight);
-                    paragraphMap.set(paragraphStartPos, highlightsInParagraph);
+                    paragraphMap.set(commentHighlight.paragraphId, highlightsInParagraph);
                 }
 
                 // 为每个段落添加 CommentWidget
-                for (const [offset, paragraphHighlights] of paragraphMap.entries()) {
-
+                for (const [paragraphId, paragraphHighlights] of paragraphMap.entries()) {
                     // 找到段落中最后一个高亮的位置
                     const lastHighlight = paragraphHighlights[paragraphHighlights.length - 1];
                     if (!lastHighlight) continue;
 
                     // 找到段落的末尾位置
-                    let paragraphEndPos = offset;
-                    const textAfterOffset = text.slice(offset);
+                    let paragraphEndPos = lastHighlight.position;
+                    const textAfterOffset = text.slice(paragraphEndPos);
                     const nextNewlineMatch = textAfterOffset.match(/\n\s*\n|\n\s*$|\n?$/);
                     
                     if (nextNewlineMatch) {

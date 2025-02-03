@@ -117,8 +117,13 @@ export class HighlightService {
      */
     private getParagraphOffset(content: string, position: number): number {
         const beforeText = content.substring(0, position);
-        const lastNewline = beforeText.lastIndexOf("\n");
-        return lastNewline === -1 ? position : position - lastNewline;
+        
+        // 使用正则表达式找到最后一个段落分隔符（一个或多个空行）
+        const paragraphs = beforeText.split(/\n\s*\n/);
+        const currentParagraphStart = beforeText.length - paragraphs[paragraphs.length - 1].length;
+        
+        // 返回段落的起始位置作为偏移量
+        return currentParagraphStart;
     }
 
     /**
