@@ -81,6 +81,13 @@ export default class CommentPlugin extends Plugin {
 			const end = performance.now();
 		}
 
+		// 监听文件重命名事件
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => {
+				this.commentStore.handleFileRename(oldPath, file.path);
+			})
+		);
+
 		// 添加打开对话窗口的命令
 		this.addCommand({
 			id: 'open-chat-window',

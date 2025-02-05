@@ -85,6 +85,43 @@ export class CommentStore {
         });
     }
 
+    /**
+     * 处理文件重命名事件，更新相关的评论数据
+     * @param oldPath 文件的原路径
+     * @param newPath 文件的新路径
+     */
+    async handleFileRename(oldPath: string, newPath: string) {
+        // 更新高亮评论
+        if (this.data[oldPath]) {
+            this.data[newPath] = this.data[oldPath];
+            delete this.data[oldPath];
+
+            // 更新缓存
+            const cachedComments = this.commentCache.get(oldPath);
+            if (cachedComments) {
+                this.commentCache.delete(oldPath);
+                this.commentCache.set(newPath, cachedComments);
+            }
+        }
+
+        // 更新普通文件评论
+        const fileComments = this.fileComments.get(oldPath);
+        if (fileComments) {
+            this.fileComments.delete(oldPath);
+            this.fileComments.set(newPath, fileComments);
+        }
+
+        // 更新comments Map
+        const commentsForFile = this.comments.get(oldPath);
+        if (commentsForFile) {
+            this.comments.delete(oldPath);
+            this.comments.set(newPath, commentsForFile);
+        }
+
+        // 保存更新后的数据
+        await this.saveComments();
+    }
+
     getFileComments(file: TFile): HighlightComment[] {
         const comments = this.data[file.path] || {};
         // 修改排序逻辑，虚拟高亮始终在最前面
