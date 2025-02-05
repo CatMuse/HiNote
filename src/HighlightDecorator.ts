@@ -222,16 +222,17 @@ export class HighlightDecorator {
                         const comments = this.commentStore.getHighlightComments(commentHighlight);
                         const firstComment = comments.length > 0 ? comments[0].comments[0]?.content : '';
 
-                        // 创建装饰器元素
-                        const highlightMark = Decoration.mark({
-                            class: 'cm-highlight',
-                            attributes: {
-                                title: firstComment || '',
-                                'data-highlight-type': 'markdown'
-                            }
-                        });
+                        // TODO: 暂时注释掉 Markdown 语法高亮的装饰器代码，因为目前没有功能使用它
+                        // // 创建装饰器元素
+                        // const highlightMark = Decoration.mark({
+                        //     class: 'cm-highlight',
+                        //     attributes: {
+                        //         title: firstComment || '',
+                        //         'data-highlight-type': 'markdown'
+                        //     }
+                        // });
 
-                        decorations.push(highlightMark.range(from, to));
+                        // decorations.push(highlightMark.range(from, to));
                     }
                 }
 
