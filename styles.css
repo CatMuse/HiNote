@@ -1691,14 +1691,14 @@ hr {
     border-top: 1px solid var(--background-modifier-border);
 }
 
-/* 删除链接样式 */
-.highlight-comment-delete-link {
+/* 删除按钮样式，Obsidian默认按钮样式，不需要重复定义 */
+/* .highlight-comment-delete-link {
     border: none;
     font-size: 12px;
     padding: 4px 6px;
     background-color: none;
     box-shadow: none !important;
-}
+} */
 
 .highlight-comment-delete-link:hover {
     color: var(--text-error);
