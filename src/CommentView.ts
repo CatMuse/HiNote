@@ -48,7 +48,8 @@ export class CommentView extends ItemView {
         // 监听文档切换
         this.registerEvent(
             this.app.workspace.on('file-open', (file) => {
-                if (file) {
+                // 只在非主视图时同步文件
+                if (file && !this.isDraggedToMainView) {
                     this.currentFile = file;
                     this.updateHighlights();
                 }
@@ -58,7 +59,8 @@ export class CommentView extends ItemView {
         // 监听文档修改
         this.registerEvent(
             this.app.vault.on('modify', (file) => {
-                if (file === this.currentFile) {
+                // 只在非主视图时同步文件
+                if (file === this.currentFile && !this.isDraggedToMainView) {
                     this.updateHighlights();
                 }
             })
@@ -620,6 +622,16 @@ export class CommentView extends ItemView {
         
         if (this.isDraggedToMainView !== isInMainView) {
             this.isDraggedToMainView = isInMainView;
+            
+            // 如果从主视图切换到侧边栏，重新同步当前文件
+            if (!isInMainView) {
+                const activeFile = this.app.workspace.getActiveFile();
+                if (activeFile) {
+                    this.currentFile = activeFile;
+                    this.updateHighlights();
+                }
+            }
+            
             this.updateViewLayout();  // 更新视图布局
             this.updateHighlightsList();
         }

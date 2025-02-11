@@ -57,9 +57,16 @@ export class HighlightCard {
             fileNameEl.setAttribute("draggable", "true");
             
             // 添加拖拽事件
-            fileNameEl.addEventListener("dragstart", (e) => {
-                e.dataTransfer?.setData("text/plain", this.highlight.text);
+            fileNameEl.addEventListener("dragstart", async (e) => {
+                // 生成格式化的 Markdown 内容
+                const formattedContent = await this.generateDragContent();
+                
+                // 使用 text/plain 格式来确保编辑器能正确识别 Markdown 格式
+                e.dataTransfer?.setData("text/plain", formattedContent);
+                
+                // 保存原始数据以供其他用途
                 e.dataTransfer?.setData("application/highlight", JSON.stringify(this.highlight));
+                
                 fileNameEl.addClass("dragging");
                 
                 // 使用 DragPreview 替代原来的预览处理
@@ -192,5 +199,196 @@ export class HighlightCard {
         this.isEditing = false; // 重置编辑状态
         this.card.empty();
         this.render();
+    }
+
+    // 生成拖拽时的格式化内容
+    private async generateDragContent(): Promise<string> {
+        const lines: string[] = [];
+        const highlight = this.highlight;
+        
+        console.log('Generating drag content for highlight:', {
+            paragraphId: highlight.paragraphId,
+            text: highlight.text,
+            filePath: highlight.filePath,
+            isVirtual: highlight.isVirtual,
+            position: highlight.position
+        });
+        
+        // 使用与 ExportService 相同的格式
+        if (highlight.isVirtual) {
+            const fileName = highlight.filePath?.split('/').pop()?.replace('.md', '') || 'File';
+            lines.push(`> [!note] [[${fileName}]] Comment`);
+            lines.push("> ");
+        } else {
+            lines.push("> [!quote] Highlight");
+            
+            // 尝试获取 Block ID
+            if (highlight.filePath && typeof highlight.position === 'number') {
+                const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
+                if (file instanceof TFile) {
+                    const cache = this.plugin.app.metadataCache.getFileCache(file);
+                    if (cache?.sections) {
+                        const position = highlight.position;
+                        const section = cache.sections.find(section => 
+                            typeof position === 'number' &&
+                            section.position.start.offset <= position &&
+                            section.position.end.offset >= position
+                        );
+                        
+                        if (section) {
+                            let blockId = section.id;
+                            
+                            // 如果没有 Block ID，生成一个并添加到文档
+                            if (!blockId) {
+                                // 生成一个符合 Obsidian 格式的 Block ID
+                                // 生成 6 位的随机字母数字组合
+                                blockId = Math.random().toString(36).substring(2, 8);
+                                
+                                // 获取文件内容
+                                const content = await this.plugin.app.vault.read(file);
+                                const lines = content.split('\n');
+                                
+                                // 找到段落的最后一行
+                                const endLine = section.position.end.line;
+                                
+                                // 在段落末尾添加 Block ID
+                                lines[endLine] = lines[endLine] + ` ^${blockId}`;
+                                
+                                // 更新文件内容
+                                await this.plugin.app.vault.modify(file, lines.join('\n'));
+                                
+                                // 更新高亮的 paragraphId
+                                this.highlight.paragraphId = `${file.path}#^${blockId}`;
+                                
+                                // 更新存储
+                                const commentStore = (this.plugin as any).commentStore;
+                                if (commentStore) {
+                                    await commentStore.updateHighlight(file.path, this.highlight.id, this.highlight);
+                                }
+                                
+                                // 等待元数据缓存更新
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                            
+                            const reference = `> ![[${file.basename}#^${blockId}]]`;
+                            console.log('Generated reference:', reference);
+                            lines.push(reference);
+                            lines.push("> ");
+                            
+                            // 添加评论
+                            if (highlight.comments && highlight.comments.length > 0) {
+                                for (const comment of highlight.comments) {
+                                    lines.push(">> [!note] Comment");
+                                    // 处理多行内容，确保每行都有正确的缩进
+                                    const commentLines = comment.content
+                                        .split('\n')
+                                        .map(line => {
+                                            line = line.trim();
+                                            // 如果是空行，返回带缩进的空行
+                                            if (!line) return '>>';
+                                            return `>> ${line}`;
+                                        })
+                                        .join('\n');
+                                    lines.push(commentLines);
+                                    
+                                    if (comment.updatedAt) {
+                                        const date = window.moment(comment.updatedAt);
+                                        lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                                    }
+                                    lines.push(">");
+                                }
+                            }
+                            
+                            return lines.join("\n");
+                        }
+                    }
+                }
+            }
+            
+            // 如果没有 paragraphId 或者解析失败，使用原文本
+            lines.push(`> ${highlight.text}`);
+            lines.push("> ");
+            
+            // 添加评论
+            if (highlight.comments && highlight.comments.length > 0) {
+                for (const comment of highlight.comments) {
+                    if (highlight.isVirtual) {
+                        // 处理多行内容，确保每行都有正确的缩进
+                        const commentLines = comment.content
+                            .split('\n')
+                            .map(line => {
+                                line = line.trim();
+                                // 如果是空行，返回带缩进的空行
+                                if (!line) return '>';
+                                return `> ${line}`;
+                            })
+                            .join('\n');
+                        lines.push(commentLines);
+                    } else {
+                        lines.push(">> [!note] Comment");
+                        // 处理多行内容，确保每行都有正确的缩进
+                        const commentLines = comment.content
+                            .split('\n')
+                            .map(line => {
+                                line = line.trim();
+                                // 如果是空行，返回带缩进的空行
+                                if (!line) return '>>';
+                                return `>> ${line}`;
+                            })
+                            .join('\n');
+                        lines.push(commentLines);
+                    }
+                    
+                    if (comment.updatedAt) {
+                        const date = window.moment(comment.updatedAt);
+                        if (highlight.isVirtual) {
+                            lines.push(`> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                        } else {
+                            lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                        }
+                    }
+                    lines.push(highlight.isVirtual ? ">" : ">");
+                }
+            }
+        }
+        
+        // 添加评论（如果有）
+        const comments = highlight.comments || [];
+        if (comments.length > 0) {
+            if (!highlight.isVirtual) {
+                lines.push("> ---");
+                lines.push("> ");
+            }
+            
+            for (const comment of comments) {
+                // 使用与 ExportService 相同的评论格式
+                if (highlight.isVirtual) {
+                    const commentLines = comment.content
+                        .split('\n')
+                        .map((line: string) => line.trim() ? `> ${line}` : '>')
+                        .join('\n');
+                    lines.push(commentLines);
+                } else {
+                    lines.push(">> [!note] Comment");
+                    const commentLines = comment.content
+                        .split('\n')
+                        .map((line: string) => line.trim() ? `>> ${line}` : '>>')
+                        .join('\n');
+                    lines.push(commentLines);
+                }
+                
+                // 添加时间戳
+                if (comment.updatedAt) {
+                    const date = window.moment(comment.updatedAt);
+                    lines.push(highlight.isVirtual 
+                        ? `> *${date.format("YYYY-MM-DD HH:mm:ss")}*`
+                        : `>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`
+                    );
+                }
+                lines.push(highlight.isVirtual ? ">" : ">");
+            }
+        }
+        
+        return lines.join("\n");
     }
 } 

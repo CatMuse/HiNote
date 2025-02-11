@@ -80,17 +80,32 @@ export class HighlightService {
             );
 
             if (!isDuplicate && text) {
-                highlights.push({
-                    text,
-                    position: safeMatch.index,
-                    paragraphOffset: this.getParagraphOffset(content, safeMatch.index),
-                    backgroundColor: backgroundColor || this.settings.defaultHighlightColor,
-                    id: `highlight-${Date.now()}-${safeMatch.index}`,
-                    comments: [],
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    originalLength: fullMatch.length
-                });
+                // 获取当前文件的元数据缓存
+                const file = this.app.workspace.getActiveFile();
+                if (file) {
+                    const cache = this.app.metadataCache.getFileCache(file);
+                    if (cache?.sections) {
+                        // 找到对应的段落
+                        const section = cache.sections.find(section => 
+                            section.position.start.offset <= safeMatch.index &&
+                            section.position.end.offset >= safeMatch.index
+                        );
+                        
+                        highlights.push({
+                            text,
+                            position: safeMatch.index,
+                            paragraphOffset: this.getParagraphOffset(content, safeMatch.index),
+                            backgroundColor: backgroundColor || this.settings.defaultHighlightColor,
+                            id: `highlight-${Date.now()}-${safeMatch.index}`,
+                            comments: [],
+                            createdAt: Date.now(),
+                            updatedAt: Date.now(),
+                            originalLength: fullMatch.length,
+                            // 如果段落有 Block ID，就设置 paragraphId
+                            paragraphId: section?.id ? `${file.path}#^${section.id}` : undefined
+                        });
+                    }
+                }
             }
         }
 
