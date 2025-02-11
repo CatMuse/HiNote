@@ -26,7 +26,7 @@ export interface HighlightInfo {
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek';
-export type OpenAIModel = 'gpt-3.5-turbo' | 'gpt-4';
+export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini';
 export type AnthropicModel = 'claude-2' | 'claude-instant-1';
 export type DeepseekModel = 'deepseek-chat' | 'deepseek-coder';
 
@@ -94,7 +94,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         provider: 'ollama',  // 默认使用 ollama，但会被用户的选择覆盖
         openai: {
             apiKey: '',
-            model: 'gpt-4',
+            model: 'gpt-4o',
             baseUrl: ''
         },
         anthropic: {

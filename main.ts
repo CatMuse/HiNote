@@ -97,76 +97,6 @@ export default class CommentPlugin extends Plugin {
 				chatView.show();
 			}
 		});
-
-		// 添加切换评论面板的命令
-		this.addCommand({
-			id: 'toggle-comment-panel',
-			name: t('Toggle comment panel'),
-			callback: async () => {
-				const { workspace } = this.app;
-				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
-				
-				if (existing.length) {
-					// 如果面板已打开，关闭它
-					existing.forEach(leaf => leaf.detach());
-				} else {
-					// 如果面板未打开，在右侧打开它
-					const leaf = workspace.getRightLeaf(false);
-					if (leaf) {
-						await leaf.setViewState({
-							type: VIEW_TYPE_COMMENT,
-							active: true,
-						});
-					}
-				}
-			},
-		});
-
-		// 添加切换评论面板位置的命令
-		this.addCommand({
-			id: 'toggle-comment-panel-location',
-			name: t('Toggle comment panel location'),
-			callback: async () => {
-				const { workspace } = this.app;
-				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
-				
-				if (existing.length) {
-					const currentLeaf = existing[0];
-					// 检查面板是否在右侧侧边栏
-					const isInSidebar = currentLeaf.getRoot() === workspace.rightSplit;
-					
-					// 保存当前状态
-					const state = currentLeaf.getViewState();
-					
-					// 移除当前面板
-					currentLeaf.detach();
-					
-					// 在新位置创建面板
-					let newLeaf;
-					if (isInSidebar) {
-						// 如果在侧边栏，移到主区域
-						newLeaf = workspace.getLeaf('split');
-					} else {
-						// 如果在主区域，移到侧边栏
-						newLeaf = workspace.getRightLeaf(false);
-					}
-					
-					// 恢复状态
-					if (newLeaf) {
-						await newLeaf.setViewState(state);
-					}
-				} else {
-					// 如果面板未打开，在右侧打开它
-					const leaf = workspace.getRightLeaf(false);
-					if (leaf) {
-						await leaf.setViewState({
-							type: VIEW_TYPE_COMMENT,
-							active: true,
-						});
-					}
-				}
-			},
-		});
 	}
 
 	onunload() {
@@ -188,6 +118,9 @@ export default class CommentPlugin extends Plugin {
         if (!this.settings) {
             this.settings = {
                 excludePatterns: DEFAULT_SETTINGS.excludePatterns,
+                useCustomPattern: DEFAULT_SETTINGS.useCustomPattern,
+                highlightPattern: DEFAULT_SETTINGS.highlightPattern,
+                defaultHighlightColor: DEFAULT_SETTINGS.defaultHighlightColor,
                 ai: {
                     provider: DEFAULT_SETTINGS.ai.provider,
                     openai: DEFAULT_SETTINGS.ai.openai ? { ...DEFAULT_SETTINGS.ai.openai } : undefined,
@@ -284,7 +217,7 @@ export default class CommentPlugin extends Plugin {
         if (!this.settings.ai.openai) {
             this.settings.ai.openai = {
                 apiKey: '',  // 提供默认值
-                model: 'gpt-4',  // 提供默认值
+                model: 'gpt-4o',  // 提供默认值
                 baseUrl: DEFAULT_SETTINGS.ai.openai?.baseUrl
             };
         }
@@ -306,7 +239,7 @@ export default class CommentPlugin extends Plugin {
         if (!this.settings.ai.ollama) {
             this.settings.ai.ollama = {
                 host: 'http://localhost:11434',  // 提供默认值
-                model: 'qwen2.5:14b',  // 提供默认值
+                model: '',  // 删除提供默认值
                 availableModels: DEFAULT_SETTINGS.ai.ollama?.availableModels
             };
         }
