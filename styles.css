@@ -236,6 +236,50 @@
     box-shadow: none;
 }
 
+/* 标签相关样式 */
+.highlight-tags-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.highlight-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: var(--background-secondary);
+    color: var(--text-accent);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* 纯标签评论的特殊样式 */
+.pure-tags-comment {
+    background-color: var(--background-primary);
+    border-radius: 4px;
+    padding: 8px;
+    position: relative;
+    border: 2px solid color-mix(in srgb, var(--text-accent) 10%, transparent);
+}
+
+.pure-tags-comment .highlight-comment-footer {
+    display: none; /* 隐藏时间显示 */
+}
+
+.pure-tags-comment .highlight-comment-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0;
+}
+
+/* 纯标签评论不显示双击提示 */
+.pure-tags-comment .highlight-comment-content:hover::after {
+    display: none;
+}
+
 .highlight-comment-input {
     padding: 8px;
     background-color: var(--background-primary);

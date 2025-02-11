@@ -1,6 +1,10 @@
 import { CommentItem, HighlightInfo } from "../../types";
 import { t } from "../../i18n";
 
+// 标签格式的正则表达式
+const TAG_REGEX = /#[\w\u4e00-\u9fa5]+/g;
+const PURE_TAGS_FORMAT = /^\s*(#[\w\u4e00-\u9fa5]+(\s+#[\w\u4e00-\u9fa5]+)*\s*)$/;
+
 export class CommentInput {
     private textarea: HTMLTextAreaElement;
     private actionHint: HTMLElement;
@@ -44,6 +48,11 @@ export class CommentInput {
         this.textarea.value = originalContent;
         this.textarea.className = 'highlight-comment-input';
         this.textarea.style.minHeight = `${contentEl.offsetHeight}px`;
+
+        // 添加输入事件监听器
+        this.textarea.addEventListener('input', () => {
+            this.processTagsInInput();
+        });
 
         // 替换内容为编辑框
         contentEl.replaceWith(this.textarea);
@@ -93,6 +102,11 @@ export class CommentInput {
 
         // 创建文本框
         this.textarea = inputSection.createEl("textarea");
+        
+        // 添加输入事件监听器
+        this.textarea.addEventListener('input', () => {
+            this.processTagsInInput();
+        });
 
         // 添加快捷键提示
         inputSection.createEl('div', {
@@ -177,6 +191,35 @@ export class CommentInput {
                 }
             }
         };
+    }
+
+    private processTagsInInput() {
+        const text = this.textarea.value;
+        
+        // 检查是否是纯标签格式
+        if (PURE_TAGS_FORMAT.test(text)) {
+            const tags = text.match(TAG_REGEX) || [];
+            
+            // 如果找到标签，在textarea上方显示标签预览
+            if (tags.length > 0) {
+                let tagsPreview = this.textarea.parentElement?.querySelector('.highlight-tags-preview');
+                if (!tagsPreview) {
+                    tagsPreview = document.createElement('div');
+                    tagsPreview.className = 'highlight-tags-preview';
+                    this.textarea.parentElement?.insertBefore(tagsPreview, this.textarea);
+                }
+                tagsPreview.innerHTML = '';
+                tags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'highlight-tag';
+                    tagEl.textContent = tag;
+                    tagsPreview.appendChild(tagEl);
+                });
+            }
+        } else {
+            // 如果不是纯标签格式，移除预览区域
+            this.textarea.parentElement?.querySelector('.highlight-tags-preview')?.remove();
+        }
     }
 
     private handleOutsideClick(e: MouseEvent) {
