@@ -297,7 +297,7 @@ export class CommentView extends ItemView {
         }
 
         const content = await this.app.vault.read(this.currentFile);
-        const highlights = this.extractHighlights(content);
+        const highlights = this.highlightService.extractHighlights(content);
         
         // 获取已存储的评论
         const storedComments = this.commentStore.getFileComments(this.currentFile);
@@ -332,10 +332,6 @@ export class CommentView extends ItemView {
 
         // 渲染高亮列表
         this.renderHighlights(this.highlights);
-    }
-
-    private extractHighlights(content: string): HighlightInfo[] {
-        return this.highlightService.extractHighlights(content);
     }
 
     private async updateHighlightsList() {
@@ -811,7 +807,7 @@ export class CommentView extends ItemView {
         
         for (const file of files) {
             const content = await this.app.vault.read(file);
-            if (this.extractHighlights(content).length > 0) {
+            if (this.highlightService.extractHighlights(content).length > 0) {
                 filesWithHighlights.push(file);
             }
         }
@@ -868,11 +864,11 @@ export class CommentView extends ItemView {
             const batchHighlights: HighlightInfo[] = [];
             for (const file of batch) {
                 const content = await this.app.vault.read(file);
-                const highlights = this.extractHighlights(content);
+                const highlights = this.highlightService.extractHighlights(content);
                 const storedComments = this.commentStore.getFileComments(file);
                 
                 // 处理每个高亮
-                const fileHighlights = highlights.map(highlight => {
+                const fileHighlights = highlights.map((highlight: HighlightInfo) => {
                     const storedComment = storedComments.find(c => {
                         const textMatch = c.text === highlight.text;
                         if (textMatch && highlight.position !== undefined && c.position !== undefined) {
@@ -930,7 +926,7 @@ export class CommentView extends ItemView {
     // 添加新方法来获取文件的高亮数量
     private async getFileHighlightsCount(file: TFile): Promise<number> {
         const content = await this.app.vault.read(file);
-        return this.extractHighlights(content).length;
+        return this.highlightService.extractHighlights(content).length;
     }
 
     // 添加新方法：获取所有文件的高亮总数
