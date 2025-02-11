@@ -120,7 +120,7 @@ export class CommentView extends ItemView {
     }
 
     getDisplayText(): string {
-        return "HighlightComment";
+        return "HiNote";
     }
 
     getIcon(): string {

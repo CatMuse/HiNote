@@ -1,8 +1,13 @@
 import { MarkdownView, Notice, WorkspaceLeaf } from "obsidian";
 import { HighlightInfo } from "../types";
+import { HighlightService } from "./HighlightService";
 
 export class LocationService {
-    constructor(private app: any) {}
+    private highlightService: HighlightService;
+
+    constructor(private app: any) {
+        this.highlightService = new HighlightService(app);
+    }
 
     /**
      * 跳转到指定的高亮位置
@@ -80,37 +85,24 @@ export class LocationService {
     }
 
     private findHighlightPosition(content: string, highlight: HighlightInfo): number {
-        // 尝试所有可能的高亮格式，允许文本前后有空格
-        const highlightFormats = [
-            new RegExp(`==\\s*${this.escapeRegExp(highlight.text)}\\s*==`),
-            new RegExp(`<mark>\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`),
-            new RegExp(`<mark\\s+style="[^"]*?background(?:-color)?:\\s*(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})[^"]*">\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`),
-            new RegExp(`<span\\s+style="[^"]*?background(?:-color)?:\\s*(?:rgba\\(\\d+,\\s*\\d+,\\s*\\d+,\\s*[0-9.]+\\)|#[0-9a-fA-F]{3,8})[^"]*">\\s*${this.escapeRegExp(highlight.text)}\\s*</span>`)
-        ];
-
-        // 如果有背景色，优先使用对应的格式
-        if (highlight.backgroundColor) {
-            highlightFormats.unshift(
-                new RegExp(`<(?:mark|span)\\s+style="[^"]*?background(?:-color)?:\\s*${this.escapeRegExp(highlight.backgroundColor)}[^"]*">\\s*${this.escapeRegExp(highlight.text)}\\s*</(?:mark|span)>`)
-            );
-        }
-
-        // 依次尝试每种格式
-        for (const format of highlightFormats) {
-            const match = format.exec(content);
-            if (match) {
-                return match.index;
+        // 使用 HighlightService 的提取逻辑来定位高亮
+        const highlights = this.highlightService.extractHighlights(content);
+        
+        // 找到与目标高亮匹配的项
+        const matchedHighlight = highlights.find(h => {
+            // 基本文本匹配
+            if (h.text !== highlight.text) return false;
+            
+            // 如果有位置信息，检查位置是否在合理范围内
+            if (highlight.position !== undefined && h.position !== undefined) {
+                return Math.abs(h.position - highlight.position) < 10;
             }
-        }
+            
+            // 如果没有位置信息，只比较文本
+            return true;
+        });
 
-        // 如果上面的格式都没找到，尝试更宽松的匹配
-        const looseFormat = new RegExp(`<mark[^>]*>\\s*${this.escapeRegExp(highlight.text)}\\s*</mark>`);
-        const looseMatch = looseFormat.exec(content);
-        if (looseMatch) {
-            return looseMatch.index;
-        }
-
-        return -1;
+        return matchedHighlight?.position ?? -1;
     }
 
     private async scrollToPosition(editor: any, position: number) {

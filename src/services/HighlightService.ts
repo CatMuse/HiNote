@@ -2,6 +2,7 @@ import { TFile, App } from 'obsidian';
 import { HighlightInfo, PluginSettings } from '../types';
 import { t } from '../i18n';
 import { ExcludePatternMatcher } from './ExcludePatternMatcher';
+import { ColorExtractorService } from './ColorExtractorService';
 
 type RegexMatch = [
     string,      // 完整匹配
@@ -13,19 +14,12 @@ type RegexMatch = [
 ] & { index: number };     // 匹配位置
 
 export class HighlightService {
-    // 分解高亮匹配的正则表达式为三个部分
-    private static readonly DOUBLE_EQUALS_REGEX = /==\s*(.*?)\s*==/;
-    private static readonly MARK_TAG_REGEX = /<mark(?:\s+class="[^"]*"|\s+style=["'][^"']*?background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\))[^"']*["'])*\s*>(.*?)<\/mark>/;
-    private static readonly SPAN_TAG_REGEX = /<span\s+style=["']background(?:-color)?:\s*(rgba\(\d+,\s*\d+,\s*\d+,\s*[0-9.]+\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\))["']>\s*(.*?)\s*<\/span>/;
+    private colorExtractor: ColorExtractorService;
 
-    // 组合成完整的高亮匹配正则表达式
-    private static readonly HIGHLIGHT_REGEX = new RegExp(
-        `${HighlightService.DOUBLE_EQUALS_REGEX.source}|${HighlightService.MARK_TAG_REGEX.source}|${HighlightService.SPAN_TAG_REGEX.source}`,
-        'g'
-    );
+    // 默认的文本提取正则（可以被用户自定义替换）
+    private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
+        /==\s*(.*?)\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>/g;
 
-    // 简单的高亮检测正则表达式（用于快速检查文件是否包含高亮）
-    private static readonly SIMPLE_HIGHLIGHT_REGEX = /==.*?==|<mark[^>]*>.*?<\/mark>|<span[^>]*style="[^"]*background[^"]*"[^>]*>.*?<\/span>/g;
 
     private settings: PluginSettings;
 
@@ -33,6 +27,7 @@ export class HighlightService {
         // 获取插件实例
         const plugin = (app as any).plugins.plugins['highlight-comment'];
         this.settings = plugin?.settings;
+        this.colorExtractor = new ColorExtractorService();
 
         // 调试输出当前设置
         console.debug('[HighlightService] Current settings:', this.settings);
@@ -53,18 +48,6 @@ export class HighlightService {
         return !ExcludePatternMatcher.shouldExclude(file, this.settings?.excludePatterns || '');
     }
 
-    hasHighlights(content: string): boolean {
-        // 使用详细的正则表达式进行检查，确保不会漏掉任何高亮
-        const regex = new RegExp(HighlightService.HIGHLIGHT_REGEX);
-        const match = regex.exec(content);
-        if (match) {
-            const [fullMatch, doubleEqual, markBg, markText, spanBg, spanText] = match;
-            const text = doubleEqual || markText || spanText;
-            return !!text?.trim();
-        }
-        return false;
-    }
-
     /**
      * 从文本中提取所有高亮
      * @param content 文本内容
@@ -72,35 +55,41 @@ export class HighlightService {
      */
     extractHighlights(content: string): HighlightInfo[] {
         const highlights: HighlightInfo[] = [];
-        const regex = new RegExp(HighlightService.HIGHLIGHT_REGEX);
-        
+        const pattern = this.settings.useCustomPattern 
+            ? new RegExp(this.settings.highlightPattern, 'g')
+            : HighlightService.DEFAULT_HIGHLIGHT_PATTERN;
+
         let match: RegExpExecArray | null;
-        while ((match = regex.exec(content)) !== null) {
-            const matchArray = match as unknown as RegexMatch;
-            const [fullMatch, doubleEqual, markBg, markText, spanBg, spanText] = matchArray;
+        while ((match = pattern.exec(content)) !== null) {
+            const safeMatch = match as RegExpExecArray; // 类型断言，因为在循环中 match 一定不为 null
+            const fullMatch = safeMatch[0];
+            // 找到第一个非空的捕获组作为文本内容
+            const text = safeMatch.slice(1).find(group => group !== undefined);
             
-            // 提取文本和背景色
-            const text = doubleEqual || markText || spanText || '';
-            const backgroundColor = markBg || spanBg || undefined;
-            
+            // 尝试提取颜色
+            let backgroundColor = null;
+            if (fullMatch.includes('style=')) {
+                backgroundColor = this.colorExtractor.extractColorFromElement(fullMatch);
+            }
+
             // 检查是否已存在相同位置的高亮
             const isDuplicate = highlights.some(h => 
                 typeof h.position === 'number' && 
-                Math.abs(h.position - matchArray.index) < 10 && 
+                Math.abs(h.position - safeMatch.index) < 10 && 
                 h.text === text
             );
 
             if (!isDuplicate && text) {
                 highlights.push({
                     text,
-                    position: matchArray.index,
-                    paragraphOffset: this.getParagraphOffset(content, matchArray.index),
-                    backgroundColor,
-                    id: `highlight-${Date.now()}-${matchArray.index}`,
+                    position: safeMatch.index,
+                    paragraphOffset: this.getParagraphOffset(content, safeMatch.index),
+                    backgroundColor: backgroundColor || this.settings.defaultHighlightColor,
+                    id: `highlight-${Date.now()}-${safeMatch.index}`,
                     comments: [],
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
-                    originalLength: fullMatch.length  // 添加原始匹配文本的长度
+                    originalLength: fullMatch.length
                 });
             }
         }

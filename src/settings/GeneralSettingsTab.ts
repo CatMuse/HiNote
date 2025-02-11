@@ -55,6 +55,50 @@ export class GeneralSettingsTab {
                 text.inputEl.rows = 4;
                 text.inputEl.cols = 40;
             });
-    
+
+        // 高亮提取设置组
+        container.createEl('h3', { text: t('Text Extraction Settings') });
+
+        // 启用自定义正则表达式的开关
+        new Setting(container)
+            .setName(t('Use Custom Pattern'))
+            .setDesc(t('Enable to use a custom regular expression for extracting text.'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.useCustomPattern)
+                .onChange(async (value) => {
+                    this.plugin.settings.useCustomPattern = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // 自定义正则表达式输入框
+        new Setting(container)
+            .setName(t('Custom Extraction Pattern'))
+            .setDesc(t('Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.'))
+            .addTextArea(text => {
+                text
+                    .setPlaceholder('==\\s*(.*?)\\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>')
+                    .setValue(this.plugin.settings.highlightPattern)
+                    .onChange(async (value) => {
+                        this.plugin.settings.highlightPattern = value;
+                        await this.plugin.saveSettings();
+                    });
+                text.inputEl.rows = 4;
+                text.inputEl.cols = 40;
+            });
+
+        // 默认提取颜色选择器
+        new Setting(container)
+            .setName(t('Default Decorator Color'))
+            .setDesc(t('Set the default color for decorators when no color is specified. Leave empty to use system default.'))
+            .addText(text => text
+                .setPlaceholder('#ffeb3b')
+                .setValue(this.plugin.settings.defaultHighlightColor)
+                .onChange(async (value) => {
+                    // 允许空值或有效的颜色格式
+                    if (value === '' || /^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        this.plugin.settings.defaultHighlightColor = value;
+                        await this.plugin.saveSettings();
+                    }
+                }));
     }
 }
