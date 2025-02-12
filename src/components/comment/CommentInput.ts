@@ -209,12 +209,14 @@ export class CommentInput {
                     this.textarea.parentElement?.insertBefore(tagsPreview, this.textarea);
                 }
                 tagsPreview.innerHTML = '';
-                tags.forEach(tag => {
-                    const tagEl = document.createElement('span');
-                    tagEl.className = 'highlight-tag';
-                    tagEl.textContent = tag;
-                    tagsPreview.appendChild(tagEl);
-                });
+                if (tagsPreview) {
+                    tags.forEach(tag => {
+                        const tagEl = document.createElement('span');
+                        tagEl.className = 'highlight-tag';
+                        tagEl.textContent = tag;
+                        tagsPreview.appendChild(tagEl);
+                    });
+                }
             }
         } else {
             // 如果不是纯标签格式，移除预览区域
