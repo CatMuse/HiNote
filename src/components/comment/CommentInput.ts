@@ -208,13 +208,14 @@ export class CommentInput {
                     tagsPreview.className = 'highlight-tags-preview';
                     this.textarea.parentElement?.insertBefore(tagsPreview, this.textarea);
                 }
-                tagsPreview.innerHTML = '';
                 if (tagsPreview) {
+                    tagsPreview.innerHTML = '';
+                    const previewEl = tagsPreview; // 创建一个确定非空的引用
                     tags.forEach(tag => {
                         const tagEl = document.createElement('span');
                         tagEl.className = 'highlight-tag';
                         tagEl.textContent = tag;
-                        tagsPreview.appendChild(tagEl);
+                        previewEl.appendChild(tagEl);
                     });
                 }
             }
