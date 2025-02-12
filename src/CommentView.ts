@@ -126,7 +126,7 @@ export class CommentView extends ItemView {
     }
 
     getIcon(): string {
-        return "message-square-quote";  // 使用与左侧功能区相同的图标
+        return "highlighter";  // 使用与左侧功能区相同的图标
     }
 
     async onOpen() {
