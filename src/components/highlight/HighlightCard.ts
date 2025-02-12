@@ -3,7 +3,7 @@ import type CommentPlugin from "../../../main";
 import { HighlightContent } from "./HighlightContent";
 import { ActionButtons } from "./ActionButtons";
 import { CommentList } from "./CommentList";
-import { setIcon, TFile, WorkspaceLeaf } from "obsidian";
+import { setIcon, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView } from "obsidian";
 import { DragPreview } from './DragPreview';
 import { VIEW_TYPE_COMMENT } from '../../CommentView';
 import {t} from "../../i18n";
@@ -57,25 +57,42 @@ export class HighlightCard {
             fileNameEl.setAttribute("draggable", "true");
             
             // 添加拖拽事件
-            fileNameEl.addEventListener("dragstart", async (e) => {
-                // 生成格式化的 Markdown 内容
-                const formattedContent = await this.generateDragContent();
+            fileNameEl.addEventListener("dragstart", (e) => {
                 
-                // 使用 text/plain 格式来确保编辑器能正确识别 Markdown 格式
-                e.dataTransfer?.setData("text/plain", formattedContent);
-                
-                // 保存原始数据以供其他用途
-                e.dataTransfer?.setData("application/highlight", JSON.stringify(this.highlight));
-                
-                fileNameEl.addClass("dragging");
-                
-                // 使用 DragPreview 替代原来的预览处理
-                DragPreview.start(e, this.highlight.text);
+                try {
+                    // 首先确保 highlight 对象存在并且有所需的属性
+                    if (!this.highlight || !this.highlight.text) {
+                        throw new Error('Invalid highlight data');
+                    }
+
+                    // 生成格式化的内容
+                    const formattedContent = this.generateDragContentSync();
+                    
+                    // 使用 text/plain 格式来确保编辑器能正确识别 Markdown 格式
+                    e.dataTransfer?.setData("text/plain", formattedContent);
+                    
+                    // 保存原始数据以供其他用途
+                    const highlightData = JSON.stringify(this.highlight);
+                    e.dataTransfer?.setData("application/highlight", highlightData);
+                    
+                    fileNameEl.addClass("dragging");
+                    
+                    // 使用 DragPreview 替代原来的预览处理
+                    DragPreview.start(e, this.highlight.text);
+                } catch (error) {
+                    console.error('Failed to start drag:', error);
+                    // 防止错误时的拖拽
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
             });
 
             fileNameEl.addEventListener("dragend", () => {
+                console.log('[HighlightCard] dragend event triggered');
                 fileNameEl.removeClass("dragging");
+                console.log('[HighlightCard] Removed dragging class');
                 DragPreview.clear();
+                console.log('[HighlightCard] Cleared DragPreview');
             });
 
             // 创建文件图标
@@ -132,10 +149,13 @@ export class HighlightCard {
             });
 
             // 创建文件名文本
-            fileNameEl.createEl("span", {
+            const fileNameText = fileNameEl.createEl("span", {
                 text: this.fileName,
                 cls: "highlight-card-filename-text"
             });
+
+            // 添加页面预览功能
+            this.addPagePreview(fileNameText, this.highlight.filePath || this.fileName);
         }
 
         // 创建 content 容器
@@ -194,6 +214,39 @@ export class HighlightCard {
         return this.card;
     }
 
+    private addPagePreview(element: HTMLElement, filePath: string | undefined) {
+        if (!filePath) return;
+
+        // 获取文件对象
+        const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+        if (!(file instanceof TFile)) return;
+
+        let hoverTimeout: NodeJS.Timeout;
+
+        // 添加悬停事件
+        element.addEventListener("mouseenter", (event) => {
+            hoverTimeout = setTimeout(async () => {
+                const target = event.target as HTMLElement;
+                
+                // 触发 Obsidian 的页面预览事件
+                this.plugin.app.workspace.trigger('hover-link', {
+                    event,
+                    source: 'highlight-comment',
+                    hoverParent: target,
+                    targetEl: target,
+                    linktext: file.path
+                });
+            }, 300); // 300ms 的延迟显示
+        });
+
+        // 添加鼠标离开事件
+        element.addEventListener("mouseleave", () => {
+            if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+            }
+        });
+    }
+
     public update(highlight: HighlightInfo) {
         this.highlight = highlight;
         this.isEditing = false; // 重置编辑状态
@@ -201,7 +254,74 @@ export class HighlightCard {
         this.render();
     }
 
-    // 生成拖拽时的格式化内容
+    // 同步生成拖拽时的格式化内容
+    private generateDragContentSync(): string {
+        const lines: string[] = [];
+        const highlight = this.highlight;
+
+        // 使用与 ExportService 相同的格式
+        if (highlight.isVirtual) {
+            const fileName = highlight.filePath?.split('/').pop()?.replace('.md', '') || 'File';
+            lines.push(`> [!note] [[${fileName}]] Comment`);
+            lines.push("> ");
+            lines.push(`> ${highlight.text}`);
+        } else {
+            lines.push("> [!quote] Highlight");
+            
+            // 如果有文件路径和位置信息，尝试查找对应的 Block ID
+            if (highlight.filePath && typeof highlight.position === 'number') {
+                const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
+                if (file instanceof TFile) {
+                    const cache = this.plugin.app.metadataCache.getFileCache(file);
+                    if (cache?.sections) {
+                        const position = highlight.position;
+                        const section = cache.sections.find(section => 
+                            section.position.start.offset <= position &&
+                            section.position.end.offset >= position
+                        );
+
+                        if (section?.id) {
+                            const fileName = highlight.filePath.split('/').pop()?.replace('.md', '');
+                            if (fileName) {
+                                const reference = `> ![[${fileName}#^${section.id}]]`;
+                                lines.push(reference);
+                                lines.push("> ");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            lines.push(`> ${highlight.text}`);
+            lines.push("> ");
+        }
+
+        // 添加评论
+        if (highlight.comments && highlight.comments.length > 0) {
+            for (const comment of highlight.comments) {
+                lines.push(">> [!note] Comment");
+                // 处理多行内容，确保每行都有正确的缩进
+                const commentLines = comment.content
+                    .split('\n')
+                    .map(line => {
+                        line = line.trim();
+                        return line ? `>> ${line}` : '>>';
+                    })
+                    .join('\n');
+                lines.push(commentLines);
+                
+                if (comment.updatedAt) {
+                    const date = window.moment(comment.updatedAt);
+                    lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                }
+                lines.push(">");
+            }
+        }
+
+        return lines.join("\n");
+    }
+
+    // 异步生成完整的格式化内容，包含 Block ID 的生成和更新
     private async generateDragContent(): Promise<string> {
         const lines: string[] = [];
         const highlight = this.highlight;

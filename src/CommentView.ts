@@ -760,10 +760,13 @@ export class CommentView extends ItemView {
             });
 
             // 创建文件名
-            fileItemLeft.createEl("span", {
+            const fileNameEl = fileItemLeft.createEl("span", {
                 text: file.basename,
                 cls: "highlight-file-item-name"
             });
+
+            // 添加页面预览功能
+            this.addPagePreview(fileNameEl, file);
 
             // 获取文件的高亮数量
             const highlightCount = await this.getFileHighlightsCount(file);
@@ -1011,6 +1014,34 @@ export class CommentView extends ItemView {
         } else {
             await this.updateHighlights();
         }
+    }
+
+    // 添加页面预览功能
+    private addPagePreview(element: HTMLElement, file: TFile) {
+        let hoverTimeout: NodeJS.Timeout;
+
+        // 添加悬停事件
+        element.addEventListener("mouseenter", (event) => {
+            hoverTimeout = setTimeout(async () => {
+                const target = event.target as HTMLElement;
+                
+                // 触发 Obsidian 的页面预览事件
+                this.app.workspace.trigger('hover-link', {
+                    event,
+                    source: 'highlight-comment',
+                    hoverParent: target,
+                    targetEl: target,
+                    linktext: file.path
+                });
+            }, 300); // 300ms 的延迟显示
+        });
+
+        // 添加鼠标离开事件
+        element.addEventListener("mouseleave", () => {
+            if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+            }
+        });
     }
 
     // 添加一个辅助方法来获取或创建拆分视图

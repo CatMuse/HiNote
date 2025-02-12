@@ -134,10 +134,14 @@ export class ChatView {
             chatHistory.removeClass("drag-over");
 
             const highlightData = e.dataTransfer?.getData("application/highlight");
+
             if (highlightData) {
                 try {
                     const highlight = JSON.parse(highlightData);
-                    if (!highlight.text) return;
+
+                    if (!highlight.text) {
+                        return;
+                    }
 
                     // 检查是否已存在相同内容
                     const isDuplicate = this.draggedContents.some(
@@ -150,7 +154,7 @@ export class ChatView {
                         this.showDraggedPreviewsInChat(chatHistory);
                     }
                 } catch (error) {
-                    console.error(t('Failed to process dropped highlight:'), error);
+                    console.error('Failed to process dropped highlight:', error);
                 }
             }
         });
