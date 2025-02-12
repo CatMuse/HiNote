@@ -3,8 +3,8 @@ import { BaseAIServiceSettings, AIModel } from './AIServiceSettings';
 import { t } from '../../i18n';
 
 const DEFAULT_OPENAI_MODELS: AIModel[] = [
-    { id: 'gpt-4', name: 'GPT-4' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+    { id: 'gpt-4o', name: 'GPT-4o' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' }
 ];
 
 export class OpenAISettings extends BaseAIServiceSettings {
