@@ -3,16 +3,18 @@ import { requestUrl } from 'obsidian';
 export class GeminiService {
     private apiKey: string;
     private baseUrl: string;
+    private model: string;
 
-    constructor(apiKey: string, baseUrl?: string) {
+    constructor(apiKey: string, model: string = 'gemini-pro', baseUrl?: string) {
         this.apiKey = apiKey;
+        this.model = model;
         this.baseUrl = baseUrl || 'https://generativelanguage.googleapis.com';
     }
 
     async generateResponse(prompt: string): Promise<string> {
         try {
             const response = await requestUrl({
-                url: `${this.baseUrl}/v1/models/gemini-pro:generateContent?key=${this.apiKey}`,
+                url: `${this.baseUrl}/v1/models/${this.model}:generateContent?key=${this.apiKey}`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -51,7 +53,7 @@ export class GeminiService {
             }));
 
             const response = await requestUrl({
-                url: `${this.baseUrl}/v1/models/gemini-pro:generateContent?key=${this.apiKey}`,
+                url: `${this.baseUrl}/v1/models/${this.model}:generateContent?key=${this.apiKey}`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -93,7 +95,7 @@ export class GeminiService {
     async testConnection(): Promise<boolean> {
         try {
             const response = await requestUrl({
-                url: `${this.baseUrl}/v1/models/gemini-pro?key=${this.apiKey}`,
+                url: `${this.baseUrl}/v1/models/${this.model}?key=${this.apiKey}`,
                 method: 'GET'
             });
             return response.status === 200;

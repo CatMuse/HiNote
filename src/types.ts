@@ -52,6 +52,7 @@ export interface AISettings {
         apiKey: string;
         model: string;
         baseUrl?: string;
+        isCustomModel?: boolean;
     };
     deepseek?: {
         apiKey: string;

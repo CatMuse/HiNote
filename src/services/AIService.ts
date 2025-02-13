@@ -24,6 +24,7 @@ export class AIService {
         if (settings.gemini?.apiKey) {
             this.geminiService = new GeminiService(
                 settings.gemini.apiKey,
+                settings.gemini.model,
                 settings.gemini.baseUrl
             );
         }

@@ -37,7 +37,7 @@ export class OllamaSettings extends BaseAIServiceSettings {
                 return text;
             })
             .addButton(button => button
-                .setButtonText(t('Verify'))
+                .setButtonText(t('Check'))
                 .onClick(async () => {
                     const host = this.plugin.settings.ai.ollama?.host || defaultHost;
                     const ollamaService = new OllamaService(host);

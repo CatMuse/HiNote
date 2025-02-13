@@ -28,16 +28,16 @@ export class AnthropicSettings extends BaseAIServiceSettings {
                     }
                     this.plugin.settings.ai.anthropic.apiKey = value;
                     await this.plugin.saveSettings();
-                })
-                .inputEl.addEventListener('keypress', async (e) => {
-                    if (e.key === 'Enter') {
-                        try {
-                            // 这里可以添加 API Key 验证逻辑
-                            new Notice(t('API Key saved!'));
-                        } catch (error) {
-                            console.error('Error validating API key:', error);
-                            new Notice(t('Failed to validate API Key. Please check your key and try again.'));
-                        }
+                }))
+            .addButton(button => button
+                .setButtonText(t('Check'))
+                .onClick(async () => {
+                    try {
+                        // 这里可以添加 API Key 验证逻辑
+                        new Notice(t('API Key is valid!'));
+                    } catch (error) {
+                        console.error('Error validating API key:', error);
+                        new Notice(t('Failed to validate API Key. Please check your key and try again.'));
                     }
                 }));
 
