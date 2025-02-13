@@ -8,8 +8,7 @@ import { CommentView } from "../CommentView";
 export class AIButton {
     private container: HTMLElement;
     private dropdown: HTMLElement;
-    private normalIcon: HTMLElement;
-    private loadingIcon: HTMLElement;
+    private aiButton: HTMLElement;
     private plugin: CommentPlugin;
     private boundClickHandler: (e: MouseEvent) => void;
 
@@ -63,23 +62,7 @@ export class AIButton {
             cls: "highlight-action-btn highlight-ai-btn",
             attr: { 'aria-label': t('Select Prompt') }
         });
-
-        // 创建一个包含正常图标和加载���标的容器
-        const aiButtonContent = aiButton.createEl("div", {
-            cls: "highlight-ai-btn-content"
-        });
-
-        // 正常状态的图标
-        this.normalIcon = aiButtonContent.createEl("div", {
-            cls: "highlight-ai-icon"
-        });
-        setIcon(this.normalIcon, "bot-message-square");
-
-        // 加载状态的图标
-        this.loadingIcon = aiButtonContent.createEl("div", {
-            cls: "highlight-ai-icon-loading highlight-comment-hidden"
-        });
-        setIcon(this.loadingIcon, "loader");
+        setIcon(aiButton, "bot-message-square");
 
         // 创建下拉菜单
         this.dropdown = aiContainer.createEl("div", {
@@ -99,6 +82,9 @@ export class AIButton {
             e.stopPropagation();
             this.toggleDropdown();
         });
+
+        // 保存按钮引用以便更新状态
+        this.aiButton = aiButton;
     }
 
     private toggleDropdown() {
@@ -178,11 +164,11 @@ export class AIButton {
 
     private setLoading(loading: boolean) {
         if (loading) {
-            this.normalIcon.addClass('highlight-comment-hidden');
-            this.loadingIcon.removeClass('highlight-comment-hidden');
+            this.aiButton.addClass('loading');
+            setIcon(this.aiButton, 'loader');
         } else {
-            this.normalIcon.removeClass('highlight-comment-hidden');
-            this.loadingIcon.addClass('highlight-comment-hidden');
+            this.aiButton.removeClass('loading');
+            setIcon(this.aiButton, 'bot-message-square');
         }
     }
 

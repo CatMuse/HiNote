@@ -53,8 +53,13 @@
 }
 
 .highlight-icon-button:hover {
-    color: var(--text-normal);
+    color: var(--text-accent);
     background-color: var(--background-modifier-hover);
+}
+
+.highlight-icon-button:hover svg {
+    stroke: var(--text-accent);
+    transform: scale(1.1);
 }
 
 .highlight-list {
@@ -145,17 +150,13 @@
     visibility: visible;
 }
 
-.highlight-action-btn {
-    background: none;
-    border: none;
-    padding: 6px;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
+.highlight-action-btn:hover {
+    background: var(--background-modifier-hover);
+}
+
+.highlight-action-btn:hover svg {
+    stroke: var(--text-accent);
+    transform: scale(1.1);
 }
 
 .highlight-comment {
@@ -321,47 +322,18 @@
     border-top: 1px solid var(--background-modifier-border);
 }
 
+/* 导出为图片按钮 */
 .highlight-btn {
-    /* 基础样式 */
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 400;
-    cursor: pointer;
-    
     /* 布局相关 */
     display: inline-flex;
     align-items: center;
     justify-content: center;
     min-width: 64px;
-    
-    /* 动画效果 */
-    transition: all 0.2s ease;
-    
-    /* 颜色相关 */
-    background: none;
-    color: var(--text-muted);
 }
 
 .highlight-btn:hover {
     background-color: var(--background-modifier-hover);
-    color: var(--text-normal);
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-.highlight-btn:active {
-    transform: translateY(0);
-}
-
-@keyframes highlight-fade {
-    0% {
-        background-color: var(--text-accent);
-    }
-    100% {
-        background-color: transparent;
-    }
+    color: var(--text-accent);
 }
 
 .highlight-comments-section {
@@ -1591,18 +1563,25 @@
     z-index: 1000;
 }
 
-.highlight-ai-btn {
-    order: -1;
-}
-
-.highlight-ai-btn svg {
-    stroke: var(--text-muted);
-    transition: all 0.2s ease;
+.highlight-ai-btn:hover {
+    background-color: var(--background-modifier-hover);
 }
 
 .highlight-ai-btn:hover svg {
     stroke: var(--text-accent);
     transform: scale(1.1);
+}
+
+/* 加载状态样式 */
+.highlight-ai-btn.loading svg {
+    animation: spin 2s linear infinite;
+    stroke: var(--text-accent);
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .highlight-ai-dropdown {
@@ -1639,14 +1618,19 @@
     color: var(--text-accent);
 }
 
-/* AI 按钮内容容器 */
-.highlight-ai-btn-content {
+/* AI 按钮样式 */
+.highlight-ai-btn {
+    order: -1;
     position: relative;
-    width: 16px;
-    height: 16px;
+    padding: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
 }
 
 /* AI 图标基础样式 */
