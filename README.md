@@ -82,11 +82,3 @@ In the bottom right corner of the main view, you can click the conversation icon
 Additionally, you can drag highlighted cards into the conversation window as part of the dialogue, and it supports dragging in multiple highlighted items simultaneously.
 
 ![AI chat](./doc/ai-chat.jpg)
-
----
-
-## THANK YOU 🙏
-
-If you like this plugin and want to say thanks, you can buy me a coffee here!
-
-![Buy me a coffee](./doc/buy-me-a-coffee.png)
