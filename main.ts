@@ -208,16 +208,32 @@ export default class CommentPlugin extends Plugin {
     }
 
     async saveSettings() {
-        // 确保所有必要的对象都存在
+        // 确保基础设置存在
+        if (!this.settings) {
+            this.settings = { ...DEFAULT_SETTINGS };
+        }
+
+        // 确保高亮相关设置存在并有默认值
+        this.settings.excludePatterns = this.settings.excludePatterns ?? DEFAULT_SETTINGS.excludePatterns;
+        this.settings.useCustomPattern = this.settings.useCustomPattern ?? DEFAULT_SETTINGS.useCustomPattern;
+        this.settings.highlightPattern = this.settings.highlightPattern ?? DEFAULT_SETTINGS.highlightPattern;
+        this.settings.defaultHighlightColor = this.settings.defaultHighlightColor ?? DEFAULT_SETTINGS.defaultHighlightColor;
+
+        // 确保 AI 设置存在
         if (!this.settings.ai) {
             this.settings.ai = { ...DEFAULT_SETTINGS.ai };
         }
-        
-        // 确保每个服务提供商的设置都存在并且有必需的字段
+
+        // 确保导出设置存在
+        if (!this.settings.export) {
+            this.settings.export = { ...DEFAULT_SETTINGS.export };
+        }
+
+        // 确保每个 AI 服务提供商的设置都存在并有默认值
         if (!this.settings.ai.openai) {
             this.settings.ai.openai = {
-                apiKey: '',  // 提供默认值
-                model: 'gpt-4o',  // 提供默认值
+                apiKey: '',
+                model: DEFAULT_SETTINGS.ai.openai?.model || 'gpt-4o',
                 baseUrl: DEFAULT_SETTINGS.ai.openai?.baseUrl
             };
         }
