@@ -165,7 +165,8 @@ export default class CommentPlugin extends Plugin {
                 this.settings.ai.gemini = {
                     apiKey: loadedData.ai.gemini.apiKey || this.settings.ai.gemini.apiKey,
                     model: loadedData.ai.gemini.model || this.settings.ai.gemini.model,
-                    baseUrl: loadedData.ai.gemini.baseUrl
+                    baseUrl: loadedData.ai.gemini.baseUrl,
+                    isCustomModel: loadedData.ai.gemini.isCustomModel || false
                 };
             }
             if (loadedData.ai.ollama && this.settings.ai.ollama) {
@@ -249,6 +250,7 @@ export default class CommentPlugin extends Plugin {
             this.settings.ai.gemini = {
                 apiKey: '',  // 提供默认值
                 model: 'gemini-pro',  // 提供默认值
+                isCustomModel: false,  // 提供默认值
                 baseUrl: DEFAULT_SETTINGS.ai.gemini?.baseUrl
             };
         }
