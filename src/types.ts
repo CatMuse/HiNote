@@ -30,6 +30,22 @@ export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini';
 export type AnthropicModel = 'claude-2' | 'claude-instant-1';
 export type DeepseekModel = 'deepseek-chat' | 'deepseek-coder';
 
+export interface GeminiModel {
+    id: string;
+    name: string;
+    isCustom?: boolean;
+}
+
+export interface GeminiModelState {
+    selectedModel: GeminiModel;
+    apiKey: string;
+}
+
+export const DEFAULT_GEMINI_MODELS: GeminiModel[] = [
+    { id: 'gemini-pro', name: 'Gemini Pro (推荐)' },
+    { id: 'gemini-pro-vision', name: 'Gemini Pro Vision (支持图像)' }
+];
+
 export interface AISettings {
     provider: AIProvider;
     openai?: {
@@ -93,6 +109,12 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     defaultHighlightColor: '#ffeb3b',
     ai: {
         provider: 'ollama',  // 默认使用 ollama，但会被用户的选择覆盖
+        gemini: {
+            apiKey: '',
+            model: 'gemini-pro',
+            baseUrl: '',
+            isCustomModel: false
+        },
         openai: {
             apiKey: '',
             model: 'gpt-4o',
@@ -101,11 +123,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         anthropic: {
             apiKey: '',
             model: 'claude-2',
-            baseUrl: ''
-        },
-        gemini: {
-            apiKey: '',
-            model: 'gemini-pro',
             baseUrl: ''
         },
         ollama: {
