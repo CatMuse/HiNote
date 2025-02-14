@@ -26,8 +26,6 @@ export class GeminiSettings extends BaseAIServiceSettings {
         }
 
         const settings = this.plugin.settings.ai.gemini;
-        console.log('Loading Gemini settings:', settings);
-        
         let selectedModel: GeminiModel;
 
         // 处理模型选择
@@ -48,14 +46,6 @@ export class GeminiSettings extends BaseAIServiceSettings {
                 settings.model = selectedModel.id;
             }
         }
-
-        console.log('Initialized model state:', {
-            modelId: selectedModel.id,
-            modelName: selectedModel.name,
-            isCustom: selectedModel.isCustom,
-            settingsModel: settings.model,
-            settingsIsCustom: settings.isCustomModel
-        });
 
         return {
             selectedModel,
@@ -85,12 +75,6 @@ export class GeminiSettings extends BaseAIServiceSettings {
         // 立即保存设置
         await this.plugin.saveSettings();
 
-        console.log('Saved model state:', {
-            modelId: model.id,
-            modelName: model.name,
-            isCustom: settings.isCustomModel,
-            lastCustomModel: settings.lastCustomModel
-        });
     }
 
     private async validateApiKey(apiKey: string): Promise<boolean> {

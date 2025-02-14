@@ -27,8 +27,6 @@ export class DeepseekSettings extends BaseAIServiceSettings {
         }
 
         const settings = this.plugin.settings.ai.deepseek;
-        console.log('Loading Deepseek settings:', settings);
-        
         let selectedModel: DeepseekModel;
 
         // 处理模型选择
@@ -49,14 +47,6 @@ export class DeepseekSettings extends BaseAIServiceSettings {
                 settings.model = selectedModel.id;
             }
         }
-
-        console.log('Initialized model state:', {
-            modelId: selectedModel.id,
-            modelName: selectedModel.name,
-            isCustom: selectedModel.isCustom,
-            settingsModel: settings.model,
-            settingsIsCustom: settings.isCustomModel
-        });
 
         return {
             selectedModel,
