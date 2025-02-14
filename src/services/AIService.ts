@@ -1,4 +1,4 @@
-import { AIProvider, AISettings } from '../types';
+import { AIProvider, AISettings, DEFAULT_GEMINI_MODELS } from '../types';
 import { OllamaService } from './OllamaService';
 import { AnthropicService } from './AnthropicService';
 import { GeminiService } from './GeminiService';
@@ -10,6 +10,12 @@ export class AIService {
     private anthropicService: AnthropicService | null = null;
     private geminiService: GeminiService | null = null;
     private deepseekService: DeepseekService | null = null;
+
+    // 存储当前使用的模型状态
+    private currentState = {
+        provider: '',
+        model: ''
+    };
 
     constructor(private settings: AISettings) {
         if (settings.ollama?.host) {
@@ -31,8 +37,42 @@ export class AIService {
         if (settings.deepseek?.apiKey) {
             this.deepseekService = new DeepseekService(
                 settings.deepseek.apiKey,
+                settings.deepseek.model,
                 settings.deepseek.baseUrl
             );
+        }
+        
+        // 初始化使用设置中的值
+        this.currentState.provider = settings.provider;
+        switch (settings.provider) {
+            case 'gemini':
+                this.currentState.model = settings.gemini?.model || '';
+                break;
+            case 'deepseek':
+                this.currentState.model = settings.deepseek?.model || 'deepseek-chat';
+                break;
+            // 其他 provider 的情况...
+        }
+    }
+
+    // 更新当前使用的模型
+    updateModel(provider: string, model: string) {
+        this.currentState.provider = provider;
+        this.currentState.model = model;
+
+        // 更新相应服务的模型
+        switch (provider) {
+            case 'gemini':
+                if (this.geminiService) {
+                    this.geminiService.updateModel(model);
+                }
+                break;
+            case 'deepseek':
+                if (this.deepseekService) {
+                    this.deepseekService.updateModel(model);
+                }
+                break;
+            // 其他 provider 的情况...
         }
     }
 
@@ -222,6 +262,18 @@ export class AIService {
         if (!this.geminiService) {
             throw new Error('Gemini service not configured');
         }
-        return await this.geminiService.listModels();
+        // 使用 DEFAULT_GEMINI_MODELS 代替调用 geminiService.listModels()
+        return Promise.resolve(DEFAULT_GEMINI_MODELS);
+    }
+
+    async listDeepseekModels(): Promise<{id: string, name: string}[]> {
+        if (!this.deepseekService) {
+            throw new Error('Deepseek service not configured');
+        }
+        // 使用默认的 Deepseek 模型列表
+        return Promise.resolve([
+            { id: 'deepseek-chat', name: 'Deepseek Chat' },
+            { id: 'deepseek-coder', name: 'Deepseek Coder' }
+        ]);
     }
 }

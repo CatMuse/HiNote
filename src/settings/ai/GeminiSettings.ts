@@ -241,13 +241,6 @@ export class GeminiSettings extends BaseAIServiceSettings {
                         return;
                     }
                     
-                    // 检查是否与预设模型重名
-                    const isDuplicate = DEFAULT_GEMINI_MODELS.some(m => m.id === trimmedValue);
-                    if (isDuplicate) {
-                        new Notice(t('不能使用预设模型的名称作为自定义模型 ID'));
-                        text.setValue(this.modelState.selectedModel.id);
-                        return;
-                    }
                     
                     // 检查模型 ID 格式
                     if (!/^[a-zA-Z0-9-_.]+$/.test(trimmedValue)) {

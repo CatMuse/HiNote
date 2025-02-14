@@ -28,7 +28,22 @@ export interface HighlightInfo {
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek';
 export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini';
 export type AnthropicModel = 'claude-2' | 'claude-instant-1';
-export type DeepseekModel = 'deepseek-chat' | 'deepseek-coder';
+
+export interface DeepseekModel {
+    id: string;
+    name: string;
+    isCustom?: boolean;
+}
+
+export interface DeepseekModelState {
+    selectedModel: DeepseekModel;
+    apiKey: string;
+}
+
+export const DEFAULT_DEEPSEEK_MODELS: DeepseekModel[] = [
+    { id: 'deepseek-chat', name: 'Deepseek Chat' },
+    { id: 'deepseek-reasoner', name: 'Deepseek Reasoner' }
+];
 
 export interface GeminiModel {
     id: string;
@@ -42,8 +57,10 @@ export interface GeminiModelState {
 }
 
 export const DEFAULT_GEMINI_MODELS: GeminiModel[] = [
-    { id: 'gemini-pro', name: 'Gemini Pro (推荐)' },
-    { id: 'gemini-pro-vision', name: 'Gemini Pro Vision (支持图像)' }
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+    { id: 'gemini-2.0-flash-lite-preview-02-05', name: 'Gemini 2.0 Flash Lite' }
 ];
 
 export interface AISettings {
@@ -72,8 +89,10 @@ export interface AISettings {
     };
     deepseek?: {
         apiKey: string;
-        model: DeepseekModel;
+        model: string;
         baseUrl?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
     };
     prompts: {
         [key: string]: string;

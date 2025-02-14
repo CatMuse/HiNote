@@ -14,6 +14,13 @@ export class ChatService {
         this.aiService = new AIService(this.plugin.settings.ai);
     }
 
+    // 更新服务使用的模型
+    updateModel(provider: string, model: string) {
+        if (this.aiService) {
+            this.aiService.updateModel(provider, model);
+        }
+    }
+
     async sendMessage(
         content: string, 
         history: { role: "user" | "assistant", content: string }[] = []

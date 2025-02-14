@@ -559,19 +559,27 @@ export class ChatView {
         }
     }
 
+    // 存储对话窗口的模型状态
+    private chatModelState = {
+        provider: '',
+        model: ''
+    };
+
     private getCurrentModelName(): string {
         const aiSettings = this.plugin.settings.ai;
-        switch (aiSettings.provider) {
+        const provider = this.chatModelState.provider || aiSettings.provider;
+        
+        switch (provider) {
             case 'openai':
-                return aiSettings.openai?.model || 'GPT-4';
+                return this.chatModelState.model || aiSettings.openai?.model || 'GPT-4';
             case 'anthropic':
-                return aiSettings.anthropic?.model || 'Claude-3';
+                return this.chatModelState.model || aiSettings.anthropic?.model || 'Claude-3';
             case 'ollama':
-                return aiSettings.ollama?.model || 'Ollama';
+                return this.chatModelState.model || aiSettings.ollama?.model || 'Ollama';
             case 'gemini':
-                return aiSettings.gemini?.model || 'Gemini Pro';
+                return this.chatModelState.model || aiSettings.gemini?.model || 'Gemini Pro';
             case 'deepseek':
-                return aiSettings.deepseek?.model || 'Deepseek Chat';
+                return this.chatModelState.model || aiSettings.deepseek?.model || 'Deepseek Chat';
             default:
                 return 'Unknown Model';
         }
@@ -646,40 +654,100 @@ export class ChatView {
             case 'gemini':
                 try {
                     const models = await this.chatService.aiService.listGeminiModels();
+                    
+                    // 添加预设模型
                     models.forEach(model => {
                         menu.addItem((item: MenuItem) => {
                             item.setTitle(model.name)
                                 .setChecked(aiSettings.gemini?.model === model.id)
                                 .onClick(async () => {
-                                    if (!aiSettings.gemini) aiSettings.gemini = { apiKey: '', model: model.id };
-                                    aiSettings.gemini.model = model.id;
-                                    await this.plugin.saveSettings();
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'gemini';
+                                    this.chatModelState.model = model.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('gemini', model.id);
                                     selector.textContent = this.getCurrentModelName();
                                 });
                         });
                     });
+
+                    // 添加分隔线（如果有自定义模型）
+                    if (aiSettings.gemini?.isCustomModel && aiSettings.gemini?.model) {
+                        menu.addSeparator();
+                        
+                        // 添加自定义模型
+                        menu.addItem((item: MenuItem) => {
+                            const customModel = {
+                                id: aiSettings.gemini?.model || '',
+                                name:aiSettings.gemini?.model,
+                                isCustom: true
+                            };
+                            
+                            item.setTitle(customModel.name)
+                                .setChecked(this.chatModelState.model === customModel.id)
+                                .onClick(async () => {
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'gemini';
+                                    this.chatModelState.model = customModel.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('gemini', customModel.id);
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
+                    }
                 } catch (error) {
                     new Notice(t('Unable to get Gemini model list, please check API Key and network connection.'));
                 }
                 break;
 
             case 'deepseek':
-                const deepseekModels = [
-                    { id: 'deepseek-chat', name: 'Deepseek Chat' },
-                    { id: 'deepseek-coder', name: 'Deepseek Coder' }
-                ];
-                deepseekModels.forEach(model => {
-                    menu.addItem((item: MenuItem) => {
-                        item.setTitle(model.name)
-                            .setChecked(aiSettings.deepseek?.model === model.id)
-                            .onClick(async () => {
-                                if (!aiSettings.deepseek) aiSettings.deepseek = { apiKey: '', model: model.id };
-                                aiSettings.deepseek.model = model.id;
-                                await this.plugin.saveSettings();
-                                selector.textContent = this.getCurrentModelName();
-                            });
+                try {
+                    const models = await this.chatService.aiService.listDeepseekModels();
+                    
+                    // 添加预设模型
+                    models.forEach((model: { id: string, name: string }) => {
+                        menu.addItem((item: MenuItem) => {
+                            item.setTitle(model.name)
+                                .setChecked(aiSettings.deepseek?.model === model.id)
+                                .onClick(async () => {
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'deepseek';
+                                    this.chatModelState.model = model.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('deepseek', model.id);
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
                     });
-                });
+
+                    // 添加分隔线（如果有自定义模型）
+                    if (aiSettings.deepseek?.isCustomModel && aiSettings.deepseek?.model) {
+                        menu.addSeparator();
+                        
+                        // 添加自定义模型
+                        menu.addItem((item: MenuItem) => {
+                            const customModel = {
+                                id: aiSettings.deepseek?.model || '',
+                                name: aiSettings.deepseek?.model,
+                                isCustom: true
+                            };
+                            
+                            item.setTitle(customModel.name)
+                                .setChecked(this.chatModelState.model === customModel.id)
+                                .onClick(async () => {
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'deepseek';
+                                    this.chatModelState.model = customModel.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('deepseek', customModel.id);
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error listing Deepseek models:', error);
+                    new Notice(t('Unable to list Deepseek models. Please check your settings.'));
+                }
                 break;
         }
 
