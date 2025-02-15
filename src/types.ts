@@ -99,18 +99,10 @@ export interface AISettings {
     };
 }
 
-export interface PluginSettings {
+export interface PluginSettings extends HighlightSettings {
     ai: AISettings;
-    export: {
-        exportPath: string;  // 导出路径，相对于 vault 根目录
-    };
-    excludePatterns?: string;  // 排除高亮的文件或格式列表（逗号分隔）
-    useCustomPattern: boolean;  // 是否使用自定义正则表达式
-    highlightPattern: string;   // 自定义的高亮文本提取正则表达式
-    defaultHighlightColor: string;  // 默认的高亮颜色
     comments?: Record<string, Record<string, HighlightInfo>>;
     fileComments?: Record<string, FileComment[]>;
-    // ... 其他插件设置
 }
 
 export interface FileComment {
@@ -193,4 +185,14 @@ declare global {
     interface WindowEventMap {
         'comment-updated': CustomEvent<CommentUpdateEvent>;
     }
+}
+
+export interface HighlightSettings {
+    export: {
+        exportPath: string;
+    };
+    excludePatterns: string;
+    useCustomPattern: boolean;
+    highlightPattern: string;
+    defaultHighlightColor: string;
 }

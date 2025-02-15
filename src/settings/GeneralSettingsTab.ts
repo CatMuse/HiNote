@@ -77,7 +77,7 @@ export class GeneralSettingsTab {
             .addTextArea(text => {
                 text
                     .setPlaceholder('==\\s*(.*?)\\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>')
-                    .setValue(this.plugin.settings.highlightPattern)
+                    .setValue(this.plugin.settings.highlightPattern || '')
                     .onChange(async (value) => {
                         this.plugin.settings.highlightPattern = value;
                         await this.plugin.saveSettings();
@@ -92,7 +92,7 @@ export class GeneralSettingsTab {
             .setDesc(t('Set the default color for decorators when no color is specified. Leave empty to use system default.'))
             .addText(text => text
                 .setPlaceholder('#ffeb3b')
-                .setValue(this.plugin.settings.defaultHighlightColor)
+                .setValue(this.plugin.settings.defaultHighlightColor || '')
                 .onChange(async (value) => {
                     // 允许空值或有效的颜色格式
                     if (value === '' || /^#[0-9A-Fa-f]{6}$/.test(value)) {

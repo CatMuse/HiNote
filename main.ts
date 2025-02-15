@@ -3,7 +3,7 @@ import { CommentView, VIEW_TYPE_COMMENT } from './src/CommentView';
 import { CommentStore } from './src/CommentStore';
 import { HighlightDecorator } from './src/HighlightDecorator';
 import { AISettingTab } from './src/settings/SettingTab';
-import { PluginSettings, DEFAULT_SETTINGS } from './src/types';
+import { PluginSettings, DEFAULT_SETTINGS, HighlightSettings } from './src/types';
 import html2canvas from 'html2canvas';
 import { ChatView } from './src/components/ChatView';
 import { t } from './src/i18n';
@@ -16,7 +16,7 @@ export default class CommentPlugin extends Plugin {
 
 	async onload() {
 		// 加载设置
-		await this.loadSettings();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
 		// 将 html2canvas 添加到全局对象
 		(window as any).html2canvas = html2canvas;
