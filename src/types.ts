@@ -119,7 +119,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     highlightPattern: '==\\s*(.*?)\\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>',
     defaultHighlightColor: '#ffeb3b',
     ai: {
-        provider: 'ollama',  // 默认使用 ollama，但会被用户的选择覆盖
+        provider: 'ollama',
+        ollama: {
+            host: 'http://localhost:11434',
+            model: ''
+        },
         gemini: {
             apiKey: '',
             model: 'gemini-pro',
@@ -135,10 +139,6 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             apiKey: '',
             model: 'claude-2',
             baseUrl: ''
-        },
-        ollama: {
-            host: 'http://localhost:11434',
-            model: 'qwen2.5:14b'
         },
         deepseek: {
             apiKey: '',

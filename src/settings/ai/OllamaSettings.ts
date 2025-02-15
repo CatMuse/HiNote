@@ -83,11 +83,18 @@ export class OllamaSettings extends BaseAIServiceSettings {
                     models.map((modelName: string) => [modelName, modelName])
                 );
 
+                // 修改这里的默认值选择逻辑
+                const currentModel = this.plugin.settings.ai.ollama?.model;
+                const defaultModel = models.includes(currentModel) ? currentModel : models[0];
+
                 return dropdown
                     .addOptions(options)
-                    .setValue(this.plugin.settings.ai.model || models[0])
+                    .setValue(defaultModel)
                     .onChange(async (value) => {
-                        this.plugin.settings.ai.model = value;
+                        if (!this.plugin.settings.ai.ollama) {
+                            this.plugin.settings.ai.ollama = {};
+                        }
+                        this.plugin.settings.ai.ollama.model = value;  // 确保保存到正确的位置
                         await this.plugin.saveSettings();
                     });
             });

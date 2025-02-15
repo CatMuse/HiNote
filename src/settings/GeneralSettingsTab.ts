@@ -1,5 +1,6 @@
 import { Setting } from 'obsidian';
 import { t } from '../i18n';
+import { DEFAULT_SETTINGS } from '../types';
 
 export class GeneralSettingsTab {
     private plugin: any;
@@ -77,9 +78,9 @@ export class GeneralSettingsTab {
             .addTextArea(text => {
                 text
                     .setPlaceholder('==\\s*(.*?)\\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>')
-                    .setValue(this.plugin.settings.highlightPattern || '')
+                    .setValue(this.plugin.settings.highlightPattern === DEFAULT_SETTINGS.highlightPattern ? '' : this.plugin.settings.highlightPattern)
                     .onChange(async (value) => {
-                        this.plugin.settings.highlightPattern = value;
+                        this.plugin.settings.highlightPattern = value || DEFAULT_SETTINGS.highlightPattern;
                         await this.plugin.saveSettings();
                     });
                 text.inputEl.rows = 4;
@@ -92,11 +93,10 @@ export class GeneralSettingsTab {
             .setDesc(t('Set the default color for decorators when no color is specified. Leave empty to use system default.'))
             .addText(text => text
                 .setPlaceholder('#ffeb3b')
-                .setValue(this.plugin.settings.defaultHighlightColor || '')
+                .setValue(this.plugin.settings.defaultHighlightColor === DEFAULT_SETTINGS.defaultHighlightColor ? '' : this.plugin.settings.defaultHighlightColor)
                 .onChange(async (value) => {
-                    // 允许空值或有效的颜色格式
                     if (value === '' || /^#[0-9A-Fa-f]{6}$/.test(value)) {
-                        this.plugin.settings.defaultHighlightColor = value;
+                        this.plugin.settings.defaultHighlightColor = value || DEFAULT_SETTINGS.defaultHighlightColor;
                         await this.plugin.saveSettings();
                     }
                 }));
