@@ -217,8 +217,8 @@ export default class CommentPlugin extends Plugin {
         // 确保高亮相关设置存在并有默认值
         this.settings.excludePatterns = this.settings.excludePatterns ?? DEFAULT_SETTINGS.excludePatterns;
         this.settings.useCustomPattern = this.settings.useCustomPattern ?? DEFAULT_SETTINGS.useCustomPattern;
-        this.settings.highlightPattern = this.settings.highlightPattern ?? DEFAULT_SETTINGS.highlightPattern;
-        this.settings.defaultHighlightColor = this.settings.defaultHighlightColor ?? DEFAULT_SETTINGS.defaultHighlightColor;
+        this.settings.highlightPattern = this.settings.highlightPattern || DEFAULT_SETTINGS.highlightPattern;
+        this.settings.defaultHighlightColor = this.settings.defaultHighlightColor || DEFAULT_SETTINGS.defaultHighlightColor;
 
         // 确保 AI 设置存在
         if (!this.settings.ai) {

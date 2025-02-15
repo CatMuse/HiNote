@@ -48,8 +48,24 @@ export class HighlightContent {
 
         // 创建文本内容元素，如果是虚拟高亮则使用 displayText
         const textContent = textEl.createEl("div", {
-            text: this.highlight.isVirtual ? this.highlight.displayText : this.highlight.text,
             cls: `highlight-text-content ${this.highlight.isVirtual ? 'virtual-highlight' : ''}`
+        });
+
+        // 处理文本中的换行符，添加空值检查
+        const text = (this.highlight.isVirtual ? this.highlight.displayText : this.highlight.text) || '';
+        const lines = text.split('\n');
+        
+        // 为每一行创建单独的段落
+        lines.forEach((line, index) => {
+            const p = textContent.createEl("p", {
+                text: line,
+                cls: "highlight-text-line"
+            });
+            
+            // 如果不是最后一行，添加换行
+            if (index < lines.length - 1) {
+                p.style.marginBottom = "4px";
+            }
         });
 
         // 只保留点击事件
