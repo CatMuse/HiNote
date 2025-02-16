@@ -20,11 +20,11 @@ export class CommentList {
         if (comments.length === 0) return;
 
         const commentsSection = parentEl.createEl("div", {
-            cls: "highlight-comments-section"
+            cls: "hi-notes-section"
         });
 
         this.container = commentsSection.createEl("div", {
-            cls: "highlight-comments-list"
+            cls: "hi-notes-list"
         });
 
         this.renderComments();
@@ -50,14 +50,14 @@ export class CommentList {
             const isPureTagComment = PURE_TAGS_FORMAT.test(comment.content);
 
             const commentEl = this.container.createEl("div", {
-                cls: `highlight-comment${isPureTagComment ? ' pure-tags-comment' : ''}`,
+                cls: `hi-note${isPureTagComment ? ' pure-tags-comment' : ''}`,
                 attr: { 'data-comment-id': comment.id }
             });
 
             // 评论内容 - 添加双击事件
             // 处理标签和内容
             const contentEl = commentEl.createEl("div", {
-                cls: "highlight-comment-content"
+                cls: "hi-note-content"
             });
 
             const content = comment.content;
@@ -89,24 +89,24 @@ export class CommentList {
 
             // 创建底部操作栏
             const footer = commentEl.createEl("div", {
-                cls: "highlight-comment-footer"
+                cls: "hi-note-footer"
             });
 
             // 评论时间
             footer.createEl("div", {
                 text: new Date(comment.updatedAt).toLocaleString(),
-                cls: "highlight-comment-time"
+                cls: "hi-note-time"
             });
 
             // 添加双击编辑提示
             footer.createEl("span", {
                 text: "双击编辑",
-                cls: "highlight-comment-edit-hint"
+                cls: "hi-note-edit-hint"
             });
 
             // 操作按钮容器
             footer.createEl("div", {
-                cls: "highlight-comment-actions"
+                cls: "hi-note-actions"
             });
         });
     }

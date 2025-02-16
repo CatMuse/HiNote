@@ -30,7 +30,7 @@ export class ExportService {
         const content = await this.generateExportContent(sourceFile, highlights);
 
         // 获取导出路径
-        const exportPath = (this.app as any).plugins.plugins['highlight-comment'].settings.export.exportPath;
+        const exportPath = (this.app as any).plugins.plugins['hi-note'].settings.export.exportPath;
         
         // 创建新文件
         const fileName = `${sourceFile.basename} - Highlights ${window.moment().format("YYYYMMDDHHmm")}`;

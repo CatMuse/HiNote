@@ -326,7 +326,7 @@ export class ChatView {
 
         // 隐藏浮动按钮
         if (this.floatingButton) {
-            this.floatingButton.addClass("highlight-comment-hidden");
+            this.floatingButton.addClass("hi-note-hidden");
         }
 
         // 聚焦输入框
@@ -340,7 +340,7 @@ export class ChatView {
         this.containerEl.addClass('highlight-chat-hidden');
 
         if (this.floatingButton) {
-            this.floatingButton.removeClass("highlight-comment-hidden");
+            this.floatingButton.removeClass("hi-note-hidden");
         }
     }
 

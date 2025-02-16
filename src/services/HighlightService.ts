@@ -25,7 +25,7 @@ export class HighlightService {
 
     constructor(private app: App) {
         // 获取插件实例
-        const plugin = (app as any).plugins.plugins['highlight-comment'];
+        const plugin = (app as any).plugins.plugins['hi-note'];
         this.settings = plugin?.settings;
         this.colorExtractor = new ColorExtractorService();
 

@@ -152,7 +152,7 @@ export class PromptSettingsTab {
 
             // Edit mode elements (hidden by default)
             const editContainer = promptItem.createEl('div', { 
-                cls: 'prompt-edit-mode highlight-comment-hidden'
+                cls: 'prompt-edit-mode hi-note-hidden'
             });
 
             const nameInput = editContainer.createEl('input', {
@@ -192,8 +192,8 @@ export class PromptSettingsTab {
 
             // Event handlers
             editBtn.onclick = () => {
-                displayContainer.addClass('highlight-comment-hidden');
-                editContainer.removeClass('highlight-comment-hidden');
+                displayContainer.addClass('hi-note-hidden');
+                editContainer.removeClass('hi-note-hidden');
             };
 
             deleteBtn.onclick = async () => {
@@ -233,8 +233,8 @@ export class PromptSettingsTab {
             };
 
             cancelBtn.onclick = () => {
-                displayContainer.removeClass('highlight-comment-hidden');
-                editContainer.addClass('highlight-comment-hidden');
+                displayContainer.removeClass('hi-note-hidden');
+                editContainer.addClass('hi-note-hidden');
             };
         }
     }

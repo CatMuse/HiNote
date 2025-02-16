@@ -1,6 +1,6 @@
 import { WidgetType } from "@codemirror/view";
 import type { Plugin } from "obsidian";
-import { HighlightComment, CommentItem } from "../CommentStore";
+import { HiNote, CommentItem } from "../CommentStore";
 import { setIcon } from "obsidian";
 
 export class CommentWidget extends WidgetType {
@@ -13,8 +13,8 @@ export class CommentWidget extends WidgetType {
      */
     constructor(
         private plugin: Plugin,
-        private highlight: HighlightComment,
-        private paragraphHighlights: HighlightComment[],
+        private highlight: HiNote,
+        private paragraphHighlights: HiNote[],
         private onClick: () => void
     ) {
         super();
@@ -66,7 +66,7 @@ export class CommentWidget extends WidgetType {
      */
     toDOM() {
         const wrapper = document.createElement("span");
-        wrapper.addClass("highlight-comment-widget");
+        wrapper.addClass("hi-note-widget");
         wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
         wrapper.setAttribute('data-highlights', this.paragraphHighlights.map(h => h.text).join(','));
         
@@ -80,7 +80,7 @@ export class CommentWidget extends WidgetType {
      */
     private createButton(wrapper: HTMLElement) {
         const button = wrapper.createEl("button", {
-            cls: "highlight-comment-button highlight-comment-button-hidden"
+            cls: "hi-note-button hi-note-button-hidden"
         });
 
         const iconContainer = this.createIconContainer(button);
@@ -96,7 +96,7 @@ export class CommentWidget extends WidgetType {
      */
     private createIconContainer(button: HTMLElement) {
         const iconContainer = button.createEl("span", {
-            cls: "highlight-comment-icon-container"
+            cls: "hi-note-icon-container"
         });
 
         // 使用 setIcon API 替代内联 SVG
@@ -115,10 +115,10 @@ export class CommentWidget extends WidgetType {
         if (commentCount > 0) {
             console.log('[CommentWidget] Creating comment count element');
             iconContainer.createEl("span", {
-                cls: "highlight-comment-count",
+                cls: "hi-note-count",
                 text: commentCount.toString()
             });
-            button.removeClass("highlight-comment-button-hidden");
+            button.removeClass("hi-note-button-hidden");
             console.log('[CommentWidget] Comment count element created and button shown');
         }
 
@@ -132,10 +132,10 @@ export class CommentWidget extends WidgetType {
      */
     private createTooltip(wrapper: HTMLElement) {
         const tooltip = document.createElement("div");
-        tooltip.addClass("highlight-comment-tooltip", "highlight-comment-tooltip-hidden");
+        tooltip.addClass("hi-note-tooltip", "hi-note-tooltip-hidden");
 
         const commentsList = tooltip.createEl("div", {
-            cls: "highlight-comment-tooltip-list"
+            cls: "hi-note-tooltip-list"
         });
 
         // 获取所有评论并渲染到工具提示中
@@ -167,18 +167,18 @@ export class CommentWidget extends WidgetType {
         // 最多显示 3 条评论
         comments.slice(0, 3).forEach(comment => {
             const commentItem = commentsList.createEl("div", {
-                cls: "highlight-comment-tooltip-item"
+                cls: "hi-note-tooltip-item"
             });
             
             // 显示评论内容
             commentItem.createEl("div", {
-                cls: "highlight-comment-tooltip-content",
+                cls: "hi-note-tooltip-content",
                 text: comment.content
             });
             
             // 显示评论时间
             commentItem.createEl("div", {
-                cls: "highlight-comment-tooltip-time",
+                cls: "hi-note-tooltip-time",
                 text: new Date(comment.createdAt).toLocaleString()
             });
         });
@@ -186,7 +186,7 @@ export class CommentWidget extends WidgetType {
         // 如果评论数超过 3 条，显示剩余数量
         if (comments.length > 3) {
             tooltip.createEl("div", {
-                cls: "highlight-comment-tooltip-more",
+                cls: "hi-note-tooltip-more",
                 text: `还有 ${comments.length - 3} 条评论...`
             });
         }
@@ -205,27 +205,27 @@ export class CommentWidget extends WidgetType {
 
         // 如果有评论，添加工具提示的显示/隐藏事件，并保持按钮始终可见
         if (commentCount > 0) {
-            button.removeClass("highlight-comment-button-hidden");
+            button.removeClass("hi-note-button-hidden");
             
             button.addEventListener("mouseenter", () => {
-                tooltip.removeClass("highlight-comment-tooltip-hidden");
+                tooltip.removeClass("hi-note-tooltip-hidden");
                 updateTooltipPosition();
             });
 
             button.addEventListener("mouseleave", () => {
-                tooltip.addClass("highlight-comment-tooltip-hidden");
+                tooltip.addClass("hi-note-tooltip-hidden");
             });
         } else {
             // 如果没有评论，默认隐藏按钮
-            button.addClass("highlight-comment-button-hidden");
+            button.addClass("hi-note-button-hidden");
             
             // 鼠标悬停在高亮区域时显示按钮
             wrapper.addEventListener("mouseenter", () => {
-                button.removeClass("highlight-comment-button-hidden");
+                button.removeClass("hi-note-button-hidden");
             });
 
             wrapper.addEventListener("mouseleave", () => {
-                button.addClass("highlight-comment-button-hidden");
+                button.addClass("hi-note-button-hidden");
             });
         }
 
@@ -253,7 +253,7 @@ export class CommentWidget extends WidgetType {
      * @param dom 小部件的 DOM 元素
      */
     destroy(dom: HTMLElement): void {
-        const tooltip = document.querySelector(`.highlight-comment-tooltip[data-paragraph-id="${this.highlight.paragraphId}"]`);
+        const tooltip = document.querySelector(`.hi-note-tooltip[data-paragraph-id="${this.highlight.paragraphId}"]`);
         if (tooltip) {
             tooltip.remove();
         }

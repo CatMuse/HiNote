@@ -7,7 +7,7 @@ export interface CommentItem {
     updatedAt: number;    // 最后更新时间
 }
 
-export interface HighlightComment {
+export interface HiNote {
     id: string;           
     text: string;         
     position: number;     
@@ -32,7 +32,7 @@ export interface FileComment {
 }
 
 export interface FileComments {
-    [highlightId: string]: HighlightComment;
+    [highlightId: string]: HiNote;
 }
 
 export interface CommentsData {
@@ -47,9 +47,9 @@ export class CommentStore {
     private plugin: Plugin;
     private data: CommentsData = {};
     private fileCommentsData: FileCommentsData = {};
-    private comments: Map<string, HighlightComment[]> = new Map();
+    private comments: Map<string, HiNote[]> = new Map();
     private fileComments: Map<string, FileComment[]> = new Map();
-    private commentCache: Map<string, HighlightComment[]> = new Map();
+    private commentCache: Map<string, HiNote[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
 
@@ -66,7 +66,7 @@ export class CommentStore {
         this.comments = new Map(
             Object.entries(this.data).map(([key, value]) => [
                 key,
-                Object.values(value as { [key: string]: HighlightComment })
+                Object.values(value as { [key: string]: HiNote })
             ])
         );
 
@@ -122,7 +122,7 @@ export class CommentStore {
         await this.saveComments();
     }
 
-    getFileComments(file: TFile): HighlightComment[] {
+    getFileComments(file: TFile): HiNote[] {
         const comments = this.data[file.path] || {};
         // 修改排序逻辑，虚拟高亮始终在最前面
         return Object.values(comments).sort((a, b) => {
@@ -138,7 +138,7 @@ export class CommentStore {
         return this.fileComments.get(file.path) || [];
     }
 
-    async addComment(file: TFile, highlight: HighlightComment) {
+    async addComment(file: TFile, highlight: HiNote) {
         if (!highlight.id) {
             throw new Error("Highlight ID is required");
         }
@@ -223,7 +223,7 @@ export class CommentStore {
         }
     }
 
-    async removeComment(file: TFile, highlight: HighlightComment) {
+    async removeComment(file: TFile, highlight: HiNote) {
         const filePath = file.path;
         if (this.data[filePath]?.[highlight.id]) {
             delete this.data[filePath][highlight.id];
@@ -291,8 +291,8 @@ export class CommentStore {
     }
 
     // 批量更新评论
-    batchUpdateComments(updates: Array<{id: string, comment: HighlightComment}>) {
-        const batch = new Map<string, HighlightComment[]>();
+    batchUpdateComments(updates: Array<{id: string, comment: HiNote}>) {
+        const batch = new Map<string, HiNote[]>();
         updates.forEach(({id, comment}) => {
             if (!batch.has(id)) {
                 batch.set(id, []);
@@ -316,7 +316,7 @@ export class CommentStore {
     }
 
     // 新增：根据段落ID获取评论
-    getCommentsByParagraphId(file: TFile, paragraphId: string): HighlightComment[] {
+    getCommentsByParagraphId(file: TFile, paragraphId: string): HiNote[] {
         const fileComments = this.data[file.path] || {};
         return Object.values(fileComments).filter(
             highlight => highlight.paragraphId === paragraphId
@@ -355,7 +355,7 @@ export class CommentStore {
      * @param highlight 高亮信息
      * @returns 评论数组
      */
-    getHighlightComments(highlight: { text: string; position?: number }): HighlightComment[] {
+    getHiNotes(highlight: { text: string; position?: number }): HiNote[] {
         const activeFile = this.plugin.app.workspace.getActiveFile();
         if (!activeFile) return [];
 

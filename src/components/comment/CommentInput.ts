@@ -38,7 +38,7 @@ export class CommentInput {
         const commentEl = this.card.querySelector(`[data-comment-id="${this.existingComment!.id}"]`);
         if (!commentEl) return;
 
-        const contentEl = commentEl.querySelector('.highlight-comment-content') as HTMLElement;
+        const contentEl = commentEl.querySelector('.hi-note-content') as HTMLElement;
         if (!contentEl) return;
 
         const originalContent = contentEl.textContent || '';
@@ -46,7 +46,7 @@ export class CommentInput {
         // 创建编辑框
         this.textarea = document.createElement('textarea');
         this.textarea.value = originalContent;
-        this.textarea.className = 'highlight-comment-input';
+        this.textarea.className = 'hi-note-input';
         this.textarea.style.minHeight = `${contentEl.offsetHeight}px`;
 
         // 添加输入事件监听器
@@ -58,26 +58,26 @@ export class CommentInput {
         contentEl.replaceWith(this.textarea);
 
         // 隐藏底部的时间和按钮
-        const footer = commentEl.querySelector('.highlight-comment-footer');
+        const footer = commentEl.querySelector('.hi-note-footer');
         if (footer) {
-            footer.addClass('highlight-comment-hidden');
+            footer.addClass('hi-note-hidden');
         }
 
         // 添加快捷键提示和删除按钮
         this.actionHint = commentEl.createEl('div', {
-            cls: 'highlight-comment-actions-hint'
+            cls: 'hi-note-actions-hint'
         });
 
         // 快捷键提示
         this.actionHint.createEl('span', {
-            cls: 'highlight-comment-hint',
+            cls: 'hi-note-hint',
             text: t('Shift + Enter Wrap, Enter Save')
         });
 
         // 删除按钮
         if (this.options.onDelete) {
             const deleteLink = this.actionHint.createEl('div', {
-                cls: 'highlight-comment-delete-link',
+                cls: 'hi-note-delete-link',
                 text: t('Delete comment')
             });
 
@@ -98,7 +98,7 @@ export class CommentInput {
 
     private showCreateMode() {
         const inputSection = document.createElement('div');
-        inputSection.className = 'highlight-comment-input';
+        inputSection.className = 'hi-note-input';
 
         // 创建文本框
         this.textarea = inputSection.createEl("textarea");
@@ -110,23 +110,23 @@ export class CommentInput {
 
         // 添加快捷键提示
         inputSection.createEl('div', {
-            cls: 'highlight-comment-hint',
+            cls: 'hi-note-hint',
             text: t('Shift + Enter Wrap, Enter Save')
         });
 
         // 添加到评论区域
-        let commentsSection = this.card.querySelector('.highlight-comments-section');
+        let commentsSection = this.card.querySelector('.hi-notes-section');
         if (!commentsSection) {
             commentsSection = this.card.createEl('div', {
-                cls: 'highlight-comments-section'
+                cls: 'hi-notes-section'
             });
             
             commentsSection.createEl('div', {
-                cls: 'highlight-comments-list'
+                cls: 'hi-notes-list'
             });
         }
 
-        const commentsList = commentsSection.querySelector('.highlight-comments-list');
+        const commentsList = commentsSection.querySelector('.hi-notes-list');
         if (commentsList) {
             commentsList.insertBefore(inputSection, commentsList.firstChild);
         }
@@ -146,15 +146,15 @@ export class CommentInput {
                     requestAnimationFrame(() => {
                         this.textarea.replaceWith(contentEl);
                         this.actionHint.remove();
-                        footer.removeClass('highlight-comment-hidden');
+                        footer.removeClass('hi-note-hidden');
                         document.removeEventListener('click', this.boundHandleOutsideClick);
                     });
                 }
             } else {
                 requestAnimationFrame(() => {
-                    this.textarea.closest('.highlight-comment-input')?.remove();
-                    if (!this.card.querySelector('.highlight-comment')) {
-                        this.card.querySelector('.highlight-comments-section')?.remove();
+                    this.textarea.closest('.hi-note-input')?.remove();
+                    if (!this.card.querySelector('.hi-note')) {
+                        this.card.querySelector('.hi-notes-section')?.remove();
                     }
                     document.removeEventListener('click', this.boundHandleOutsideClick);
                 });
@@ -230,7 +230,7 @@ export class CommentInput {
         
         const clickedElement = e.target as HTMLElement;
         const isOutside = !this.textarea.contains(clickedElement) && 
-                         !clickedElement.closest('.highlight-comment-actions-hint');
+                         !clickedElement.closest('.hi-note-actions-hint');
         
         if (isOutside) {
             e.preventDefault();

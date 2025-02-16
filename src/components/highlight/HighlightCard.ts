@@ -232,7 +232,7 @@ export class HighlightCard {
                 // 触发 Obsidian 的页面预览事件
                 this.plugin.app.workspace.trigger('hover-link', {
                     event,
-                    source: 'highlight-comment',
+                    source: 'hi-note',
                     hoverParent: target,
                     targetEl: target,
                     linktext: file.path

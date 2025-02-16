@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon } from "obsidian";
-import { CommentStore, HighlightComment, CommentItem, FileComment } from './CommentStore';
+import { CommentStore, HiNote, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
 import { HighlightCard } from './components/highlight/HighlightCard';
@@ -40,7 +40,7 @@ export class CommentView extends ItemView {
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
         this.commentStore = commentStore;
-        this.plugin = (this.app as any).plugins.plugins['highlight-comment'] as CommentPlugin;
+        this.plugin = (this.app as any).plugins.plugins['hi-note'] as CommentPlugin;
         this.locationService = new LocationService(this.app);
         this.exportService = new ExportService(this.app, this.commentStore);
         this.highlightService = new HighlightService(this.app);
@@ -186,7 +186,7 @@ export class CommentView extends ItemView {
             const uniqueId = `file-comment-${timestamp}`;
             
             // 创建虚拟高亮信息，在文档的最顶部创建了一个不可见的高亮内容
-            const virtualHighlight: HighlightComment = {
+            const virtualHighlight: HiNote = {
                 id: uniqueId,
                 text: `__virtual_highlight_${timestamp}__`,  // 这个文本不会显示给用户
                 filePath: this.currentFile.path,
@@ -457,7 +457,7 @@ export class CommentView extends ItemView {
         highlight.comments.push(newComment);
         highlight.updatedAt = Date.now();
 
-        await this.commentStore.addComment(file, highlight as HighlightComment);
+        await this.commentStore.addComment(file, highlight as HiNote);
 
         // 触发更新评论按钮
         window.dispatchEvent(new CustomEvent("comment-updated", {
@@ -480,7 +480,7 @@ export class CommentView extends ItemView {
             comment.content = content;
             comment.updatedAt = Date.now();
             highlight.updatedAt = Date.now();
-            await this.commentStore.addComment(file, highlight as HighlightComment);
+            await this.commentStore.addComment(file, highlight as HiNote);
 
             // 触发更新评论按钮
             window.dispatchEvent(new CustomEvent("comment-updated", {
@@ -505,13 +505,13 @@ export class CommentView extends ItemView {
         // 如果是虚拟高亮且没有评论了，则删除整个高亮
         if (highlight.isVirtual && highlight.comments.length === 0) {
             // 从 CommentStore 中删除高亮
-            await this.commentStore.removeComment(file, highlight as HighlightComment);
+            await this.commentStore.removeComment(file, highlight as HiNote);
             
             // 从当前高亮列表中移除
             this.highlights = this.highlights.filter(h => h.id !== highlight.id);
         } else {
             // 否则只更新评论
-            await this.commentStore.addComment(file, highlight as HighlightComment);
+            await this.commentStore.addComment(file, highlight as HiNote);
         }
 
         // 触发更新评论按钮
@@ -598,7 +598,7 @@ export class CommentView extends ItemView {
                     // 如果是虚拟高亮且没有评论，删除它
                     const file = await this.getFileForHighlight(currentHighlight);
                     if (file) {
-                        await this.commentStore.removeComment(file, currentHighlight as HighlightComment);
+                        await this.commentStore.removeComment(file, currentHighlight as HiNote);
                         this.highlights = this.highlights.filter(h => h.id !== currentHighlight.id);
                         await this.refreshView();
                     }
@@ -1028,7 +1028,7 @@ export class CommentView extends ItemView {
                 // 触发 Obsidian 的页面预览事件
                 this.app.workspace.trigger('hover-link', {
                     event,
-                    source: 'highlight-comment',
+                    source: 'hi-note',
                     hoverParent: target,
                     targetEl: target,
                     linktext: file.path

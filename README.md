@@ -15,7 +15,7 @@ This AI-programmed Obsidian plugin can automatically extract highlighted text fr
 
 >  I have no development experience. This plugin was completed by me and an AI together. Please use it with caution as it is in the Beta version.
 
-[![HighlightComment Plugin Tutorial](https://img.youtube.com/vi/M3K80g5MYM8/maxresdefault.jpg)](https://www.youtube.com/watch?v=M3K80g5MYM8)
+[![HiNote Plugin Tutorial](https://img.youtube.com/vi/M3K80g5MYM8/maxresdefault.jpg)](https://www.youtube.com/watch?v=M3K80g5MYM8)
 
 ---
 

@@ -159,7 +159,7 @@
     transform: scale(1.1);
 }
 
-.highlight-comment {
+.hi-note {
     padding: 8px;
     background-color: var(--background-primary);
     border-radius: 4px;
@@ -167,7 +167,7 @@
     position: relative;
 }
 
-.highlight-comment-content {
+.hi-note-content {
     color: var(--text-normal);
     font-size: 13px;
     line-height: 1.5;
@@ -180,11 +180,11 @@
     word-break: break-word;      /* 在需要时在单词内换行 */
 }
 
-.highlight-comment-content:hover {
+.hi-note-content:hover {
     background-color: var(--background-modifier-hover);
 }
 
-.highlight-comment-edit-hint {
+.hi-note-edit-hint {
     display: none;
     font-size: 11px;
     color: var(--text-faint);
@@ -193,39 +193,39 @@
 }
 
 /* 当鼠标悬停在内容区域时显示编辑提示 */
-.highlight-comment-content:hover + .highlight-comment-footer .highlight-comment-edit-hint {
+.hi-note-content:hover + .hi-note-footer .hi-note-edit-hint {
     display: inline-block;
 }
 
-.highlight-comment-content:hover::after {
+.hi-note-content:hover::after {
     display: inline;
 }
 
-.highlight-comment-footer {
+.hi-note-footer {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     margin-top: 0px;
 }
 
-.highlight-comment-time {
+.hi-note-time {
     font-size: 11px;
     color: var(--text-faint);
     margin-right: auto;
     margin-top: 4px;
 }
 
-.highlight-comment-actions {
+.hi-note-actions {
     display: flex;
     gap: 16px;
     align-items: center;
 }
 
-.highlight-comment:hover .highlight-comment-actions {
+.hi-note:hover .hi-note-actions {
     opacity: 1;
 }
 
-.highlight-comment-actions button:not(.clickable-icon) {
+.hi-note-actions button:not(.clickable-icon) {
     background: none;
     border: none;
     padding: 4px;
@@ -235,7 +235,7 @@
     box-shadow: none;
 }
 
-.highlight-comment-actions button:not(.clickable-icon):hover {
+.hi-note-actions button:not(.clickable-icon):hover {
     color: var(--text-error);
     background: none;
     box-shadow: none;
@@ -269,11 +269,11 @@
     border: 2px solid color-mix(in srgb, var(--text-accent) 10%, transparent);
 }
 
-.pure-tags-comment .highlight-comment-footer {
+.pure-tags-comment .hi-note-footer {
     display: none; /* 隐藏时间显示 */
 }
 
-.pure-tags-comment .highlight-comment-content {
+.pure-tags-comment .hi-note-content {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -281,11 +281,11 @@
 }
 
 /* 纯标签评论不显示双击提示 */
-.pure-tags-comment .highlight-comment-content:hover::after {
+.pure-tags-comment .hi-note-content:hover::after {
     display: none;
 }
 
-.highlight-comment-input {
+.hi-note-input {
     padding: 8px;
     background-color: var(--background-primary);
     border-radius: 6px;
@@ -293,7 +293,7 @@
     width: 100%;
 }
 
-.highlight-comment-input textarea {
+.hi-note-input textarea {
     width: 100%;
     min-height: 80px;
     padding: 8px 12px;
@@ -308,16 +308,16 @@
     transition: border-color 0.2s ease;
 }
 
-.highlight-comment-input textarea:focus {
+.hi-note-input textarea:focus {
     outline: none;
     border-color: var(--interactive-accent);
 }
 
-.highlight-comment-input textarea::placeholder {
+.hi-note-input textarea::placeholder {
     color: var(--text-faint);
 }
 
-.highlight-comment-buttons {
+.hi-note-buttons {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
@@ -340,14 +340,14 @@
     color: var(--text-accent);
 }
 
-.highlight-comments-section {
+.hi-notes-section {
     background-color: var(--background-secondary);
     padding: 8px;
     border-bottom-right-radius: 8px; /* 右下角圆角 */
     border-bottom-left-radius: 8px; /* 左下角圆角 */
 }
 
-.highlight-comments-list {
+.hi-notes-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -385,7 +385,7 @@
     padding: 12px;
 }
 
-.highlight-comment-button {
+.hi-note-button {
     display: inline-flex;
     align-items: center;
     gap: 1px;
@@ -401,29 +401,29 @@
     z-index: 1;
 }
 
-.highlight-comment-button-hidden {
+.hi-note-button-hidden {
     opacity: 0;
 }
 
-.cm-line:hover .highlight-comment-button-hidden {
+.cm-line:hover .hi-note-button-hidden {
     opacity: 1;
 }
 
-.highlight-comment-icon-container {
+.hi-note-icon-container {
     display: inline-flex;
     align-items: center;
     gap: 1px;
     color: var(--text-muted);
 }
 
-.highlight-comment-count {
+.hi-note-count {
     font-size: 11px;
     font-weight: 400;
     color: var(--text-muted);
     margin-left: 1px;
 }
 
-.highlight-comment-tooltip {
+.hi-note-tooltip {
     position: fixed;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
@@ -436,17 +436,17 @@
     pointer-events: auto;
 }
 
-.highlight-comment-tooltip-list {
+.hi-note-tooltip-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
 
-.highlight-comment-tooltip-item {
+.hi-note-tooltip-item {
     padding: 1px 0;
 }
 
-.highlight-comment-tooltip-content {
+.hi-note-tooltip-content {
     font-size: 12px;
     line-height: 1.4;
     color: var(--text-normal);
@@ -454,13 +454,13 @@
     padding: 2px 0;
 }
 
-.highlight-comment-tooltip-time {
+.hi-note-tooltip-time {
     font-size: 10px;
     color: var(--text-faint);
     margin-top: 0px;
 }
 
-.highlight-comment-tooltip-more {
+.hi-note-tooltip-more {
     font-size: 11px;
     color: var(--text-muted);
     text-align: center;
@@ -469,7 +469,7 @@
     margin-top: 4px;
 }
 
-.highlight-comment-tooltip.highlight-comment-tooltip-hidden {
+.hi-note-tooltip.hi-note-tooltip-hidden {
     display: none;
 }
 
@@ -484,19 +484,19 @@
 }
 
 /* 悬停效果 */
-.highlight-comment-button:hover {
+.hi-note-button:hover {
     background-color: var(--background-modifier-hover);
     opacity: 1;
 }
 
 /* 编辑状态的评论样式 */
-.highlight-comment-editing {
+.hi-note-editing {
     background-color: var(--background-primary);
     border-radius: 6px;
     padding: 12px;
 }
 
-.highlight-comment-editing textarea {
+.hi-note-editing textarea {
     width: 100%;
     min-height: 80px;
     padding: 8px 12px;
@@ -510,19 +510,19 @@
     margin-bottom: 8px;
 }
 
-.highlight-comment-editing textarea:focus {
+.hi-note-editing textarea:focus {
     outline: none;
     border-color: var(--interactive-accent);
 }
 
 /* 编辑区域样式 */
-.highlight-comment-edit-area {
+.hi-note-edit-area {
     padding: 0;
     margin: 0;
     width: 100%;
 }
 
-.highlight-comment-edit-area textarea {
+.hi-note-edit-area textarea {
     width: 100%;
     min-height: 60px;
     padding: 8px 12px;
@@ -537,7 +537,7 @@
     box-sizing: border-box;
 }
 
-.highlight-comment-edit-area textarea:focus {
+.hi-note-edit-area textarea:focus {
     outline: none;
     border-color: var(--interactive-accent);
 }
@@ -824,7 +824,7 @@
 }
 
 /* 调整提示文本样式 */
-.highlight-comment-hint {
+.hi-note-hint {
     font-size: 11px;
     color: var(--text-faint);
     margin-right: auto;
@@ -1105,13 +1105,13 @@
 }
 
 /* 聊天输入框样式 */
-.highlight-chat-input-container .highlight-comment-input {
+.highlight-chat-input-container .hi-note-input {
     padding: 4px;
     background: none;
     border: none;
 }
 
-.highlight-chat-input-container .highlight-comment-input textarea {
+.highlight-chat-input-container .hi-note-input textarea {
     width: 100%;
     padding: 8px;
     border: 1px solid var(--background-modifier-border);
@@ -1124,7 +1124,7 @@
     transition: all 0.2s ease;
 }
 
-.highlight-chat-input-container .highlight-comment-buttons {
+.highlight-chat-input-container .hi-note-buttons {
     display: none;
 }
 
@@ -1549,7 +1549,7 @@
 }
 
 /* 修改评论按钮容器的样式 */
-.highlight-comment-widget {
+.hi-note-widget {
     position: absolute;
     right: -32px;
     top: 0;
@@ -1714,7 +1714,7 @@ hr {
 }
 
 /* 添加新的操作提示区域样式 */
-.highlight-comment-actions-hint {
+.hi-note-actions-hint {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1724,18 +1724,18 @@ hr {
 }
 
 /* 删除按钮样式，Obsidian默认按钮样式，不需要重复定义 */
-.highlight-comment-delete-link {
+.hi-note-delete-link {
     font-size: 11px;
     padding: 4px 6px;
     color: var(--text-muted);
 }
 
-.highlight-comment-delete-link:hover {
+.hi-note-delete-link:hover {
     color: var(--text-error);
 }
 
 /* 调整提示文本样式 */
-.highlight-comment-hint {
+.hi-note-hint {
     font-size: 11px;
     color: var(--text-faint);
     margin-right: auto;
@@ -1890,13 +1890,13 @@ hr {
     padding-top: 0;  /* 移除顶部内边距 */
 }
 
-.virtual-highlight-card .highlight-comments-section {
+.virtual-highlight-card .hi-notes-section {
     margin-top: 0;  /* 移除评论区域的顶部边距 */
     border-radius: 8px;
 }
 
 /* 插件作用域内的隐藏类 */
-.highlight-comment-plugin .highlight-comment-hidden {
+.hi-note-plugin .hi-note-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -1947,7 +1947,7 @@ hr {
 }
 
 /* 插件专用隐藏类 */
-.highlight-comment-hidden {
+.hi-note-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -1955,7 +1955,7 @@ hr {
 }
 
 /* AI 按钮加载图标隐藏状态 */
-.highlight-ai-icon-loading.highlight-comment-hidden {
+.highlight-ai-icon-loading.hi-note-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -1963,7 +1963,7 @@ hr {
 }
 
 /* 评论页脚隐藏状态 */
-.highlight-comment-footer.highlight-comment-hidden {
+.hi-note-footer.hi-note-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -1971,7 +1971,7 @@ hr {
 }
 
 /* Prompt 编辑模式隐藏状态 */
-.prompt-display-mode.highlight-comment-hidden {
+.prompt-display-mode.hi-note-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
