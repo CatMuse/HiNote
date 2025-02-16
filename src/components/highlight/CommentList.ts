@@ -98,6 +98,12 @@ export class CommentList {
                 cls: "highlight-comment-time"
             });
 
+            // 添加双击编辑提示
+            footer.createEl("span", {
+                text: "双击编辑",
+                cls: "highlight-comment-edit-hint"
+            });
+
             // 操作按钮容器
             footer.createEl("div", {
                 cls: "highlight-comment-actions"

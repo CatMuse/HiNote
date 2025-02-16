@@ -184,13 +184,17 @@
     background-color: var(--background-modifier-hover);
 }
 
-.highlight-comment-content::after {
-    content: '双击编辑';
+.highlight-comment-edit-hint {
     display: none;
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--text-faint);
     margin-left: 4px;
     opacity: 0.7;
+}
+
+/* 当鼠标悬停在内容区域时显示编辑提示 */
+.highlight-comment-content:hover + .highlight-comment-footer .highlight-comment-edit-hint {
+    display: inline-block;
 }
 
 .highlight-comment-content:hover::after {
@@ -1720,13 +1724,11 @@ hr {
 }
 
 /* 删除按钮样式，Obsidian默认按钮样式，不需要重复定义 */
-/* .highlight-comment-delete-link {
-    border: none;
-    font-size: 12px;
+.highlight-comment-delete-link {
+    font-size: 11px;
     padding: 4px 6px;
-    background-color: none;
-    box-shadow: none !important;
-} */
+    color: var(--text-muted);
+}
 
 .highlight-comment-delete-link:hover {
     color: var(--text-error);

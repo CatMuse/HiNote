@@ -76,7 +76,7 @@ export class CommentInput {
 
         // 删除按钮
         if (this.options.onDelete) {
-            const deleteLink = this.actionHint.createEl('button', {
+            const deleteLink = this.actionHint.createEl('div', {
                 cls: 'highlight-comment-delete-link',
                 text: t('Delete comment')
             });
