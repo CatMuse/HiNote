@@ -622,8 +622,19 @@ export class CommentView extends ItemView {
         if (this.isDraggedToMainView !== isInMainView) {
             this.isDraggedToMainView = isInMainView;
             
-            // 如果从主视图切换到侧边栏，重新同步当前文件
+            // 如果从主视图切换到侧边栏
             if (!isInMainView) {
+                // 如果当前处于 Flashcard 模式，自动清理
+                if (this.isFlashcardMode) {
+                    this.isFlashcardMode = false;
+                    if (this.flashcardComponent) {
+                        this.flashcardComponent.deactivate();
+                        this.flashcardComponent = null;
+                    }
+                    this.updateFileListSelection();
+                }
+
+                // 重新同步当前文件
                 const activeFile = this.app.workspace.getActiveFile();
                 if (activeFile) {
                     this.currentFile = activeFile;
@@ -734,7 +745,9 @@ export class CommentView extends ItemView {
             const allHighlights: HiNote[] = [];
             for (const file of files) {
                 const fileHighlights = this.commentStore.getFileComments(file);
-                allHighlights.push(...fileHighlights);
+                // 只添加非虚拟高亮且有评论的卡片
+                const validHighlights = fileHighlights.filter(h => !h.isVirtual && h.comments?.length > 0);
+                allHighlights.push(...validHighlights);
             }
 
             // 清空当前容器
@@ -745,7 +758,8 @@ export class CommentView extends ItemView {
                 this.flashcardComponent = new FlashcardComponent(this.highlightContainer);
             }
             
-            // 设置闪卡数据
+            // 激活闪卡组件并设置数据
+            this.flashcardComponent.activate();
             this.flashcardComponent.setCards(allHighlights);
         });
 
@@ -763,6 +777,26 @@ export class CommentView extends ItemView {
             text: t("Flashcards"),
             cls: "highlight-file-item-name"
         });
+
+        // 创建卡片数量标签
+        const flashcardCount = flashcardItem.createEl("span", {
+            cls: "highlight-file-item-count"
+        });
+
+        // 更新卡片数量的函数
+        const updateFlashcardCount = async () => {
+            const files = await this.getFilesWithHighlights();
+            let totalCards = 0;
+            for (const file of files) {
+                const fileHighlights = this.commentStore.getFileComments(file);
+                // 只计算非虚拟高亮且有评论的数量
+                totalCards += fileHighlights.filter(h => !h.isVirtual && h.comments?.length > 0).length;
+            }
+            flashcardCount.textContent = `${totalCards}`;
+        };
+
+        // 初始化卡片数量
+        updateFlashcardCount();
 
         flashcardLeft.addEventListener("click", async () => {
             // 获取所有文件
@@ -808,8 +842,9 @@ export class CommentView extends ItemView {
         allFilesItem.addEventListener("click", async () => {
             this.currentFile = null;
             this.isFlashcardMode = false;
+            // 确保清理 Flashcard 组件
             if (this.flashcardComponent) {
-                this.flashcardComponent.cleanup();
+                this.flashcardComponent.deactivate();
                 this.flashcardComponent = null;
             }
             this.updateFileListSelection();
@@ -869,8 +904,9 @@ export class CommentView extends ItemView {
             fileItem.addEventListener("click", async () => {
                 this.currentFile = file;
                 this.isFlashcardMode = false;
+                // 确保清理 Flashcard 组件
                 if (this.flashcardComponent) {
-                    this.flashcardComponent.cleanup();
+                    this.flashcardComponent.deactivate();
                     this.flashcardComponent = null;
                 }
                 this.updateFileListSelection();

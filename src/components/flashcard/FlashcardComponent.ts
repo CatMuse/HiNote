@@ -10,13 +10,18 @@ export class FlashcardComponent {
         id: string;
         sourceFile?: string;
     }> = [];
+    private isActive: boolean = false;
 
     constructor(container: HTMLElement) {
         this.container = container;
     }
 
+
+
     setCards(highlights: HiNote[]) {
-        this.cards = highlights.map(highlight => ({
+        // Filter out virtual highlights
+        const realHighlights = highlights.filter(highlight => !highlight.isVirtual);
+        this.cards = realHighlights.map(highlight => ({
             id: highlight.id,
             front: highlight.text,
             back: highlight.comments?.[0]?.content || "",
@@ -24,16 +29,44 @@ export class FlashcardComponent {
         }));
         this.currentIndex = 0;
         this.isFlipped = false;
-        this.render();
+        
+        // 只有在激活状态下才渲染
+        if (this.isActive) {
+            this.activate();
+        }
     }
 
     cleanup() {
-        this.container.removeClass('flashcard-mode');
+        this.deactivate();
+    }
+
+    activate() {
+        this.isActive = true;
+        this.render();
+    }
+
+    deactivate() {
+        this.isActive = false;
         this.container.empty();
+        this.container.removeClass('flashcard-mode');
+        // 移除所有可能的 flashcard 相关类
+        this.container.removeClass('flashcard-container');
+        this.container.removeClass('is-flipped');
+        // 确保移除所有子元素
+        const cardContainer = this.container.querySelector('.flashcard-container');
+        if (cardContainer) {
+            cardContainer.remove();
+        }
     }
 
     private render() {
+        if (!this.isActive) {
+            this.deactivate();
+            return;
+        }
+        
         this.container.empty();
+        // 添加 flashcard-mode 类以启用特定样式
         this.container.addClass('flashcard-mode');
 
         // 创建闪卡容器
