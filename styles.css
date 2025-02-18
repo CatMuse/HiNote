@@ -473,6 +473,160 @@
     display: none;
 }
 
+/* Flashcard styles */
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    height: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    justify-content: center;
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard {
+    width: 100%;
+    min-height: 200px;
+    height: auto;
+    max-height: 60vh;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    margin-bottom: 20px;
+    perspective: 1000px;
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard.is-flipped {
+    transform: rotateY(180deg);
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-side {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    text-align: left;
+    overflow-y: auto;
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-front {
+    background-color: var(--background-primary);
+    border: 2px solid var(--background-modifier-border);
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-back {
+    background-color: var(--background-secondary);
+    transform: rotateY(180deg);
+    border: 2px solid var(--background-modifier-border);
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-nav {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-nav-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-nav-btn:hover {
+    background-color: var(--interactive-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-nav-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-progress {
+    margin-top: 16px;
+    color: var(--text-muted);
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-progress-bar {
+    width: 200px;
+    height: 4px;
+    background-color: var(--background-modifier-border);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-progress-fill {
+    height: 100%;
+    background-color: var(--interactive-accent);
+    transition: width 0.3s ease;
+}
+
+/* 响应式设计 */
+@media screen and (max-width: 768px) {
+    .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode {
+        padding: 12px;
+    }
+
+    .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard {
+        max-height: 50vh;
+    }
+
+    .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-side {
+        padding: 1.5rem;
+        font-size: 1em;
+    }
+
+    .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-nav {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-nav-btn {
+        width: 100%;
+    }
+}
+
+/* 深色模式优化 */
+.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-front,
+.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-back {
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.2),
+        0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
 /* 修改编辑器容器样式确保有足够空间显示按钮 */
 .markdown-source-view {
     padding-right: 40px !important;

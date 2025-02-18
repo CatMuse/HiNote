@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon } from "obsidian";
+import { FlashcardComponent } from './components/flashcard/FlashcardComponent';
 import { CommentStore, HiNote, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
@@ -21,6 +22,7 @@ export class CommentView extends ItemView {
     private fileListContainer: HTMLElement;
     private mainContentContainer: HTMLElement;
     private currentFile: TFile | null = null;
+    private isFlashcardMode: boolean = false;
     private highlights: HighlightInfo[] = [];
     private commentStore: CommentStore;
     private searchInput: HTMLInputElement;
@@ -36,6 +38,7 @@ export class CommentView extends ItemView {
     private floatingButton: HTMLElement | null = null;
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
     private currentEditingHighlightId: string | null | undefined = null;
+    private flashcardComponent: FlashcardComponent | null = null;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -690,6 +693,12 @@ export class CommentView extends ItemView {
             cls: `highlight-file-item highlight-file-item-all ${this.currentFile === null ? 'is-active' : ''}`
         });
 
+        allFilesItem.addEventListener("click", () => {
+            this.currentFile = null;
+            this.updateHighlights();
+            this.updateFileListSelection();
+        });
+
         // 创建左侧内容容器
         const allFilesLeft = allFilesItem.createEl("div", {
             cls: "highlight-file-item-left"
@@ -705,6 +714,80 @@ export class CommentView extends ItemView {
         allFilesLeft.createEl("span", {
             text: t("All Highlight"),
             cls: "highlight-file-item-name"
+        });
+
+        // 创建闪卡按钮的容器
+        const flashcardItem = fileList.createEl("div", {
+            cls: "highlight-file-item highlight-file-item-flashcard"
+        });
+
+        flashcardItem.addEventListener("click", async () => {
+            // 更新文件列表选中状态
+            this.currentFile = null;
+            this.isFlashcardMode = true;
+            this.updateFileListSelection();
+
+            // 获取所有文件
+            const files = await this.getFilesWithHighlights();
+            
+            // 获取所有高亮和评论数据
+            const allHighlights: HiNote[] = [];
+            for (const file of files) {
+                const fileHighlights = this.commentStore.getFileComments(file);
+                allHighlights.push(...fileHighlights);
+            }
+
+            // 清空当前容器
+            this.highlightContainer.empty();
+            
+            // 创建或更新闪卡组件
+            if (!this.flashcardComponent) {
+                this.flashcardComponent = new FlashcardComponent(this.highlightContainer);
+            }
+            
+            // 设置闪卡数据
+            this.flashcardComponent.setCards(allHighlights);
+        });
+
+        const flashcardLeft = flashcardItem.createEl("div", {
+            cls: "highlight-file-item-left"
+        });
+
+        // 添加图标
+        const flashcardIcon = flashcardLeft.createEl("span", {
+            cls: "highlight-file-item-icon"
+        });
+        setIcon(flashcardIcon, 'book-heart');
+
+        flashcardLeft.createEl("span", {
+            text: t("Flashcards"),
+            cls: "highlight-file-item-name"
+        });
+
+        flashcardLeft.addEventListener("click", async () => {
+            // 获取所有文件
+            const files = await this.getFilesWithHighlights();
+            
+            // 获取所有高亮和评论数据
+            const allHighlights: HiNote[] = [];
+            for (const file of files) {
+                const fileHighlights = this.commentStore.getFileComments(file);
+                allHighlights.push(...fileHighlights);
+            }
+
+            // 清空当前容器
+            this.highlightContainer.empty();
+            
+            // 创建或更新闪卡组件
+            if (!this.flashcardComponent) {
+                this.flashcardComponent = new FlashcardComponent(this.highlightContainer);
+            }
+            
+            // 设置闪卡数据
+            this.flashcardComponent.setCards(allHighlights);
+
+            // 更新文件列表选中状态
+            this.updateFileListSelection();
         });
 
         // 获取所有文件的高亮总数
@@ -724,6 +807,11 @@ export class CommentView extends ItemView {
         // 修改点击事件
         allFilesItem.addEventListener("click", async () => {
             this.currentFile = null;
+            this.isFlashcardMode = false;
+            if (this.flashcardComponent) {
+                this.flashcardComponent.cleanup();
+                this.flashcardComponent = null;
+            }
             this.updateFileListSelection();
             await this.updateAllHighlights();
         });
@@ -780,6 +868,11 @@ export class CommentView extends ItemView {
             // 添加点击事件
             fileItem.addEventListener("click", async () => {
                 this.currentFile = file;
+                this.isFlashcardMode = false;
+                if (this.flashcardComponent) {
+                    this.flashcardComponent.cleanup();
+                    this.flashcardComponent = null;
+                }
                 this.updateFileListSelection();
                 await this.updateHighlights();
             });
@@ -791,11 +884,17 @@ export class CommentView extends ItemView {
         // 更新"全部"选项的选中状态
         const allFilesItem = this.fileListContainer.querySelector('.highlight-file-item-all');
         if (allFilesItem) {
-            allFilesItem.classList.toggle('is-active', this.currentFile === null);
+            allFilesItem.classList.toggle('is-active', this.currentFile === null && !this.isFlashcardMode);
+        }
+
+        // 更新闪卡选项的选中状态
+        const flashcardItem = this.fileListContainer.querySelector('.highlight-file-item-flashcard');
+        if (flashcardItem) {
+            flashcardItem.classList.toggle('is-active', this.isFlashcardMode);
         }
 
         // 更新文件项的选中状态
-        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all)');
+        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all):not(.highlight-file-item-flashcard)');
         fileItems.forEach((item: HTMLElement) => {
             const isActive = this.currentFile?.path === item.getAttribute('data-path');
             item.classList.toggle('is-active', isActive);
