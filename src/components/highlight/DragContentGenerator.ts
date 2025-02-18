@@ -22,6 +22,8 @@ export class DragContentGenerator {
         } else {
             lines.push("> [!quote] Highlight");
             
+            let hasAddedContent = false;
+            
             // 如果有文件路径和位置信息，尝试查找对应的 Block ID
             if (this.highlight.filePath && typeof this.highlight.position === 'number') {
                 const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
@@ -40,12 +42,18 @@ export class DragContentGenerator {
                                 const reference = `> ![[${fileName}#^${section.id}]]`;
                                 lines.push(reference);
                                 lines.push("> ");
+                                hasAddedContent = true;
                             }
                         }
                     }
                 }
             }
-            lines.push("> ");
+            
+            // 如果没有成功添加块引用，使用原文本
+            if (!hasAddedContent && this.highlight.text) {
+                lines.push(`> ${this.highlight.text}`);
+                lines.push("> ");
+            }
         }
 
         // 添加评论
@@ -72,55 +80,106 @@ export class DragContentGenerator {
         } else {
             lines.push("> [!quote] Highlight");
             
-            // 尝试获取 Block ID
+            // 首先确保我们有高亮文本
+            if (!this.highlight.text) {
+                return lines.join("\n");
+            }
+            
+            let hasAddedContent = false;
+            
+            // 尝试获取或生成 Block ID
             if (this.highlight.filePath && typeof this.highlight.position === 'number') {
-                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
-                if (file instanceof TFile) {
-                    const cache = this.plugin.app.metadataCache.getFileCache(file);
-                    if (cache?.sections) {
-                        const position = this.highlight.position;
-                        const section = cache.sections.find(section => 
-                            typeof position === 'number' &&
-                            section.position.start.offset <= position &&
-                            section.position.end.offset >= position
-                        );
-                        
-                        if (section) {
-                            let blockId = section.id;
+                try {
+                    const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
+                    if (file instanceof TFile) {
+                        const cache = this.plugin.app.metadataCache.getFileCache(file);
+                        if (cache?.sections) {
+                            const position = this.highlight.position;
+                            const section = cache.sections.find(section => 
+                                typeof position === 'number' &&
+                                section.position.start.offset <= position &&
+                                section.position.end.offset >= position
+                            );
                             
-                            // 如果没有 Block ID，生成一个并添加到文档
-                            if (!blockId) {
-                                blockId = await this.generateBlockId(file, section);
-                            }
-                            
-                            const reference = `> ![[${file.basename}#^${blockId}]]`;
-                            console.log('Generated reference:', reference);
-                            lines.push(reference);
-                            lines.push("> ");
-                            
-                            // 添加评论
-                            if (this.highlight.comments && this.highlight.comments.length > 0) {
-                                for (const comment of this.highlight.comments) {
-                                    lines.push(...this.formatComment(comment, false));
+                            if (section) {
+                                let blockId = section.id;
+                                
+                                // 如果没有 Block ID，尝试生成一个
+                                if (!blockId) {
+                                    try {
+                                        blockId = await this.generateBlockId(file, section);
+                                        // 等待文件缓存更新
+                                        await new Promise(resolve => setTimeout(resolve, 500));
+                                        
+                                        // 重新获取缓存
+                                        const updatedCache = this.plugin.app.metadataCache.getFileCache(file);
+                                        const updatedSection = updatedCache?.sections?.find(s => 
+                                            s.position.start.offset === section.position.start.offset &&
+                                            s.position.end.offset === section.position.end.offset
+                                        );
+                                        
+                                        if (updatedSection?.id) {
+                                            blockId = updatedSection.id;
+                                        }
+                                    } catch (error) {
+                                        console.error('Failed to generate block ID:', error);
+                                        // 如果生成 block ID 失败，直接使用原文本
+                                        lines.push(`> ${this.highlight.text}`);
+                                        lines.push("> ");
+                                        hasAddedContent = true;
+                                    }
                                 }
+                                
+                                if (blockId) {
+                                    const reference = `> ![[${file.basename}#^${blockId}]]`;
+                                    lines.push(reference);
+                                    lines.push("> ");
+                                    hasAddedContent = true;
+                                } else {
+                                    // 如果没有成功获取到 blockId，使用原文本
+                                    lines.push(`> ${this.highlight.text}`);
+                                    lines.push("> ");
+                                    hasAddedContent = true;
+                                }
+                            } else {
+                                // 如果找不到对应的 section，使用原文本
+                                lines.push(`> ${this.highlight.text}`);
+                                lines.push("> ");
+                                hasAddedContent = true;
                             }
-                            
-                            return lines.join("\n");
+                        } else {
+                            // 如果没有 sections，使用原文本
+                            lines.push(`> ${this.highlight.text}`);
+                            lines.push("> ");
+                            hasAddedContent = true;
                         }
+                    } else {
+                        // 如果文件不存在，使用原文本
+                        lines.push(`> ${this.highlight.text}`);
+                        lines.push("> ");
+                        hasAddedContent = true;
                     }
+                } catch (error) {
+                    console.error('Error while processing highlight:', error);
+                    // 如果发生错误，使用原文本
+                    lines.push(`> ${this.highlight.text}`);
+                    lines.push("> ");
+                    hasAddedContent = true;
                 }
+            } else {
+                // 如果没有文件路径或位置信息，直接使用原文本
+                lines.push(`> ${this.highlight.text}`);
+                lines.push("> ");
+                hasAddedContent = true;
             }
             
-            // 如果没有 paragraphId 或者解析失败，使用原文本
-            lines.push(`> ${this.highlight.text}`);
-            lines.push("> ");
-            
-            // 添加评论
-            if (this.highlight.comments && this.highlight.comments.length > 0) {
-                for (const comment of this.highlight.comments) {
-                    lines.push(...this.formatComment(comment, this.highlight.isVirtual || false));
-                }
+            // 最后的安全检查，确保我们总是有内容输出
+            if (!hasAddedContent) {
+                lines.push(`> ${this.highlight.text}`);
+                lines.push("> ");
             }
+            
+
         }
         
         // 添加评论（如果有）
