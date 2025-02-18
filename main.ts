@@ -249,7 +249,7 @@ export default class CommentPlugin extends Plugin {
         if (!this.settings.ai.gemini) {
             this.settings.ai.gemini = {
                 apiKey: '',  // 提供默认值
-                model: 'gemini-pro',  // 提供默认值
+                model: 'gemini-1.5-flash',  // 提供默认值
                 isCustomModel: false,  // 提供默认值
                 baseUrl: DEFAULT_SETTINGS.ai.gemini?.baseUrl
             };

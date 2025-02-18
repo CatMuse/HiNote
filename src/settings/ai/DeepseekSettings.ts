@@ -167,7 +167,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
                     await this.saveModelState();
                 }))
             .addButton(button => button
-                .setButtonText(t('Verify'))
+                .setButtonText(t('Check'))
                 .onClick(async () => {
                     await this.validateApiKey(this.modelState.apiKey);
                 }));
