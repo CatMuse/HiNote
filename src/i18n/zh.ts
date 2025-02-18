@@ -123,8 +123,7 @@ export default {
 //main
 
     "Open AI chat window": "打开 AI 对话窗口",
-    "Toggle comment panel": "切换评论面板",
-    "Toggle comment panel location": "切换评论面板位置",
+    "Open HiNote window": "打开 HiNote 窗口",
 
 // Settings
     'General Settings': '通用设置',
@@ -132,6 +131,14 @@ export default {
     'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': '设置高亮笔记的导出路径。留空则使用 vault 根目录。路径应相对于 vault 根目录。',
     "Exclusions": "排除",
     "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md": "逗号分隔的路径，标签，笔记标题或文件扩展名，将从高亮中排除。例如：folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md",
+    "Text Extraction Settings": "文本提取设置",
+    "Use Custom Pattern": "使用自定义模式",
+    "Enable to use a custom regular expression for extracting text.": "启用自定义正则表达式以提取文本。",
+    "Custom Pattern": "自定义模式",
+    "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.": "输入自定义正则表达式以提取文本。使用捕获组 () 指定要提取的文本。第一个非空捕获组将用作提取的文本。",
+    "Default Color": "默认颜色",
+    "Set the default color for decorators when no color is specified. Leave empty to use system default.": "设置当未指定颜色时的装饰器的默认颜色。留空以使用系统默认颜色。",
+
 
 // 其他
 

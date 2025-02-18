@@ -125,8 +125,7 @@ export default {
 //main
 
     "Open AI chat window": "Open AI chat window",
-    "Toggle comment panel": "Toggle comment panel",
-    "Toggle comment panel location": "Toggle comment panel location",
+    "Open HiNote window": "Open HiNote window",
 
 // Settings
     'General Settings': 'General Settings',
@@ -134,6 +133,13 @@ export default {
     'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': 'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.',
     "Exclusions": "Exclusions",
     "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md": "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md",
+    "Text Extraction Settings": "Text Extraction Settings",
+    "Use Custom Pattern": "Use Custom Pattern",
+    "Enable to use a custom regular expression for extracting text.": "Enable to use a custom regular expression for extracting text.",
+    "Custom Pattern": "Custom Pattern",
+    "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.": "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.",
+    "Default Color": "Default Color",
+    "Set the default color for decorators when no color is specified. Leave empty to use system default.": "Set the default color for decorators when no color is specified. Leave empty to use system default.",
 
 // 其他
 

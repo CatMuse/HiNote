@@ -73,7 +73,7 @@ export class GeneralSettingsTab {
 
         // 自定义正则表达式输入框
         new Setting(container)
-            .setName(t('Custom Extraction Pattern'))
+            .setName(t('Custom Pattern'))
             .setDesc(t('Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.'))
             .addTextArea(text => {
                 text
@@ -89,7 +89,7 @@ export class GeneralSettingsTab {
 
         // 默认提取颜色选择器
         new Setting(container)
-            .setName(t('Default Decorator Color'))
+            .setName(t('Default Color'))
             .setDesc(t('Set the default color for decorators when no color is specified. Leave empty to use system default.'))
             .addText(text => text
                 .setPlaceholder('#ffeb3b')

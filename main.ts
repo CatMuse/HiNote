@@ -60,6 +60,31 @@ export default class CommentPlugin extends Plugin {
 			}
 		);
 
+		// 添加打开评论面板的命令
+		this.addCommand({
+			id: 'open-comment-window',
+			name: t('Open HiNote window'),
+			callback: async () => {
+				const { workspace } = this.app;
+				
+				// 检查评论面板是否已经打开，如果已经打开，就激活它
+				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+				if (existing.length) {
+					workspace.revealLeaf(existing[0]);
+					return;
+				}
+
+				// 在右侧打开评论面板
+				const leaf = workspace.getRightLeaf(false);
+				if (leaf) {
+					await leaf.setViewState({
+						type: VIEW_TYPE_COMMENT,
+						active: true,
+					});
+				}
+			}
+		});
+
 		// 添加设置标签页
 		this.addSettingTab(new AISettingTab(this.app, this));
 
