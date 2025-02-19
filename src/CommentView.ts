@@ -774,7 +774,7 @@ export class CommentView extends ItemView {
         setIcon(flashcardIcon, 'book-heart');
 
         flashcardLeft.createEl("span", {
-            text: t("Flashcards"),
+            text: t("HiCard"),
             cls: "highlight-file-item-name"
         });
 
