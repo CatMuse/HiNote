@@ -87,9 +87,6 @@ export class GeminiSettings extends BaseAIServiceSettings {
             const modelId = this.modelState.selectedModel.id;
             const url = `${baseUrl}/v1/models/${modelId}?key=${apiKey}`;
             
-            console.log('Validating API key with URL:', url.replace(apiKey, '***'));
-            console.log('Using model:', modelId);
-            
             const response = await fetch(url);
             if (!response.ok) {
                 // 如果是自定义模型，直接提示错误
@@ -100,7 +97,6 @@ export class GeminiSettings extends BaseAIServiceSettings {
                 
                 // 如果是预设模型但不是 gemini-pro，先检查 API Key 是否有效
                 if (modelId !== 'gemini-pro') {
-                    console.log('Checking if API key is valid with gemini-pro...');
                     const checkUrl = `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`;
                     const checkResponse = await fetch(checkUrl);
                     

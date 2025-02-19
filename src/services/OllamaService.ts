@@ -31,7 +31,6 @@ export class OllamaService {
         }
         // Remove trailing slash if present
         this.baseUrl = host.replace(/\/$/, '');
-        console.log('Initialized OllamaService with base URL:', this.baseUrl);
     }
 
     async listModels(): Promise<string[]> {

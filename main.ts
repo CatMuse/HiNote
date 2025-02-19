@@ -63,7 +63,7 @@ export default class CommentPlugin extends Plugin {
 		// 添加打开评论面板的命令
 		this.addCommand({
 			id: 'open-comment-window',
-			name: t('Open HiNote window'),
+			name: t('Open the right window'),
 			callback: async () => {
 				const { workspace } = this.app;
 				

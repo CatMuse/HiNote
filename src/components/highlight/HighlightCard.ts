@@ -89,11 +89,8 @@ export class HighlightCard {
             });
 
             fileNameEl.addEventListener("dragend", () => {
-                console.log('[HighlightCard] dragend event triggered');
                 fileNameEl.removeClass("dragging");
-                console.log('[HighlightCard] Removed dragging class');
                 DragPreview.clear();
-                console.log('[HighlightCard] Cleared DragPreview');
             });
 
             // 创建文件图标

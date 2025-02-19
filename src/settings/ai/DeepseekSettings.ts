@@ -75,13 +75,6 @@ export class DeepseekSettings extends BaseAIServiceSettings {
         
         // 立即保存设置
         await this.plugin.saveSettings();
-
-        console.log('Saved model state:', {
-            modelId: model.id,
-            modelName: model.name,
-            isCustom: settings.isCustomModel,
-            lastCustomModel: settings.lastCustomModel
-        });
     }
 
     private async validateApiKey(apiKey: string): Promise<boolean> {
@@ -93,9 +86,6 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             // 使用当前选择的模型来验证
             const modelId = this.modelState.selectedModel.id;
             const url = `${baseUrl}/models/${modelId}`;
-            
-            console.log('Validating API key with URL:', url);
-            console.log('Using model:', modelId);
             
             const response = await fetch(url, {
                 headers: {
@@ -113,7 +103,6 @@ export class DeepseekSettings extends BaseAIServiceSettings {
                 
                 // 如果是预设模型但不是 deepseek-chat，先检查 API Key 是否有效
                 if (modelId !== 'deepseek-chat') {
-                    console.log('Checking if API key is valid with deepseek-chat...');
                     const checkUrl = `${baseUrl}/models/deepseek-chat`;
                     const checkResponse = await fetch(checkUrl, {
                         headers: {
