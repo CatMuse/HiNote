@@ -209,7 +209,7 @@ export class CommentInput {
                     this.textarea.parentElement?.insertBefore(tagsPreview, this.textarea);
                 }
                 if (tagsPreview) {
-                    tagsPreview.innerHTML = '';
+                    tagsPreview.replaceChildren();
                     const previewEl = tagsPreview; // 创建一个确定非空的引用
                     tags.forEach(tag => {
                         const tagEl = document.createElement('span');

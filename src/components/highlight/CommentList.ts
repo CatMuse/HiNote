@@ -43,7 +43,9 @@ export class CommentList {
         });
 
         // 清空容器
-        this.container.innerHTML = '';
+        while (this.container.firstChild) {
+            this.container.removeChild(this.container.firstChild);
+        }
         
         comments.forEach(comment => {
             // 检查是否是纯标签评论
@@ -69,7 +71,8 @@ export class CommentList {
                 tags.forEach(tag => {
                     formattedContent = formattedContent.replace(tag, `<span class="highlight-tag">${tag}</span>`);
                 });
-                contentEl.innerHTML = formattedContent;
+                const textNode = document.createTextNode(formattedContent);
+                contentEl.replaceChildren(textNode);
             } else {
                 // 如果不是纯标签格式，直接显示原始内容
                 contentEl.textContent = content;
