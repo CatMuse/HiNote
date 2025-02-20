@@ -2132,6 +2132,65 @@ hr {
     pointer-events: none !important;
 }
 
+/* Flashcard Activation Styles */
+.flashcard-activation-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--background-primary);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.flashcard-activation-header {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: var(--text-normal);
+}
+
+.flashcard-activation-description {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+.flashcard-activation-input-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.flashcard-activation-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.flashcard-activation-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.flashcard-activation-button {
+    padding: 8px 16px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.flashcard-activation-button:hover {
+    background: var(--interactive-accent-hover);
+}
+
 .highlight-text-content {
     white-space: pre-wrap;
     word-break: break-word;

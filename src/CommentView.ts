@@ -13,6 +13,7 @@ import { ExportService } from './services/ExportService';
 import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
+import { LicenseManager } from './services/LicenseManager';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -30,6 +31,7 @@ export class CommentView extends ItemView {
     private locationService: LocationService;
     private exportService: ExportService;
     private highlightService: HighlightService;
+    private licenseManager: LicenseManager;
     private isDraggedToMainView: boolean = false;
     private currentBatch: number = 0;
     private isLoading: boolean = false;
@@ -47,6 +49,7 @@ export class CommentView extends ItemView {
         this.locationService = new LocationService(this.app);
         this.exportService = new ExportService(this.app, this.commentStore);
         this.highlightService = new HighlightService(this.app);
+        this.licenseManager = new LicenseManager(this.plugin);
         
         // 监听文档切换
         this.registerEvent(
@@ -756,10 +759,11 @@ export class CommentView extends ItemView {
             // 创建或更新闪卡组件
             if (!this.flashcardComponent) {
                 this.flashcardComponent = new FlashcardComponent(this.highlightContainer);
+                this.flashcardComponent.setLicenseManager(this.licenseManager);
             }
             
             // 激活闪卡组件并设置数据
-            this.flashcardComponent.activate();
+            await this.flashcardComponent.activate();
             this.flashcardComponent.setCards(allHighlights);
         });
 
@@ -815,9 +819,11 @@ export class CommentView extends ItemView {
             // 创建或更新闪卡组件
             if (!this.flashcardComponent) {
                 this.flashcardComponent = new FlashcardComponent(this.highlightContainer);
+                this.flashcardComponent.setLicenseManager(this.licenseManager);
             }
             
             // 设置闪卡数据
+            await this.flashcardComponent.activate();
             this.flashcardComponent.setCards(allHighlights);
 
             // 更新文件列表选中状态

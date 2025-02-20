@@ -1,4 +1,6 @@
+import { Notice } from "obsidian";
 import { HiNote } from "../../CommentStore";
+import { LicenseManager } from "../../services/LicenseManager";
 
 export class FlashcardComponent {
     private container: HTMLElement;
@@ -11,9 +13,14 @@ export class FlashcardComponent {
         sourceFile?: string;
     }> = [];
     private isActive: boolean = false;
+    private licenseManager: LicenseManager;
 
     constructor(container: HTMLElement) {
         this.container = container;
+    }
+
+    setLicenseManager(licenseManager: LicenseManager) {
+        this.licenseManager = licenseManager;
     }
 
 
@@ -40,9 +47,71 @@ export class FlashcardComponent {
         this.deactivate();
     }
 
-    activate() {
+    async activate() {
+        // 检查许可证
+        if (!this.licenseManager) {
+            console.error('License manager not set');
+            return;
+        }
+
+        const isActivated = await this.licenseManager.isActivated();
         this.isActive = true;
-        this.render();
+        
+        if (!isActivated) {
+            this.renderActivation();
+        } else {
+            this.render();
+        }
+    }
+
+    private renderActivation() {
+        this.container.empty();
+        this.container.addClass('flashcard-mode');
+
+        const activationContainer = this.container.createEl('div', {
+            cls: 'flashcard-activation-container'
+        });
+
+        const header = activationContainer.createEl('div', {
+            cls: 'flashcard-activation-header',
+            text: 'Activate HiCard'
+        });
+
+        const description = activationContainer.createEl('div', {
+            cls: 'flashcard-activation-description',
+            text: 'Enter your license key to activate HiCard feature.'
+        });
+
+        const inputContainer = activationContainer.createEl('div', {
+            cls: 'flashcard-activation-input-container'
+        });
+
+        const input = inputContainer.createEl('input', {
+            cls: 'flashcard-activation-input',
+            type: 'text',
+            placeholder: 'Enter license key'
+        });
+
+        const button = inputContainer.createEl('button', {
+            cls: 'flashcard-activation-button',
+            text: 'Activate'
+        });
+
+        button.addEventListener('click', async () => {
+            const licenseKey = input.value.trim();
+            if (!licenseKey) {
+                new Notice('Please enter a license key');
+                return;
+            }
+
+            const activated = await this.licenseManager.activateLicense(licenseKey);
+            if (activated) {
+                new Notice('HiCard activated successfully!');
+                this.render();
+            } else {
+                new Notice('Invalid license key');
+            }
+        });
     }
 
     deactivate() {
