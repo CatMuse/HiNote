@@ -4,7 +4,8 @@ import {
     FSRSStorage, 
     FSRSGlobalStats,
     FSRSRating,
-    FSRS_RATING
+    FSRS_RATING,
+    CardGroup
 } from '../types/FSRSTypes';
 import { FSRSService } from './FSRSService';
 import { debounce } from 'obsidian';
@@ -32,27 +33,61 @@ export class FSRSManager {
                 averageRetention: 1,
                 streakDays: 0,
                 lastReviewDate: 0
-            }
+            },
+            cardGroups: []
         };
 
         try {
-            const stored = this.plugin.settings.fsrsData;
-            if (stored) {
-                return JSON.parse(stored);
+            // 确保 settings 存在
+            if (!this.plugin.settings) {
+                this.plugin.settings = {};
             }
+            
+            // 确保 fsrsData 存在
+            if (!this.plugin.settings.fsrsData) {
+                this.plugin.settings.fsrsData = JSON.stringify(defaultStorage);
+            }
+
+            const stored = this.plugin.settings.fsrsData;
+            const parsed = JSON.parse(stored);
+            
+            // 确保所有必要的字段都存在
+            return {
+                ...defaultStorage,
+                ...parsed,
+                cardGroups: Array.isArray(parsed.cardGroups) ? parsed.cardGroups : []
+            };
         } catch (error) {
             console.error('Failed to load FSRS storage:', error);
+            return defaultStorage;
         }
-
-        return defaultStorage;
     }
 
-    private saveStorage() {
+    private async saveStorage() {
         try {
+            console.log('Saving storage:', this.storage);
+            
+            // 确保 settings 存在
+            if (!this.plugin.settings) {
+                this.plugin.settings = {};
+            }
+            
+            // 保存数据
             this.plugin.settings.fsrsData = JSON.stringify(this.storage);
-            this.plugin.saveSettings();
+            
+            // 如果 saveSettings 方法存在，则调用
+            if (typeof this.plugin.saveSettings === 'function') {
+                await this.plugin.saveSettings();
+                console.log('Settings saved through plugin');
+            } else {
+                // 如果没有 saveSettings，则至少保存在内存中
+                console.log('No saveSettings method found, data kept in memory');
+            }
+            
+            console.log('Storage saved successfully');
         } catch (error) {
             console.error('Failed to save FSRS storage:', error);
+            throw error; // 向上传递错误以便调用者知道保存失败
         }
     }
 
@@ -169,5 +204,158 @@ export class FSRSManager {
     public reset(): void {
         this.storage = this.loadStorage();
         this.saveStorage();
+    }
+
+    // 卡片分组管理
+    public getCardGroups(): CardGroup[] {
+        if (!this.storage.cardGroups) {
+            this.storage.cardGroups = [];
+        }
+        return this.storage.cardGroups;
+    }
+
+    private generateUUID(): string {
+        const timestamp = Date.now().toString(36);
+        const randomStr = Math.random().toString(36).substring(2, 15);
+        return `${timestamp}-${randomStr}`;
+    }
+
+    public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
+        console.log('Creating new card group:', group);
+        
+        if (!this.storage.cardGroups) {
+            console.log('Initializing cardGroups array');
+            this.storage.cardGroups = [];
+        }
+
+        const newGroup: CardGroup = {
+            ...group,
+            id: this.generateUUID()
+        };
+        
+        console.log('New group created:', newGroup);
+        this.storage.cardGroups.push(newGroup);
+        
+        console.log('Current groups:', this.storage.cardGroups);
+        try {
+            await this.saveStorage(); // 等待保存完成
+            console.log('Storage saved');
+            return newGroup;
+        } catch (error) {
+            // 如果保存失败，回滚更改
+            this.storage.cardGroups.pop();
+            throw error;
+        }
+    }
+
+    public async updateCardGroup(groupId: string, updates: Partial<Omit<CardGroup, 'id'>>): Promise<boolean> {
+        if (!this.storage.cardGroups) return false;
+        
+        const index = this.storage.cardGroups.findIndex(g => g.id === groupId);
+        if (index === -1) return false;
+
+        this.storage.cardGroups[index] = {
+            ...this.storage.cardGroups[index],
+            ...updates,
+            id: groupId // 确保 id 不被更新
+        };
+        
+        try {
+            await this.saveStorage();
+            return true;
+        } catch (error) {
+            console.error('Failed to update card group:', error);
+            return false;
+        }
+    }
+
+    public async deleteCardGroup(groupId: string): Promise<boolean> {
+        if (!this.storage.cardGroups) return false;
+        
+        const index = this.storage.cardGroups.findIndex(g => g.id === groupId);
+        if (index === -1) return false;
+
+        const deletedGroup = this.storage.cardGroups[index];
+        this.storage.cardGroups.splice(index, 1);
+        
+        try {
+            await this.saveStorage();
+            return true;
+        } catch (error) {
+            // 如果删除失败，恢复组
+            this.storage.cardGroups.splice(index, 0, deletedGroup);
+            console.error('Failed to delete card group:', error);
+            return false;
+        }
+    }
+
+    public getCardsInGroup(group: CardGroup): FlashcardState[] {
+        console.log('Getting cards for group:', group);
+        console.log('Total cards:', Object.values(this.storage.cards).length);
+        
+        const result = Object.values(this.storage.cards).filter(card => {
+            const filters = group.filter.split(',').map(f => f.trim().toLowerCase());
+            const cardText = card.text.toLowerCase();
+            const cardAnswer = card.answer.toLowerCase();
+            const filePath = (card.filePath || '').toLowerCase();
+            
+            console.log('\nChecking card:', {
+                filePath,
+                cardText: cardText.substring(0, 50) + '...',
+                filters
+            });
+            
+            const matches = filters.some(filter => {
+                // 检查标签
+                if (filter.startsWith('#')) {
+                    const tagToFind = filter.substring(1);
+                    const tags = this.extractTagsFromText(cardText);
+                    const matches = tags.some(tag => tag.toLowerCase() === tagToFind);
+                    console.log('Tag check:', { tagToFind, tags, matches });
+                    return matches;
+                }
+                
+                // 检查笔记链接
+                if (filter.startsWith('[[') && filter.endsWith(']]')) {
+                    const noteName = filter.slice(2, -2);
+                    const matches = filePath.includes(noteName);
+                    console.log('Note link check:', { noteName, matches });
+                    return matches;
+                }
+                
+                // 检查通配符
+                if (filter.includes('*')) {
+                    const pattern = filter
+                        .replace(/\./g, '\\.')
+                        .replace(/\*/g, '.*');
+                    const regex = new RegExp(pattern, 'i');
+                    const matches = regex.test(filePath);
+                    console.log('Wildcard check:', { pattern, matches });
+                    return matches;
+                }
+                
+                // 检查文件路径
+                const pathMatches = filePath.includes(filter);
+                console.log('Path check:', { filter, matches: pathMatches });
+                if (pathMatches) return true;
+                
+                // 检查卡片内容
+                const contentMatches = cardText.includes(filter) || cardAnswer.includes(filter);
+                console.log('Content check:', { filter, matches: contentMatches });
+                return contentMatches;
+            });
+            
+            console.log('Card matches:', matches);
+            return matches;
+        });
+        
+        console.log('Filtered cards:', result.length);
+        return result;
+    }
+
+    private extractTagsFromText(text: string): string[] {
+        const tagRegex = /#([\w-]+)/g;
+        const matches = text.match(tagRegex);
+        return matches ? matches.map(tag => tag.substring(1)) : [];
     }
 }

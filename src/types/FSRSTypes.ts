@@ -31,10 +31,19 @@ export interface FSRSGlobalStats {
     lastReviewDate: number;
 }
 
+export interface CardGroup {
+    id: string;           // 分组唯一标识符
+    name: string;         // 分组名称
+    filter: string;       // 过滤条件，支持文件名和标签
+    createdTime: number;  // 创建时间
+    sortOrder: number;    // 排序顺序
+}
+
 export interface FSRSStorage {
     version: string;
     cards: { [id: string]: FlashcardState };
     globalStats: FSRSGlobalStats;
+    cardGroups: CardGroup[];  // 用户自定义的卡片分组
 }
 
 export const FSRS_RATING = {

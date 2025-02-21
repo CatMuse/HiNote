@@ -475,12 +475,277 @@
 
 /* Flashcard styles */
 
+.flashcard-modal-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 16px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+textarea.flashcard-modal-input {
+    min-height: 80px;
+    font-family: var(--font-text);
+}
+
+/* Rating buttons */
+.flashcard-rating-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+
+.flashcard-rating-button[data-rating='again'] {
+    background-color: #6A8390;
+}
+
+.flashcard-rating-button[data-rating='hard'] {
+    background-color: #FF977B;
+}
+
+.flashcard-rating-button[data-rating='good'] {
+    background-color: #77D1C1;
+}
+
+.flashcard-rating-button[data-rating='easy'] {
+    background-color: #6BC8FC;
+}
+
+.flashcard-rating-button:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+
+.flashcard-rating-button .days {
+    font-size: 0.8em;
+    margin-top: 4px;
+    opacity: 0.9;
+}
+
 .flashcard-mode {
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 20px;
     gap: 20px;
+}
+
+.flashcard-main-container {
+    display: flex;
+    flex: 1;
+    gap: 12px;
+}
+
+.flashcard-sidebar {
+    width: 250px;
+    border-right: 1px solid var(--background-modifier-border);
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.flashcard-add-group {
+    padding: 4px;
+    margin: 8px 0px;
+    border-radius: 4px;
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--background-modifier-border);
+}
+
+.flashcard-add-group:hover {
+    color: var(--text-accent);
+    background-color: var(--background-modifier-hover);
+}
+
+/* 模态框样式 */
+.flashcard-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.flashcard-modal-content {
+    background-color: var(--background-primary);
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.flashcard-modal h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-normal);
+}
+
+.flashcard-modal-input,
+.flashcard-modal-select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.flashcard-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.flashcard-modal-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: var(--background-modifier-border);
+    color: var(--text-normal);
+    transition: background-color 0.2s;
+}
+
+.flashcard-modal-button:hover {
+    background-color: var(--background-modifier-border-hover);
+}
+
+.flashcard-modal-button.primary {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.flashcard-modal-button.primary:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+.flashcard-default-groups,
+.flashcard-custom-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.flashcard-group-section-title {
+    padding: 4px 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.flashcard-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.flashcard-group-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-normal);
+    transition: all 0.2s ease;
+}
+
+.flashcard-group-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flashcard-group-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.flashcard-group-item.active .flashcard-group-icon {
+    color: var(--text-accent);
+}
+
+.flashcard-group-name {
+    font-size: 0.9em;
+}
+
+.flashcard-group-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.flashcard-group-item:hover .flashcard-group-actions {
+    opacity: 1;
+}
+
+.flashcard-group-action {
+    padding: 2px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.flashcard-group-action:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+}
+
+.flashcard-group-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.flashcard-group-item.active {
+    background-color: var(--background-modifier-hover);
+    font-weight: 600;
+    color: var(--text-accent);
+}
+
+.flashcard-group-count {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    background: var(--background-modifier-border);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.flashcard-content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .flashcard-progress-container {
@@ -504,6 +769,9 @@
     align-items: center;
     justify-content: center;
     gap: 20px;
+    padding: 20px;
+    background: var(--background-secondary);
+    border-radius: 8px;
 }
 
 .flashcard {
@@ -522,7 +790,8 @@
     backface-visibility: hidden;
     transition: transform 0.6s;
     border-radius: 12px;
-    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     padding: 20px;
     display: flex;
@@ -533,7 +802,7 @@
 .flashcard-content {
     font-size: 1.4em;
     line-height: 1.8;
-    text-align: center;
+    text-align: left;
     max-width: 90%;
     overflow-y: auto;
     max-height: 100%;
@@ -614,54 +883,6 @@
     transform: translateY(-2px);
 }
 
-.flashcard-rating-red {
-    background: var(--color-red);
-    color: white;
-    opacity: 0.9;
-}
-
-.flashcard-rating-red:hover {
-    opacity: 1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(var(--color-red-rgb), 0.3);
-}
-
-.flashcard-rating-orange {
-    background: var(--color-orange);
-    color: white;
-    opacity: 0.9;
-}
-
-.flashcard-rating-orange:hover {
-    opacity: 1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(var(--color-orange-rgb), 0.3);
-}
-
-.flashcard-rating-green {
-    background: var(--color-green);
-    color: white;
-    opacity: 0.9;
-}
-
-.flashcard-rating-green:hover {
-    opacity: 1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(var(--color-green-rgb), 0.3);
-}
-
-.flashcard-rating-blue {
-    background: var(--color-blue);
-    color: white;
-    opacity: 0.9;
-}
-
-.flashcard-rating-blue:hover {
-    opacity: 1;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(var(--color-blue-rgb), 0.3);
-}
-
 .flashcard-counter {
     font-size: 0.9em;
     color: var(--text-muted);
@@ -679,16 +900,6 @@
     color: var(--text-muted);
     font-size: 1.2em;
     padding: 40px;
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.flashcard-container {
-    animation: fadeIn 0.3s ease-out;
 }
 
 /* 响应式设计 */

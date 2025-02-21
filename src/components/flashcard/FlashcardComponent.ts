@@ -2,7 +2,12 @@ import { Notice, setIcon } from "obsidian";
 import { HiNote } from "../../CommentStore";
 import { LicenseManager } from "../../services/LicenseManager";
 import { FSRSManager } from "../../services/FSRSManager";
-import { FlashcardState, FSRS_RATING, FSRSRating } from "../../types/FSRSTypes";
+import { 
+    FlashcardState, 
+    FSRS_RATING, 
+    FSRSRating, 
+    CardGroup
+} from "../../types/FSRSTypes";
 import { t } from "../../i18n";
 
 export class FlashcardComponent {
@@ -14,13 +19,14 @@ export class FlashcardComponent {
     private licenseManager: LicenseManager;
     private fsrsManager: FSRSManager;
     private currentCard: FlashcardState | null = null;
+    private currentGroupName: string = 'All Cards';
     
     // 评分按钮配置
     private readonly ratingButtons = [
-        { label: 'Again', rating: FSRS_RATING.AGAIN, key: '1', color: 'red', icon: 'cross' },
-        { label: 'Hard', rating: FSRS_RATING.HARD, key: '2', color: 'orange', icon: 'alert-circle' },
-        { label: 'Good', rating: FSRS_RATING.GOOD, key: '3', color: 'green', icon: 'check' },
-        { label: 'Easy', rating: FSRS_RATING.EASY, key: '4', color: 'blue', icon: 'check-circle' }
+        { label: 'Again', rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again' },
+        { label: 'Hard', rating: FSRS_RATING.HARD, key: '2', ratingText: 'hard' },
+        { label: 'Good', rating: FSRS_RATING.GOOD, key: '3', ratingText: 'good' },
+        { label: 'Easy', rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy' }
     ];
 
     constructor(container: HTMLElement, plugin: any) {
@@ -151,6 +157,125 @@ export class FlashcardComponent {
         }
     }
 
+    private showGroupModal(group?: CardGroup) {
+        const modal = document.createElement('div');
+        modal.className = 'flashcard-modal';
+        
+        // 阻止模态框中的事件冒泡
+        modal.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+        });
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'flashcard-modal-content';
+        
+        const title = document.createElement('h3');
+        title.textContent = group ? 'Edit Group' : 'Create New Group';
+        modalContent.appendChild(title);
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Group Name';
+        nameInput.className = 'flashcard-modal-input';
+        if (group) nameInput.value = group.name;
+        modalContent.appendChild(nameInput);
+        
+        const filterInput = document.createElement('textarea');
+        filterInput.placeholder = '支持以下格式：\n- 文件夹：folder1, folder1/folder2\n- 笔记：[[note1]], [[note2]]\n- 标签：#tag1, #tag2\n- 通配符：*.excalidraw.md\n- 内容：直接输入要搜索的文本';
+        filterInput.className = 'flashcard-modal-input';
+        filterInput.rows = 3;
+        if (group) filterInput.value = group.filter;
+        modalContent.appendChild(filterInput);
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'flashcard-modal-buttons';
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.className = 'flashcard-modal-button';
+        cancelButton.onclick = () => {
+            document.body.removeChild(modal);
+        };
+        
+        const actionButton = document.createElement('button');
+        actionButton.textContent = group ? 'Save' : 'Create';
+        actionButton.className = 'flashcard-modal-button primary';
+        actionButton.onclick = async () => {
+            const name = nameInput.value.trim();
+            const filter = filterInput.value.trim();
+            
+            if (!name || !filter) {
+                new Notice('请填写所有字段');
+                return;
+            }
+            
+            try {
+                actionButton.disabled = true;
+                actionButton.textContent = group ? '保存中...' : '创建中...';
+                
+                if (group) {
+                    // 编辑现有组
+                    const updated = await this.fsrsManager.updateCardGroup(group.id, {
+                        name,
+                        filter
+                    });
+                    
+                    if (updated) {
+                        // 如果当前分组是正在编辑的分组，更新名称
+                        if (this.currentGroupName === group.name) {
+                            this.currentGroupName = name;
+                        }
+                        
+                        document.body.removeChild(modal);
+                        this.render();
+                        new Notice('分组更新成功');
+                    } else {
+                        new Notice('更新分组失败');
+                    }
+                } else {
+                    // 创建新组
+                    const newGroup = await this.fsrsManager.createCardGroup({
+                        name,
+                        filter,
+                        sortOrder: this.fsrsManager.getCardGroups().length,
+                        createdTime: Date.now()
+                    });
+                    
+                    // 设置当前分组
+                    this.currentGroupName = name;
+                    
+                    document.body.removeChild(modal);
+                    this.render();
+                    new Notice('分组创建成功');
+                }
+            } catch (error) {
+                console.error('Failed to ' + (group ? 'update' : 'create') + ' group:', error);
+                new Notice((group ? '更新' : '创建') + '分组失败');
+            } finally {
+                actionButton.disabled = false;
+                actionButton.textContent = group ? '保存' : '创建';
+            }
+        };
+        
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(actionButton);
+        modalContent.appendChild(buttonContainer);
+        
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // 聚焦到名称输入框
+        nameInput.focus();
+    }
+
+    private showCreateGroupModal() {
+        this.showGroupModal();
+    }
+
+    private showEditGroupModal(group: CardGroup) {
+        this.showGroupModal(group);
+    }
+
     private render() {
         if (!this.isActive || !this.currentCard) {
             this.deactivate();
@@ -169,8 +294,165 @@ export class FlashcardComponent {
             text: `Due: ${progress.due} | New: ${progress.newCards} | Learned: ${progress.learned} | Retention: ${(progress.retention * 100).toFixed(1)}%`
         });
 
+        // 创建主容器
+        const mainContainer = this.container.createEl("div", { cls: "flashcard-main-container" });
+
+        // 创建左侧边栏
+        const sidebar = mainContainer.createEl("div", { cls: "flashcard-sidebar" });
+        
+        // 添加默认分组
+        const defaultGroups = sidebar.createEl("div", { cls: "flashcard-default-groups" });
+        
+        const defaultGroupList = defaultGroups.createEl("div", { cls: "flashcard-group-list" });
+        const allCards = Object.values(this.fsrsManager.exportData().cards);
+        const now = Date.now();
+        
+        const defaultGroupItems = [
+            { 
+                name: "All Cards", 
+                icon: 'gallery-thumbnails',
+                getCards: () => allCards
+            },
+            { 
+                name: "Due Today", 
+                icon: 'calendar-clock',
+                getCards: () => allCards.filter(c => c.nextReview <= now)
+            },
+            { 
+                name: "New Cards", 
+                icon: 'sparkle',
+                getCards: () => allCards.filter(c => c.lastReview === 0)
+            },
+            { 
+                name: "Learned", 
+                icon: 'check-small',
+                getCards: () => allCards.filter(c => c.lastReview > 0)
+            }
+        ];
+
+        defaultGroupItems.forEach((group, index) => {
+            const cards = group.getCards();
+            const groupItem = defaultGroupList.createEl("div", { 
+                cls: `flashcard-group-item ${group.name === this.currentGroupName ? 'active' : ''}` 
+            });
+            
+            const leftSection = groupItem.createEl("div", { cls: "flashcard-group-item-left" });
+            const iconSpan = leftSection.createEl("div", { cls: "flashcard-group-icon" });
+            setIcon(iconSpan, group.icon);
+            leftSection.createEl("span", { 
+                cls: "flashcard-group-name",
+                text: group.name 
+            });
+            
+            groupItem.createEl("span", { 
+                cls: "flashcard-group-count",
+                text: cards.length.toString()
+            });
+            
+            // 添加点击事件
+            groupItem.addEventListener('click', () => {
+                this.currentGroupName = group.name;
+                
+                // 移除其他组的激活状态
+                const allGroups = this.container.querySelectorAll('.flashcard-group-item');
+                allGroups.forEach(g => g.removeClass('active'));
+                
+                // 激活当前组
+                groupItem.addClass('active');
+                
+                // 更新当前卡片列表
+                this.cards = cards;
+                this.currentIndex = 0;
+                this.currentCard = this.cards[0] || null;
+                this.isFlipped = false;
+                this.render();
+            });
+        });
+        
+        // 添加自定义分组
+        const customGroups = sidebar.createEl("div", { cls: "flashcard-custom-groups" });
+        const addButton = customGroups.createEl("div", { cls: "flashcard-add-group" });
+        setIcon(addButton, 'plus');
+        addButton.addEventListener('click', () => this.showCreateGroupModal());
+        
+        const customGroupList = customGroups.createEl("div", { cls: "flashcard-group-list" });
+        const customGroupItems = this.fsrsManager.getCardGroups() || [];
+        
+        customGroupItems.forEach(group => {
+            const groupItem = customGroupList.createEl("div", { 
+                cls: `flashcard-group-item ${group.name === this.currentGroupName ? 'active' : ''}`
+            });
+            
+            const leftSection = groupItem.createEl("div", { cls: "flashcard-group-item-left" });
+            const iconSpan = leftSection.createEl("div", { cls: "flashcard-group-icon" });
+            setIcon(iconSpan, group.filter.startsWith('#') ? 'hash' : 'file');
+            leftSection.createEl("span", { 
+                cls: "flashcard-group-name",
+                text: group.name 
+            });
+            
+            const rightSection = groupItem.createEl("div", { cls: "flashcard-group-actions" });
+            const editButton = rightSection.createEl("div", { cls: "flashcard-group-action" });
+            setIcon(editButton, 'edit');
+            editButton.addEventListener('click', () => {
+                this.showEditGroupModal(group);
+            });
+
+            const deleteButton = rightSection.createEl("div", { cls: "flashcard-group-action" });
+            setIcon(deleteButton, 'trash');
+            deleteButton.addEventListener('click', async () => {
+                if (confirm(`确定要删除分组 "${group.name}" 吗？`)) {
+                    try {
+                        const deleted = await this.fsrsManager.deleteCardGroup(group.id);
+                        if (deleted) {
+                            // 如果删除的是当前分组，切换到 All Cards
+                            if (this.currentGroupName === group.name) {
+                                this.currentGroupName = 'All Cards';
+                            }
+                            new Notice('分组删除成功');
+                            this.render();
+                        } else {
+                            new Notice('删除分组失败');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting group:', error);
+                        new Notice('删除分组失败');
+                    }
+                }
+            });
+            
+            // 获取组内卡片数量
+            const cardsInGroup = this.fsrsManager.getCardsInGroup(group);
+            rightSection.createEl("span", { 
+                cls: "flashcard-group-count",
+                text: cardsInGroup.length.toString()
+            });
+            
+            // 添加点击事件以显示组内卡片
+            groupItem.addEventListener('click', () => {
+                this.currentGroupName = group.name;
+                
+                // 移除其他组的激活状态
+                const allGroups = this.container.querySelectorAll('.flashcard-group-item');
+                allGroups.forEach(g => g.removeClass('active'));
+                
+                // 激活当前组
+                groupItem.addClass('active');
+                
+                // 更新当前卡片列表
+                this.cards = cardsInGroup;
+                this.currentIndex = 0;
+                this.currentCard = this.cards[0] || null;
+                this.isFlipped = false;
+                this.render();
+            });
+        });
+
+        // 创建右侧内容区域
+        const contentArea = mainContainer.createEl("div", { cls: "flashcard-content-area" });
+
         // 创建闪卡容器
-        const cardContainer = this.container.createEl("div", { cls: "flashcard-container" });
+        const cardContainer = contentArea.createEl("div", { cls: "flashcard-container" });
         
         if (this.cards.length === 0) {
             cardContainer.createEl("div", { 
@@ -201,6 +483,9 @@ export class FlashcardComponent {
             text: this.currentCard.answer
         });
 
+        // 添加卡片点击事件
+        card.addEventListener("click", () => this.flipCard());
+        
         if (this.isFlipped) {
             card.addClass('is-flipped');
             
@@ -209,26 +494,21 @@ export class FlashcardComponent {
             
             this.ratingButtons.forEach(btn => {
                 const button = ratingContainer.createEl("button", {
-                    cls: `flashcard-rating-btn flashcard-rating-${btn.color}`,
+                    cls: 'flashcard-rating-button',
                     attr: {
-                        'data-rating': btn.rating.toString(),
+                        'data-rating': btn.ratingText,
                         'title': `${btn.label} (${btn.key})`
                     }
                 });
                 
-                // 添加图标和文本
-                const iconSpan = button.createSpan({ cls: 'flashcard-rating-icon' });
-                setIcon(iconSpan, btn.icon);
-                button.createSpan({ text: btn.label, cls: 'flashcard-rating-text' });
-                button.addEventListener("click", () => this.rateCard(btn.rating));
+                // 添加标签和天数
+                button.createSpan({ text: btn.label });
+                button.createSpan({ text: '1 Day', cls: 'days' });
+                button.addEventListener("click", (e) => {
+                    e.stopPropagation(); // 防止点击评分按钮时触发卡片翻转
+                    this.rateCard(btn.rating);
+                });
             });
-        } else {
-            // 只在正面显示翻转按钮
-            const flipButton = cardContainer.createEl("button", { 
-                cls: "flashcard-flip-btn",
-                text: t("Show Answer")
-            });
-            flipButton.addEventListener("click", () => this.flipCard());
         }
 
         // 显示进度
@@ -250,7 +530,12 @@ export class FlashcardComponent {
         document.addEventListener('keydown', (e) => {
             if (!this.isActive) return;
             
-            if (e.key === ' ' || e.key === 'Enter') {
+            // 如果在输入框中，不阻止任何键盘事件
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+            
+            if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 this.flipCard();
             } else if (this.isFlipped) {
