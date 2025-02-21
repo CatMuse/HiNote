@@ -735,9 +735,9 @@ textarea.flashcard-modal-input {
 }
 
 .flashcard-group-count {
-    font-size: 0.9em;
-    color: var(--text-muted);
-    background: var(--background-modifier-border);
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--background-secondary);
     padding: 2px 8px;
     border-radius: 10px;
 }
