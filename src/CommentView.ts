@@ -709,8 +709,18 @@ export class CommentView extends ItemView {
 
         allFilesItem.addEventListener("click", () => {
             this.currentFile = null;
+            this.isFlashcardMode = false;
             this.updateHighlights();
             this.updateFileListSelection();
+            
+            // 显示搜索容器
+            this.searchContainer.style.display = '';
+            
+            // 隐藏搜索图标按钮
+            const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+            if (iconButtons) {
+                iconButtons.style.display = 'none';
+            }
         });
 
         // 创建左侧内容容器
@@ -740,6 +750,9 @@ export class CommentView extends ItemView {
             this.currentFile = null;
             this.isFlashcardMode = true;
             this.updateFileListSelection();
+            
+            // 隐藏搜索容器
+            this.searchContainer.style.display = 'none';
 
             // 获取所有文件
             const files = await this.getFilesWithHighlights();
@@ -758,7 +771,7 @@ export class CommentView extends ItemView {
             
             // 创建或更新闪卡组件
             if (!this.flashcardComponent) {
-                this.flashcardComponent = new FlashcardComponent(this.highlightContainer);
+                this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
                 this.flashcardComponent.setLicenseManager(this.licenseManager);
             }
             
@@ -818,7 +831,7 @@ export class CommentView extends ItemView {
             
             // 创建或更新闪卡组件
             if (!this.flashcardComponent) {
-                this.flashcardComponent = new FlashcardComponent(this.highlightContainer);
+                this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
                 this.flashcardComponent.setLicenseManager(this.licenseManager);
             }
             
@@ -916,6 +929,13 @@ export class CommentView extends ItemView {
                     this.flashcardComponent = null;
                 }
                 this.updateFileListSelection();
+                // 显示搜索容器
+                this.searchContainer.style.display = '';
+                // 显示搜索图标按钮
+                const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+                if (iconButtons) {
+                    iconButtons.style.display = '';
+                }
                 await this.updateHighlights();
             });
         }
