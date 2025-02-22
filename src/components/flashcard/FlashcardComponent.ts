@@ -567,29 +567,29 @@ export class FlashcardComponent {
             // 添加卡片点击事件
             card.addEventListener("click", () => this.flipCard());
             
+            // 创建评分按钮容器（无论是否翻转都创建）
+            const ratingContainer = cardContainer.createEl("div", { cls: "flashcard-rating" });
+            
+            this.ratingButtons.forEach(btn => {
+                const button = ratingContainer.createEl("button", {
+                    cls: 'flashcard-rating-button',
+                    attr: {
+                        'data-rating': btn.ratingText,
+                        'title': `${btn.label} (${btn.key})`
+                    }
+                });
+                
+                // 添加标签和天数
+                button.createSpan({ text: btn.label });
+                button.createSpan({ text: '1 Day', cls: 'days' });
+                button.addEventListener("click", (e) => {
+                    e.stopPropagation(); // 防止点击评分按钮时触发卡片翻转
+                    this.rateCard(btn.rating);
+                });
+            });
+            
             if (this.isFlipped) {
                 card.classList.add('is-flipped');
-                
-                // 创建评分按钮
-                const ratingContainer = cardContainer.createEl("div", { cls: "flashcard-rating" });
-                
-                this.ratingButtons.forEach(btn => {
-                    const button = ratingContainer.createEl("button", {
-                        cls: 'flashcard-rating-button',
-                        attr: {
-                            'data-rating': btn.ratingText,
-                            'title': `${btn.label} (${btn.key})`
-                        }
-                    });
-                    
-                    // 添加标签和天数
-                    button.createSpan({ text: btn.label });
-                    button.createSpan({ text: '1 Day', cls: 'days' });
-                    button.addEventListener("click", (e) => {
-                        e.stopPropagation(); // 防止点击评分按钮时触发卡片翻转
-                        this.rateCard(btn.rating);
-                    });
-                });
             }
 
             // 显示进度
@@ -671,20 +671,10 @@ export class FlashcardComponent {
         const cardEl = this.container.querySelector(".flashcard");
         if (!cardEl) return;
         
-        if (this.isFlipped) {
-            cardEl.addClass('is-flipped');
-        } else {
-            cardEl.removeClass('is-flipped');
-        }
+        cardEl.classList.toggle("is-flipped", this.isFlipped);
         
         // 保存状态
         this.saveState();
-        
-        // 重新渲染以显示或隐藏评分按钮
-        this.render();
-        if (cardEl) {
-            cardEl.classList.toggle("is-flipped", this.isFlipped);
-        }
     }
 
     private nextCard() {
