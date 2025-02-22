@@ -31,7 +31,7 @@ export class FlashcardComponent {
 
     constructor(container: HTMLElement, plugin: any) {
         this.container = container;
-        this.fsrsManager = new FSRSManager(plugin);
+        this.fsrsManager = plugin.fsrsManager;
         
         // 添加键盘快捷键
         this.setupKeyboardShortcuts();
@@ -50,38 +50,6 @@ export class FlashcardComponent {
 
 
     setCards(highlights: HiNote[]) {
-        // Filter out virtual highlights and convert to FlashcardState
-        const realHighlights = highlights.filter(highlight => !highlight.isVirtual);
-        realHighlights.forEach(highlight => {
-            const filePath = highlight.filePath || '';
-            const existingCard = this.fsrsManager.getCardsByFile(filePath)
-                .find(card => card.text === highlight.text);
-            
-            // 过滤掉标签评论，并合并所有评论内容
-            const nonTagComments = highlight.comments?.filter(comment => 
-                !comment.content.startsWith('#')
-            ) || [];
-            const combinedAnswer = nonTagComments
-                .map(comment => comment.content)
-                .join('<hr>');
-            
-            if (!existingCard) {
-                // 创建新卡片
-                this.fsrsManager.addCard(
-                    highlight.text,
-                    combinedAnswer,
-                    filePath
-                );
-            } else if (combinedAnswer !== existingCard.answer) {
-                // 如果评论内容有更新，创建新的卡片版本
-                this.fsrsManager.addCard(
-                    highlight.text,
-                    combinedAnswer,
-                    filePath
-                );
-            }
-        });
-        
         // 获取所有到期的卡片
         this.cards = this.fsrsManager.getDueCards();
         this.currentIndex = 0;

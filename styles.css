@@ -551,7 +551,7 @@ textarea.flashcard-modal-input {
 }
 
 .flashcard-sidebar {
-    width: 250px;
+    width: 280px;
     border-right: 1px solid var(--background-modifier-border);
     padding-right: 20px;
     display: flex;

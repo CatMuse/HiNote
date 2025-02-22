@@ -802,29 +802,36 @@ export class CommentView extends ItemView {
 
         // 更新卡片数量的函数
         const updateFlashcardCount = async () => {
-            const files = await this.getFilesWithHighlights();
-            let totalCards = 0;
-            for (const file of files) {
-                const fileHighlights = this.commentStore.getFileComments(file);
-                // 只计算非虚拟高亮且有评论的数量
-                totalCards += fileHighlights.filter(h => !h.isVirtual && h.comments?.length > 0).length;
-            }
-            flashcardCount.textContent = `${totalCards}`;
+            // 使用 getLatestCards() 获取最新版本的卡片数量
+            const latestCards = this.plugin.fsrsManager.getLatestCards();
+            flashcardCount.textContent = `${latestCards.length}`;
         };
 
         // 初始化卡片数量
         updateFlashcardCount();
 
         flashcardLeft.addEventListener("click", async () => {
-            // 获取所有文件
-            const files = await this.getFilesWithHighlights();
+            // 获取最新版本的卡片
+            const latestCards = this.plugin.fsrsManager.getLatestCards();
             
-            // 获取所有高亮和评论数据
-            const allHighlights: HiNote[] = [];
-            for (const file of files) {
-                const fileHighlights = this.commentStore.getFileComments(file);
-                allHighlights.push(...fileHighlights);
-            }
+            // 将 FlashcardState 转换为 HiNote
+            const allHighlights: HiNote[] = latestCards.map(card => ({
+                id: card.id,
+                text: card.text,
+                filePath: card.filePath,
+                comments: [{
+                    id: card.id + '-answer',
+                    content: card.answer,
+                    createdAt: card.createdAt,
+                    updatedAt: card.lastReview || card.createdAt
+                }],
+                isVirtual: false,
+                position: 0,
+                paragraphOffset: 0,
+                paragraphId: '',
+                createdAt: card.createdAt,
+                updatedAt: card.lastReview || card.createdAt
+            }));
 
             // 清空当前容器
             this.highlightContainer.empty();

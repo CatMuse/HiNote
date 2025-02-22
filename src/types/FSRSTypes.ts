@@ -15,6 +15,7 @@ export interface FlashcardState {
     text: string;         // 卡片正面内容
     answer: string;       // 卡片背面内容
     filePath?: string;    // 关联的文件路径
+    createdAt: number;    // 卡片创建时间戳
 }
 
 export interface FlashcardProgress {

@@ -7,12 +7,14 @@ import { PluginSettings, DEFAULT_SETTINGS, HighlightSettings } from './src/types
 import html2canvas from 'html2canvas';
 import { ChatView } from './src/components/ChatView';
 import { t } from './src/i18n';
+import { FSRSManager } from './src/services/FSRSManager';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
 	DEFAULT_SETTINGS = DEFAULT_SETTINGS;
 	private commentStore: CommentStore;
 	private highlightDecorator: HighlightDecorator;
+	public fsrsManager: FSRSManager;
 
 	async onload() {
 		// 加载设置
@@ -24,6 +26,9 @@ export default class CommentPlugin extends Plugin {
 		// 初始化评论存储
 		this.commentStore = new CommentStore(this);
 		await this.commentStore.loadComments();
+
+		// 初始化 FSRS 管理器
+		this.fsrsManager = new FSRSManager(this);
 
 		// 初始化高亮装饰器
 		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);

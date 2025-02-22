@@ -80,7 +80,8 @@ export class FSRSService {
             reviewHistory: [],
             text,
             answer,
-            filePath
+            filePath,
+            createdAt: now // 创建时间为当前时间
         };
     }
 
