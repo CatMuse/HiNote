@@ -549,7 +549,7 @@ export class FlashcardComponent {
             // 左侧标题
             const title = header.createEl("div", { cls: "flashcard-group-title" });
             const iconSpan = title.createEl("span", { cls: "flashcard-group-icon" });
-            setIcon(iconSpan, group.filter.startsWith('#') ? 'hash' : 'file');
+            setIcon(iconSpan, group.filter.startsWith('#') ? 'hash' : 'gallery-horizontal-end');
             title.createEl("span", { 
                 cls: "flashcard-group-name",
                 text: group.name 
