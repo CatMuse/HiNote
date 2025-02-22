@@ -85,6 +85,17 @@
     background-color: var(--background-modifier-hover);
 }
 
+.highlight-card-filename svg {
+    opacity: 0.7;
+    transition: all 200ms ease-in-out;
+}
+
+.highlight-card-filename:hover svg {
+    opacity: 1;
+    transform: scale(1.1);
+    color: var(--text-accent);
+}
+
 .highlight-card.selected {
     border-color: var(--interactive-accent);
     box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -783,7 +794,7 @@ textarea.flashcard-modal-input {
 }
 
 .flashcard-custom-groups .flashcard-group-action:hover {
-    color: var(--text-normal);
+    color: var(--text-accent);
     background: var(--background-modifier-hover);
 }
 
@@ -800,7 +811,7 @@ textarea.flashcard-modal-input {
 .flashcard-custom-groups .flashcard-group-stat {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-size: 14px;
     color: var(--text-muted);
 }
@@ -2683,6 +2694,7 @@ hr {
     font-size: 12px;
     min-width: 60px;
     text-align: right;
+    font-weight: 500;
 }
 
 /* 使用 Obsidian 的内置提示样式 */

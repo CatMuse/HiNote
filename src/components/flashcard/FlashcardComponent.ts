@@ -859,10 +859,10 @@ export class FlashcardComponent {
         // 更新进度数字
         const progressText = this.progressContainer.querySelector('.progress-text');
         if (progressText) {
-            progressText.textContent = `${this.currentIndex + 1}/${this.cards.length} ${Math.round(progressWidth)}%`;
+            progressText.textContent = `${this.currentIndex + 1}/${this.cards.length} | ${Math.round(progressWidth)}%`;
         } else {
             const newProgressText = this.progressContainer.createSpan({ cls: 'progress-text' });
-            newProgressText.textContent = `${this.currentIndex + 1}/${this.cards.length} ${Math.round(progressWidth)}%`;
+            newProgressText.textContent = `${this.currentIndex + 1}/${this.cards.length} | ${Math.round(progressWidth)}%`;
         }
         
         // 更新分组名称
