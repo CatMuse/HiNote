@@ -52,8 +52,25 @@ export class FlashcardComponent {
 
 
     setCards(highlights: HiNote[]) {
-        // 获取所有到期的卡片
-        this.cards = this.fsrsManager.getDueCards();
+        // 获取当前分组的卡片
+        if (this.currentGroupName === 'All Cards') {
+            this.cards = this.fsrsManager.getLatestCards();
+        } else if (this.currentGroupName === 'Due Today') {
+            this.cards = this.fsrsManager.getDueCards();
+        } else if (this.currentGroupName === 'New Cards') {
+            this.cards = this.fsrsManager.getLatestCards().filter(c => c.lastReview === 0);
+        } else if (this.currentGroupName === 'Learned') {
+            this.cards = this.fsrsManager.getLatestCards().filter(c => c.lastReview > 0);
+        } else {
+            // 自定义分组
+            const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
+            if (group) {
+                this.cards = this.fsrsManager.getCardsInGroup(group);
+            } else {
+                this.cards = this.fsrsManager.getLatestCards();
+            }
+        }
+        
         this.currentIndex = 0;
         this.isFlipped = false;
         this.currentCard = this.cards[0] || null;
