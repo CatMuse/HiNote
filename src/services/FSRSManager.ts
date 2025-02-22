@@ -19,13 +19,36 @@ export class FSRSManager {
     constructor(plugin: any) {
         this.plugin = plugin;
         this.fsrsService = new FSRSService();
-        this.storage = this.loadStorage();
+        this.storage = {
+            version: '1.0',
+            cards: {},
+            globalStats: {
+                totalReviews: 0,
+                averageRetention: 1,
+                streakDays: 0,
+                lastReviewDate: 0
+            },
+            cardGroups: [],
+            uiState: {
+                currentGroupName: 'All Cards',
+                currentIndex: 0,
+                isFlipped: false
+            }
+        };
         
         // 自动保存更改
         this.saveStorageDebounced = debounce(this.saveStorage.bind(this), 1000, true);
+        
+        // 异步加载存储数据
+        this.loadStorage().then(storage => {
+            console.log('Async storage loaded:', storage);
+            this.storage = storage;
+        }).catch(error => {
+            console.error('Failed to load storage:', error);
+        });
     }
 
-    private loadStorage(): FSRSStorage {
+    private async loadStorage(): Promise<FSRSStorage> {
         const defaultStorage: FSRSStorage = {
             version: '1.0',
             cards: {},
@@ -44,25 +67,26 @@ export class FSRSManager {
         };
 
         try {
-            // 确保 settings 存在
-            if (!this.plugin.settings) {
-                this.plugin.settings = {};
-            }
+            const data = await this.plugin.loadData();
+            console.log('Loading FSRS storage, raw data:', data);
             
-            // 确保 fsrsData 存在
-            if (!this.plugin.settings.fsrsData) {
-                this.plugin.settings.fsrsData = JSON.stringify(defaultStorage);
+            if (!data?.fsrs) {
+                console.log('No FSRS data found, using default storage');
+                return defaultStorage;
             }
 
-            const stored = this.plugin.settings.fsrsData;
-            const parsed = JSON.parse(stored);
-            
-            // 确保所有必要的字段都存在
-            return {
+            // Ensure cardGroups is properly initialized
+            const cardGroups = Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [];
+            console.log('Loaded card groups:', cardGroups);
+
+            const storage = {
                 ...defaultStorage,
-                ...parsed,
-                cardGroups: Array.isArray(parsed.cardGroups) ? parsed.cardGroups : []
+                ...data.fsrs,
+                cardGroups
             };
+            
+            console.log('Final storage state:', storage);
+            return storage;
         } catch (error) {
             console.error('Failed to load FSRS storage:', error);
             return defaultStorage;
@@ -71,29 +95,38 @@ export class FSRSManager {
 
     private async saveStorage() {
         try {
-            console.log('Saving storage:', this.storage);
+            // Log current storage state
+            console.log('Saving FSRS storage, current state:', {
+                cardGroupsCount: this.storage.cardGroups.length,
+                cardGroups: this.storage.cardGroups,
+                cardsCount: Object.keys(this.storage.cards).length
+            });
+
+            // 加载当前数据
+            const currentData = await this.plugin.loadData() || {};
             
-            // 确保 settings 存在
-            if (!this.plugin.settings) {
-                this.plugin.settings = {};
+            // Ensure cardGroups is properly initialized before saving
+            if (!Array.isArray(this.storage.cardGroups)) {
+                console.warn('cardGroups is not an array, initializing as empty array');
+                this.storage.cardGroups = [];
             }
+
+            // 更新 FSRS 数据，保持其他数据不变
+            const dataToSave = {
+                ...currentData,
+                fsrs: this.storage
+            };
+
+            await this.plugin.saveData(dataToSave);
             
-            // 保存数据
-            this.plugin.settings.fsrsData = JSON.stringify(this.storage);
+            console.log('FSRS data saved successfully');
             
-            // 如果 saveSettings 方法存在，则调用
-            if (typeof this.plugin.saveSettings === 'function') {
-                await this.plugin.saveSettings();
-                console.log('Settings saved through plugin');
-            } else {
-                // 如果没有 saveSettings，则至少保存在内存中
-                console.log('No saveSettings method found, data kept in memory');
-            }
-            
-            console.log('Storage saved successfully');
+            // Verify save
+            const verifyData = await this.plugin.loadData();
+            console.log('Verification - saved card groups:', verifyData?.fsrs?.cardGroups);
         } catch (error) {
             console.error('Failed to save FSRS storage:', error);
-            throw error; // 向上传递错误以便调用者知道保存失败
+            throw error;
         }
     }
 
@@ -276,15 +309,23 @@ export class FSRSManager {
         }
     }
 
-    public reset(): void {
-        this.storage = this.loadStorage();
-        this.saveStorage();
+    public async reset(): Promise<void> {
+        try {
+            this.storage = await this.loadStorage();
+            await this.saveStorage();
+            console.log('Storage reset successfully');
+        } catch (error) {
+            console.error('Failed to reset storage:', error);
+            throw error;
+        }
     }
 
     // 卡片分组管理
     public getCardGroups(): CardGroup[] {
-        if (!this.storage.cardGroups) {
+        if (!Array.isArray(this.storage.cardGroups)) {
+            console.warn('cardGroups not initialized, creating new array');
             this.storage.cardGroups = [];
+            this.saveStorageDebounced();
         }
         return this.storage.cardGroups;
     }

@@ -67,6 +67,36 @@ export class FlashcardComponent {
 
 
     setCards(highlights: HiNote[]) {
+        console.log('Setting cards with highlights:', highlights);
+
+        // 为每个高亮创建或更新闪卡
+        for (const highlight of highlights) {
+            // 跳过标签高亮
+            if (highlight.text?.startsWith('#')) continue;
+            
+            // 检查是否有评论
+            if (!highlight.comments?.length) continue;
+            
+            // 合并所有评论作为答案
+            const answer = highlight.comments.map(c => c.content).join('<hr>');
+            
+            // 检查是否已存在相同内容的卡片
+            if (highlight.filePath) {
+                const existingCards = this.fsrsManager.getCardsByFile(highlight.filePath)
+                    .filter(card => card.text === highlight.text);
+                
+                if (existingCards.length === 0) {
+                    // 创建新卡片
+                    console.log('Creating new card for highlight:', highlight);
+                    this.fsrsManager.addCard(highlight.text, answer, highlight.filePath);
+                } else {
+                    // 更新现有卡片
+                    console.log('Updating existing card for highlight:', highlight);
+                    this.fsrsManager.updateCardContent(highlight.text, answer, highlight.filePath);
+                }
+            }
+        }
+
         // 获取当前分组的卡片
         if (this.currentGroupName === 'All Cards') {
             this.cards = this.fsrsManager.getLatestCards();
@@ -85,6 +115,8 @@ export class FlashcardComponent {
                 this.cards = this.fsrsManager.getLatestCards();
             }
         }
+        
+        console.log('Updated cards:', this.cards);
         
         this.currentIndex = 0;
         this.isFlipped = false;

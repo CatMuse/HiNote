@@ -17,17 +17,24 @@ export default class CommentPlugin extends Plugin {
 	public fsrsManager: FSRSManager;
 
 	async onload() {
+		console.log('[Plugin] Starting plugin initialization...');
+
 		// 加载设置
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loadedData = await this.loadData();
+		console.log('[Plugin] Loaded data:', loadedData);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+		console.log('[Plugin] Initialized settings:', this.settings);
 
 		// 将 html2canvas 添加到全局对象
 		(window as any).html2canvas = html2canvas;
 
 		// 初始化评论存储
+		console.log('[Plugin] Initializing CommentStore...');
 		this.commentStore = new CommentStore(this);
 		await this.commentStore.loadComments();
 
 		// 初始化 FSRS 管理器
+		console.log('[Plugin] Initializing FSRSManager...');
 		this.fsrsManager = new FSRSManager(this);
 
 		// 初始化高亮装饰器
@@ -129,16 +136,32 @@ export default class CommentPlugin extends Plugin {
 		});
 	}
 
-	onunload() {
+	async onunload() {
+		console.log('[Plugin] Starting plugin cleanup...');
+
+		// 保存最终状态
+		try {
+			console.log('[Plugin] Saving final comment state...');
+			await this.commentStore.saveComments();
+			const finalData = await this.loadData();
+			console.log('[Plugin] Final saved data:', finalData);
+		} catch (error) {
+			console.error('[Plugin] Error saving final state:', error);
+		}
+
 		// 清理高亮装饰器
 		if (this.highlightDecorator) {
+			console.log('[Plugin] Disabling highlight decorator...');
 			this.highlightDecorator.disable();
 		}
 
 		// 如果对话窗口打开，关闭它
 		if (ChatView.instance) {
+			console.log('[Plugin] Closing chat view...');
 			ChatView.instance.close();
 		}
+
+		console.log('[Plugin] Cleanup completed.');
 	}
 
 	async loadSettings() {
