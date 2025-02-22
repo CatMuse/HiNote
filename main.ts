@@ -9,12 +9,15 @@ import { ChatView } from './src/components/ChatView';
 import { t } from './src/i18n';
 import { FSRSManager } from './src/services/FSRSManager';
 
+import { EventManager } from './src/services/EventManager';
+
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
 	DEFAULT_SETTINGS = DEFAULT_SETTINGS;
 	private commentStore: CommentStore;
 	private highlightDecorator: HighlightDecorator;
 	public fsrsManager: FSRSManager;
+	public eventManager: EventManager;
 
 	async onload() {
 		console.log('[Plugin] Starting plugin initialization...');
@@ -32,6 +35,10 @@ export default class CommentPlugin extends Plugin {
 		console.log('[Plugin] Initializing CommentStore...');
 		this.commentStore = new CommentStore(this);
 		await this.commentStore.loadComments();
+
+		// 初始化事件管理器
+		console.log('[Plugin] Initializing EventManager...');
+		this.eventManager = new EventManager(this.app);
 
 		// 初始化 FSRS 管理器
 		console.log('[Plugin] Initializing FSRSManager...');

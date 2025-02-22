@@ -766,17 +766,18 @@ export class FlashcardComponent {
         // 更新卡片状态
         const updatedCard = this.fsrsManager.reviewCard(this.currentCard.id, rating);
         if (updatedCard) {
-            // 移除当前卡片
-            this.cards.splice(this.currentIndex, 1);
+            // 更新当前卡片的状态
+            this.cards[this.currentIndex] = updatedCard;
             
-            // 如果还有卡片，继续显示
-            if (this.cards.length > 0) {
-                this.currentIndex = this.currentIndex % this.cards.length;
-                this.currentCard = this.cards[this.currentIndex];
+            // 移动到下一张卡片
+            if (this.currentIndex < this.cards.length - 1) {
+                this.currentIndex++;
             } else {
-                this.currentCard = null;
+                // 如果是最后一张卡片，回到第一张
+                this.currentIndex = 0;
             }
             
+            this.currentCard = this.cards[this.currentIndex];
             this.isFlipped = false;
             this.saveState();
             this.render();
@@ -885,16 +886,20 @@ export class FlashcardComponent {
         if (!this.progressContainer || this.cards.length === 0) return;
         
         // 更新进度条宽度和数字
-        const progressWidth = ((this.currentIndex + 1) / this.cards.length) * 100;
+        // 进度百分比应该基于已完成的卡片数量
+        const completedCards = this.currentIndex;
+        const progressWidth = (completedCards / this.cards.length) * 100;
         this.progressContainer.style.setProperty('--progress-width', `${progressWidth}%`);
         
         // 更新进度数字
         const progressText = this.progressContainer.querySelector('.progress-text');
+        const progressString = `${this.currentIndex + 1}/${this.cards.length} | ${Math.round(progressWidth)}%`;
+        
         if (progressText) {
-            progressText.textContent = `${this.currentIndex + 1}/${this.cards.length} | ${Math.round(progressWidth)}%`;
+            progressText.textContent = progressString;
         } else {
             const newProgressText = this.progressContainer.createSpan({ cls: 'progress-text' });
-            newProgressText.textContent = `${this.currentIndex + 1}/${this.cards.length} | ${Math.round(progressWidth)}%`;
+            newProgressText.textContent = progressString;
         }
         
         // 更新分组名称

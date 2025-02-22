@@ -164,6 +164,7 @@ export class FSRSManager {
         const card = this.fsrsService.initializeCard(text, answer, filePath);
         this.storage.cards[card.id] = card;
         this.saveStorageDebounced();
+        this.plugin.eventManager.emitFlashcardChanged();
         return card;
     }
 
@@ -187,6 +188,7 @@ export class FSRSManager {
                     answer
                 };
                 this.saveStorageDebounced();
+                this.plugin.eventManager.emitFlashcardChanged();
             }
         }
     }
@@ -199,16 +201,21 @@ export class FSRSManager {
      */
     public deleteCardsByContent(filePath: string, text?: string, answer?: string): void {
         const cards = this.getCardsByFile(filePath);
+        let deleted = false;
         
         for (const card of cards) {
             if (!text && !answer || // 如果没有指定text和answer，删除该文件的所有卡片
                 (text && card.text === text) || // 如果指定了text，匹配text
                 (answer && card.answer === answer)) { // 如果指定了answer，匹配answer
                 delete this.storage.cards[card.id];
+                deleted = true;
             }
         }
         
-        this.saveStorageDebounced();
+        if (deleted) {
+            this.saveStorageDebounced();
+            this.plugin.eventManager.emitFlashcardChanged();
+        }
     }
 
     public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
@@ -222,6 +229,7 @@ export class FSRSManager {
         this.updateGlobalStats(rating, updatedCard.retrievability);
         
         this.saveStorageDebounced();
+        this.plugin.eventManager.emitFlashcardChanged();
         return updatedCard;
     }
 
@@ -279,6 +287,7 @@ export class FSRSManager {
         if (this.storage.cards[cardId]) {
             delete this.storage.cards[cardId];
             this.saveStorageDebounced();
+            this.plugin.eventManager.emitFlashcardChanged();
             return true;
         }
         return false;

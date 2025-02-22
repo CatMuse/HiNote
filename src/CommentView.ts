@@ -810,6 +810,13 @@ export class CommentView extends ItemView {
         // 初始化卡片数量
         updateFlashcardCount();
 
+        // 监听闪卡变化事件
+        this.registerEvent(
+            this.plugin.eventManager.on('flashcard:changed', () => {
+                updateFlashcardCount();
+            })
+        );
+
         flashcardLeft.addEventListener("click", async () => {
             // 获取最新版本的卡片
             const latestCards = this.plugin.fsrsManager.getLatestCards();
