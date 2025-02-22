@@ -895,8 +895,8 @@ textarea.flashcard-modal-input {
 }
 
 .flashcard-content {
-    font-size: 1.4em;
-    line-height: 1.8;
+    font-size: 1.2em;
+    line-height: 1.75;
     text-align: left;
     max-width: 90%;
     overflow-y: auto;
@@ -911,22 +911,6 @@ textarea.flashcard-modal-input {
     height: 1px;
     background: var(--text-muted);
     background-color: var(--background-modifier-border);
-}
-
-.flashcard-front {
-    transform: rotateY(0deg);
-}
-
-.flashcard-back {
-    transform: rotateY(180deg);
-}
-
-.flashcard.is-flipped .flashcard-front {
-    transform: rotateY(180deg);
-}
-
-.flashcard.is-flipped .flashcard-back {
-    transform: rotateY(360deg);
 }
 
 .flashcard-flip-btn {
@@ -952,21 +936,6 @@ textarea.flashcard-modal-input {
     padding: 0 20px;
 }
 
-.flashcard-rating-btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    font-size: 1.2em;
-    font-weight: 500;
-    min-width: 140px;
-}
-
 .flashcard-rating-icon {
     display: flex;
     align-items: center;
@@ -983,8 +952,9 @@ textarea.flashcard-modal-input {
     font-weight: 600;
 }
 
-.flashcard-rating-btn:hover {
-    transform: translateY(-2px);
+.flashcard-rating-button span,
+.flashcard-rating-button .days {
+    color: white;
 }
 
 .flashcard-counter {
@@ -1018,11 +988,6 @@ textarea.flashcard-modal-input {
 
     .flashcard-rating {
         flex-wrap: wrap;
-    }
-
-    .flashcard-rating-btn {
-        flex: 1;
-        min-width: 120px;
     }
 }
 

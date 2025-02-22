@@ -1,4 +1,4 @@
-import { Notice, setIcon } from "obsidian";
+import { Notice, setIcon, TFile } from "obsidian";
 import { HiNote } from "../../CommentStore";
 import { LicenseManager } from "../../services/LicenseManager";
 import { FSRSManager } from "../../services/FSRSManager";
@@ -20,6 +20,7 @@ export class FlashcardComponent {
     private fsrsManager: FSRSManager;
     private currentCard: FlashcardState | null = null;
     private currentGroupName: string = 'All Cards';
+    private app: any;
     
     // 评分按钮配置
     private readonly ratingButtons = [
@@ -32,6 +33,7 @@ export class FlashcardComponent {
     constructor(container: HTMLElement, plugin: any) {
         this.container = container;
         this.fsrsManager = plugin.fsrsManager;
+        this.app = plugin.app;
         
         // 添加键盘快捷键
         this.setupKeyboardShortcuts();
@@ -598,10 +600,15 @@ export class FlashcardComponent {
 
             // 如果有关联文件，显示文件名
             if (this.currentCard.filePath) {
-                cardContainer.createEl("div", {
-                    cls: "flashcard-source",
+                const sourceEl = cardContainer.createEl("div", {
+                    cls: "flashcard-source"
+                });
+                const fileNameText = sourceEl.createEl("span", {
                     text: this.currentCard.filePath.split('/').pop() || ""
                 });
+                
+                // 添加页面预览功能
+                this.addPagePreview(fileNameText, this.currentCard.filePath);
             }
         } else {
             // 如果没有当前卡片，显示提示信息
@@ -694,6 +701,39 @@ export class FlashcardComponent {
             currentGroupName: this.currentGroupName,
             currentIndex: this.currentIndex,
             isFlipped: this.isFlipped
+        });
+    }
+
+    private addPagePreview(element: HTMLElement, filePath: string | undefined) {
+        if (!filePath) return;
+
+        // 获取文件对象
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (!(file instanceof TFile)) return;
+
+        let hoverTimeout: NodeJS.Timeout;
+
+        // 添加悬停事件
+        element.addEventListener("mouseenter", (event) => {
+            hoverTimeout = setTimeout(async () => {
+                const target = event.target as HTMLElement;
+                
+                // 触发 Obsidian 的页面预览事件
+                this.app.workspace.trigger('hover-link', {
+                    event,
+                    source: 'hi-note',
+                    hoverParent: target,
+                    targetEl: target,
+                    linktext: file.path
+                });
+            }, 300); // 300ms 的延迟显示
+        });
+
+        // 添加鼠标离开事件
+        element.addEventListener("mouseleave", () => {
+            if (hoverTimeout) {
+                clearTimeout(hoverTimeout);
+            }
         });
     }
 
