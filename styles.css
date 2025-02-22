@@ -475,6 +475,60 @@
 
 /* Flashcard styles */
 
+/* 删除重复代码 */
+
+.flashcard-progress-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress-width, 0%);
+    background: linear-gradient(to right, var(--interactive-accent-hover), var(--interactive-accent));
+    opacity: 0.15;
+    transition: width 0.3s ease;
+    z-index: 0;
+    border-radius: 8px 0 0 8px;
+}
+
+/* 当进度为 100% 时显示完整圆角 */
+.flashcard-progress-container::before[style*="width: 100%"] {
+    border-radius: 8px;
+}
+
+.flashcard-progress-container > * {
+    position: relative;
+    z-index: 1;
+}
+
+.flashcard-progress-text {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.flashcard-progress-text .separator {
+    color: var(--text-faint);
+}
+
+.flashcard-progress-text .stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.flashcard-progress-text .stat-value {
+    color: var(--text-normal);
+}
+
+.flashcard-progress-text .group-name {
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+
 .flashcard-modal-input {
     width: 100%;
     padding: 8px;
@@ -844,12 +898,14 @@ textarea.flashcard-modal-input {
 }
 
 .flashcard-progress-container {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
+    padding: 8px 12px;
     background: var(--background-secondary);
     border-radius: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .flashcard-stats {
@@ -2603,6 +2659,35 @@ hr {
 
 .flashcard-activation-button:hover {
     background: var(--interactive-accent-hover);
+}
+
+/* 帮助图标样式 */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    color: var(--text-faint);
+    cursor: help;
+    opacity: 0.7;
+    font-size: 14px;
+}
+
+.help-icon:hover {
+    color: var(--text-accent);
+    opacity: 0.9;
+}
+
+.progress-text {
+    margin-left: auto;
+    color: var(--text-accent);
+    font-size: 12px;
+    min-width: 60px;
+    text-align: right;
+}
+
+/* 使用 Obsidian 的内置提示样式 */
+.help-icon[aria-label] {
+    position: relative;
 }
 
 .highlight-text-content {

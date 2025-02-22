@@ -6,11 +6,13 @@ import {
     FlashcardState, 
     FSRS_RATING, 
     FSRSRating, 
-    CardGroup
+    CardGroup,
+    FlashcardProgress
 } from "../../types/FSRSTypes";
 import { t } from "../../i18n";
 
 export class FlashcardComponent {
+    private progressContainer: HTMLElement | null = null;
     private container: HTMLElement;
     private currentIndex: number = 0;
     private isFlipped: boolean = false;
@@ -361,13 +363,63 @@ export class FlashcardComponent {
         this.container.addClass('flashcard-mode');
 
         // 创建进度指示器
-        const progressContainer = this.container.createEl("div", { cls: "flashcard-progress-container" });
-        const progress = this.fsrsManager.getProgress();
+        this.progressContainer = this.container.createEl("div", { cls: "flashcard-progress-container" });
         
-        progressContainer.createEl("div", {
-            cls: "flashcard-stats",
-            text: `Due: ${progress.due} | New: ${progress.newCards} | Learned: ${progress.learned} | Retention: ${(progress.retention * 100).toFixed(1)}%`
+        // 创建进度文本容器
+        const progressText = this.progressContainer.createEl("div", { cls: "flashcard-progress-text" });
+        
+        // 添加分组名称
+        progressText.createSpan({
+            text: this.currentGroupName,
+            cls: "group-name"
         });
+
+        // 添加分隔符
+        progressText.createSpan({
+            text: "|",
+            cls: "separator"
+        });
+
+        // 获取统计数据
+        const progress = this.getGroupProgress();
+        
+        // 添加统计信息
+        const stats = [
+            { label: "Due", value: progress.due },
+            { label: "New", value: progress.newCards },
+            { label: "Learned", value: progress.learned },
+            { label: "Retention", value: `${(progress.retention * 100).toFixed(1)}%` }
+        ];
+
+        stats.forEach((stat, index) => {
+            // 添加分隔符
+            if (index > 0) {
+                progressText.createSpan({
+                    text: "|",
+                    cls: "separator"
+                });
+            }
+
+            const statEl = progressText.createEl("div", { cls: "stat" });
+            statEl.createSpan({ text: stat.label + ": " });
+            statEl.createSpan({ 
+                text: stat.value.toString(),
+                cls: "stat-value"
+            });
+            
+            // 为 Retention 添加问号图标和提示
+            if (stat.label === "Retention") {
+                const helpIcon = statEl.createSpan({ cls: "help-icon" });
+                setIcon(helpIcon, "help-circle");
+                helpIcon.setAttribute("aria-label", 
+                    "记忆保持率 = (总复习次数 - 遗忘次数) / 总复习次数\n" +
+                    "该指标反映了你的学习效果，越高说明记忆效果越好"
+                );
+            }
+        });
+        
+        // 更新进度条
+        this.updateProgress();
 
         // 创建主容器
         const mainContainer = this.container.createEl("div", { cls: "flashcard-main-container" });
@@ -696,6 +748,7 @@ export class FlashcardComponent {
             this.isFlipped = false;
             this.saveState();
             this.render();
+            this.updateProgress();
         }
     }
 
@@ -710,6 +763,7 @@ export class FlashcardComponent {
         
         // 保存状态
         this.saveState();
+        this.updateProgress();
     }
 
     private nextCard() {
@@ -718,6 +772,7 @@ export class FlashcardComponent {
             this.isFlipped = false;
             this.saveState();
             this.render();
+            this.updateProgress();
         }
     }
 
@@ -727,6 +782,104 @@ export class FlashcardComponent {
             currentIndex: this.currentIndex,
             isFlipped: this.isFlipped
         });
+    }
+
+    private getGroupProgress(): FlashcardProgress {
+        // 初始化默认进度对象
+        const defaultProgress: FlashcardProgress = {
+            due: 0,
+            newCards: 0,
+            learned: 0,
+            retention: 0
+        };
+
+        // 如果是默认分组，直接返回总体进度
+        if (this.currentGroupName === 'All Cards') {
+            return this.fsrsManager.getProgress() || defaultProgress;
+        }
+
+        // 如果是自定义分组，获取分组 ID 并返回分组进度
+        const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
+        if (group) {
+            return this.fsrsManager.getGroupProgress(group.id) || defaultProgress;
+        }
+
+        // 如果是内置分组，根据分组名称计算进度
+        const allCards = this.fsrsManager.getLatestCards();
+        const now = Date.now();
+
+        if (this.currentGroupName === 'Due Today') {
+            const dueCards = allCards.filter(c => c.nextReview <= now);
+            return {
+                due: dueCards.length,
+                newCards: dueCards.filter(c => c.lastReview === 0).length,
+                learned: dueCards.filter(c => c.lastReview > 0).length,
+                retention: this.calculateRetention(dueCards)
+            };
+        } else if (this.currentGroupName === 'New Cards') {
+            const newCards = allCards.filter(c => c.lastReview === 0);
+            return {
+                due: newCards.filter(c => c.nextReview <= now).length,
+                newCards: newCards.length,
+                learned: 0,
+                retention: 0
+            };
+        } else if (this.currentGroupName === 'Learned') {
+            const learnedCards = allCards.filter(c => c.lastReview > 0);
+            return {
+                due: learnedCards.filter(c => c.nextReview <= now).length,
+                newCards: 0,
+                learned: learnedCards.length,
+                retention: this.calculateRetention(learnedCards)
+            };
+        }
+
+        // 默认返回总体进度
+        return this.fsrsManager.getProgress() || defaultProgress;
+    }
+
+    private calculateRetention(cards: FlashcardState[]) {
+        if (cards.length === 0) return 0;
+        const reviewedCards = cards.filter(c => c.lastReview > 0);
+        if (reviewedCards.length === 0) return 0;
+
+        const totalReviews = reviewedCards.reduce((sum, card) => sum + card.reviews, 0);
+        const totalLapses = reviewedCards.reduce((sum, card) => sum + card.lapses, 0);
+        
+        return totalReviews > 0 ? (totalReviews - totalLapses) / totalReviews : 0;
+    }
+
+    private updateProgress() {
+        if (!this.progressContainer || this.cards.length === 0) return;
+        
+        // 更新进度条宽度和数字
+        const progressWidth = ((this.currentIndex + 1) / this.cards.length) * 100;
+        this.progressContainer.style.setProperty('--progress-width', `${progressWidth}%`);
+        
+        // 更新进度数字
+        const progressText = this.progressContainer.querySelector('.progress-text');
+        if (progressText) {
+            progressText.textContent = `${this.currentIndex + 1}/${this.cards.length} ${Math.round(progressWidth)}%`;
+        } else {
+            const newProgressText = this.progressContainer.createSpan({ cls: 'progress-text' });
+            newProgressText.textContent = `${this.currentIndex + 1}/${this.cards.length} ${Math.round(progressWidth)}%`;
+        }
+        
+        // 更新分组名称
+        const groupName = this.progressContainer.querySelector('.group-name');
+        if (groupName) {
+            groupName.textContent = this.currentGroupName;
+        }
+
+        // 更新统计数据
+        const progress = this.getGroupProgress();
+        const statValues = this.progressContainer.querySelectorAll('.stat-value');
+        if (statValues.length === 4) {
+            statValues[0].textContent = progress.due.toString();
+            statValues[1].textContent = progress.newCards.toString();
+            statValues[2].textContent = progress.learned.toString();
+            statValues[3].textContent = `${(progress.retention * 100).toFixed(1)}%`;
+        }
     }
 
     private addPagePreview(element: HTMLElement, filePath: string | undefined) {
@@ -768,6 +921,7 @@ export class FlashcardComponent {
             this.isFlipped = false;
             this.saveState();
             this.render();
+            this.updateProgress();
         }
     }
 

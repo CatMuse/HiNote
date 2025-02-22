@@ -16,6 +16,8 @@ export interface FlashcardState {
     answer: string;       // 卡片背面内容
     filePath?: string;    // 关联的文件路径
     createdAt: number;    // 卡片创建时间戳
+    reviews: number;      // 总复习次数
+    lapses: number;       // 遗忘次数
 }
 
 export interface FlashcardProgress {

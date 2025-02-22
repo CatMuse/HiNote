@@ -77,7 +77,9 @@ export class FSRSService {
             retrievability: 1, // 初始可提取性为最高
             lastReview: 0, // 从未复习过
             nextReview: now, // 立即可以复习
-            reviewHistory: [],
+            reviews: 0, // 初始复习次数为 0
+            lapses: 0, // 初始遗忘次数为 0
+            reviewHistory: [], // 初始复习历史为空
             text,
             answer,
             filePath,
@@ -89,6 +91,10 @@ export class FSRSService {
         const now = Date.now();
         const elapsedDays = card.lastReview === 0 ? 0 : 
             (now - card.lastReview) / (24 * 60 * 60 * 1000);
+
+        // 更新复习和遗忘次数
+        const reviews = (card.reviews || 0) + 1;
+        const lapses = (card.lapses || 0) + (rating === FSRS_RATING.AGAIN ? 1 : 0);
 
         // 首次复习
         if (card.lastReview === 0) {
@@ -104,6 +110,8 @@ export class FSRSService {
                 retrievability: 1,
                 lastReview: now,
                 nextReview: now + stability * 24 * 60 * 60 * 1000,
+                reviews,
+                lapses,
                 reviewHistory: [...card.reviewHistory, { timestamp: now, rating, elapsed: elapsedDays }]
             };
         }
@@ -125,6 +133,8 @@ export class FSRSService {
             retrievability,
             lastReview: now,
             nextReview: now + nextInterval * 24 * 60 * 60 * 1000,
+            reviews,
+            lapses,
             reviewHistory: [...card.reviewHistory, { timestamp: now, rating, elapsed: elapsedDays }]
         };
     }
