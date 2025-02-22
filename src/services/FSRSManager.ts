@@ -12,7 +12,7 @@ import { FSRSService } from './FSRSService';
 import { debounce } from 'obsidian';
 
 export class FSRSManager {
-    private fsrsService: FSRSService;
+    public fsrsService: FSRSService;
     private storage: FSRSStorage;
     private plugin: any; // CommentPlugin type
 

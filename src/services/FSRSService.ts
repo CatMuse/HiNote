@@ -19,7 +19,7 @@ export class FSRSService {
         return Math.pow(1 + FACTOR * (elapsedDays / stability), DECAY);
     }
 
-    private calculateNextInterval(requestedRetention: number, stability: number): number {
+    public calculateNextInterval(requestedRetention: number, stability: number): number {
         const DECAY = -0.5;
         const FACTOR = 19/81;
         const interval = (stability / FACTOR) * (Math.pow(requestedRetention, 1/DECAY) - 1);

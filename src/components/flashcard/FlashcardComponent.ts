@@ -24,11 +24,24 @@ export class FlashcardComponent {
     
     // 评分按钮配置
     private readonly ratingButtons = [
-        { label: 'Again', rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again' },
-        { label: 'Hard', rating: FSRS_RATING.HARD, key: '2', ratingText: 'hard' },
-        { label: 'Good', rating: FSRS_RATING.GOOD, key: '3', ratingText: 'good' },
-        { label: 'Easy', rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy' }
+        { label: 'Again', rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again', stability: 0.1 },
+        { label: 'Hard', rating: FSRS_RATING.HARD, key: '2', ratingText: 'hard', stability: 0.5 },
+        { label: 'Good', rating: FSRS_RATING.GOOD, key: '3', ratingText: 'good', stability: 2 },
+        { label: 'Easy', rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy', stability: 4 }
     ];
+
+    private formatInterval(days: number): string {
+        if (days < 1) {
+            const hours = Math.round(days * 24);
+            return `${hours}h`;
+        } else if (days < 30) {
+            return `${Math.round(days)}d`;
+        } else if (days < 365) {
+            return `${Math.round(days / 30)}mo`;
+        } else {
+            return `${Math.round(days / 365)}y`;
+        }
+    }
 
     constructor(container: HTMLElement, plugin: any) {
         this.container = container;
@@ -596,9 +609,14 @@ export class FlashcardComponent {
                     }
                 });
                 
-                // 添加标签和天数
+                // 添加标签和预测的下次复习时间
                 button.createSpan({ text: btn.label });
-                button.createSpan({ text: '1 Day', cls: 'days' });
+                const interval = this.currentCard?.lastReview === 0 ? btn.stability :
+                    this.fsrsManager.fsrsService.calculateNextInterval(0.9, btn.stability);
+                button.createSpan({ 
+                    text: this.formatInterval(interval),
+                    cls: 'days' 
+                });
                 button.addEventListener("click", (e) => {
                     e.stopPropagation(); // 防止点击评分按钮时触发卡片翻转
                     this.rateCard(btn.rating);
