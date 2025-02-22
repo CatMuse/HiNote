@@ -913,6 +913,22 @@ textarea.flashcard-modal-input {
     background-color: var(--background-modifier-border);
 }
 
+.flashcard-front {
+    transform: rotateY(0deg);
+}
+
+.flashcard-back {
+    transform: rotateY(180deg);
+}
+
+.flashcard.is-flipped .flashcard-front {
+    transform: rotateY(180deg);
+}
+
+.flashcard.is-flipped .flashcard-back {
+    transform: rotateY(360deg);
+}
+
 .flashcard-flip-btn {
     padding: 10px 20px;
     font-size: 1.1em;
