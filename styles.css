@@ -541,6 +541,7 @@ textarea.flashcard-modal-input {
     flex-direction: column;
     height: 100%;
     gap: 20px;
+    justify-content: center;
 }
 
 .flashcard-main-container {

@@ -99,10 +99,17 @@ export interface AISettings {
     };
 }
 
+export interface FlashcardLicense {
+    key: string;
+    token: string;
+    features: string[];
+}
+
 export interface PluginSettings extends HighlightSettings {
     ai: AISettings;
     comments?: Record<string, Record<string, HighlightInfo>>;
     fileComments?: Record<string, FileComment[]>;
+    'flashcard-license'?: FlashcardLicense;
 }
 
 export interface FileComment {

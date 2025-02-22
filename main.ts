@@ -239,6 +239,12 @@ export default class CommentPlugin extends Plugin {
             this.settings = { ...DEFAULT_SETTINGS };
         }
 
+        // 保护现有的 flashcard-license 数据
+        const existingData = await this.loadData();
+        if (existingData?.['flashcard-license']) {
+            this.settings['flashcard-license'] = existingData['flashcard-license'];
+        }
+
         // 确保高亮相关设置存在并有默认值
         this.settings.excludePatterns = this.settings.excludePatterns ?? DEFAULT_SETTINGS.excludePatterns;
         this.settings.useCustomPattern = this.settings.useCustomPattern ?? DEFAULT_SETTINGS.useCustomPattern;
