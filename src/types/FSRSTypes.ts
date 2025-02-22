@@ -39,11 +39,18 @@ export interface CardGroup {
     sortOrder: number;    // 排序顺序
 }
 
+export interface HiCardState {
+    currentGroupName: string;
+    currentIndex: number;
+    isFlipped: boolean;
+}
+
 export interface FSRSStorage {
     version: string;
     cards: { [id: string]: FlashcardState };
     globalStats: FSRSGlobalStats;
     cardGroups: CardGroup[];  // 用户自定义的卡片分组
+    uiState: HiCardState;  // 保存UI状态
 }
 
 export const FSRS_RATING = {

@@ -555,7 +555,7 @@ textarea.flashcard-modal-input {
     padding-right: 20px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
 }
 
 .flashcard-add-group {
@@ -667,11 +667,105 @@ textarea.flashcard-modal-input {
     gap: 8px;
 }
 
+/* 自定义分组卡片样式 */
+.flashcard-custom-groups .flashcard-group-item {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    margin: 4px 0;
+    background: var(--background-primary);
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-items: stretch;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.flashcard-custom-groups .flashcard-group-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.flashcard-custom-groups .flashcard-group-item.active {
+    border: 1px solid var(--interactive-accent);
+}
+
+/* 分组标题和操作按钮行 */
+.flashcard-custom-groups .flashcard-group-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.flashcard-custom-groups .flashcard-group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.flashcard-custom-groups .flashcard-group-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.flashcard-custom-groups .flashcard-group-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.flashcard-custom-groups .flashcard-group-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.flashcard-custom-groups .flashcard-group-action:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+}
+
+/* 统计数据行 */
+.flashcard-custom-groups .flashcard-group-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px;
+    background: var(--background-secondary);
+    border-radius: 4px;
+    margin-top: auto;
+}
+
+.flashcard-custom-groups .flashcard-group-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.flashcard-custom-groups .flashcard-stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flashcard-custom-groups .flashcard-stat-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
 .flashcard-group-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 6px 8px;
     border-radius: 6px;
     cursor: pointer;
     color: var(--text-normal);

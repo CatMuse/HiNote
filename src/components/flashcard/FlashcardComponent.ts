@@ -35,6 +35,12 @@ export class FlashcardComponent {
         
         // 添加键盘快捷键
         this.setupKeyboardShortcuts();
+
+        // 加载保存的状态
+        const savedState = this.fsrsManager.getUIState();
+        this.currentGroupName = savedState.currentGroupName;
+        this.currentIndex = savedState.currentIndex;
+        this.isFlipped = savedState.isFlipped;
     }
 
     setLicenseManager(licenseManager: LicenseManager) {
@@ -144,6 +150,8 @@ export class FlashcardComponent {
     }
 
     deactivate() {
+        // 保存状态
+        this.saveState();
         this.isActive = false;
         this.container.empty();
         this.container.removeClass('flashcard-mode');
@@ -276,8 +284,59 @@ export class FlashcardComponent {
         this.showGroupModal(group);
     }
 
+    private renderGroupStats(container: HTMLElement, groupId?: string) {
+        const stats = groupId 
+            ? this.fsrsManager.getGroupProgress(groupId)
+            : this.fsrsManager.getProgress();
+        
+        if (!stats) return;
+
+        const statsContainer = container.createEl('div', {
+            cls: 'flashcard-stats-container'
+        });
+
+        // Due Today
+        const dueContainer = statsContainer.createEl('div', {
+            cls: 'flashcard-stat-item'
+        });
+        dueContainer.createEl('span', {
+            cls: 'flashcard-stat-label',
+            text: t('Due Today')
+        });
+        dueContainer.createEl('span', {
+            cls: 'flashcard-stat-value',
+            text: stats.due.toString()
+        });
+
+        // New Cards
+        const newContainer = statsContainer.createEl('div', {
+            cls: 'flashcard-stat-item'
+        });
+        newContainer.createEl('span', {
+            cls: 'flashcard-stat-label',
+            text: t('New Cards')
+        });
+        newContainer.createEl('span', {
+            cls: 'flashcard-stat-value',
+            text: stats.newCards.toString()
+        });
+
+        // Learned
+        const learnedContainer = statsContainer.createEl('div', {
+            cls: 'flashcard-stat-item'
+        });
+        learnedContainer.createEl('span', {
+            cls: 'flashcard-stat-label',
+            text: t('Learned')
+        });
+        learnedContainer.createEl('span', {
+            cls: 'flashcard-stat-value',
+            text: stats.learned.toString()
+        });
+    }
+
     private render() {
-        if (!this.isActive || !this.currentCard) {
+        if (!this.isActive) {
             this.deactivate();
             return;
         }
@@ -355,16 +414,17 @@ export class FlashcardComponent {
                 
                 // 移除其他组的激活状态
                 const allGroups = this.container.querySelectorAll('.flashcard-group-item');
-                allGroups.forEach(g => g.removeClass('active'));
+                allGroups.forEach(g => g.classList.remove('active'));
                 
                 // 激活当前组
-                groupItem.addClass('active');
+                groupItem.classList.add('active');
                 
                 // 更新当前卡片列表
                 this.cards = cards;
                 this.currentIndex = 0;
                 this.currentCard = this.cards[0] || null;
                 this.isFlipped = false;
+                this.saveState();
                 this.render();
             });
         });
@@ -383,24 +443,31 @@ export class FlashcardComponent {
                 cls: `flashcard-group-item ${group.name === this.currentGroupName ? 'active' : ''}`
             });
             
-            const leftSection = groupItem.createEl("div", { cls: "flashcard-group-item-left" });
-            const iconSpan = leftSection.createEl("div", { cls: "flashcard-group-icon" });
+            // 标题和操作按钮行
+            const header = groupItem.createEl("div", { cls: "flashcard-group-item-header" });
+            
+            // 左侧标题
+            const title = header.createEl("div", { cls: "flashcard-group-title" });
+            const iconSpan = title.createEl("span", { cls: "flashcard-group-icon" });
             setIcon(iconSpan, group.filter.startsWith('#') ? 'hash' : 'file');
-            leftSection.createEl("span", { 
+            title.createEl("span", { 
                 cls: "flashcard-group-name",
                 text: group.name 
             });
             
-            const rightSection = groupItem.createEl("div", { cls: "flashcard-group-actions" });
-            const editButton = rightSection.createEl("div", { cls: "flashcard-group-action" });
+            // 操作按钮
+            const actions = header.createEl("div", { cls: "flashcard-group-actions" });
+            const editButton = actions.createEl("div", { cls: "flashcard-group-action" });
             setIcon(editButton, 'edit');
-            editButton.addEventListener('click', () => {
+            editButton.addEventListener('click', (e) => {
+                e.stopPropagation();
                 this.showEditGroupModal(group);
             });
 
-            const deleteButton = rightSection.createEl("div", { cls: "flashcard-group-action" });
+            const deleteButton = actions.createEl("div", { cls: "flashcard-group-action" });
             setIcon(deleteButton, 'trash');
-            deleteButton.addEventListener('click', async () => {
+            deleteButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
                 if (confirm(`确定要删除分组 "${group.name}" 吗？`)) {
                     try {
                         const deleted = await this.fsrsManager.deleteCardGroup(group.id);
@@ -421,12 +488,38 @@ export class FlashcardComponent {
                 }
             });
             
-            // 获取组内卡片数量
-            const cardsInGroup = this.fsrsManager.getCardsInGroup(group);
-            rightSection.createEl("span", { 
-                cls: "flashcard-group-count",
-                text: cardsInGroup.length.toString()
-            });
+            // 统计数据
+            const groupStats = this.fsrsManager.getGroupProgress(group.id);
+            if (groupStats) {
+                const statsSection = groupItem.createEl("div", { cls: "flashcard-group-stats" });
+                
+                // Due Today
+                const dueSpan = statsSection.createEl("div", { 
+                    cls: "flashcard-group-stat",
+                    attr: { 'data-tooltip': t('Due Today') }
+                });
+                const dueIcon = dueSpan.createEl("span", { cls: "flashcard-stat-icon" });
+                setIcon(dueIcon, 'calendar-clock');
+                dueSpan.createEl("span", { text: groupStats.due.toString() });
+
+                // New Cards
+                const newSpan = statsSection.createEl("div", { 
+                    cls: "flashcard-group-stat",
+                    attr: { 'data-tooltip': t('New Cards') }
+                });
+                const newIcon = newSpan.createEl("span", { cls: "flashcard-stat-icon" });
+                setIcon(newIcon, 'sparkle');
+                newSpan.createEl("span", { text: groupStats.newCards.toString() });
+
+                // Learned
+                const learnedSpan = statsSection.createEl("div", { 
+                    cls: "flashcard-group-stat",
+                    attr: { 'data-tooltip': t('Learned') }
+                });
+                const learnedIcon = learnedSpan.createEl("span", { cls: "flashcard-stat-icon" });
+                setIcon(learnedIcon, 'check-small');
+                learnedSpan.createEl("span", { text: groupStats.learned.toString() });
+            }
             
             // 添加点击事件以显示组内卡片
             groupItem.addEventListener('click', () => {
@@ -434,13 +527,14 @@ export class FlashcardComponent {
                 
                 // 移除其他组的激活状态
                 const allGroups = this.container.querySelectorAll('.flashcard-group-item');
-                allGroups.forEach(g => g.removeClass('active'));
+                allGroups.forEach(g => g.classList.remove('active'));
                 
                 // 激活当前组
-                groupItem.addClass('active');
+                groupItem.classList.add('active');
                 
                 // 更新当前卡片列表
-                this.cards = cardsInGroup;
+                const groupCards = this.fsrsManager.getCardsInGroup(group);
+                this.cards = groupCards;
                 this.currentIndex = 0;
                 this.currentCard = this.cards[0] || null;
                 this.isFlipped = false;
@@ -463,65 +557,73 @@ export class FlashcardComponent {
         }
 
         // 创建卡片
-        const card = cardContainer.createEl("div", { cls: "flashcard" });
-        
-        // 创建卡片正面
-        const frontSide = card.createEl("div", { 
-            cls: "flashcard-side flashcard-front"
-        });
-        frontSide.createEl("div", {
-            cls: "flashcard-content",
-            text: this.currentCard.text
-        });
-
-        // 创建卡片背面
-        const backSide = card.createEl("div", { 
-            cls: "flashcard-side flashcard-back"
-        });
-        backSide.createEl("div", {
-            cls: "flashcard-content",
-            text: this.currentCard.answer
-        });
-
-        // 添加卡片点击事件
-        card.addEventListener("click", () => this.flipCard());
-        
-        if (this.isFlipped) {
-            card.addClass('is-flipped');
+        if (this.currentCard) {
+            const card = cardContainer.createEl("div", { cls: "flashcard" });
             
-            // 创建评分按钮
-            const ratingContainer = cardContainer.createEl("div", { cls: "flashcard-rating" });
-            
-            this.ratingButtons.forEach(btn => {
-                const button = ratingContainer.createEl("button", {
-                    cls: 'flashcard-rating-button',
-                    attr: {
-                        'data-rating': btn.ratingText,
-                        'title': `${btn.label} (${btn.key})`
-                    }
-                });
-                
-                // 添加标签和天数
-                button.createSpan({ text: btn.label });
-                button.createSpan({ text: '1 Day', cls: 'days' });
-                button.addEventListener("click", (e) => {
-                    e.stopPropagation(); // 防止点击评分按钮时触发卡片翻转
-                    this.rateCard(btn.rating);
-                });
+            // 创建卡片正面
+            const frontSide = card.createEl("div", { 
+                cls: "flashcard-side flashcard-front"
             });
-        }
+            frontSide.createEl("div", {
+                cls: "flashcard-content",
+                text: this.currentCard.text
+            });
 
-        // 显示进度
-        cardContainer.createEl("div", { 
-            cls: "flashcard-counter",
-            text: `${this.currentIndex + 1} / ${this.cards.length}`
-        });
+            // 创建卡片背面
+            const backSide = card.createEl("div", { 
+                cls: "flashcard-side flashcard-back"
+            });
+            backSide.createEl("div", {
+                cls: "flashcard-content",
+                text: this.currentCard.answer
+            });
 
-        // 如果有关联文件，显示文件名
-        if (this.currentCard.filePath) {
+            // 添加卡片点击事件
+            card.addEventListener("click", () => this.flipCard());
+            
+            if (this.isFlipped) {
+                card.classList.add('is-flipped');
+                
+                // 创建评分按钮
+                const ratingContainer = cardContainer.createEl("div", { cls: "flashcard-rating" });
+                
+                this.ratingButtons.forEach(btn => {
+                    const button = ratingContainer.createEl("button", {
+                        cls: 'flashcard-rating-button',
+                        attr: {
+                            'data-rating': btn.ratingText,
+                            'title': `${btn.label} (${btn.key})`
+                        }
+                    });
+                    
+                    // 添加标签和天数
+                    button.createSpan({ text: btn.label });
+                    button.createSpan({ text: '1 Day', cls: 'days' });
+                    button.addEventListener("click", (e) => {
+                        e.stopPropagation(); // 防止点击评分按钮时触发卡片翻转
+                        this.rateCard(btn.rating);
+                    });
+                });
+            }
+
+            // 显示进度
+            cardContainer.createEl("div", { 
+                cls: "flashcard-counter",
+                text: `${this.currentIndex + 1} / ${this.cards.length}`
+            });
+
+            // 如果有关联文件，显示文件名
+            if (this.currentCard.filePath) {
+                cardContainer.createEl("div", {
+                    cls: "flashcard-source",
+                    text: this.currentCard.filePath.split('/').pop() || ""
+                });
+            }
+        } else {
+            // 如果没有当前卡片，显示提示信息
             cardContainer.createEl("div", {
-                cls: "flashcard-source",
-                text: this.currentCard.filePath.split('/').pop() || ""
+                cls: "flashcard-empty-state",
+                text: t("No cards available")
             });
         }
     }
@@ -566,6 +668,7 @@ export class FlashcardComponent {
             }
             
             this.isFlipped = false;
+            this.saveState();
             this.render();
         }
     }
@@ -583,6 +686,9 @@ export class FlashcardComponent {
             cardEl.removeClass('is-flipped');
         }
         
+        // 保存状态
+        this.saveState();
+        
         // 重新渲染以显示或隐藏评分按钮
         this.render();
         if (cardEl) {
@@ -594,14 +700,24 @@ export class FlashcardComponent {
         if (this.currentIndex < this.cards.length - 1) {
             this.currentIndex++;
             this.isFlipped = false;
+            this.saveState();
             this.render();
         }
+    }
+
+    private saveState() {
+        this.fsrsManager.updateUIState({
+            currentGroupName: this.currentGroupName,
+            currentIndex: this.currentIndex,
+            isFlipped: this.isFlipped
+        });
     }
 
     private previousCard() {
         if (this.currentIndex > 0) {
             this.currentIndex--;
             this.isFlipped = false;
+            this.saveState();
             this.render();
         }
     }

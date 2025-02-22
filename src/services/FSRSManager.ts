@@ -5,7 +5,8 @@ import {
     FSRSGlobalStats,
     FSRSRating,
     FSRS_RATING,
-    CardGroup
+    CardGroup,
+    HiCardState
 } from '../types/FSRSTypes';
 import { FSRSService } from './FSRSService';
 import { debounce } from 'obsidian';
@@ -34,7 +35,12 @@ export class FSRSManager {
                 streakDays: 0,
                 lastReviewDate: 0
             },
-            cardGroups: []
+            cardGroups: [],
+            uiState: {
+                currentGroupName: 'All Cards',
+                currentIndex: 0,
+                isFlipped: false
+            }
         };
 
         try {
@@ -167,6 +173,19 @@ export class FSRSManager {
         return { ...this.storage.globalStats };
     }
 
+    // UI状态管理
+    public getUIState(): HiCardState {
+        return { ...this.storage.uiState };
+    }
+
+    public updateUIState(state: Partial<HiCardState>) {
+        this.storage.uiState = {
+            ...this.storage.uiState,
+            ...state
+        };
+        this.saveStorageDebounced();
+    }
+
     public deleteCard(cardId: string): boolean {
         if (this.storage.cards[cardId]) {
             delete this.storage.cards[cardId];
@@ -287,6 +306,29 @@ export class FSRSManager {
             console.error('Failed to delete card group:', error);
             return false;
         }
+    }
+
+    public getGroupProgress(groupId: string): FlashcardProgress | null {
+        const group = this.storage.cardGroups.find(g => g.id === groupId);
+        if (!group) return null;
+        
+        const cards = this.getCardsInGroup(group);
+        const now = Date.now();
+        
+        return {
+            due: cards.filter(c => c.nextReview <= now).length,
+            newCards: cards.filter(c => c.lastReview === 0).length,
+            learned: cards.filter(c => c.lastReview > 0).length,
+            retention: this.calculateGroupRetention(cards)
+        };
+    }
+
+    private calculateGroupRetention(cards: FlashcardState[]): number {
+        const reviewedCards = cards.filter(c => c.lastReview > 0);
+        if (reviewedCards.length === 0) return 1;
+        
+        const totalRetention = reviewedCards.reduce((sum, card) => sum + card.retrievability, 0);
+        return totalRetention / reviewedCards.length;
     }
 
     public getCardsInGroup(group: CardGroup): FlashcardState[] {
