@@ -901,7 +901,16 @@ textarea.flashcard-modal-input {
     max-width: 90%;
     overflow-y: auto;
     max-height: 100%;
-    padding: 20px;
+    padding: 16px 0px;
+    white-space: pre-wrap;
+}
+
+.flashcard-back .flashcard-content hr {
+    margin: 20px 0;
+    border: none;
+    height: 1px;
+    background: var(--text-muted);
+    background-color: var(--background-modifier-border);
 }
 
 .flashcard-front {

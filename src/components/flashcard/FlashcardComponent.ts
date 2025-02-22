@@ -57,10 +57,26 @@ export class FlashcardComponent {
             const existingCard = this.fsrsManager.getCardsByFile(filePath)
                 .find(card => card.text === highlight.text);
             
+            // 过滤掉标签评论，并合并所有评论内容
+            const nonTagComments = highlight.comments?.filter(comment => 
+                !comment.content.startsWith('#')
+            ) || [];
+            const combinedAnswer = nonTagComments
+                .map(comment => comment.content)
+                .join('<hr>');
+            
             if (!existingCard) {
+                // 创建新卡片
                 this.fsrsManager.addCard(
                     highlight.text,
-                    highlight.comments?.[0]?.content || "",
+                    combinedAnswer,
+                    filePath
+                );
+            } else if (combinedAnswer !== existingCard.answer) {
+                // 如果评论内容有更新，创建新的卡片版本
+                this.fsrsManager.addCard(
+                    highlight.text,
+                    combinedAnswer,
                     filePath
                 );
             }
@@ -363,7 +379,7 @@ export class FlashcardComponent {
         const defaultGroups = sidebar.createEl("div", { cls: "flashcard-default-groups" });
         
         const defaultGroupList = defaultGroups.createEl("div", { cls: "flashcard-group-list" });
-        const allCards = Object.values(this.fsrsManager.exportData().cards);
+        const allCards = this.fsrsManager.getLatestCards();
         const now = Date.now();
         
         const defaultGroupItems = [
@@ -573,10 +589,10 @@ export class FlashcardComponent {
             const backSide = card.createEl("div", { 
                 cls: "flashcard-side flashcard-back"
             });
-            backSide.createEl("div", {
-                cls: "flashcard-content",
-                text: this.currentCard.answer
+            const backContent = backSide.createEl("div", {
+                cls: "flashcard-content"
             });
+            backContent.innerHTML = this.currentCard.answer;
 
             // 添加卡片点击事件
             card.addEventListener("click", () => this.flipCard());

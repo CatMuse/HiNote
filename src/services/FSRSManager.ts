@@ -134,6 +134,50 @@ export class FSRSManager {
         return card;
     }
 
+    /**
+     * 更新卡片内容，保持学习进度不变
+     * @param text 新的高亮文本
+     * @param answer 新的评论内容
+     * @param filePath 文件路径
+     */
+    public updateCardContent(text: string, answer: string, filePath: string): void {
+        // 找到对应文件的所有卡片
+        const cards = this.getCardsByFile(filePath);
+        
+        // 遍历卡片，找到匹配的旧文本并更新
+        for (const card of cards) {
+            if (card.text === text || card.answer === answer) {
+                // 更新卡片内容，保持其他属性（如学习进度）不变
+                this.storage.cards[card.id] = {
+                    ...card,
+                    text,
+                    answer
+                };
+                this.saveStorageDebounced();
+            }
+        }
+    }
+
+    /**
+     * 删除指定文件路径下的卡片
+     * @param filePath 文件路径
+     * @param text 可选，特定的高亮文本
+     * @param answer 可选，特定的评论内容
+     */
+    public deleteCardsByContent(filePath: string, text?: string, answer?: string): void {
+        const cards = this.getCardsByFile(filePath);
+        
+        for (const card of cards) {
+            if (!text && !answer || // 如果没有指定text和answer，删除该文件的所有卡片
+                (text && card.text === text) || // 如果指定了text，匹配text
+                (answer && card.answer === answer)) { // 如果指定了answer，匹配answer
+                delete this.storage.cards[card.id];
+            }
+        }
+        
+        this.saveStorageDebounced();
+    }
+
     public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
         const card = this.storage.cards[cardId];
         if (!card) return null;
@@ -157,8 +201,20 @@ export class FSRSManager {
             .filter(card => card.lastReview === 0);
     }
 
+    public getLatestCards(): FlashcardState[] {
+        // 按文本内容分组，每组只保留最新的卡片
+        const cardsByText = Object.values(this.storage.cards).reduce((acc, card) => {
+            if (!acc[card.text] || acc[card.text].id < card.id) {
+                acc[card.text] = card;
+            }
+            return acc;
+        }, {} as Record<string, FlashcardState>);
+        
+        return Object.values(cardsByText);
+    }
+
     public getProgress(): FlashcardProgress {
-        const cards = Object.values(this.storage.cards);
+        const cards = this.getLatestCards();
         const now = Date.now();
         
         return {
@@ -333,9 +389,10 @@ export class FSRSManager {
 
     public getCardsInGroup(group: CardGroup): FlashcardState[] {
         console.log('Getting cards for group:', group);
-        console.log('Total cards:', Object.values(this.storage.cards).length);
+        const latestCards = this.getLatestCards();
+        console.log('Total latest cards:', latestCards.length);
         
-        const result = Object.values(this.storage.cards).filter(card => {
+        const result = latestCards.filter(card => {
             const filters = group.filter.split(',').map(f => f.trim().toLowerCase());
             const cardText = card.text.toLowerCase();
             const cardAnswer = card.answer.toLowerCase();

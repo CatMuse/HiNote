@@ -3,6 +3,7 @@ import { HighlightInfo, PluginSettings } from '../types';
 import { t } from '../i18n';
 import { ExcludePatternMatcher } from './ExcludePatternMatcher';
 import { ColorExtractorService } from './ColorExtractorService';
+import { EventManager } from './EventManager';
 
 type RegexMatch = [
     string,      // 完整匹配
@@ -15,6 +16,7 @@ type RegexMatch = [
 
 export class HighlightService {
     private colorExtractor: ColorExtractorService;
+    private eventManager: EventManager;
 
     // 默认的文本提取正则（可以被用户自定义替换）
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
@@ -28,6 +30,7 @@ export class HighlightService {
         const plugin = (app as any).plugins.plugins['hi-note'];
         this.settings = plugin?.settings;
         this.colorExtractor = new ColorExtractorService();
+        this.eventManager = new EventManager(app);
 
         // 调试输出当前设置
         console.debug('[HighlightService] Current settings:', this.settings);

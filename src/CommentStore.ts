@@ -43,18 +43,22 @@ export interface FileCommentsData {
     [filePath: string]: FileComment[];
 }
 
+import { EventManager } from './services/EventManager';
+
 export class CommentStore {
     private plugin: Plugin;
     private data: CommentsData = {};
     private fileCommentsData: FileCommentsData = {};
     private comments: Map<string, HiNote[]> = new Map();
     private fileComments: Map<string, FileComment[]> = new Map();
+    private eventManager: EventManager;
     private commentCache: Map<string, HiNote[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
 
     constructor(plugin: Plugin) {
         this.plugin = plugin;
+        this.eventManager = new EventManager(plugin.app);
     }
 
     async loadComments() {
