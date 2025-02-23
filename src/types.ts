@@ -25,15 +25,17 @@ export interface HighlightInfo {
     originalLength?: number;  // 原始匹配文本的长度，包括标签
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek';
+export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';
 export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini';
 export type AnthropicModel = 'claude-2' | 'claude-instant-1';
 
-export interface DeepseekModel {
+export interface AIModel {
     id: string;
     name: string;
     isCustom?: boolean;
 }
+
+export interface DeepseekModel extends AIModel {}
 
 export interface DeepseekModelState {
     selectedModel: DeepseekModel;
@@ -45,11 +47,7 @@ export const DEFAULT_DEEPSEEK_MODELS: DeepseekModel[] = [
     { id: 'deepseek-reasoner', name: 'Deepseek Reasoner' }
 ];
 
-export interface GeminiModel {
-    id: string;
-    name: string;
-    isCustom?: boolean;
-}
+export interface GeminiModel extends AIModel {}
 
 export interface GeminiModelState {
     selectedModel: GeminiModel;
@@ -67,8 +65,17 @@ export interface AISettings {
     provider: AIProvider;
     openai?: {
         apiKey: string;
-        model: OpenAIModel;
+        model: string;
         baseUrl?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
+    };
+    siliconflow?: {
+        apiKey: string;
+        model: string;
+        baseUrl?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
     };
     anthropic?: {
         apiKey: string;
@@ -119,6 +126,15 @@ export interface FileComment {
     updatedAt: number;
     filePath: string;
 }
+
+export const DEFAULT_SILICONFLOW_MODELS: AIModel[] = [
+    { id: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek V3', isCustom: false },
+    { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5 7B', isCustom: false },
+    { id: 'Qwen/Qwen2.5-14B-Instruct', name: 'Qwen2.5 14B', isCustom: false },
+    { id: 'Pro/Qwen/Qwen2-7B-Instruct', name: 'Qwen2 7B', isCustom: false },
+    { id: 'Pro/THUDM/glm-4-9b-chat', name: 'GLM-4 9B', isCustom: false },
+    { id: 'google/gemma-2-9b-it', name: 'Gemma2 9B', isCustom: false },
+];
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     excludePatterns: '',  // 默认不排除任何文件

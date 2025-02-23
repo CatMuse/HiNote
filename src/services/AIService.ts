@@ -1,7 +1,8 @@
-import { AIProvider, AISettings, DEFAULT_GEMINI_MODELS } from '../types';
+import { AIProvider, AISettings, DEFAULT_GEMINI_MODELS, DEFAULT_SILICONFLOW_MODELS, AIModel } from '../types';
 import { OllamaService } from './OllamaService';
 import { AnthropicService } from './AnthropicService';
 import { GeminiService } from './GeminiService';
+import { SiliconFlowService } from './SiliconFlowService';
 import { DeepseekService } from './DeepseekService';
 import { requestUrl } from 'obsidian';
 
@@ -10,6 +11,7 @@ export class AIService {
     private anthropicService: AnthropicService | null = null;
     private geminiService: GeminiService | null = null;
     private deepseekService: DeepseekService | null = null;
+    private siliconflowService: SiliconFlowService | null = null;
 
     // 存储当前使用的模型状态
     private currentState = {
@@ -41,6 +43,9 @@ export class AIService {
                 settings.deepseek.baseUrl
             );
         }
+        if (settings.siliconflow?.apiKey) {
+            this.siliconflowService = new SiliconFlowService(this.settings);
+        }
         
         // 初始化使用设置中的值
         this.currentState.provider = settings.provider;
@@ -50,6 +55,9 @@ export class AIService {
                 break;
             case 'deepseek':
                 this.currentState.model = settings.deepseek?.model || 'deepseek-chat';
+                break;
+            case 'siliconflow':
+                this.currentState.model = settings.siliconflow?.model || 'internlm/internlm2_5-7b-chat';
                 break;
             // 其他 provider 的情况...
         }
@@ -96,6 +104,8 @@ export class AIService {
                 return await this.callGemini(promptWithContext);
             case 'deepseek':
                 return await this.callDeepseek(promptWithContext);
+            case 'siliconflow':
+                return await this.callSiliconFlow(promptWithContext);
             default:
                 throw new Error('AI service not configured');
         }
@@ -113,6 +123,8 @@ export class AIService {
                 return await this.chatWithGemini(messages);
             case 'deepseek':
                 return await this.chatWithDeepseek(messages);
+            case 'siliconflow':
+                return await this.chatWithSiliconFlow(messages);
             default:
                 throw new Error('AI service not configured');
         }
@@ -177,6 +189,19 @@ export class AIService {
         return await this.geminiService.chat(messages);
     }
 
+    private async chatWithSiliconFlow(messages: { role: string, content: string }[]): Promise<string> {
+        if (!this.siliconflowService) {
+            throw new Error('SiliconFlow service not configured');
+        }
+
+        try {
+            return await this.siliconflowService.chat(messages);
+        } catch (error) {
+            console.error('Error in SiliconFlow chat:', error);
+            throw error;
+        }
+    }
+
     private async chatWithDeepseek(messages: { role: string, content: string }[]): Promise<string> {
         if (!this.deepseekService) {
             throw new Error('Deepseek service not configured');
@@ -215,6 +240,22 @@ export class AIService {
             throw new Error('Gemini service not configured');
         }
         return await this.geminiService.generateResponse(prompt);
+    }
+
+    private async callSiliconFlow(prompt: string): Promise<string> {
+        if (!this.siliconflowService) {
+            throw new Error('SiliconFlow service not configured');
+        }
+
+        try {
+            return await this.siliconflowService.chat([{
+                role: 'user',
+                content: prompt
+            }]);
+        } catch (error) {
+            console.error('Error in SiliconFlow call:', error);
+            throw error;
+        }
     }
 
     private async callDeepseek(prompt: string): Promise<string> {
@@ -275,5 +316,28 @@ export class AIService {
             { id: 'deepseek-chat', name: 'Deepseek Chat' },
             { id: 'deepseek-coder', name: 'Deepseek Coder' }
         ]);
+    }
+
+    async listSiliconFlowModels(): Promise<AIModel[]> {
+        return DEFAULT_SILICONFLOW_MODELS;
+    }
+
+    async listOpenAIModels(): Promise<AIModel[]> {
+        const models: AIModel[] = [
+            { id: 'gpt-4', name: 'GPT-4', isCustom: false },
+            { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', isCustom: false },
+            { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', isCustom: false }
+        ];
+
+        // 如果有自定义模型，添加到列表中
+        if (this.settings.openai?.isCustomModel && this.settings.openai?.model) {
+            models.push({
+                id: this.settings.openai.model,
+                name: this.settings.openai.model,
+                isCustom: true
+            });
+        }
+
+        return models;
     }
 }

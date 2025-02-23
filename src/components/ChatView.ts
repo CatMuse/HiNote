@@ -1,6 +1,6 @@
 import { ItemView, App, setIcon, Menu, MenuItem, Notice } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
-import { HighlightInfo, ChatViewState } from '../types';
+import { HighlightInfo, ChatViewState, AIModel, DEFAULT_SILICONFLOW_MODELS } from '../types';
 import { t } from "src/i18n";
 
 export class ChatView {
@@ -580,6 +580,17 @@ export class ChatView {
                 return this.chatModelState.model || aiSettings.gemini?.model || 'Gemini Pro';
             case 'deepseek':
                 return this.chatModelState.model || aiSettings.deepseek?.model || 'Deepseek Chat';
+            case 'siliconflow':
+                // 如果有自定义模型，优先使用自定义模型名称
+                if (aiSettings.siliconflow?.isCustomModel && aiSettings.siliconflow?.model) {
+                    return aiSettings.siliconflow.model;
+                }
+                // 如果有当前选择的模型，使用当前模型
+                if (this.chatModelState.model) {
+                    return this.chatModelState.model;
+                }
+                // 否则使用设置中的模型或默认值
+                return aiSettings.siliconflow?.model || 'SiliconFlow';
             default:
                 return 'Unknown Model';
         }
@@ -590,25 +601,118 @@ export class ChatView {
         const aiSettings = this.plugin.settings.ai;
 
         switch (aiSettings.provider) {
-            case 'openai':
-                const openaiModels = {
-                    'gpt-4o': 'GPT-4o',
-                    'gpt-4o-mini': 'GPT-4o-mini',
-                    'gpt-4': 'GPT-4',
-                    'gpt-4-turbo-preview': 'GPT-4 Turbo',
-                };
-                Object.entries(openaiModels).forEach(([id, name]) => {
-                    menu.addItem((item: MenuItem) => {
-                        item.setTitle(name)
-                            .setChecked(aiSettings.openai?.model === id)
-                            .onClick(async () => {
-                                if (!aiSettings.openai) aiSettings.openai = { apiKey: '', model: id };
-                                aiSettings.openai.model = id;
-                                await this.plugin.saveSettings();
-                                selector.textContent = this.getCurrentModelName();
-                            });
+            case 'siliconflow':
+                try {
+                    // 使用预设的模型列表
+                    const models = DEFAULT_SILICONFLOW_MODELS;
+                    
+                    // 添加预设模型
+                    models.forEach((model: AIModel) => {
+                        menu.addItem((item: MenuItem) => {
+                            const isSelected = !aiSettings.siliconflow?.isCustomModel && 
+                                (this.chatModelState.model === model.id || aiSettings.siliconflow?.model === model.id);
+                            
+                            item.setTitle(model.name)
+                                .setChecked(isSelected)
+                                .onClick(async () => {
+                                    if (!aiSettings.siliconflow) {
+                                        aiSettings.siliconflow = { model: model.id, isCustomModel: false };
+                                    } else {
+                                        aiSettings.siliconflow.model = model.id;
+                                        aiSettings.siliconflow.isCustomModel = false;
+                                    }
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'siliconflow';
+                                    this.chatModelState.model = model.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('siliconflow', model.id);
+                                    // 保存设置
+                                    await this.plugin.saveSettings();
+                                    selector.textContent = model.name;
+                                });
+                        });
                     });
-                });
+
+                    // 如果存在自定义模型，添加分隔线和自定义模型
+                    if (aiSettings.siliconflow?.isCustomModel && aiSettings.siliconflow?.model) {
+                        menu.addSeparator();
+                        
+                        const customModelId = aiSettings.siliconflow.model;
+                        menu.addItem((item: MenuItem) => {
+                            const isSelected = aiSettings.siliconflow?.isCustomModel && 
+                                (this.chatModelState.model === customModelId || aiSettings.siliconflow?.model === customModelId);
+                            
+                            item.setTitle(customModelId)
+                                .setChecked(isSelected)
+                                .onClick(async () => {
+                                    if (!aiSettings.siliconflow) {
+                                        aiSettings.siliconflow = { model: customModelId, isCustomModel: true };
+                                    } else {
+                                        aiSettings.siliconflow.model = customModelId;
+                                        aiSettings.siliconflow.isCustomModel = true;
+                                    }
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'siliconflow';
+                                    this.chatModelState.model = customModelId;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('siliconflow', customModelId);
+                                    // 保存设置
+                                    await this.plugin.saveSettings();
+                                    selector.textContent = customModelId;
+                                });
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading SiliconFlow models:', error);
+                    new Notice(t('Unable to get SiliconFlow model list, please check API Key and network connection.'));
+                }
+                break;
+            case 'openai':
+                try {
+                    const models = await this.chatService.aiService.listOpenAIModels();
+                    
+                    // 分别添加预设模型和自定义模型
+                    const defaultModels = models.filter((model: AIModel) => !model.isCustom);
+                    const customModels = models.filter((model: AIModel) => model.isCustom);
+
+                    // 添加预设模型
+                    defaultModels.forEach((model: AIModel) => {
+                        menu.addItem((item: MenuItem) => {
+                            item.setTitle(model.name)
+                                .setChecked(this.chatModelState.model === model.id)
+                                .onClick(async () => {
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'openai';
+                                    this.chatModelState.model = model.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('openai', model.id);
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
+                    });
+
+                    // 如果有自定义模型，添加分隔线和自定义模型
+                    if (customModels.length > 0) {
+                        menu.addSeparator();
+                        
+                        customModels.forEach((model: AIModel) => {
+                            menu.addItem((item: MenuItem) => {
+                                item.setTitle(model.name)
+                                    .setChecked(this.chatModelState.model === model.id)
+                                    .onClick(async () => {
+                                        // 更新对话窗口的模型状态
+                                        this.chatModelState.provider = 'openai';
+                                        this.chatModelState.model = model.id;
+                                        // 更新服务使用的模型
+                                        this.chatService.updateModel('openai', model.id);
+                                        selector.textContent = this.getCurrentModelName();
+                                    });
+                            });
+                        });
+                    }
+                } catch (error) {
+                    new Notice(t('Unable to get OpenAI model list, please check API Key and network connection.'));
+                }
                 break;
 
             case 'anthropic':
@@ -745,13 +849,68 @@ export class ChatView {
                         });
                     }
                 } catch (error) {
-                    console.error('Error listing Deepseek models:', error);
-                    new Notice(t('Unable to list Deepseek models. Please check your settings.'));
+                    console.error('Error loading Deepseek models:', error);
+                    new Notice(t('Unable to get Deepseek model list, please check API Key and network connection.'));
                 }
+                break;
+
+            case 'siliconflow':
+                try {
+                    const models = await this.chatService.aiService.listSiliconFlowModels();
+                    
+                    // 添加预设模型
+                    models.forEach((model: { id: string, name: string }) => {
+                        menu.addItem((item: MenuItem) => {
+                            item.setTitle(model.name)
+                                .setChecked(aiSettings.siliconflow?.model === model.id)
+                                .onClick(async () => {
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'siliconflow';
+                                    this.chatModelState.model = model.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('siliconflow', model.id);
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
+                    });
+
+                    // 添加分隔线（如果有自定义模型）
+                    if (aiSettings.siliconflow?.isCustomModel && aiSettings.siliconflow?.model) {
+                        menu.addSeparator();
+                        
+                        // 添加自定义模型
+                        menu.addItem((item: MenuItem) => {
+                            const customModel = {
+                                id: aiSettings.siliconflow?.model || '',
+                                name: aiSettings.siliconflow?.model,
+                                isCustom: true
+                            };
+                            
+                            item.setTitle(customModel.name)
+                                .setChecked(this.chatModelState.model === customModel.id)
+                                .onClick(async () => {
+                                    // 更新对话窗口的模型状态
+                                    this.chatModelState.provider = 'siliconflow';
+                                    this.chatModelState.model = customModel.id;
+                                    // 更新服务使用的模型
+                                    this.chatService.updateModel('siliconflow', customModel.id);
+                                    selector.textContent = this.getCurrentModelName();
+                                });
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading SiliconFlow models:', error);
+                    new Notice(t('Unable to get SiliconFlow model list, please check API Key and network connection.'));
+                }
+                break;
+
+            default:
+                console.error('Unknown provider:', aiSettings.provider);
+                new Notice(t('Unknown AI provider'));
                 break;
         }
 
         const rect = selector.getBoundingClientRect();
         menu.showAtPosition({ x: rect.left, y: rect.bottom });
     }
-} 
+}

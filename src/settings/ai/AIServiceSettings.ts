@@ -4,6 +4,7 @@ import { t } from '../../i18n';
 export interface AIModel {
     id: string;
     name: string;
+    isCustom?: boolean;
 }
 
 export interface AIServiceSettings {
