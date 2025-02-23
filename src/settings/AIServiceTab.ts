@@ -29,8 +29,8 @@ export class AIServiceTab {
                     'gemini': 'Gemini',
                     'anthropic': 'Anthropic',
                     'deepseek': 'Deepseek',
-                    'ollama': 'Ollama (Local)',
-                    'siliconflow': 'SiliconFlow'
+                    'siliconflow': 'SiliconFlow',
+                    'ollama': 'Ollama (Local)'
                 };
 
                 return dropdown
@@ -63,7 +63,7 @@ export class AIServiceTab {
                 new DeepseekSettings(this.plugin, this.containerEl).display(this.containerEl);
                 break;
             case 'siliconflow':
-                new SiliconFlowSettings(this.containerEl, this.plugin.settings.ai, this.plugin.saveSettings.bind(this.plugin), this.plugin.aiService).display();
+                new SiliconFlowSettings(this.plugin, this.containerEl).display(this.containerEl);
                 break;
         }
 

@@ -1,7 +1,7 @@
 import { Setting, Notice } from 'obsidian';
-import { AISettings, AIModel } from '../../types';
+import { AIModel } from '../../types';
 import { DEFAULT_SILICONFLOW_MODELS } from '../../types';
-import { AIService } from '../../services/AIService';
+import { BaseAIServiceSettings } from './AIServiceSettings';
 import { t } from '../../i18n';
 
 interface SiliconFlowModelState {
@@ -9,23 +9,19 @@ interface SiliconFlowModelState {
     apiKey: string;
 }
 
-export class SiliconFlowSettings {
+export class SiliconFlowSettings extends BaseAIServiceSettings {
     private modelState: SiliconFlowModelState;
     private modelSelectEl: HTMLSelectElement | null = null;
     private customModelContainer: HTMLDivElement | null = null;
 
-    constructor(
-        private containerEl: HTMLElement,
-        private settings: AISettings,
-        private saveSettings: () => Promise<void>,
-        private aiService: AIService
-    ) {
+    constructor(plugin: any, containerEl: HTMLElement) {
+        super(plugin, containerEl);
         this.modelState = this.initializeModelState();
     }
 
     private initializeModelState(): SiliconFlowModelState {
-        if (!this.settings.siliconflow) {
-            this.settings.siliconflow = {
+        if (!this.plugin.settings.ai.siliconflow) {
+            this.plugin.settings.ai.siliconflow = {
                 apiKey: '',
                 model: DEFAULT_SILICONFLOW_MODELS[0].id,
                 baseUrl: '',
@@ -34,7 +30,7 @@ export class SiliconFlowSettings {
             };
         }
 
-        const settings = this.settings.siliconflow;
+        const settings = this.plugin.settings.ai.siliconflow;
         let selectedModel: AIModel;
 
         if (settings.isCustomModel) {
@@ -59,8 +55,8 @@ export class SiliconFlowSettings {
     }
 
     private async saveModelState() {
-        if (!this.settings.siliconflow) {
-            this.settings.siliconflow = {
+        if (!this.plugin.settings.ai.siliconflow) {
+            this.plugin.settings.ai.siliconflow = {
                 apiKey: this.modelState.apiKey || '',
                 model: this.modelState.selectedModel.id,
                 baseUrl: '',
@@ -68,7 +64,7 @@ export class SiliconFlowSettings {
                 lastCustomModel: this.modelState.selectedModel.isCustom ? this.modelState.selectedModel.id : undefined
             };
         } else {
-            const settings = this.settings.siliconflow;
+            const settings = this.plugin.settings.ai.siliconflow;
             const model = this.modelState.selectedModel;
             
             settings.model = model.id;
@@ -80,13 +76,13 @@ export class SiliconFlowSettings {
             }
         }
         
-        await this.saveSettings();
+        await this.plugin.saveSettings();
     }
 
     private async validateApiKey(apiKey: string): Promise<{ isValid: boolean; message?: string }> {
         try {
             const defaultUrl = 'https://api.siliconflow.cn/v1';
-            const customUrl = this.settings.siliconflow?.baseUrl;
+            const customUrl = this.plugin.settings.ai.siliconflow?.baseUrl;
             const baseUrl = customUrl && customUrl.trim() ? customUrl : defaultUrl;
             
             // 先验证 API Key 是否有效
@@ -151,8 +147,10 @@ export class SiliconFlowSettings {
         }
     }
 
-    display() {
-        const siliconflowSection = this.containerEl.createEl('div', { cls: 'silicon-flow-settings' });
+    display(containerEl: HTMLElement) {
+        const siliconflowSection = containerEl.createEl('div', { cls: 'ai-service-settings' });
+
+        siliconflowSection.createEl('h4', { text: t('SiliconFlow Settings') });
 
         // API Key 设置
         const apiKeySetting = new Setting(siliconflowSection)
@@ -208,7 +206,7 @@ export class SiliconFlowSettings {
                 dropdown.onChange(async (value) => {
                     if (value === 'custom') {
                         // 如果有上次使用的自定义模型，使用它
-                        const lastCustomModel = this.settings.siliconflow?.lastCustomModel;
+                        const lastCustomModel = this.plugin.settings.ai.siliconflow?.lastCustomModel;
                         this.modelState.selectedModel = {
                             id: lastCustomModel || '',
                             name: lastCustomModel || '',
@@ -219,9 +217,9 @@ export class SiliconFlowSettings {
                     } else {
                         const selectedModel = DEFAULT_SILICONFLOW_MODELS.find(m => m.id === value);
                         if (selectedModel) {
-                            if (this.modelState.selectedModel.isCustom && this.settings.siliconflow) {
-                                this.settings.siliconflow.lastCustomModel = this.modelState.selectedModel.id;
-                                await this.saveSettings();
+                            if (this.modelState.selectedModel.isCustom && this.plugin.settings.ai.siliconflow) {
+                                this.plugin.settings.ai.siliconflow.lastCustomModel = this.modelState.selectedModel.id;
+                                await this.plugin.saveSettings();
                             }
                             
                             this.modelState.selectedModel = selectedModel;
@@ -294,13 +292,13 @@ export class SiliconFlowSettings {
             .setDesc('Enter your custom API endpoint')
             .addText(text => {
                 const defaultUrl = 'https://api.siliconflow.cn/v1';
-                const currentValue = this.settings.siliconflow?.baseUrl;
+                const currentValue = this.plugin.settings.ai.siliconflow?.baseUrl;
                 
                 text.setPlaceholder(defaultUrl)
                     .setValue(currentValue || '')
                     .onChange(async (value) => {
-                        if (!this.settings.siliconflow) {
-                            this.settings.siliconflow = {
+                        if (!this.plugin.settings.ai.siliconflow) {
+                            this.plugin.settings.ai.siliconflow = {
                                 apiKey: this.modelState.apiKey || '',
                                 model: this.modelState.selectedModel.id,
                                 baseUrl: value || '',
@@ -308,9 +306,9 @@ export class SiliconFlowSettings {
                                 lastCustomModel: this.modelState.selectedModel.isCustom ? this.modelState.selectedModel.id : undefined
                             };
                         } else {
-                            this.settings.siliconflow.baseUrl = value || '';
+                            this.plugin.settings.ai.siliconflow.baseUrl = value || '';
                         }
-                        await this.saveSettings();
+                        await this.plugin.saveSettings();
                     });
                 return text;
             });
