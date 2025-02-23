@@ -856,45 +856,62 @@ export class ChatView {
 
             case 'siliconflow':
                 try {
-                    const models = await this.chatService.aiService.listSiliconFlowModels();
+                    // 使用预设的模型列表
+                    const models = DEFAULT_SILICONFLOW_MODELS;
                     
                     // 添加预设模型
-                    models.forEach((model: { id: string, name: string }) => {
+                    models.forEach((model: AIModel) => {
                         menu.addItem((item: MenuItem) => {
+                            const isSelected = !aiSettings.siliconflow?.isCustomModel && 
+                                (this.chatModelState.model === model.id || aiSettings.siliconflow?.model === model.id);
+                            
                             item.setTitle(model.name)
-                                .setChecked(aiSettings.siliconflow?.model === model.id)
+                                .setChecked(isSelected)
                                 .onClick(async () => {
+                                    if (!aiSettings.siliconflow) {
+                                        aiSettings.siliconflow = { model: model.id, isCustomModel: false };
+                                    } else {
+                                        aiSettings.siliconflow.model = model.id;
+                                        aiSettings.siliconflow.isCustomModel = false;
+                                    }
                                     // 更新对话窗口的模型状态
                                     this.chatModelState.provider = 'siliconflow';
                                     this.chatModelState.model = model.id;
                                     // 更新服务使用的模型
                                     this.chatService.updateModel('siliconflow', model.id);
-                                    selector.textContent = this.getCurrentModelName();
+                                    // 保存设置
+                                    await this.plugin.saveSettings();
+                                    selector.textContent = model.name;
                                 });
                         });
                     });
 
-                    // 添加分隔线（如果有自定义模型）
+                    // 如果存在自定义模型，添加分隔线和自定义模型
                     if (aiSettings.siliconflow?.isCustomModel && aiSettings.siliconflow?.model) {
                         menu.addSeparator();
                         
-                        // 添加自定义模型
+                        const customModelId = aiSettings.siliconflow.model;
                         menu.addItem((item: MenuItem) => {
-                            const customModel = {
-                                id: aiSettings.siliconflow?.model || '',
-                                name: aiSettings.siliconflow?.model,
-                                isCustom: true
-                            };
+                            const isSelected = aiSettings.siliconflow?.isCustomModel && 
+                                (this.chatModelState.model === customModelId || aiSettings.siliconflow?.model === customModelId);
                             
-                            item.setTitle(customModel.name)
-                                .setChecked(this.chatModelState.model === customModel.id)
+                            item.setTitle(customModelId)
+                                .setChecked(isSelected)
                                 .onClick(async () => {
+                                    if (!aiSettings.siliconflow) {
+                                        aiSettings.siliconflow = { model: customModelId, isCustomModel: true };
+                                    } else {
+                                        aiSettings.siliconflow.model = customModelId;
+                                        aiSettings.siliconflow.isCustomModel = true;
+                                    }
                                     // 更新对话窗口的模型状态
                                     this.chatModelState.provider = 'siliconflow';
-                                    this.chatModelState.model = customModel.id;
+                                    this.chatModelState.model = customModelId;
                                     // 更新服务使用的模型
-                                    this.chatService.updateModel('siliconflow', customModel.id);
-                                    selector.textContent = this.getCurrentModelName();
+                                    this.chatService.updateModel('siliconflow', customModelId);
+                                    // 保存设置
+                                    await this.plugin.saveSettings();
+                                    selector.textContent = customModelId;
                                 });
                         });
                     }
