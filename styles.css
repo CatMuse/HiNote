@@ -681,6 +681,11 @@ textarea.flashcard-modal-input {
     color: var(--text-normal);
 }
 
+.flashcard-modal-option {
+    display: flex;
+    align-items: center;
+}
+
 .flashcard-modal-buttons {
     display: flex;
     justify-content: flex-end;
@@ -834,7 +839,6 @@ textarea.flashcard-modal-input {
     padding: 6px 8px;
     border-radius: 6px;
     cursor: pointer;
-    color: var(--text-normal);
     transition: all 0.2s ease;
 }
 

@@ -244,6 +244,23 @@ export class FlashcardComponent {
         filterInput.rows = 3;
         if (group) filterInput.value = group.filter;
         modalContent.appendChild(filterInput);
+
+        // 添加反转卡片选项
+        const reverseContainer = document.createElement('div');
+        reverseContainer.className = 'flashcard-modal-option';
+
+        const reverseCheckbox = document.createElement('input');
+        reverseCheckbox.type = 'checkbox';
+        reverseCheckbox.className = 'flashcard-modal-checkbox';
+        reverseCheckbox.checked = group?.isReversed || false;
+        reverseContainer.appendChild(reverseCheckbox);
+
+        const reverseLabel = document.createElement('label');
+        reverseLabel.textContent = '反转卡片（使用评论作为问题）';
+        reverseLabel.className = 'flashcard-modal-label';
+        reverseContainer.appendChild(reverseLabel);
+
+        modalContent.appendChild(reverseContainer);
         
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'flashcard-modal-buttons';
@@ -275,7 +292,8 @@ export class FlashcardComponent {
                     // 编辑现有组
                     const updated = await this.fsrsManager.updateCardGroup(group.id, {
                         name,
-                        filter
+                        filter,
+                        isReversed: reverseCheckbox.checked
                     });
                     
                     if (updated) {
@@ -296,7 +314,8 @@ export class FlashcardComponent {
                         name,
                         filter,
                         sortOrder: this.fsrsManager.getCardGroups().length,
-                        createdTime: Date.now()
+                        createdTime: Date.now(),
+                        isReversed: reverseCheckbox.checked
                     });
                     
                     // 设置当前分组
@@ -660,23 +679,46 @@ export class FlashcardComponent {
         if (this.currentCard) {
             const card = cardContainer.createEl("div", { cls: "flashcard" });
             
+            // 检查卡片是否属于任何反转的分组
+            const allGroups = this.fsrsManager.getCardGroups();
+            const cardGroups = allGroups.filter(group => {
+                const groupCards = this.fsrsManager.getCardsInGroup(group);
+                return groupCards.some(c => c.id === this.currentCard?.id);
+            });
+            
+            // 如果卡片属于任何一个反转的分组，则保持反转状态
+            const isReversed = cardGroups.some(group => group.isReversed);
+
+            // 根据 isReversed 决定正反面内容
+            const frontContent = isReversed ? this.currentCard.answer : this.currentCard.text;
+            const backContent = isReversed ? this.currentCard.text : this.currentCard.answer;
+            const frontIsHTML = isReversed; // 评论内容需要作为 HTML 渲染
+
             // 创建卡片正面
             const frontSide = card.createEl("div", { 
                 cls: "flashcard-side flashcard-front"
             });
-            frontSide.createEl("div", {
-                cls: "flashcard-content",
-                text: this.currentCard.text
+            const frontEl = frontSide.createEl("div", {
+                cls: "flashcard-content"
             });
+            if (frontIsHTML) {
+                frontEl.innerHTML = frontContent;
+            } else {
+                frontEl.textContent = frontContent;
+            }
 
             // 创建卡片背面
             const backSide = card.createEl("div", { 
                 cls: "flashcard-side flashcard-back"
             });
-            const backContent = backSide.createEl("div", {
+            const backEl = backSide.createEl("div", {
                 cls: "flashcard-content"
             });
-            backContent.innerHTML = this.currentCard.answer;
+            if (!frontIsHTML) {
+                backEl.innerHTML = backContent; // 背面是评论时用 HTML
+            } else {
+                backEl.textContent = backContent; // 背面是高亮时用纯文本
+            }
 
             // 添加卡片点击事件
             card.addEventListener("click", () => this.flipCard());
@@ -750,6 +792,16 @@ export class FlashcardComponent {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 this.flipCard();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (!this.isFlipped) {
+                    this.previousCard();
+                }
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (!this.isFlipped) {
+                    this.nextCard();
+                }
             } else if (this.isFlipped) {
                 const rating = this.ratingButtons.find(btn => btn.key === e.key);
                 if (rating) {
@@ -802,6 +854,7 @@ export class FlashcardComponent {
     private nextCard() {
         if (this.currentIndex < this.cards.length - 1) {
             this.currentIndex++;
+            this.currentCard = this.cards[this.currentIndex];
             this.isFlipped = false;
             this.saveState();
             this.render();
@@ -955,6 +1008,7 @@ export class FlashcardComponent {
     private previousCard() {
         if (this.currentIndex > 0) {
             this.currentIndex--;
+            this.currentCard = this.cards[this.currentIndex];
             this.isFlipped = false;
             this.saveState();
             this.render();

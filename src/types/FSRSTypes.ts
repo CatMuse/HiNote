@@ -40,6 +40,7 @@ export interface CardGroup {
     filter: string;       // 过滤条件，支持文件名和标签
     createdTime: number;  // 创建时间
     sortOrder: number;    // 排序顺序
+    isReversed?: boolean; // 是否反转卡片正反面（评论作为问题）
 }
 
 export interface HiCardState {
