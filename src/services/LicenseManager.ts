@@ -11,13 +11,6 @@ export class LicenseManager {
         this.plugin = plugin;
     }
 
-    // 仅用于测试：生成测试许可证
-    async generateTestLicense(): Promise<string> {
-        const deviceId = await this.generateDeviceId();
-        const licenseData = `${deviceId}-flashcard`;
-        return btoa(licenseData);
-    }
-
     // 生成设备ID
     private async generateDeviceId(): Promise<string> {
         const vaultPath = (this.plugin.app.vault.adapter as any).getBasePath?.() || this.plugin.app.vault.getName();
