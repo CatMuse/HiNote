@@ -374,8 +374,16 @@ export class FSRSManager {
     }
 
     public getCardsByFile(filePath: string): FlashcardState[] {
-        return Object.values(this.storage.cards)
+        const cards = Object.values(this.storage.cards)
             .filter(card => card.filePath === filePath);
+        
+        console.log('Cards by file:', { 
+            filePath, 
+            count: cards.length, 
+            cardIds: cards.map(c => c.id).slice(0, 5) 
+        });
+        
+        return cards;
     }
 
     public exportData(): FSRSStorage {
@@ -546,9 +554,31 @@ export class FSRSManager {
                 // 检查标签
                 if (filter.startsWith('#')) {
                     const tagToFind = filter.substring(1);
-                    const tags = this.extractTagsFromText(cardText);
-                    const matches = tags.some(tag => tag.toLowerCase() === tagToFind);
-                    console.log('Tag check:', { tagToFind, tags, matches });
+                    // 从卡片文本中提取标签
+                    const tagsInText = this.extractTagsFromText(cardText);
+                    // 从卡片答案中提取标签
+                    const tagsInAnswer = this.extractTagsFromText(cardAnswer);
+                    // 合并所有标签
+                    const allTags = [...tagsInText, ...tagsInAnswer];
+                    
+                    // 检查卡片文本中是否直接包含完整的标签字符串（包括#符号）
+                    const directTagMatch = cardText.includes(filter) || cardAnswer.includes(filter);
+                    
+                    // 检查提取的标签是否匹配
+                    const extractedTagMatch = allTags.some(tag => 
+                        tag.toLowerCase() === tagToFind || 
+                        tag.toLowerCase().includes(tagToFind)
+                    );
+                    
+                    const matches = directTagMatch || extractedTagMatch;
+                    console.log('Tag check:', { 
+                        tagToFind, 
+                        tagsInText, 
+                        tagsInAnswer, 
+                        directTagMatch,
+                        extractedTagMatch,
+                        matches 
+                    });
                     return matches;
                 }
                 
@@ -591,8 +621,10 @@ export class FSRSManager {
     }
 
     private extractTagsFromText(text: string): string[] {
-        const tagRegex = /#([\w-]+)/g;
+        // 修改正则表达式以支持更广泛的标签格式，包括中文和其他特殊字符
+        const tagRegex = /#([^\s#]+)/g;
         const matches = text.match(tagRegex);
+        console.log('Extracted tags from text:', { text, matches });
         return matches ? matches.map(tag => tag.substring(1)) : [];
     }
 

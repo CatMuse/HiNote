@@ -78,11 +78,16 @@ export class FlashcardComponent {
 
         // 为每个高亮创建或更新闪卡
         for (const highlight of highlights) {
-            // 跳过标签高亮
-            if (highlight.text?.startsWith('#')) continue;
-            
             // 检查是否有评论
             if (!highlight.comments?.length) continue;
+            
+            // 检查是否包含标签
+            const containsTags = highlight.text && highlight.text.includes('#');
+            console.log('Processing highlight:', { 
+                text: highlight.text?.substring(0, 50), 
+                containsTags, 
+                commentsCount: highlight.comments?.length 
+            });
             
             // 合并所有评论作为答案
             const answer = highlight.comments.map(c => c.content).join('<hr>');
@@ -94,11 +99,17 @@ export class FlashcardComponent {
                 
                 if (existingCards.length === 0) {
                     // 创建新卡片
-                    console.log('Creating new card for highlight:', highlight);
+                    console.log('Creating new card for highlight:', {
+                        filePath: highlight.filePath,
+                        textPreview: highlight.text?.substring(0, 50)
+                    });
                     this.fsrsManager.addCard(highlight.text, answer, highlight.filePath);
                 } else {
                     // 更新现有卡片
-                    console.log('Updating existing card for highlight:', highlight);
+                    console.log('Updating existing card for highlight:', {
+                        filePath: highlight.filePath,
+                        textPreview: highlight.text?.substring(0, 50)
+                    });
                     this.fsrsManager.updateCardContent(highlight.text, answer, highlight.filePath);
                 }
             }
@@ -117,13 +128,17 @@ export class FlashcardComponent {
             // 自定义分组
             const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
             if (group) {
+                console.log('Getting cards for custom group:', { 
+                    groupName: this.currentGroupName, 
+                    filter: group.filter 
+                });
                 this.cards = this.fsrsManager.getCardsInGroup(group);
             } else {
                 this.cards = this.fsrsManager.getLatestCards();
             }
         }
         
-        console.log('Updated cards:', this.cards);
+        console.log('Updated cards count:', this.cards.length);
         
         this.currentIndex = 0;
         this.isFlipped = false;
