@@ -147,4 +147,27 @@ export class FSRSService {
         return cards.filter(card => this.isDue(card))
             .sort((a, b) => a.nextReview - b.nextReview);
     }
+
+    /**
+     * 获取当前 FSRS 参数
+     * @returns 当前使用的 FSRS 参数
+     */
+    public getParameters(): FSRSParameters {
+        return { ...this.params };
+    }
+
+    /**
+     * 设置 FSRS 参数
+     * @param params 要设置的 FSRS 参数
+     */
+    public setParameters(params: Partial<FSRSParameters>): void {
+        this.params = { ...this.params, ...params };
+    }
+
+    /**
+     * 重置 FSRS 参数为默认值
+     */
+    public resetParameters(): void {
+        this.params = { ...DEFAULT_FSRS_PARAMETERS };
+    }
 }

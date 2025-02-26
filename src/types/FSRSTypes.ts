@@ -49,12 +49,19 @@ export interface HiCardState {
     isFlipped: boolean;
 }
 
+export interface DailyStats {
+    date: number;             // 日期时间戳 (当天的0点)
+    newCardsLearned: number;  // 当天学习的新卡片数量
+    cardsReviewed: number;    // 当天复习的卡片数量
+}
+
 export interface FSRSStorage {
     version: string;
     cards: { [id: string]: FlashcardState };
     globalStats: FSRSGlobalStats;
     cardGroups: CardGroup[];  // 用户自定义的卡片分组
-    uiState: HiCardState;  // 保存UI状态
+    uiState: HiCardState;     // 保存UI状态
+    dailyStats: DailyStats[]; // 每日学习统计数据
 }
 
 export const FSRS_RATING = {
@@ -70,11 +77,15 @@ export interface FSRSParameters {
     request_retention: number;   // 目标记忆保持率
     maximum_interval: number;    // 最大间隔天数
     w: number[];                // FSRS 算法参数
+    newCardsPerDay: number;     // 每日新卡片学习上限
+    reviewsPerDay: number;      // 每日复习卡片上限
 }
 
 export const DEFAULT_FSRS_PARAMETERS: FSRSParameters = {
     request_retention: 0.9,
     maximum_interval: 36500,
+    newCardsPerDay: 20,         // 默认每天学习20张新卡片
+    reviewsPerDay: 100,         // 默认每天复习100张卡片
     w: [0.4872, 1.4003, 3.7145, 13.8206, 5.1618, 1.2298, 0.8975, 0.031, 1.6474, 
         0.1367, 1.0461, 2.1072, 0.0793, 0.3246, 1.587, 0.2272, 2.8755]
 };

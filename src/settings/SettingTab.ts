@@ -2,6 +2,7 @@ import { App, PluginSettingTab } from 'obsidian';
 import { PluginSettings } from '../types';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { AIServiceTab } from './AIServiceTab';
+import { FlashcardSettingsTab } from './FlashcardSettingsTab';
 import { t } from '../i18n';
 
 export class AISettingTab extends PluginSettingTab {
@@ -36,10 +37,16 @@ export class AISettingTab extends PluginSettingTab {
           cls: 'setting-tab-btn',
           attr: { role: 'button', tabindex: '0' }
         });
+        const flashcardTab = tabContainer.createEl('div', { 
+          text: t('Flashcard'),
+          cls: 'setting-tab-btn',
+          attr: { role: 'button', tabindex: '0' }
+        });
 
         // 创建内容容器
         const generalContent = contentContainer.createEl('div', { cls: 'setting-tab-pane active' });
         const aiContent = contentContainer.createEl('div', { cls: 'setting-tab-pane' });
+        const flashcardContent = contentContainer.createEl('div', { cls: 'setting-tab-pane' });
 
         // 添加标签切换事件
         const switchTab = (targetTab: HTMLElement, targetContent: HTMLElement) => {
@@ -54,11 +61,15 @@ export class AISettingTab extends PluginSettingTab {
 
         generalTab.onclick = () => switchTab(generalTab, generalContent);
         aiTab.onclick = () => switchTab(aiTab, aiContent);
+        flashcardTab.onclick = () => switchTab(flashcardTab, flashcardContent);
 
         // 添加通用设置到 General 标签页
         new GeneralSettingsTab(this.plugin, generalContent).display();
 
         // 添加 AI 服务设置到 AI Service 标签页
         new AIServiceTab(this.plugin, aiContent).display();
+        
+        // 添加 Flashcard 设置到 Flashcard 标签页
+        new FlashcardSettingsTab(this.plugin, flashcardContent).display();
     }
 }

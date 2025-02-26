@@ -469,6 +469,31 @@ export class FlashcardComponent {
             }
         });
         
+        // 添加每日学习限制信息
+        progressText.createSpan({
+            text: "|",
+            cls: "separator"
+        });
+        
+        const limitsEl = progressText.createEl("div", { cls: "stat" });
+        limitsEl.createSpan({ text: "Limits: " });
+        
+        const newRemaining = this.fsrsManager.getRemainingNewCardsToday();
+        const reviewRemaining = this.fsrsManager.getRemainingReviewsToday();
+        
+        limitsEl.createSpan({ 
+            text: `${newRemaining} new, ${reviewRemaining} review`,
+            cls: "stat-value"
+        });
+        
+        const helpIcon = limitsEl.createSpan({ cls: "help-icon" });
+        setIcon(helpIcon, "help-circle");
+        helpIcon.setAttribute("aria-label", 
+            "每日学习限制\n" +
+            `新卡片: ${newRemaining}/${this.fsrsManager.fsrsService.getParameters().newCardsPerDay}\n` +
+            `复习卡片: ${reviewRemaining}/${this.fsrsManager.fsrsService.getParameters().reviewsPerDay}`
+        );
+        
         // 更新进度条
         this.updateProgress();
 
@@ -756,7 +781,7 @@ export class FlashcardComponent {
             // 显示进度
             cardContainer.createEl("div", { 
                 cls: "flashcard-counter",
-                text: `${this.currentIndex + 1} / ${this.cards.length}`
+                text: `${this.currentIndex + 1}/${this.cards.length}`
             });
 
             // 如果有关联文件，显示文件名
@@ -821,20 +846,79 @@ export class FlashcardComponent {
             // 更新当前卡片的状态
             this.cards[this.currentIndex] = updatedCard;
             
-            // 移动到下一张卡片
-            if (this.currentIndex < this.cards.length - 1) {
+            // 检查是否还有卡片可以学习
+            let hasMoreCards = false;
+            
+            // 如果是新卡片，检查是否还能学习新卡片
+            if (this.currentGroupName === 'New Cards' && !this.fsrsManager.canLearnNewCardsToday()) {
+                new Notice(`您今天的新卡片学习配额已用完！明天再来学习吧。`, 5000);
+            } 
+            // 如果是到期卡片，检查是否还能复习卡片
+            else if (this.currentGroupName === 'Due Today' && !this.fsrsManager.canReviewCardsToday()) {
+                new Notice(`您今天的复习配额已用完！明天再来复习吧。`, 5000);
+            }
+            // 如果还有卡片，继续学习
+            else if (this.currentIndex < this.cards.length - 1) {
                 this.currentIndex++;
-            } else {
-                // 如果是最后一张卡片，回到第一张
+                hasMoreCards = true;
+            } 
+            // 如果是最后一张卡片，显示完成提示
+            else {
+                // 显示学习完成提示
+                new Notice(`恭喜！您已完成 "${this.currentGroupName}" 中的所有卡片学习。`, 5000);
+                
+                // 回到第一张卡片
                 this.currentIndex = 0;
+                hasMoreCards = this.cards.length > 0;
             }
             
-            this.currentCard = this.cards[this.currentIndex];
+            this.currentCard = hasMoreCards ? this.cards[this.currentIndex] : null;
             this.isFlipped = false;
             this.saveState();
             this.render();
             this.updateProgress();
+            
+            // 更新卡片列表（可能有些卡片因为每日限制而不再显示）
+            if (this.currentGroupName === 'New Cards' || this.currentGroupName === 'Due Today') {
+                this.refreshCardList();
+            }
         }
+    }
+    
+    /**
+     * 刷新当前卡片列表，考虑每日学习限制
+     */
+    private refreshCardList() {
+        // 根据当前分组名称获取卡片
+        if (this.currentGroupName === 'All Cards') {
+            this.cards = this.fsrsManager.getLatestCards();
+        } else if (this.currentGroupName === 'Due Today') {
+            this.cards = this.fsrsManager.getDueCards();
+        } else if (this.currentGroupName === 'New Cards') {
+            this.cards = this.fsrsManager.getNewCards();
+        } else if (this.currentGroupName === 'Learned') {
+            this.cards = this.fsrsManager.getLatestCards().filter(c => c.lastReview > 0);
+        } else {
+            // 自定义分组
+            const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
+            if (group) {
+                this.cards = this.fsrsManager.getCardsInGroup(group);
+            }
+        }
+        
+        // 如果没有卡片，显示提示
+        if (this.cards.length === 0) {
+            if (this.currentGroupName === 'New Cards' && !this.fsrsManager.canLearnNewCardsToday()) {
+                new Notice(`您今天的新卡片学习配额已用完！明天再来学习吧。`, 5000);
+            } else if (this.currentGroupName === 'Due Today' && !this.fsrsManager.canReviewCardsToday()) {
+                new Notice(`您今天的复习配额已用完！明天再来复习吧。`, 5000);
+            }
+        }
+        
+        // 更新当前卡片
+        this.currentCard = this.cards.length > 0 ? this.cards[0] : null;
+        this.currentIndex = 0;
+        this.isFlipped = false;
     }
 
     private flipCard() {

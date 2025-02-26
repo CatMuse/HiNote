@@ -6,7 +6,8 @@ import {
     FSRSRating,
     FSRS_RATING,
     CardGroup,
-    HiCardState
+    HiCardState,
+    DailyStats
 } from '../types/FSRSTypes';
 import { FSRSService } from './FSRSService';
 import { debounce } from 'obsidian';
@@ -33,7 +34,8 @@ export class FSRSManager {
                 currentGroupName: 'All Cards',
                 currentIndex: 0,
                 isFlipped: false
-            }
+            },
+            dailyStats: [] // 初始化每日学习统计数据
         };
         
         // 自动保存更改
@@ -63,7 +65,8 @@ export class FSRSManager {
                 currentGroupName: 'All Cards',
                 currentIndex: 0,
                 isFlipped: false
-            }
+            },
+            dailyStats: []
         };
 
         try {
@@ -218,6 +221,53 @@ export class FSRSManager {
         }
     }
 
+    /**
+     * 对卡片进行评分
+     * @param cardId 卡片ID
+     * @param rating 评分 (0-3: Again, Hard, Good, Easy)
+     */
+    public rateCard(cardId: string, rating: FSRSRating): void {
+        const card = this.storage.cards[cardId];
+        if (!card) return;
+        
+        const isNewCard = card.reviews === 0;
+        
+        // 使用FSRS算法更新卡片状态
+        const updatedCard = this.fsrsService.reviewCard(card, rating);
+        this.storage.cards[cardId] = updatedCard;
+        
+        // 更新全局统计数据
+        this.storage.globalStats.totalReviews++;
+        
+        // 更新今天的学习统计数据
+        this.updateTodayStats(isNewCard);
+        
+        // 更新最后复习日期和连续学习天数
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = today.getTime();
+        
+        if (this.storage.globalStats.lastReviewDate === 0) {
+            // 第一次复习
+            this.storage.globalStats.lastReviewDate = todayTimestamp;
+            this.storage.globalStats.streakDays = 1;
+        } else if (this.storage.globalStats.lastReviewDate === todayTimestamp) {
+            // 今天已经复习过
+            // 不需要更新
+        } else if (this.storage.globalStats.lastReviewDate === todayTimestamp - 86400000) {
+            // 昨天复习过，连续学习天数+1
+            this.storage.globalStats.lastReviewDate = todayTimestamp;
+            this.storage.globalStats.streakDays++;
+        } else if (this.storage.globalStats.lastReviewDate < todayTimestamp) {
+            // 之前复习过，但不是昨天，重置连续学习天数
+            this.storage.globalStats.lastReviewDate = todayTimestamp;
+            this.storage.globalStats.streakDays = 1;
+        }
+        
+        // 保存更改
+        this.saveStorageDebounced();
+    }
+
     public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
         const card = this.storage.cards[cardId];
         if (!card) return null;
@@ -233,13 +283,37 @@ export class FSRSManager {
         return updatedCard;
     }
 
+    /**
+     * 获取今天到期需要复习的卡片
+     * @returns 今天需要复习的卡片列表
+     */
     public getDueCards(): FlashcardState[] {
-        return this.fsrsService.getReviewableCards(Object.values(this.storage.cards));
+        const dueCards = this.fsrsService.getReviewableCards(Object.values(this.storage.cards));
+        
+        // 如果设置了每日复习限制，则限制返回的卡片数量
+        const remainingReviews = this.getRemainingReviewsToday();
+        if (remainingReviews <= 0) {
+            return []; // 今天的复习配额已用完
+        }
+        
+        return dueCards.slice(0, remainingReviews);
     }
 
+    /**
+     * 获取新卡片（从未学习过的卡片）
+     * @returns 新卡片列表
+     */
     public getNewCards(): FlashcardState[] {
-        return Object.values(this.storage.cards)
-            .filter(card => card.lastReview === 0);
+        const newCards = Object.values(this.storage.cards)
+            .filter(card => card.reviews === 0);
+        
+        // 如果设置了每日新卡片限制，则限制返回的卡片数量
+        const remainingNew = this.getRemainingNewCardsToday();
+        if (remainingNew <= 0) {
+            return []; // 今天的新卡片学习配额已用完
+        }
+        
+        return newCards.slice(0, remainingNew);
     }
 
     public getLatestCards(): FlashcardState[] {
@@ -506,5 +580,95 @@ export class FSRSManager {
         const tagRegex = /#([\w-]+)/g;
         const matches = text.match(tagRegex);
         return matches ? matches.map(tag => tag.substring(1)) : [];
+    }
+
+    /**
+     * 获取今天的日期时间戳（0点）
+     */
+    private getTodayTimestamp(): number {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return today.getTime();
+    }
+
+    /**
+     * 获取或创建今天的学习统计数据
+     */
+    private getTodayStats(): DailyStats {
+        const todayTimestamp = this.getTodayTimestamp();
+        let todayStats = this.storage.dailyStats.find(stats => stats.date === todayTimestamp);
+        
+        if (!todayStats) {
+            todayStats = {
+                date: todayTimestamp,
+                newCardsLearned: 0,
+                cardsReviewed: 0
+            };
+            this.storage.dailyStats.push(todayStats);
+            
+            // 只保留最近30天的数据
+            if (this.storage.dailyStats.length > 30) {
+                this.storage.dailyStats.sort((a, b) => b.date - a.date);
+                this.storage.dailyStats = this.storage.dailyStats.slice(0, 30);
+            }
+        }
+        
+        return todayStats;
+    }
+
+    /**
+     * 更新今天的学习统计数据
+     * @param isNewCard 是否是新卡片
+     */
+    private updateTodayStats(isNewCard: boolean): void {
+        const todayStats = this.getTodayStats();
+        
+        if (isNewCard) {
+            todayStats.newCardsLearned++;
+        } else {
+            todayStats.cardsReviewed++;
+        }
+        
+        this.saveStorageDebounced();
+    }
+
+    /**
+     * 检查今天是否还能学习新卡片
+     */
+    public canLearnNewCardsToday(): boolean {
+        const todayStats = this.getTodayStats();
+        const params = this.fsrsService.getParameters();
+        
+        return todayStats.newCardsLearned < params.newCardsPerDay;
+    }
+
+    /**
+     * 检查今天是否还能复习卡片
+     */
+    public canReviewCardsToday(): boolean {
+        const todayStats = this.getTodayStats();
+        const params = this.fsrsService.getParameters();
+        
+        return todayStats.cardsReviewed < params.reviewsPerDay;
+    }
+
+    /**
+     * 获取今天剩余的新卡片学习数量
+     */
+    public getRemainingNewCardsToday(): number {
+        const todayStats = this.getTodayStats();
+        const params = this.fsrsService.getParameters();
+        
+        return Math.max(0, params.newCardsPerDay - todayStats.newCardsLearned);
+    }
+
+    /**
+     * 获取今天剩余的复习卡片数量
+     */
+    public getRemainingReviewsToday(): number {
+        const todayStats = this.getTodayStats();
+        const params = this.fsrsService.getParameters();
+        
+        return Math.max(0, params.reviewsPerDay - todayStats.cardsReviewed);
     }
 }
