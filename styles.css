@@ -1794,7 +1794,6 @@ textarea.flashcard-modal-input {
     line-height: 1.5;
     resize: none;
     overflow-y: auto;
-    transition: all 0.2s ease;
 }
 
 .highlight-chat-input-container .hi-note-buttons {
@@ -2766,7 +2765,6 @@ hr {
     padding: 40px 20px;
     background: var(--background-primary);
     border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 500px;
 }
@@ -2775,6 +2773,11 @@ hr {
     font-size: 48px;
     color: var(--interactive-accent);
     margin-bottom: 20px;
+}
+
+.completion-icon svg {
+    width: 56px;
+    height: 56px;
 }
 
 .flashcard-completion-message h3 {
@@ -2805,6 +2808,7 @@ hr {
 
 .flashcard-return-button:hover {
     background-color: var(--interactive-accent-hover);
+    color: var(--interactive-normal);
 }
 
 /* 学习设置样式 */
