@@ -319,21 +319,28 @@ export class FlashcardComponent {
         
         const newCardsSlider = document.createElement('input');
         newCardsSlider.type = 'range';
-        newCardsSlider.min = '1';
+        newCardsSlider.min = '5';
         newCardsSlider.max = '100';
-        newCardsSlider.step = '1';
+        newCardsSlider.step = '5';
         newCardsSlider.className = 'flashcard-modal-slider';
         newCardsSlider.value = group?.settings?.newCardsPerDay?.toString() || '20';
+        // 确保值是5的倍数
+        const newCardsValue = parseInt(newCardsSlider.value);
+        if (newCardsValue < 5) {
+            newCardsSlider.value = '5';
+        } else if (newCardsValue % 5 !== 0) {
+            newCardsSlider.value = (Math.round(newCardsValue / 5) * 5).toString();
+        }
         newCardsSliderContainer.appendChild(newCardsSlider);
         
-        const newCardsValue = document.createElement('span');
-        newCardsValue.className = 'slider-value';
-        newCardsValue.textContent = newCardsSlider.value;
-        newCardsSliderContainer.appendChild(newCardsValue);
+        const newCardsValueDisplay = document.createElement('span');
+        newCardsValueDisplay.className = 'slider-value';
+        newCardsValueDisplay.textContent = newCardsSlider.value;
+        newCardsSliderContainer.appendChild(newCardsValueDisplay);
         
         // 更新滑块值显示
         newCardsSlider.addEventListener('input', () => {
-            newCardsValue.textContent = newCardsSlider.value;
+            newCardsValueDisplay.textContent = newCardsSlider.value;
         });
         
         newCardsContainer.appendChild(newCardsSliderContainer);
@@ -353,21 +360,28 @@ export class FlashcardComponent {
         
         const reviewsSlider = document.createElement('input');
         reviewsSlider.type = 'range';
-        reviewsSlider.min = '1';
+        reviewsSlider.min = '10';
         reviewsSlider.max = '300';
-        reviewsSlider.step = '5';
+        reviewsSlider.step = '10';
         reviewsSlider.className = 'flashcard-modal-slider';
         reviewsSlider.value = group?.settings?.reviewsPerDay?.toString() || '100';
+        // 确保值是10的倍数
+        const reviewsValue = parseInt(reviewsSlider.value);
+        if (reviewsValue < 10) {
+            reviewsSlider.value = '10';
+        } else if (reviewsValue % 10 !== 0) {
+            reviewsSlider.value = (Math.round(reviewsValue / 10) * 10).toString();
+        }
         reviewsSliderContainer.appendChild(reviewsSlider);
         
-        const reviewsValue = document.createElement('span');
-        reviewsValue.className = 'slider-value';
-        reviewsValue.textContent = reviewsSlider.value;
-        reviewsSliderContainer.appendChild(reviewsValue);
+        const reviewsValueDisplay = document.createElement('span');
+        reviewsValueDisplay.className = 'slider-value';
+        reviewsValueDisplay.textContent = reviewsSlider.value;
+        reviewsSliderContainer.appendChild(reviewsValueDisplay);
         
         // 更新滑块值显示
         reviewsSlider.addEventListener('input', () => {
-            reviewsValue.textContent = reviewsSlider.value;
+            reviewsValueDisplay.textContent = reviewsSlider.value;
         });
         
         reviewsContainer.appendChild(reviewsSliderContainer);
