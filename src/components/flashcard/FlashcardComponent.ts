@@ -89,7 +89,7 @@ export class FlashcardComponent {
                 commentsCount: highlight.comments?.length 
             });
             
-            // 合并所有评论作为答案
+            // 合并所有评论作为答案，保留标签信息用于分组和过滤
             const answer = highlight.comments.map(c => c.content).join('<hr>');
             
             // 检查是否已存在相同内容的卡片
@@ -915,7 +915,7 @@ export class FlashcardComponent {
         const cardContainer = contentArea.createEl("div", { cls: "flashcard-container" });
         
         if (this.cards.length === 0) {
-            cardContainer.createEl("div", { 
+            cardContainer.createEl("div", {
                 cls: "flashcard-empty", 
                 text: t("No cards due for review") 
             });
@@ -982,10 +982,35 @@ export class FlashcardComponent {
             const isReversed = cardGroups.some(group => group.isReversed);
 
             // 根据 isReversed 决定正反面内容
-            const frontContent = isReversed ? this.currentCard.answer : this.currentCard.text;
-            const backContent = isReversed ? this.currentCard.text : this.currentCard.answer;
+            let frontContent = isReversed ? this.currentCard.answer : this.currentCard.text;
+            let backContent = isReversed ? this.currentCard.text : this.currentCard.answer;
             const frontIsHTML = isReversed; // 评论内容需要作为 HTML 渲染
-
+            
+            // 过滤掉仅包含标签的评论
+            const filterTagOnlyComments = (content: string): string => {
+                // 将评论按 <hr> 分割
+                const comments = content.split('<hr>');
+                // 过滤掉仅包含标签的评论
+                const filteredComments = comments.filter(comment => {
+                    // 检查评论是否仅包含标签
+                    const onlyContainsTags = /^(#[^\s#]+\s*)+$/.test(comment.trim());
+                    return !onlyContainsTags;
+                });
+                // 重新组合评论
+                return filteredComments.join('<hr>');
+            };
+            
+            // 根据模式处理内容
+            if (isReversed) {
+                // 反转模式下，正面是评论
+                frontContent = filterTagOnlyComments(frontContent);
+                console.log('Filtered front content (reversed mode)');
+            } else {
+                // 正常模式下，背面是评论
+                backContent = filterTagOnlyComments(backContent);
+                console.log('Filtered back content (normal mode)');
+            }
+            
             // 创建卡片正面
             const frontSide = card.createEl("div", { 
                 cls: "flashcard-side flashcard-front"
