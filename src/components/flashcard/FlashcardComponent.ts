@@ -24,6 +24,11 @@ export class FlashcardComponent {
     private currentGroupName: string = 'All Cards';
     private app: any;
     private boundHandleKeyDown: (e: KeyboardEvent) => void;
+    private completionMessage: string | null = null;
+    // 存储每个分组的完成状态
+    private groupCompletionMessages: Record<string, string | null> = {};
+    // 存储每个分组的学习进度
+    private groupProgress: Record<string, { currentIndex: number, isFlipped: boolean }> = {};
 
     // 评分按钮配置
     private readonly ratingButtons = [
@@ -59,6 +64,9 @@ export class FlashcardComponent {
         this.currentGroupName = savedState.currentGroupName;
         this.currentIndex = savedState.currentIndex;
         this.isFlipped = savedState.isFlipped;
+        this.completionMessage = savedState.completionMessage || null;
+        this.groupCompletionMessages = savedState.groupCompletionMessages || {};
+        this.groupProgress = savedState.groupProgress || {};
     }
 
     setLicenseManager(licenseManager: LicenseManager) {
@@ -263,6 +271,122 @@ export class FlashcardComponent {
 
         modalContent.appendChild(reverseContainer);
         
+        // 添加学习设置选项
+        const settingsContainer = document.createElement('div');
+        settingsContainer.className = 'flashcard-modal-settings';
+        
+        // 添加标题和全局设置选项在同一行
+        const settingsHeader = document.createElement('div');
+        settingsHeader.className = 'flashcard-modal-settings-header';
+        
+        // 添加标题
+        const settingsTitle = document.createElement('h4');
+        settingsTitle.textContent = '学习设置';
+        settingsTitle.className = 'settings-title';
+        settingsHeader.appendChild(settingsTitle);
+        
+        // 添加使用全局设置选项
+        const useGlobalContainer = document.createElement('div');
+        useGlobalContainer.className = 'flashcard-modal-option use-global-option';
+        
+        const useGlobalCheckbox = document.createElement('input');
+        useGlobalCheckbox.type = 'checkbox';
+        useGlobalCheckbox.className = 'flashcard-modal-checkbox';
+        useGlobalCheckbox.id = 'use-global-settings';
+        useGlobalCheckbox.checked = group?.settings?.useGlobalSettings !== false; // 默认使用全局设置
+        useGlobalContainer.appendChild(useGlobalCheckbox);
+        
+        const useGlobalLabel = document.createElement('label');
+        useGlobalLabel.textContent = '使用全局学习设置';
+        useGlobalLabel.className = 'flashcard-modal-label';
+        useGlobalLabel.htmlFor = 'use-global-settings';
+        useGlobalContainer.appendChild(useGlobalLabel);
+        
+        settingsHeader.appendChild(useGlobalContainer);
+        settingsContainer.appendChild(settingsHeader);
+        
+        // 添加每日新卡片数量设置
+        const newCardsContainer = document.createElement('div');
+        newCardsContainer.className = 'flashcard-modal-option slider-option';
+        
+        const newCardsLabel = document.createElement('label');
+        newCardsLabel.textContent = '每日新卡数量：';
+        newCardsLabel.className = 'flashcard-modal-label';
+        newCardsContainer.appendChild(newCardsLabel);
+        
+        const newCardsSliderContainer = document.createElement('div');
+        newCardsSliderContainer.className = 'slider-with-value';
+        
+        const newCardsSlider = document.createElement('input');
+        newCardsSlider.type = 'range';
+        newCardsSlider.min = '1';
+        newCardsSlider.max = '100';
+        newCardsSlider.step = '1';
+        newCardsSlider.className = 'flashcard-modal-slider';
+        newCardsSlider.value = group?.settings?.newCardsPerDay?.toString() || '20';
+        newCardsSliderContainer.appendChild(newCardsSlider);
+        
+        const newCardsValue = document.createElement('span');
+        newCardsValue.className = 'slider-value';
+        newCardsValue.textContent = newCardsSlider.value;
+        newCardsSliderContainer.appendChild(newCardsValue);
+        
+        // 更新滑块值显示
+        newCardsSlider.addEventListener('input', () => {
+            newCardsValue.textContent = newCardsSlider.value;
+        });
+        
+        newCardsContainer.appendChild(newCardsSliderContainer);
+        settingsContainer.appendChild(newCardsContainer);
+        
+        // 添加每日复习数量设置
+        const reviewsContainer = document.createElement('div');
+        reviewsContainer.className = 'flashcard-modal-option slider-option';
+        
+        const reviewsLabel = document.createElement('label');
+        reviewsLabel.textContent = '每日复习数量：';
+        reviewsLabel.className = 'flashcard-modal-label';
+        reviewsContainer.appendChild(reviewsLabel);
+        
+        const reviewsSliderContainer = document.createElement('div');
+        reviewsSliderContainer.className = 'slider-with-value';
+        
+        const reviewsSlider = document.createElement('input');
+        reviewsSlider.type = 'range';
+        reviewsSlider.min = '1';
+        reviewsSlider.max = '300';
+        reviewsSlider.step = '5';
+        reviewsSlider.className = 'flashcard-modal-slider';
+        reviewsSlider.value = group?.settings?.reviewsPerDay?.toString() || '100';
+        reviewsSliderContainer.appendChild(reviewsSlider);
+        
+        const reviewsValue = document.createElement('span');
+        reviewsValue.className = 'slider-value';
+        reviewsValue.textContent = reviewsSlider.value;
+        reviewsSliderContainer.appendChild(reviewsValue);
+        
+        // 更新滑块值显示
+        reviewsSlider.addEventListener('input', () => {
+            reviewsValue.textContent = reviewsSlider.value;
+        });
+        
+        reviewsContainer.appendChild(reviewsSliderContainer);
+        settingsContainer.appendChild(reviewsContainer);
+        
+        // 根据是否使用全局设置启用/禁用自定义设置
+        const updateSettingsState = () => {
+            const useGlobal = useGlobalCheckbox.checked;
+            newCardsSlider.disabled = useGlobal;
+            reviewsSlider.disabled = useGlobal;
+            newCardsContainer.classList.toggle('disabled', useGlobal);
+            reviewsContainer.classList.toggle('disabled', useGlobal);
+        };
+        
+        useGlobalCheckbox.addEventListener('change', updateSettingsState);
+        updateSettingsState(); // 初始化状态
+        
+        modalContent.appendChild(settingsContainer);
+        
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'flashcard-modal-buttons';
         
@@ -289,12 +413,20 @@ export class FlashcardComponent {
                 actionButton.disabled = true;
                 actionButton.textContent = group ? '保存中...' : '创建中...';
                 
+                // 准备学习设置
+                const settings = {
+                    useGlobalSettings: useGlobalCheckbox.checked,
+                    newCardsPerDay: parseInt(newCardsSlider.value),
+                    reviewsPerDay: parseInt(reviewsSlider.value)
+                };
+                
                 if (group) {
                     // 编辑现有组
                     const updated = await this.fsrsManager.updateCardGroup(group.id, {
                         name,
                         filter,
-                        isReversed: reverseCheckbox.checked
+                        isReversed: reverseCheckbox.checked,
+                        settings
                     });
                     
                     if (updated) {
@@ -316,7 +448,8 @@ export class FlashcardComponent {
                         filter,
                         sortOrder: this.fsrsManager.getCardGroups().length,
                         createdTime: Date.now(),
-                        isReversed: reverseCheckbox.checked
+                        isReversed: reverseCheckbox.checked,
+                        settings
                     });
                     
                     // 设置当前分组
@@ -477,23 +610,39 @@ export class FlashcardComponent {
         });
         
         const limitsEl = progressText.createEl("div", { cls: "stat" });
-        limitsEl.createSpan({ text: "Limits: " });
+        limitsEl.createEl("span", { text: "Limits: " });
         
-        const newRemaining = this.fsrsManager.getRemainingNewCardsToday();
-        const reviewRemaining = this.fsrsManager.getRemainingReviewsToday();
+        // 获取当前分组ID（如果是自定义分组）
+        const currentGroup = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
+        const currentGroupId = currentGroup?.id;
         
-        limitsEl.createSpan({ 
+        // 根据当前分组获取剩余学习限制
+        const newRemaining = this.fsrsManager.getRemainingNewCardsToday(currentGroupId);
+        const reviewRemaining = this.fsrsManager.getRemainingReviewsToday(currentGroupId);
+        
+        limitsEl.createEl("span", { 
             text: `${newRemaining} new, ${reviewRemaining} review`,
             cls: "stat-value"
         });
         
         const helpIcon = limitsEl.createSpan({ cls: "help-icon" });
         setIcon(helpIcon, "help-circle");
-        helpIcon.setAttribute("aria-label", 
-            "每日学习限制\n" +
-            `新卡片: ${newRemaining}/${this.fsrsManager.fsrsService.getParameters().newCardsPerDay}\n` +
-            `复习卡片: ${reviewRemaining}/${this.fsrsManager.fsrsService.getParameters().reviewsPerDay}`
-        );
+        
+        // 根据当前分组设置提示信息
+        let tooltipText = "每日学习限制\n";
+        
+        if (currentGroup && currentGroup.settings && !currentGroup.settings.useGlobalSettings) {
+            // 显示分组特定的限制
+            tooltipText += `新卡片: ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
+            tooltipText += `复习卡片: ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
+        } else {
+            // 显示全局限制
+            const params = this.fsrsManager.fsrsService.getParameters();
+            tooltipText += `新卡片: ${newRemaining}/${params.newCardsPerDay}\n`;
+            tooltipText += `复习卡片: ${reviewRemaining}/${params.reviewsPerDay}`;
+        }
+        
+        helpIcon.setAttribute("aria-label", tooltipText);
         
         // 更新进度条
         this.updateProgress();
@@ -555,6 +704,15 @@ export class FlashcardComponent {
             
             // 添加点击事件
             groupItem.addEventListener('click', () => {
+                // 保存当前分组的完成状态
+                this.groupCompletionMessages[this.currentGroupName] = this.completionMessage;
+                
+                // 保存当前分组的学习进度
+                this.groupProgress[this.currentGroupName] = {
+                    currentIndex: this.currentIndex,
+                    isFlipped: this.isFlipped
+                };
+                
                 this.currentGroupName = group.name;
                 
                 // 移除其他组的激活状态
@@ -564,11 +722,23 @@ export class FlashcardComponent {
                 // 激活当前组
                 groupItem.classList.add('active');
                 
+                // 恢复当前分组的完成状态
+                this.completionMessage = this.groupCompletionMessages[group.name] || null;
+                
                 // 更新当前卡片列表
                 this.cards = cards;
-                this.currentIndex = 0;
-                this.currentCard = this.cards[0] || null;
-                this.isFlipped = false;
+                
+                // 恢复当前分组的学习进度
+                if (this.groupProgress[group.name] && !this.completionMessage) {
+                    this.currentIndex = this.groupProgress[group.name].currentIndex;
+                    this.isFlipped = this.groupProgress[group.name].isFlipped;
+                } else {
+                    // 如果没有保存的进度或有完成消息，从头开始
+                    this.currentIndex = 0;
+                    this.isFlipped = false;
+                }
+                
+                this.currentCard = this.cards[this.currentIndex] || null;
                 this.saveState();
                 this.render();
             });
@@ -668,6 +838,15 @@ export class FlashcardComponent {
             
             // 添加点击事件以显示组内卡片
             groupItem.addEventListener('click', () => {
+                // 保存当前分组的完成状态
+                this.groupCompletionMessages[this.currentGroupName] = this.completionMessage;
+                
+                // 保存当前分组的学习进度
+                this.groupProgress[this.currentGroupName] = {
+                    currentIndex: this.currentIndex,
+                    isFlipped: this.isFlipped
+                };
+                
                 this.currentGroupName = group.name;
                 
                 // 移除其他组的激活状态
@@ -677,12 +856,25 @@ export class FlashcardComponent {
                 // 激活当前组
                 groupItem.classList.add('active');
                 
+                // 恢复当前分组的完成状态
+                this.completionMessage = this.groupCompletionMessages[group.name] || null;
+                
                 // 更新当前卡片列表
                 const groupCards = this.fsrsManager.getCardsInGroup(group);
                 this.cards = groupCards;
-                this.currentIndex = 0;
-                this.currentCard = this.cards[0] || null;
-                this.isFlipped = false;
+                
+                // 恢复当前分组的学习进度
+                if (this.groupProgress[group.name] && !this.completionMessage) {
+                    this.currentIndex = this.groupProgress[group.name].currentIndex;
+                    this.isFlipped = this.groupProgress[group.name].isFlipped;
+                } else {
+                    // 如果没有保存的进度或有完成消息，从头开始
+                    this.currentIndex = 0;
+                    this.isFlipped = false;
+                }
+                
+                this.currentCard = this.cards[this.currentIndex] || null;
+                this.saveState();
                 this.render();
             });
         });
@@ -698,6 +890,51 @@ export class FlashcardComponent {
                 cls: "flashcard-empty", 
                 text: t("No cards due for review") 
             });
+            return;
+        }
+
+        // 显示完成消息（如果有）
+        if (this.completionMessage) {
+            const completionContainer = cardContainer.createEl("div", { 
+                cls: "flashcard-completion-message" 
+            });
+            
+            // 添加一个图标
+            const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
+            setIcon(iconEl, "check-circle");
+            
+            // 添加标题
+            completionContainer.createEl("h3", { 
+                text: "学习完成！" 
+            });
+            
+            // 添加消息
+            completionContainer.createEl("p", { 
+                text: this.completionMessage 
+            });
+            
+            // 添加按钮返回第一张卡片
+            const returnButton = completionContainer.createEl("button", {
+                cls: "flashcard-return-button",
+                text: "返回第一张卡片"
+            });
+            
+            returnButton.addEventListener("click", () => {
+                this.completionMessage = null;
+                // 清除当前分组的完成状态
+                this.groupCompletionMessages[this.currentGroupName] = null;
+                // 清除当前分组的学习进度
+                this.groupProgress[this.currentGroupName] = {
+                    currentIndex: 0,
+                    isFlipped: false
+                };
+                this.currentIndex = 0;
+                this.currentCard = this.cards[0] || null;
+                this.isFlipped = false;
+                this.saveState();
+                this.render();
+            });
+            
             return;
         }
 
@@ -862,13 +1099,37 @@ export class FlashcardComponent {
             // 检查是否还有卡片可以学习
             let hasMoreCards = false;
             
+            // 获取当前分组ID（如果是自定义分组）
+            const currentGroup = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
+            const currentGroupId = currentGroup?.id;
+            
             // 如果是新卡片，检查是否还能学习新卡片
             if (this.currentGroupName === 'New Cards' && !this.fsrsManager.canLearnNewCardsToday()) {
-                new Notice(`您今天的新卡片学习配额已用完！明天再来学习吧。`, 5000);
+                this.completionMessage = `您今天的新卡片学习配额已用完！明天再来学习吧。`;
             } 
             // 如果是到期卡片，检查是否还能复习卡片
             else if (this.currentGroupName === 'Due Today' && !this.fsrsManager.canReviewCardsToday()) {
-                new Notice(`您今天的复习配额已用完！明天再来复习吧。`, 5000);
+                this.completionMessage = `您今天的复习配额已用完！明天再来复习吧。`;
+            }
+            // 如果是自定义分组，检查分组特定的学习限制
+            else if (currentGroupId) {
+                const isNewCard = updatedCard.reviews === 1; // 刚刚从新卡片变为已学习卡片
+                
+                if (isNewCard && !this.fsrsManager.canLearnNewCardsToday(currentGroupId)) {
+                    this.completionMessage = `您今天在 "${this.currentGroupName}" 分组的新卡片学习配额已用完！明天再来学习吧。`;
+                } else if (!isNewCard && !this.fsrsManager.canReviewCardsToday(currentGroupId)) {
+                    this.completionMessage = `您今天在 "${this.currentGroupName}" 分组的复习配额已用完！明天再来复习吧。`;
+                } else if (this.currentIndex < this.cards.length - 1) {
+                    this.currentIndex++;
+                    hasMoreCards = true;
+                } else {
+                    // 设置完成消息
+                    this.completionMessage = `恭喜！您已完成 "${this.currentGroupName}" 中的所有卡片学习。`;
+                    
+                    // 回到第一张卡片
+                    this.currentIndex = 0;
+                    hasMoreCards = this.cards.length > 0;
+                }
             }
             // 如果还有卡片，继续学习
             else if (this.currentIndex < this.cards.length - 1) {
@@ -877,8 +1138,8 @@ export class FlashcardComponent {
             } 
             // 如果是最后一张卡片，显示完成提示
             else {
-                // 显示学习完成提示
-                new Notice(`恭喜！您已完成 "${this.currentGroupName}" 中的所有卡片学习。`, 5000);
+                // 设置完成消息
+                this.completionMessage = `恭喜！您已完成 "${this.currentGroupName}" 中的所有卡片学习。`;
                 
                 // 回到第一张卡片
                 this.currentIndex = 0;
@@ -902,36 +1163,64 @@ export class FlashcardComponent {
      * 刷新当前卡片列表，考虑每日学习限制
      */
     private refreshCardList() {
-        // 根据当前分组名称获取卡片
-        if (this.currentGroupName === 'All Cards') {
-            this.cards = this.fsrsManager.getLatestCards();
+        if (this.currentGroupName === 'New Cards') {
+            // 只获取新卡片
+            const allCards = this.fsrsManager.getLatestCards();
+            this.cards = allCards.filter(c => c.lastReview === 0);
         } else if (this.currentGroupName === 'Due Today') {
-            this.cards = this.fsrsManager.getDueCards();
-        } else if (this.currentGroupName === 'New Cards') {
-            this.cards = this.fsrsManager.getNewCards();
+            // 只获取到期卡片
+            const allCards = this.fsrsManager.getLatestCards();
+            const now = Date.now();
+            this.cards = allCards.filter(c => c.nextReview <= now);
+        } else if (this.currentGroupName === 'All Cards') {
+            // 获取所有卡片
+            this.cards = this.fsrsManager.getLatestCards();
         } else if (this.currentGroupName === 'Learned') {
-            this.cards = this.fsrsManager.getLatestCards().filter(c => c.lastReview > 0);
+            // 获取已学习卡片
+            const allCards = this.fsrsManager.getLatestCards();
+            this.cards = allCards.filter(c => c.lastReview > 0);
         } else {
-            // 自定义分组
+            // 获取自定义分组卡片
             const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
             if (group) {
-                this.cards = this.fsrsManager.getCardsInGroup(group);
+                // 获取分组中的所有卡片
+                let groupCards = this.fsrsManager.getCardsInGroup(group);
+                
+                // 如果分组有特定设置且不使用全局设置，应用分组特定的限制
+                if (group.settings && !group.settings.useGlobalSettings) {
+                    // 检查新卡片限制
+                    const remainingNewCards = this.fsrsManager.getRemainingNewCardsToday(group.id);
+                    if (remainingNewCards <= 0) {
+                        // 如果今天的新卡片配额已用完，过滤掉新卡片
+                        groupCards = groupCards.filter(c => c.lastReview > 0);
+                    }
+                    
+                    // 检查复习卡片限制
+                    const remainingReviews = this.fsrsManager.getRemainingReviewsToday(group.id);
+                    if (remainingReviews <= 0) {
+                        // 如果今天的复习配额已用完，过滤掉到期的已学习卡片
+                        const now = Date.now();
+                        groupCards = groupCards.filter(c => c.lastReview === 0 || c.nextReview > now);
+                    }
+                }
+                
+                this.cards = groupCards;
             }
         }
         
-        // 如果没有卡片，显示提示
-        if (this.cards.length === 0) {
-            if (this.currentGroupName === 'New Cards' && !this.fsrsManager.canLearnNewCardsToday()) {
-                new Notice(`您今天的新卡片学习配额已用完！明天再来学习吧。`, 5000);
-            } else if (this.currentGroupName === 'Due Today' && !this.fsrsManager.canReviewCardsToday()) {
-                new Notice(`您今天的复习配额已用完！明天再来复习吧。`, 5000);
+        // 只有在没有完成消息的情况下才重置当前卡片
+        if (!this.completionMessage) {
+            // 如果当前索引超出范围，重置为0
+            if (this.currentIndex >= this.cards.length) {
+                this.currentIndex = 0;
             }
+            
+            this.currentCard = this.cards[this.currentIndex] || null;
+            this.isFlipped = false;
         }
         
-        // 更新当前卡片
-        this.currentCard = this.cards.length > 0 ? this.cards[0] : null;
-        this.currentIndex = 0;
-        this.isFlipped = false;
+        this.saveState();
+        this.render();
     }
 
     private flipCard() {
@@ -963,7 +1252,10 @@ export class FlashcardComponent {
         this.fsrsManager.updateUIState({
             currentGroupName: this.currentGroupName,
             currentIndex: this.currentIndex,
-            isFlipped: this.isFlipped
+            isFlipped: this.isFlipped,
+            completionMessage: this.completionMessage,
+            groupCompletionMessages: this.groupCompletionMessages,
+            groupProgress: this.groupProgress
         });
     }
 
@@ -1061,11 +1353,44 @@ export class FlashcardComponent {
         // 更新统计数据
         const progress = this.getGroupProgress();
         const statValues = this.progressContainer.querySelectorAll('.stat-value');
-        if (statValues.length === 4) {
+        if (statValues.length >= 4) {
             statValues[0].textContent = progress.due.toString();
             statValues[1].textContent = progress.newCards.toString();
             statValues[2].textContent = progress.learned.toString();
             statValues[3].textContent = `${(progress.retention * 100).toFixed(1)}%`;
+            
+            // 更新学习限制显示
+            if (statValues.length >= 5) {
+                // 获取当前分组ID（如果是自定义分组）
+                const currentGroup = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
+                const currentGroupId = currentGroup?.id;
+                
+                // 根据当前分组获取剩余学习限制
+                const newRemaining = this.fsrsManager.getRemainingNewCardsToday(currentGroupId);
+                const reviewRemaining = this.fsrsManager.getRemainingReviewsToday(currentGroupId);
+                
+                // 更新显示
+                statValues[4].textContent = `${newRemaining} new, ${reviewRemaining} review`;
+                
+                // 更新提示信息
+                const helpIcon = this.progressContainer.querySelector('.help-icon');
+                if (helpIcon) {
+                    let tooltipText = "每日学习限制\n";
+                    
+                    if (currentGroup && currentGroup.settings && !currentGroup.settings.useGlobalSettings) {
+                        // 显示分组特定的限制
+                        tooltipText += `新卡片: ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
+                        tooltipText += `复习卡片: ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
+                    } else {
+                        // 显示全局限制
+                        const params = this.fsrsManager.fsrsService.getParameters();
+                        tooltipText += `新卡片: ${newRemaining}/${params.newCardsPerDay}\n`;
+                        tooltipText += `复习卡片: ${reviewRemaining}/${params.reviewsPerDay}`;
+                    }
+                    
+                    helpIcon.setAttribute("aria-label", tooltipText);
+                }
+            }
         }
     }
 

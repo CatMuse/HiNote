@@ -41,12 +41,20 @@ export interface CardGroup {
     createdTime: number;  // 创建时间
     sortOrder: number;    // 排序顺序
     isReversed?: boolean; // 是否反转卡片正反面（评论作为问题）
+    settings?: {
+        newCardsPerDay?: number;     // 每日新卡片数量限制
+        reviewsPerDay?: number;      // 每日复习数量限制
+        useGlobalSettings?: boolean; // 是否使用全局设置
+    };
 }
 
 export interface HiCardState {
     currentGroupName: string;
     currentIndex: number;
     isFlipped: boolean;
+    completionMessage?: string | null;
+    groupCompletionMessages?: Record<string, string | null>;
+    groupProgress?: Record<string, { currentIndex: number, isFlipped: boolean }>;
 }
 
 export interface DailyStats {

@@ -33,7 +33,10 @@ export class FSRSManager {
             uiState: {
                 currentGroupName: 'All Cards',
                 currentIndex: 0,
-                isFlipped: false
+                isFlipped: false,
+                completionMessage: null,
+                groupCompletionMessages: {},
+                groupProgress: {}
             },
             dailyStats: [] // 初始化每日学习统计数据
         };
@@ -64,7 +67,10 @@ export class FSRSManager {
             uiState: {
                 currentGroupName: 'All Cards',
                 currentIndex: 0,
-                isFlipped: false
+                isFlipped: false,
+                completionMessage: null,
+                groupCompletionMessages: {},
+                groupProgress: {}
             },
             dailyStats: []
         };
@@ -427,9 +433,17 @@ export class FSRSManager {
             this.storage.cardGroups = [];
         }
 
+        // 获取全局设置作为默认值
+        const params = this.fsrsService.getParameters();
+
         const newGroup: CardGroup = {
             ...group,
-            id: this.generateUUID()
+            id: this.generateUUID(),
+            settings: {
+                useGlobalSettings: true,  // 默认使用全局设置
+                newCardsPerDay: params.newCardsPerDay,
+                reviewsPerDay: params.reviewsPerDay
+            }
         };
         
         console.log('New group created:', newGroup);
@@ -634,41 +648,81 @@ export class FSRSManager {
 
     /**
      * 检查今天是否还能学习新卡片
+     * @param groupId 可选的分组ID，如果提供则使用分组特定的设置
      */
-    public canLearnNewCardsToday(): boolean {
+    public canLearnNewCardsToday(groupId?: string): boolean {
         const todayStats = this.getTodayStats();
         const params = this.fsrsService.getParameters();
         
+        // 如果提供了分组ID，检查是否有分组特定的设置
+        if (groupId) {
+            const group = this.storage.cardGroups.find(g => g.id === groupId);
+            if (group && group.settings && !group.settings.useGlobalSettings && group.settings.newCardsPerDay !== undefined) {
+                return todayStats.newCardsLearned < group.settings.newCardsPerDay;
+            }
+        }
+        
+        // 使用全局设置
         return todayStats.newCardsLearned < params.newCardsPerDay;
     }
 
     /**
      * 检查今天是否还能复习卡片
+     * @param groupId 可选的分组ID，如果提供则使用分组特定的设置
      */
-    public canReviewCardsToday(): boolean {
+    public canReviewCardsToday(groupId?: string): boolean {
         const todayStats = this.getTodayStats();
         const params = this.fsrsService.getParameters();
         
+        // 如果提供了分组ID，检查是否有分组特定的设置
+        if (groupId) {
+            const group = this.storage.cardGroups.find(g => g.id === groupId);
+            if (group && group.settings && !group.settings.useGlobalSettings && group.settings.reviewsPerDay !== undefined) {
+                return todayStats.cardsReviewed < group.settings.reviewsPerDay;
+            }
+        }
+        
+        // 使用全局设置
         return todayStats.cardsReviewed < params.reviewsPerDay;
     }
 
     /**
      * 获取今天剩余的新卡片学习数量
+     * @param groupId 可选的分组ID，如果提供则使用分组特定的设置
      */
-    public getRemainingNewCardsToday(): number {
+    public getRemainingNewCardsToday(groupId?: string): number {
         const todayStats = this.getTodayStats();
         const params = this.fsrsService.getParameters();
         
+        // 如果提供了分组ID，检查是否有分组特定的设置
+        if (groupId) {
+            const group = this.storage.cardGroups.find(g => g.id === groupId);
+            if (group && group.settings && !group.settings.useGlobalSettings && group.settings.newCardsPerDay !== undefined) {
+                return Math.max(0, group.settings.newCardsPerDay - todayStats.newCardsLearned);
+            }
+        }
+        
+        // 使用全局设置
         return Math.max(0, params.newCardsPerDay - todayStats.newCardsLearned);
     }
 
     /**
      * 获取今天剩余的复习卡片数量
+     * @param groupId 可选的分组ID，如果提供则使用分组特定的设置
      */
-    public getRemainingReviewsToday(): number {
+    public getRemainingReviewsToday(groupId?: string): number {
         const todayStats = this.getTodayStats();
         const params = this.fsrsService.getParameters();
         
+        // 如果提供了分组ID，检查是否有分组特定的设置
+        if (groupId) {
+            const group = this.storage.cardGroups.find(g => g.id === groupId);
+            if (group && group.settings && !group.settings.useGlobalSettings && group.settings.reviewsPerDay !== undefined) {
+                return Math.max(0, group.settings.reviewsPerDay - todayStats.cardsReviewed);
+            }
+        }
+        
+        // 使用全局设置
         return Math.max(0, params.reviewsPerDay - todayStats.cardsReviewed);
     }
 }

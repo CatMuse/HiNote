@@ -558,6 +558,41 @@ textarea.flashcard-modal-input {
     font-family: var(--font-text);
 }
 
+.flashcard-modal-input.small {
+    width: 80px;
+    margin-bottom: 0;
+    margin-left: 8px;
+    padding: 4px 8px;
+}
+
+.flashcard-modal-settings {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.flashcard-modal-settings h4 {
+    font-size: 16px;
+    color: var(--text-normal);
+}
+
+.flashcard-modal-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.flashcard-modal-checkbox {
+    margin-right: 8px;
+}
+
+.flashcard-modal-label {
+    font-size: 14px;
+    color: var(--text-normal);
+}
+
 /* Rating buttons */
 .flashcard-rating-button {
     display: flex;
@@ -1107,8 +1142,7 @@ textarea.flashcard-modal-input {
 /* 深色模式优化 */
 .theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-front,
 .theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-back {
-    box-shadow: 
-        0 4px 6px -1px rgba(0, 0, 0, 0.2),
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
         0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
 
@@ -2713,4 +2747,146 @@ hr {
 
 .highlight-text-line {
     margin: 0;
+}
+
+.flashcard-empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 32px;
+    font-size: 14px;
+}
+
+/* 完成消息样式 */
+.flashcard-completion-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--background-primary);
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+}
+
+.flashcard-completion-message .completion-icon {
+    font-size: 48px;
+    color: var(--interactive-accent);
+    margin-bottom: 20px;
+}
+
+.flashcard-completion-message h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: var(--text-normal);
+}
+
+.flashcard-completion-message p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 24px 0;
+    color: var(--text-muted);
+}
+
+.flashcard-return-button {
+    padding: 8px 16px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.flashcard-return-button:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+/* 学习设置样式 */
+.flashcard-modal-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.settings-title {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-normal);
+}
+
+.use-global-option {
+    margin-bottom: 0 !important;
+}
+
+.slider-option {
+    display: flex;
+    margin-bottom: 16px;
+}
+
+.slider-with-value {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.flashcard-modal-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--background-modifier-border);
+    outline: none;
+    border-radius: 3px;
+}
+
+.flashcard-modal-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--interactive-accent);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.flashcard-modal-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--interactive-accent);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border: none;
+}
+
+.flashcard-modal-slider:hover::-webkit-slider-thumb {
+    background: var(--interactive-accent-hover);
+}
+
+.flashcard-modal-slider:hover::-moz-range-thumb {
+    background: var(--interactive-accent-hover);
+}
+
+.slider-value {
+    min-width: 30px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+.slider-option.disabled .flashcard-modal-slider {
+    opacity: 0.5;
+}
+
+.slider-option.disabled .slider-value {
+    opacity: 0.5;
 }
