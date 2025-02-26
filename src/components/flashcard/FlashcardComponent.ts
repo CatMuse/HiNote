@@ -23,7 +23,8 @@ export class FlashcardComponent {
     private currentCard: FlashcardState | null = null;
     private currentGroupName: string = 'All Cards';
     private app: any;
-    
+    private boundHandleKeyDown: (e: KeyboardEvent) => void;
+
     // 评分按钮配置
     private readonly ratingButtons = [
         { label: 'Again', rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again', stability: 0.1 },
@@ -63,8 +64,6 @@ export class FlashcardComponent {
     setLicenseManager(licenseManager: LicenseManager) {
         this.licenseManager = licenseManager;
     }
-
-
 
     setCards(highlights: HiNote[]) {
         console.log('Setting cards with highlights:', highlights);
@@ -129,6 +128,8 @@ export class FlashcardComponent {
     }
 
     cleanup() {
+        // 移除事件监听器
+        document.removeEventListener('keydown', this.boundHandleKeyDown);
         this.deactivate();
     }
 
@@ -806,35 +807,47 @@ export class FlashcardComponent {
     }
 
     private setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            if (!this.isActive) return;
-            
-            // 如果在输入框中，不阻止任何键盘事件
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-                return;
+        // 创建绑定到this的事件处理函数
+        this.boundHandleKeyDown = this.handleKeyDown.bind(this);
+        document.addEventListener('keydown', this.boundHandleKeyDown);
+    }
+
+    private handleKeyDown(e: KeyboardEvent) {
+        // 如果组件不活跃，不处理任何键盘事件
+        if (!this.isActive) return;
+        
+        // 如果在输入框中，不阻止任何键盘事件
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+            return;
+        }
+        
+        // 检查事件是否发生在 flashcard 容器内或其子元素中
+        const isInsideFlashcard = this.container.contains(e.target as Node) || 
+                                 this.container === e.target;
+        
+        // 如果不在 flashcard 容器内，不处理事件
+        if (!isInsideFlashcard) return;
+        
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.flipCard();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            if (!this.isFlipped) {
+                this.previousCard();
             }
-            
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this.flipCard();
-            } else if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                if (!this.isFlipped) {
-                    this.previousCard();
-                }
-            } else if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                if (!this.isFlipped) {
-                    this.nextCard();
-                }
-            } else if (this.isFlipped) {
-                const rating = this.ratingButtons.find(btn => btn.key === e.key);
-                if (rating) {
-                    e.preventDefault();
-                    this.rateCard(rating.rating);
-                }
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            if (!this.isFlipped) {
+                this.nextCard();
             }
-        });
+        } else if (this.isFlipped) {
+            const rating = this.ratingButtons.find(btn => btn.key === e.key);
+            if (rating) {
+                e.preventDefault();
+                this.rateCard(rating.rating);
+            }
+        }
     }
 
     private rateCard(rating: FSRSRating) {
@@ -1102,6 +1115,7 @@ export class FlashcardComponent {
 
     // 清理方法
     destroy() {
+        document.removeEventListener('keydown', this.boundHandleKeyDown);
         this.container.removeClass('flashcard-mode');
         this.container.empty();
     }
