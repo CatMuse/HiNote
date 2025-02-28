@@ -36,19 +36,19 @@ export class SiliconFlowService {
             });
 
             if (response.status !== 200) {
-                console.error('SiliconFlow API response:', response);
+
                 throw new Error(`SiliconFlow API request failed: ${response.text}`);
             }
 
             const result = response.json;
             if (!result.choices || !result.choices[0] || !result.choices[0].message) {
-                console.error('Unexpected API response format:', result);
+
                 throw new Error('Unexpected API response format');
             }
 
             return result.choices[0].message.content;
         } catch (error) {
-            console.error('SiliconFlow chat error:', error);
+
             throw error;
         }
     }
@@ -73,7 +73,7 @@ export class SiliconFlowService {
                 isCustom: false
             }));
         } catch (error) {
-            console.error('Error listing SiliconFlow models:', error);
+
             throw error;
         }
     }

@@ -74,7 +74,6 @@ export class FlashcardComponent {
     }
 
     setCards(highlights: HiNote[]) {
-        console.log('Setting cards with highlights:', highlights);
 
         // 为每个高亮创建或更新闪卡
         for (const highlight of highlights) {
@@ -83,11 +82,7 @@ export class FlashcardComponent {
             
             // 检查是否包含标签
             const containsTags = highlight.text && highlight.text.includes('#');
-            console.log('Processing highlight:', { 
-                text: highlight.text?.substring(0, 50), 
-                containsTags, 
-                commentsCount: highlight.comments?.length 
-            });
+            
             
             // 合并所有评论作为答案，保留标签信息用于分组和过滤
             const answer = highlight.comments.map(c => c.content).join('<hr>');
@@ -99,17 +94,11 @@ export class FlashcardComponent {
                 
                 if (existingCards.length === 0) {
                     // 创建新卡片
-                    console.log('Creating new card for highlight:', {
-                        filePath: highlight.filePath,
-                        textPreview: highlight.text?.substring(0, 50)
-                    });
+                    
                     this.fsrsManager.addCard(highlight.text, answer, highlight.filePath);
                 } else {
                     // 更新现有卡片
-                    console.log('Updating existing card for highlight:', {
-                        filePath: highlight.filePath,
-                        textPreview: highlight.text?.substring(0, 50)
-                    });
+                    
                     this.fsrsManager.updateCardContent(highlight.text, answer, highlight.filePath);
                 }
             }
@@ -128,18 +117,13 @@ export class FlashcardComponent {
             // 自定义分组
             const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
             if (group) {
-                console.log('Getting cards for custom group:', { 
-                    groupName: this.currentGroupName, 
-                    filter: group.filter 
-                });
+                
                 this.cards = this.fsrsManager.getCardsInGroup(group);
             } else {
                 this.cards = this.fsrsManager.getLatestCards();
             }
         }
-        
-        console.log('Updated cards count:', this.cards.length);
-        
+
         this.currentIndex = 0;
         this.isFlipped = false;
         this.currentCard = this.cards[0] || null;
@@ -159,7 +143,7 @@ export class FlashcardComponent {
     async activate() {
         // 检查许可证
         if (!this.licenseManager) {
-            console.error('License manager not set');
+
             return;
         }
 
@@ -489,7 +473,7 @@ export class FlashcardComponent {
                     new Notice('分组创建成功');
                 }
             } catch (error) {
-                console.error('Failed to ' + (group ? 'update' : 'create') + ' group:', error);
+
                 new Notice((group ? '更新' : '创建') + '分组失败');
             } finally {
                 actionButton.disabled = false;
@@ -826,7 +810,7 @@ export class FlashcardComponent {
                             new Notice('删除分组失败');
                         }
                     } catch (error) {
-                        console.error('Error deleting group:', error);
+
                         new Notice('删除分组失败');
                     }
                 }
@@ -1004,11 +988,11 @@ export class FlashcardComponent {
             if (isReversed) {
                 // 反转模式下，正面是评论
                 frontContent = filterTagOnlyComments(frontContent);
-                console.log('Filtered front content (reversed mode)');
+
             } else {
                 // 正常模式下，背面是评论
                 backContent = filterTagOnlyComments(backContent);
-                console.log('Filtered back content (normal mode)');
+
             }
             
             // 创建卡片正面

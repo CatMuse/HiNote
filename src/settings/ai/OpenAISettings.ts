@@ -118,7 +118,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
                             new Notice(t('No models available. Please check your API Key.'));
                         }
                     } catch (error) {
-                        console.error('Error validating API key:', error);
+
                         new Notice(t('Failed to validate API Key. Please check your key and try again.'));
                     }
                 }));
@@ -250,7 +250,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
 
             if (modelResponse.status !== 200) {
                 const errorData = await modelResponse.json.catch(() => null);
-                console.error(`Model ${modelId} not found:`, modelResponse.status, errorData);
+
                 new Notice(t('自定义模型不可用。请检查模型 ID 是否正确，以及你是否有权限访问此模型。'));
                 return false;
             }
@@ -275,14 +275,14 @@ export class OpenAISettings extends BaseAIServiceSettings {
 
             if (testResponse.status !== 200) {
                 const errorData = await testResponse.json.catch(() => null);
-                console.error(`Test request failed for model ${modelId}:`, testResponse.status, errorData);
+
                 // 不再显示第二次错误提示，保持只有一次提示
                 return false;
             }
 
             return true;
         } catch (error) {
-            console.error(`Error validating model ${modelId}:`, error);
+
             return false;
         }
     }
@@ -323,7 +323,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
             }
             return [];
         } catch (error) {
-            console.error('Error fetching models:', error);
+
             throw error; // 向上抛出错误，以显示错误提示
         }
     }

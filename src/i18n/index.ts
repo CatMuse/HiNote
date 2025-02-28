@@ -18,7 +18,6 @@ export function t(key: string): string {
     if (translation) {
         return translation;
     }
-    
-    console.warn(`Translation key not found: ${key}`);
+
     return key;
 }

@@ -36,7 +36,7 @@ export class LocationService {
                 await newLeaf.openFile(file);
                 targetLeaf = newLeaf;
             } catch (error) {
-                console.error("打开文件失败:", error);
+
                 new Notice("打开文件失败");
                 return;
             }
@@ -51,7 +51,7 @@ export class LocationService {
         try {
             await this.scrollToHighlight(targetLeaf, highlight);
         } catch (error) {
-            console.error("定位失败:", error);
+
             new Notice("定位失败，请重试");
         }
     }

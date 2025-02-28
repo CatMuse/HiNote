@@ -46,10 +46,10 @@ export class FSRSManager {
         
         // 异步加载存储数据
         this.loadStorage().then(storage => {
-            console.log('Async storage loaded:', storage);
+
             this.storage = storage;
         }).catch(error => {
-            console.error('Failed to load storage:', error);
+
         });
     }
 
@@ -77,27 +77,24 @@ export class FSRSManager {
 
         try {
             const data = await this.plugin.loadData();
-            console.log('Loading FSRS storage, raw data:', data);
-            
+
             if (!data?.fsrs) {
-                console.log('No FSRS data found, using default storage');
+
                 return defaultStorage;
             }
 
             // Ensure cardGroups is properly initialized
             const cardGroups = Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [];
-            console.log('Loaded card groups:', cardGroups);
 
             const storage = {
                 ...defaultStorage,
                 ...data.fsrs,
                 cardGroups
             };
-            
-            console.log('Final storage state:', storage);
+
             return storage;
         } catch (error) {
-            console.error('Failed to load FSRS storage:', error);
+
             return defaultStorage;
         }
     }
@@ -105,18 +102,14 @@ export class FSRSManager {
     private async saveStorage() {
         try {
             // Log current storage state
-            console.log('Saving FSRS storage, current state:', {
-                cardGroupsCount: this.storage.cardGroups.length,
-                cardGroups: this.storage.cardGroups,
-                cardsCount: Object.keys(this.storage.cards).length
-            });
+            
 
             // 加载当前数据
             const currentData = await this.plugin.loadData() || {};
             
             // Ensure cardGroups is properly initialized before saving
             if (!Array.isArray(this.storage.cardGroups)) {
-                console.warn('cardGroups is not an array, initializing as empty array');
+
                 this.storage.cardGroups = [];
             }
 
@@ -127,14 +120,12 @@ export class FSRSManager {
             };
 
             await this.plugin.saveData(dataToSave);
-            
-            console.log('FSRS data saved successfully');
-            
+
             // Verify save
             const verifyData = await this.plugin.loadData();
-            console.log('Verification - saved card groups:', verifyData?.fsrs?.cardGroups);
+
         } catch (error) {
-            console.error('Failed to save FSRS storage:', error);
+
             throw error;
         }
     }
@@ -377,11 +368,7 @@ export class FSRSManager {
         const cards = Object.values(this.storage.cards)
             .filter(card => card.filePath === filePath);
         
-        console.log('Cards by file:', { 
-            filePath, 
-            count: cards.length, 
-            cardIds: cards.map(c => c.id).slice(0, 5) 
-        });
+        
         
         return cards;
     }
@@ -401,7 +388,7 @@ export class FSRSManager {
             this.saveStorage();
             return true;
         } catch (error) {
-            console.error('Failed to import FSRS data:', error);
+
             return false;
         }
     }
@@ -410,9 +397,9 @@ export class FSRSManager {
         try {
             this.storage = await this.loadStorage();
             await this.saveStorage();
-            console.log('Storage reset successfully');
+
         } catch (error) {
-            console.error('Failed to reset storage:', error);
+
             throw error;
         }
     }
@@ -420,7 +407,7 @@ export class FSRSManager {
     // 卡片分组管理
     public getCardGroups(): CardGroup[] {
         if (!Array.isArray(this.storage.cardGroups)) {
-            console.warn('cardGroups not initialized, creating new array');
+
             this.storage.cardGroups = [];
             this.saveStorageDebounced();
         }
@@ -434,10 +421,9 @@ export class FSRSManager {
     }
 
     public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
-        console.log('Creating new card group:', group);
-        
+
         if (!this.storage.cardGroups) {
-            console.log('Initializing cardGroups array');
+
             this.storage.cardGroups = [];
         }
 
@@ -453,14 +439,12 @@ export class FSRSManager {
                 reviewsPerDay: params.reviewsPerDay
             }
         };
-        
-        console.log('New group created:', newGroup);
+
         this.storage.cardGroups.push(newGroup);
-        
-        console.log('Current groups:', this.storage.cardGroups);
+
         try {
             await this.saveStorage(); // 等待保存完成
-            console.log('Storage saved');
+
             return newGroup;
         } catch (error) {
             // 如果保存失败，回滚更改
@@ -485,7 +469,7 @@ export class FSRSManager {
             await this.saveStorage();
             return true;
         } catch (error) {
-            console.error('Failed to update card group:', error);
+
             return false;
         }
     }
@@ -505,7 +489,7 @@ export class FSRSManager {
         } catch (error) {
             // 如果删除失败，恢复组
             this.storage.cardGroups.splice(index, 0, deletedGroup);
-            console.error('Failed to delete card group:', error);
+
             return false;
         }
     }
@@ -534,21 +518,16 @@ export class FSRSManager {
     }
 
     public getCardsInGroup(group: CardGroup): FlashcardState[] {
-        console.log('Getting cards for group:', group);
+
         const latestCards = this.getLatestCards();
-        console.log('Total latest cards:', latestCards.length);
-        
+
         const result = latestCards.filter(card => {
             const filters = group.filter.split(',').map(f => f.trim().toLowerCase());
             const cardText = card.text.toLowerCase();
             const cardAnswer = card.answer.toLowerCase();
             const filePath = (card.filePath || '').toLowerCase();
             
-            console.log('\nChecking card:', {
-                filePath,
-                cardText: cardText.substring(0, 50) + '...',
-                filters
-            });
+            
             
             const matches = filters.some(filter => {
                 // 检查标签
@@ -571,14 +550,7 @@ export class FSRSManager {
                     );
                     
                     const matches = directTagMatch || extractedTagMatch;
-                    console.log('Tag check:', { 
-                        tagToFind, 
-                        tagsInText, 
-                        tagsInAnswer, 
-                        directTagMatch,
-                        extractedTagMatch,
-                        matches 
-                    });
+                    
                     return matches;
                 }
                 
@@ -586,7 +558,7 @@ export class FSRSManager {
                 if (filter.startsWith('[[') && filter.endsWith(']]')) {
                     const noteName = filter.slice(2, -2);
                     const matches = filePath.includes(noteName);
-                    console.log('Note link check:', { noteName, matches });
+
                     return matches;
                 }
                 
@@ -597,26 +569,24 @@ export class FSRSManager {
                         .replace(/\*/g, '.*');
                     const regex = new RegExp(pattern, 'i');
                     const matches = regex.test(filePath);
-                    console.log('Wildcard check:', { pattern, matches });
+
                     return matches;
                 }
                 
                 // 检查文件路径
                 const pathMatches = filePath.includes(filter);
-                console.log('Path check:', { filter, matches: pathMatches });
+
                 if (pathMatches) return true;
                 
                 // 检查卡片内容
                 const contentMatches = cardText.includes(filter) || cardAnswer.includes(filter);
-                console.log('Content check:', { filter, matches: contentMatches });
+
                 return contentMatches;
             });
-            
-            console.log('Card matches:', matches);
+
             return matches;
         });
-        
-        console.log('Filtered cards:', result.length);
+
         return result;
     }
 
@@ -624,7 +594,7 @@ export class FSRSManager {
         // 修改正则表达式以支持更广泛的标签格式，包括中文和其他特殊字符
         const tagRegex = /#([^\s#]+)/g;
         const matches = text.match(tagRegex);
-        console.log('Extracted tags from text:', { text, matches });
+
         return matches ? matches.map(tag => tag.substring(1)) : [];
     }
 

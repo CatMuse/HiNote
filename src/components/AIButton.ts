@@ -155,7 +155,7 @@ export class AIButton {
             new Notice(t('AI comments have been added'));
 
         } catch (error) {
-            console.error('AI comments failed:', error);
+
             new Notice(t(`AI comments failed:) ${error.message}`));
         } finally {
             this.setLoading(false);

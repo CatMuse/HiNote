@@ -81,7 +81,7 @@ export class HighlightCard {
                     // 使用 DragPreview 替代原来的预览处理
                     DragPreview.start(e, this.highlight.text);
                 } catch (error) {
-                    console.error('Failed to start drag:', error);
+
                     // 防止错误时的拖拽
                     e.preventDefault();
                     e.stopPropagation();
@@ -89,11 +89,11 @@ export class HighlightCard {
             });
 
             fileNameEl.addEventListener("dragend", () => {
-                console.log('[HighlightCard] dragend event triggered');
+
                 fileNameEl.removeClass("dragging");
-                console.log('[HighlightCard] Removed dragging class');
+
                 DragPreview.clear();
-                console.log('[HighlightCard] Cleared DragPreview');
+
             });
 
             // 创建文件图标

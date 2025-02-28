@@ -103,23 +103,20 @@ export class CommentWidget extends WidgetType {
         setIcon(iconContainer, "message-circle");
         
         // 添加调试日志
-        console.log('[CommentWidget] paragraphHighlights:', this.paragraphHighlights);
-        
+
         // 如果有评论，显示评论数量
         const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
-        console.log('[CommentWidget] allComments:', allComments);
-        
+
         const commentCount = allComments.length;
-        console.log('[CommentWidget] commentCount:', commentCount);
 
         if (commentCount > 0) {
-            console.log('[CommentWidget] Creating comment count element');
+
             iconContainer.createEl("span", {
                 cls: "hi-note-count",
                 text: commentCount.toString()
             });
             button.removeClass("hi-note-button-hidden");
-            console.log('[CommentWidget] Comment count element created and button shown');
+
         }
 
         return iconContainer;

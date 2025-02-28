@@ -86,16 +86,13 @@ export class GeminiSettings extends BaseAIServiceSettings {
             // 使用当前选择的模型来验证
             const modelId = this.modelState.selectedModel.id;
             const url = `${baseUrl}/v1/models/${modelId}?key=${apiKey}`;
-            
-            console.log('Validating API key with URL:', url.replace(apiKey, '***'));
-            console.log('Using model:', modelId);
-            
+
+
             const response = await fetch(url);
             if (!response.ok) {
                 // 获取错误详情
                 const errorData = await response.json().catch(() => null);
-                console.log('Error response:', errorData);
-                
+
                 // 检查是否是实验性模型
                 const isExperimentalModel = modelId.includes('-exp-');
                 
@@ -145,7 +142,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
             
             return isValid;
         } catch (error) {
-            console.error('Error validating API key:', error);
+
             return false;
         }
     }

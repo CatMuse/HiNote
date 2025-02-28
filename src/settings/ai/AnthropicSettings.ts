@@ -36,7 +36,7 @@ export class AnthropicSettings extends BaseAIServiceSettings {
                         // 这里可以添加 API Key 验证逻辑
                         new Notice(t('API Key is valid!'));
                     } catch (error) {
-                        console.error('Error validating API key:', error);
+
                         new Notice(t('Failed to validate API Key. Please check your key and try again.'));
                     }
                 }));

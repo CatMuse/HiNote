@@ -41,19 +41,19 @@ export class GeminiService {
             });
 
             if (response.status !== 200) {
-                console.error('Gemini API error response:', response.text);
+
                 throw new Error(`Gemini API error (${response.status}): ${response.text}`);
             }
 
             const data = response.json;
             if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                console.error('Unexpected Gemini API response format:', data);
+
                 throw new Error('Invalid response format from Gemini API');
             }
 
             return data.candidates[0].content.parts[0].text;
         } catch (error) {
-            console.error('Error calling Gemini API:', error);
+
             if (error instanceof Error) {
                 throw error;
             }
@@ -88,19 +88,19 @@ export class GeminiService {
             });
 
             if (response.status !== 200) {
-                console.error('Gemini Chat API error response:', response.text);
+
                 throw new Error(`Gemini Chat API error (${response.status}): ${response.text}`);
             }
 
             const data = response.json;
             if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                console.error('Unexpected Gemini Chat API response format:', data);
+
                 throw new Error('Invalid response format from Gemini Chat API');
             }
 
             return data.candidates[0].content.parts[0].text;
         } catch (error) {
-            console.error('Error calling Gemini Chat API:', error);
+
             if (error instanceof Error) {
                 throw error;
             }
@@ -117,12 +117,12 @@ export class GeminiService {
             });
 
             if (response.status !== 200) {
-                console.error('Gemini API test error response:', response.text);
+
             }
 
             return response.status === 200;
         } catch (error) {
-            console.error('Error testing Gemini API connection:', error);
+
             return false;
         }
     }

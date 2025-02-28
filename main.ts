@@ -144,7 +144,7 @@ export default class CommentPlugin extends Plugin {
 			await this.commentStore.saveComments();
 			const finalData = await this.loadData();
 		} catch (error) {
-			console.error('[Plugin] Error saving final state:', error);
+
 		}
 
 		// 清理高亮装饰器

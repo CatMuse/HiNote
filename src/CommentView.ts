@@ -579,7 +579,7 @@ export class CommentView extends ItemView {
             const html2canvas = (await import('html2canvas')).default;
             new ExportPreviewModal(this.app, highlight, html2canvas).open();
         } catch (error) {
-            console.error("Failed to load html2canvas:", error);
+
             new Notice(t("Export failed: Failed to load necessary components."));
         }
     }
@@ -1093,7 +1093,7 @@ export class CommentView extends ItemView {
             this.currentBatch++;
             
         } catch (error) {
-            console.error("Error loading highlights:", error);
+
             new Notice("加载高亮内容时出错");
         } finally {
             this.isLoading = false;
@@ -1134,7 +1134,7 @@ export class CommentView extends ItemView {
                 const chatView = ChatView.getInstance(this.app, this.plugin);
                 chatView.show();
             } catch (error) {
-                console.error('Failed to open chat view:', error);
+
             }
         });
         

@@ -36,7 +36,7 @@ export class AnthropicService {
             const data = response.json;
             return data.content[0].text;
         } catch (error) {
-            console.error('Error calling Anthropic API:', error);
+
             throw new Error('Failed to generate response from Anthropic API');
         }
     }
@@ -63,7 +63,7 @@ export class AnthropicService {
 
             return response.status === 200;
         } catch (error) {
-            console.error('Error testing Anthropic connection:', error);
+
             return false;
         }
     }

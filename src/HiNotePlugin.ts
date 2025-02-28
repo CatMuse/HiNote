@@ -9,8 +9,7 @@ export default class HiNotePlugin extends Plugin {
     private commentStore: CommentStore;
 
     async onload() {
-        console.log('Loading HiNote plugin');
-        
+
         // 初始化服务
         this.eventManager = new EventManager(this.app);
         this.fsrsManager = new FSRSManager(this);
@@ -47,6 +46,6 @@ export default class HiNotePlugin extends Plugin {
     }
 
     async onunload() {
-        console.log('Unloading HiNote plugin');
+
     }
 }

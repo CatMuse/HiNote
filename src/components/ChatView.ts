@@ -154,7 +154,7 @@ export class ChatView {
                         this.showDraggedPreviewsInChat(chatHistory);
                     }
                 } catch (error) {
-                    console.error('Failed to process dropped highlight:', error);
+
                 }
             }
         });
@@ -503,7 +503,7 @@ export class ChatView {
             }
 
         } catch (error) {
-            console.error('Failed to get AI response:', error);
+
         } finally {
             this.isProcessing = false;
         }
@@ -663,7 +663,7 @@ export class ChatView {
                         });
                     }
                 } catch (error) {
-                    console.error('Error loading SiliconFlow models:', error);
+
                     new Notice(t('Unable to get SiliconFlow model list, please check API Key and network connection.'));
                 }
                 break;
@@ -849,13 +849,13 @@ export class ChatView {
                         });
                     }
                 } catch (error) {
-                    console.error('Error loading Deepseek models:', error);
+
                     new Notice(t('Unable to get Deepseek model list, please check API Key and network connection.'));
                 }
                 break;
 
             default:
-                console.error('Unknown provider:', aiSettings.provider);
+
                 new Notice(t('Unknown AI provider'));
                 break;
         }

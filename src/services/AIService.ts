@@ -197,7 +197,7 @@ export class AIService {
         try {
             return await this.siliconflowService.chat(messages);
         } catch (error) {
-            console.error('Error in SiliconFlow chat:', error);
+
             throw error;
         }
     }
@@ -253,7 +253,7 @@ export class AIService {
                 content: prompt
             }]);
         } catch (error) {
-            console.error('Error in SiliconFlow call:', error);
+
             throw error;
         }
     }
@@ -272,7 +272,7 @@ export class AIService {
                     await this.chatWithOpenAI([{ role: 'user', content: 'test' }]);
                     return true;
                 } catch (error) {
-                    console.error('OpenAI connection test failed:', error);
+
                     return false;
                 }
             case 'anthropic':

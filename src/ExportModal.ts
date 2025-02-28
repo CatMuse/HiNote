@@ -128,7 +128,7 @@ export class ExportPreviewModal extends Modal {
                 this.close();
                 new Notice(t('Export successful!'));
             } catch (error) {
-                console.error('导出图片失败:', error);
+
                 new Notice(t('Export failed, please try again'));
             }
         });

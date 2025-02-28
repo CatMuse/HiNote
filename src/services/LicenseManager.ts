@@ -42,8 +42,7 @@ export class LicenseManager {
             
             return deviceId;
         } catch (error) {
-            console.error('Error generating device ID:', error);
-            
+
             // 如果出错，回退到简单的 vault 路径哈希
             const vaultPath = this.plugin.app.vault.getName();
             const encoder = new TextEncoder();
@@ -71,16 +70,13 @@ export class LicenseManager {
     // 激活 License
     async activateLicense(licenseKey: string): Promise<boolean> {
         try {
-            console.log('Activating license with key:', licenseKey);
+
             const deviceId = await this.generateDeviceId();
-            console.log('Generated device ID:', deviceId);
-            
+
             const url = `${this.API_URL}/api/verify`;
-            console.log('Making request to:', url);
-            
+
             const requestBody = { licenseKey, deviceId };
-            console.log('Request body:', requestBody);
-            
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 
@@ -94,13 +90,12 @@ export class LicenseManager {
             });
 
             if (!response.ok) {
-                console.error('Server response not ok:', response.status, response.statusText);
+
                 throw new Error(`Server response failed: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
-            console.log('Server response:', data);
-            
+
             if (data.valid) {
                 // 保存许可证信息
                 const currentData = await this.plugin.loadData() || {};
@@ -118,13 +113,12 @@ export class LicenseManager {
                 this.licenseToken = data.token;
                 return true;
             }
-            
-            console.log('License validation failed');
+
             return false;
         } catch (error) {
-            console.error('License activation error:', error);
+
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Error details:', errorMessage);
+
             return false;
         }
     }
@@ -164,7 +158,7 @@ export class LicenseManager {
             this.licenseToken = licenseData.token;
             return true;
         } catch (error) {
-            console.error('License verification error:', error);
+
             return false;
         }
     }
@@ -234,7 +228,7 @@ export class LicenseManager {
             
             return false;
         } catch (error) {
-            console.error('Server verification error:', error);
+
             // 如果服务器验证失败，但有本地token，仍然允许使用
             // 这样可以确保在网络问题时用户仍能使用插件
             return !!this.licenseToken;

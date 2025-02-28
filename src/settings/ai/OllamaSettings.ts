@@ -56,7 +56,7 @@ export class OllamaSettings extends BaseAIServiceSettings {
                             new Notice(t('No models found on Ollama server. Please install some models first.'));
                         }
                     } catch (error) {
-                        console.error('Error connecting to Ollama:', error);
+
                         new Notice(t('Failed to connect to Ollama server. Please check the server address and ensure Ollama is running.'));
                     }
                 }));

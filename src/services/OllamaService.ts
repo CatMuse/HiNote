@@ -31,7 +31,6 @@ export class OllamaService {
         }
         // Remove trailing slash if present
         this.baseUrl = host.replace(/\/$/, '');
-        console.log('Initialized OllamaService with base URL:', this.baseUrl);
     }
 
     async listModels(): Promise<string[]> {
@@ -49,7 +48,6 @@ export class OllamaService {
 
             return response.models.map((model: OllamaModel) => model.name);
         } catch (error) {
-            console.error('Failed to fetch models:', error);
             throw this.handleError(error);
         }
     }
@@ -74,7 +72,6 @@ export class OllamaService {
 
             return response.response;
         } catch (error) {
-            console.error('Generation failed:', error);
             throw this.handleError(error);
         }
     }
@@ -96,7 +93,6 @@ export class OllamaService {
 
             new Notice(`Model ${modelName} downloaded successfully`);
         } catch (error) {
-            console.error('Failed to pull model:', error);
             throw new Error(`Failed to download model: ${error.message}`);
         }
     }
@@ -121,7 +117,6 @@ export class OllamaService {
 
             return response.message.content;
         } catch (error) {
-            console.error('Chat failed:', error);
             throw this.handleError(error);
         }
     }
@@ -149,7 +144,6 @@ export class OllamaService {
 
             return !!response?.version;
         } catch (error) {
-            console.error('Connection test failed:', error);
             return false;
         }
     }
@@ -187,8 +181,6 @@ export class OllamaService {
                         const jsonResponse = JSON.parse(response.text);
                         return jsonResponse;
                     } catch (e) {
-                        console.error('Failed to parse JSON response:', e);
-                        console.error('Response text:', response.text);
                         throw new Error('Invalid JSON response from server');
                     }
                 }
@@ -208,7 +200,6 @@ export class OllamaService {
                 }
                 throw new Error(errorMessage);
             } catch (error) {
-                console.error(`Request failed (attempt ${attempt}):`, error);
                 lastError = error;
                 if (attempt < this.retryAttempts) {
                     await this.delay(this.retryDelay * attempt);

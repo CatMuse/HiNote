@@ -322,7 +322,7 @@ export class CommentStore {
         const duration = performance.now() - start;
         
         if (duration > this.PERFORMANCE_THRESHOLD) {
-            console.warn(`Performance warning: Operation took ${duration}ms`);
+
         }
     }
 

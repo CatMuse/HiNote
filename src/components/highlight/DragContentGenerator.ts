@@ -122,7 +122,7 @@ export class DragContentGenerator {
                                             blockId = updatedSection.id;
                                         }
                                     } catch (error) {
-                                        console.error('Failed to generate block ID:', error);
+
                                         // 如果生成 block ID 失败，直接使用原文本
                                         lines.push(`> ${this.highlight.text}`);
                                         lines.push("> ");
@@ -160,7 +160,7 @@ export class DragContentGenerator {
                         hasAddedContent = true;
                     }
                 } catch (error) {
-                    console.error('Error while processing highlight:', error);
+
                     // 如果发生错误，使用原文本
                     lines.push(`> ${this.highlight.text}`);
                     lines.push("> ");

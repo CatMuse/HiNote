@@ -88,10 +88,8 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
             // 先验证 API Key 是否有效
             const modelId = this.modelState.selectedModel.id;
             const chatUrl = `${baseUrl}/chat/completions`;
-            
-            console.log('Validating API key with URL:', chatUrl);
-            console.log('Using model:', modelId);
-            
+
+
             const response = await fetch(chatUrl, {
                 method: 'POST',
                 headers: {
@@ -112,8 +110,7 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => null);
-                console.log('Error response:', errorData);
-                
+
                 return {
                     isValid: false,
                     message: t('API Key 无效或模型不可用。请检查你的 API Key 和模型 ID 是否正确。')
@@ -125,7 +122,7 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
                 message: t('API Key 和当前模型都可用！')
             };
         } catch (error) {
-            console.error('Error validating API key:', error);
+
             return {
                 isValid: false,
                 message: t('API Key 无效或服务器错误。')
