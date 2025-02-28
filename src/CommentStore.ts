@@ -62,17 +62,10 @@ export class CommentStore {
     }
 
     async loadComments() {
-        console.log('[CommentStore] Starting to load comments...');
         const data = await this.plugin.loadData();
-        console.log('[CommentStore] Raw data loaded:', data);
 
         this.data = data?.comments || {};
         this.fileCommentsData = data?.fileComments || {};
-
-        console.log('[CommentStore] Parsed comments data:', {
-            commentsData: this.data,
-            fileCommentsData: this.fileCommentsData
-        });
 
         // 将 data 转换为正确的格式
         this.comments = new Map(
@@ -83,42 +76,24 @@ export class CommentStore {
         );
 
         this.fileComments = new Map(Object.entries(this.fileCommentsData));
-
-        console.log('[CommentStore] Loaded comments:', {
-            commentsMapSize: this.comments.size,
-            fileCommentsMapSize: this.fileComments.size
-        });
     }
 
     async saveComments() {
-        console.log('[CommentStore] Starting to save comments...');
         
         // 先加载当前的数据
         const currentData = await this.plugin.loadData() || {};
-        console.log('[CommentStore] Current data before save:', currentData);
-        
+
         const dataToSave = {
             ...currentData,  // 保持其他设置不变
             comments: this.data,
             fileComments: Object.fromEntries(this.fileComments)
         };
 
-        console.log('[CommentStore] Data to save:', {
-            commentsCount: Object.keys(this.data).length,
-            fileCommentsCount: this.fileComments.size,
-            fullData: dataToSave
-        });
-
         // 更新评论数据，保持其他数据不变
         await this.plugin.saveData(dataToSave);
-        
+
         // 验证数据是否成功保存
         const verifyData = await this.plugin.loadData();
-        console.log('[CommentStore] Verification after save:', {
-            savedData: verifyData,
-            commentsCount: Object.keys(verifyData?.comments || {}).length,
-            fileCommentsCount: Object.keys(verifyData?.fileComments || {}).length
-        });
     }
 
     /**
