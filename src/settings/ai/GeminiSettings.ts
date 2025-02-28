@@ -129,7 +129,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
                 }
                 
                 // 其他情况，API Key 无效
-                new Notice(t('API Key 无效或服务器错误。请检查你的 API Key 是否正确。'));
+                new Notice(t('API Key is invalid or there is a server error. Please check if your API Key is correct.'));
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
@@ -137,7 +137,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
             const isValid = !!(data && data.name);
             
             if (isValid) {
-                new Notice(t('API Key 和当前模型都可用！'));
+                new Notice(t('API Key and the current model are both available！'));
             }
             
             return isValid;
@@ -151,7 +151,10 @@ export class GeminiSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h4', { text: t('Gemini Settings') });
+        // 添加标题
+        new Setting(settingsContainer)
+            .setName(t('Gemini Settings'))
+            .setHeading();
 
         // API Key 设置
         new Setting(settingsContainer)

@@ -13,7 +13,16 @@ import { EventManager } from './src/services/EventManager';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
-	DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+	DEFAULT_SETTINGS = {
+		...DEFAULT_SETTINGS,
+		anthropic: {
+			apiKey: '',
+			model: 'claude-2',
+			apiAddress: '',
+			isCustomModel: false,
+			lastCustomModel: ''
+		}
+	};
 	private commentStore: CommentStore;
 	private highlightDecorator: HighlightDecorator;
 	public fsrsManager: FSRSManager;
@@ -205,7 +214,9 @@ export default class CommentPlugin extends Plugin {
                     apiKey: loadedData.ai.anthropic.apiKey || this.settings.ai.anthropic.apiKey,
                     model: loadedData.ai.anthropic.model || this.settings.ai.anthropic.model,
                     availableModels: loadedData.ai.anthropic.availableModels,
-                    baseUrl: loadedData.ai.anthropic.baseUrl
+                    apiAddress: loadedData.ai.anthropic.apiAddress || loadedData.ai.anthropic.baseUrl,
+                    isCustomModel: loadedData.ai.anthropic.isCustomModel || false,
+                    lastCustomModel: loadedData.ai.anthropic.lastCustomModel || ''
                 };
             }
             if (loadedData.ai.gemini && this.settings.ai.gemini) {
@@ -296,7 +307,9 @@ export default class CommentPlugin extends Plugin {
                 apiKey: '',  // 提供默认值
                 model: 'claude-2',  // 提供默认值
                 availableModels: DEFAULT_SETTINGS.ai.anthropic?.availableModels,
-                baseUrl: DEFAULT_SETTINGS.ai.anthropic?.baseUrl
+                apiAddress: DEFAULT_SETTINGS.ai.anthropic?.apiAddress,
+                isCustomModel: false,  // 提供默认值
+                lastCustomModel: ''  // 提供默认值
             };
         }
         if (!this.settings.ai.gemini) {

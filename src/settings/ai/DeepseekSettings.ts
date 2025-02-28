@@ -131,7 +131,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             const isValid = !!(data && data.id);
             
             if (isValid) {
-                new Notice(t('API Key 和当前模型都可用！'));
+                new Notice(t('API Key and the current model are both available!'));
             }
             
             return isValid;
@@ -146,7 +146,10 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h4', { text: t('Deepseek Settings') });
+        // 添加标题
+        new Setting(settingsContainer)
+            .setName(t('Deepseek Settings'))
+            .setHeading();
 
         // API Key 设置
         new Setting(settingsContainer)

@@ -26,7 +26,7 @@ export class AISettingTab extends PluginSettingTab {
         const isFlashcardActivated = await this.licenseManager.isActivated();
 
         // 添加主标题
-        containerEl.createEl('h1', { text: 'HiNote Settings' });
+        containerEl.createEl('h1', { text: 'Obsidian HiNote Plugin' });
 
         // 创建标签页容器
         const tabContainer = containerEl.createEl('div', { cls: 'setting-tabs' });
@@ -34,12 +34,12 @@ export class AISettingTab extends PluginSettingTab {
 
         // 创建标签按钮
         const generalTab = tabContainer.createEl('div', { 
-          text: t('General'),
+          text: 'General',
           cls: 'setting-tab-btn active',
           attr: { role: 'button', tabindex: '0' }
         });
         const aiTab = tabContainer.createEl('div', { 
-          text: t('AI Service'),
+          text: 'AI service',
           cls: 'setting-tab-btn',
           attr: { role: 'button', tabindex: '0' }
         });
@@ -48,7 +48,7 @@ export class AISettingTab extends PluginSettingTab {
         let flashcardTab: HTMLElement | null = null;
         if (isFlashcardActivated) {
             flashcardTab = tabContainer.createEl('div', { 
-                text: t('Flashcard'),
+                text: 'HiCard',
                 cls: 'setting-tab-btn',
                 attr: { role: 'button', tabindex: '0' }
             });

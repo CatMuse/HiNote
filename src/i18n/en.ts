@@ -2,18 +2,17 @@ export default {
 
 //设置通用翻译
 
-    "AI Service": "AI Service",
     "Select the AI service provider": "Select the AI service provider",
-    "Ollama (Local)": "Ollama (Local)",
+    "Ollama (Local)": "Ollama (local)",
     "Model": "Model",
     "Failed to fetch models": "Failed to fetch models",
-    "API Key": "API Key",
-    "Custom API Address": "Custom API Address",
+    "API Key": "API key",
+    "Custom API Address": "Custom API address",
     "If using a custom API proxy, please enter the full API address": "If using a custom API proxy, please enter the full API address",
-    "Please enter your API Key": "Please enter your API Key",
-    "Validating API Key...": "Validating API Key...",
-    "API Key verification successful!": "API Key verification successful!",
-    "API Key verification failed. Please check your API Key.": "API Key verification failed. Please check your API Key.",
+    "Please enter your API Key": "Please enter your API key",
+    "Validating API Key...": "Validating API key...",
+    "API Key verification successful!": "API key verification successful!",
+    "API Key verification failed. Please check your API Key.": "API key verification failed. Please check your API key.",
     "Save": "Save",
     "Cancel": "Cancel",
     "Edit": "Edit",
@@ -22,30 +21,37 @@ export default {
 //OpenAI 设置
 
     "Select the OpenAI model to use": "Select the OpenAI model to use",
-    "OpenAI Settings": "OpenAI Settings",
-    "Enter your OpenAI API Key and press Enter to validate": "Enter your OpenAI API Key and press Enter to validate",
+    "OpenAI Settings": "OpenAI service",
+    "Enter your OpenAI API Key and press Enter to validate": "Enter your OpenAI API key and press Enter to validate",
     "No available models found.": "No available models found.",
     
 
 //Anthropic 设置
 
-    "Anthropic Settings": "Anthropic Settings",
-    "Enter your Anthropic API Key, press Enter to verify.": "Enter your Anthropic API Key, press Enter to verify.",
+    "Anthropic Settings": "Anthropic service",
+    "Enter your Anthropic API Key, press Enter to verify.": "Enter your Anthropic API key, press Enter to verify.",
     "Select the Anthropic model to use": "Select the Anthropic model to use",
+    "Select a model or use a custom one": "Select a model or use a custom one",
+    "Custom Model": "Custom Model",
+    "Model ID can only contain letters, numbers, underscores, dots and hyphens": "Model ID can only contain letters, numbers, underscores, dots and hyphens",
+    "API Key is valid!": "API Key is valid!",
+    "Failed to validate API Key. Please check your key and try again.": "Failed to validate API Key. Please check your key and try again.",
+    "Please enter an API Key first": "Please enter an API Key first",
+    "Checking...": "Checking...",
 
 //Gemini 设置
 
     "Select the Gemini model to use": "Select the Gemini model to use",
     "Unable to create model selection dropdown menu.": "Unable to create model selection dropdown menu.",
-    "Gemini Settings": "Gemini Settings",
-    "Enter your Gemini API Key and press Enter to validate": "Enter your Gemini API Key and press Enter to validate",
-    "Please enter your API Key first": "Please enter your API Key first",
+    "Gemini Settings": "Gemini service",
+    "Enter your Gemini API Key and press Enter to validate": "Enter your Gemini API key and press Enter to validate",
+    "Please enter your API Key first": "Please enter your API key first",
 
 
 //Ollama 设置
 
-    "Ollama Settings": "Ollama Settings",
-    "Server Address": "Server Address",
+    "Ollama Settings": "Ollama service",
+    "Server Address": "Server address",
     "Ollama server address (default: http://localhost:11434)": "Ollama server address (default: http://localhost:11434)",
     "Check": "Check",
     "Successfully connected to Ollama service": "Successfully connected to Ollama service",
@@ -59,10 +65,10 @@ export default {
 
 //Prompt 设置
 
-    "Prompt Settings": "Prompt Settings",
-    "Add Prompt": "Add Prompt",
-    "Input Prompt Name": "Input Prompt Name",
-    "Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment": "Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment",
+    "Prompt settings": "Custom prompt",
+    "Add Prompt": "Add prompt",
+    "Input Prompt Name": "Input prompt name",
+    "Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment": "Input prompt content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment",
     "Prompt added": "Prompt added",
     "Prompt updated": "Prompt updated",
 
@@ -73,13 +79,13 @@ export default {
 
 //ActionButtons
 
-    "Add Comment": "Add Comment",
-    "Export as Image": "Export as Image",
+    "Add Comment": "Add comment",
+    "Export as Image": "Export as image",
 
 //AIButton
 
-    "Select Prompt": "Select Prompt",
-    "Please add Prompt in the settings first": "Please add Prompt in the settings first",
+    "Select Prompt": "Select prompt",
+    "Please add Prompt in the settings first": "Please add prompt in the settings first",
     "AI comments have been added": "AI comments have been added",
     "AI comments failed:": "AI comments failed:",
 
@@ -90,7 +96,7 @@ export default {
     "highlighted notes": " highlighted notes",
     "Input message...": "Input message...",
     "Unable to access the Ollama model, please check the service.": "Unable to access the Ollama model, please check the service.",
-    "Unable to get Gemini model list, please check API Key and network connection.": "Unable to get Gemini model list, please check API Key and network connection.",
+    "Unable to get Gemini model list, please check API Key and network connection.": "Unable to get Gemini model list, please check API key and network connection.",
 
 //ExportModal
 
@@ -106,20 +112,20 @@ export default {
     "The current document has no highlighted content.": "The current document has no highlighted content.",
     "No corresponding file found.": "No corresponding file found.",
     "Export failed: Failed to load necessary components.": "Export failed: Failed to load necessary components.",
-    "All Highlight": "All Highlight",
+    "All Highlight": "All highlight",
     "Export as notes": "Export as notes",
-    "Add File Comment": "Add File Comment",
-    "File Comment": "File Comment",
+    "Add File Comment": "Add file comment",
+    "File Comment": "File comment",
     "Successfully exported highlights to: ": "Successfully exported highlights to: ",
     "Failed to export highlights: ": "Failed to export highlights: ",
 
 //index
 
-    "Default Template": "Default Template",
+    "Default Template": "Default template",
     "Modern minimalist knowledge card style": "Modern minimalist knowledge card style",
-    "Academic Template": "Academic Template",
+    "Academic Template": "Academic template",
     "Formal style suitable for academic citations": "Formal style suitable for academic citations",
-    "Social Template": "Social Template",
+    "Social Template": "Social template",
     "Modern style suitable for social media sharing": "Modern style suitable for social media sharing",
 
 //main
@@ -128,21 +134,44 @@ export default {
     "Open HiNote window": "Open HiNote window",
 
 // Settings
-    'General Settings': 'General Settings',
-    'Export Path': 'Export Path',
+    'General Settings': 'General settings',
+    'Export Path': 'Export path',
     'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': 'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.',
     "Exclusions": "Exclusions",
     "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md": "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md",
-    "Text Extraction Settings": "Text Extraction Settings",
-    "Use Custom Pattern": "Use Custom Pattern",
+    "Custom text extraction": "Custom text extraction",
+    "Use Custom Pattern": "Use custom pattern",
     "Enable to use a custom regular expression for extracting text.": "Enable to use a custom regular expression for extracting text.",
-    "Custom Pattern": "Custom Pattern",
+    "Custom Pattern": "Custom pattern",
     "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.": "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.",
-    "Default Color": "Default Color",
+    "Default Color": "Default color",
     "Set the default color for decorators when no color is specified. Leave empty to use system default.": "Set the default color for decorators when no color is specified. Leave empty to use system default.",
+
+// Flashcard Settings
+    "Flashcard learning": "Flashcard learning",
+    "New cards per day": "New cards per day",
+    "Maximum number of new cards to learn each day": "Maximum number of new cards to learn each day",
+    "Reviews per day": "Reviews per day",
+    "Maximum number of cards to review each day": "Maximum number of cards to review each day",
+    "Target retention": "Target retention",
+    "Target memory retention rate (0.8 = 80%)": "Target memory retention rate (0.8 = 80%)",
+    "Maximum interval": "Maximum interval",
+    "Maximum interval in days between reviews": "Maximum interval in days between reviews",
+    "Reset daily stats": "Reset daily stats",
+    "Reset today's learning statistics": "Reset today's learning statistics",
+    "Reset": "Reset",
+    "Daily statistics have been reset": "Daily statistics have been reset",
+    "No statistics to reset for today": "No statistics to reset for today",
+    "Advanced": "Advanced",
+    "These settings control the FSRS algorithm parameters. Only change them if you understand the algorithm.": "These settings control the FSRS algorithm parameters. Only change them if you understand the algorithm.",
+    "Reset algorithm parameters": "Reset algorithm parameters",
+    "Reset the FSRS algorithm parameters to default values": "Reset the FSRS algorithm parameters to default values",
+    "Reset to Default": "Reset to default",
+    "FSRS parameters have been reset to default values": "FSRS parameters have been reset to default values",
+    "days": "days",
 
 // 其他
 
-    "Open (DoubleClick)": "Open (DoubleClick)"
+    "Open (DoubleClick)": "Open (double-click)"
 
 };

@@ -27,7 +27,7 @@ export interface HighlightInfo {
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';
 export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini';
-export type AnthropicModel = 'claude-2' | 'claude-instant-1';
+export type AnthropicModel = 'claude-3-opus-20240229' | 'claude-3-sonnet-20240229' | 'claude-3-haiku-20240307' | 'claude-2' | 'claude-instant-1';
 
 export interface AIModel {
     id: string;
@@ -79,9 +79,11 @@ export interface AISettings {
     };
     anthropic?: {
         apiKey: string;
-        model: AnthropicModel;
+        model: string;
         availableModels?: string[];
-        baseUrl?: string;
+        apiAddress?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
     };
     ollama?: {
         host: string;
@@ -161,7 +163,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         anthropic: {
             apiKey: '',
             model: 'claude-2',
-            baseUrl: ''
+            apiAddress: '',
+            isCustomModel: false,
+            lastCustomModel: ''
         },
         deepseek: {
             apiKey: '',

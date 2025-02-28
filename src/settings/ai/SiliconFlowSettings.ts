@@ -119,7 +119,7 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
             
             return {
                 isValid: true,
-                message: t('API Key 和当前模型都可用！')
+                message: t('API Key and the current model are both available!')
             };
         } catch (error) {
 
@@ -147,12 +147,15 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
     display(containerEl: HTMLElement) {
         const siliconflowSection = containerEl.createEl('div', { cls: 'ai-service-settings' });
 
-        siliconflowSection.createEl('h4', { text: t('SiliconFlow Settings') });
+        // 添加标题
+        new Setting(siliconflowSection)
+            .setName(t('SiliconFlow Settings'))
+            .setHeading();
 
         // API Key 设置
         const apiKeySetting = new Setting(siliconflowSection)
-            .setName('API Key')
-            .setDesc('Your SiliconFlow API key')
+            .setName(t('API key'))
+            .setDesc(t('Enter your SiliconFlow API key and press Enter to validate'))
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.modelState.apiKey)
@@ -161,15 +164,15 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
                     await this.saveModelState();
                 }))
             .addButton(button => button
-                .setButtonText('Check')
+                .setButtonText(t('Check'))
                 .onClick(async () => {
                     const apiKey = this.modelState.apiKey;
                     if (!apiKey) {
-                        new Notice(t('请输入 API Key'));
+                        new Notice(t('Please input API Key'));
                         return;
                     }
 
-                    button.setButtonText(t('检查中...'));
+                    button.setButtonText(t('Checking...'));
                     button.setDisabled(true);
 
                     const result = await this.validateApiKey(apiKey);
@@ -184,8 +187,8 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
 
         // Model 设置
         const modelSetting = new Setting(siliconflowSection)
-            .setName('Model')
-            .setDesc('Select a model')
+            .setName(t('Model'))
+            .setDesc(t('Select the SiliconFlow model to use'))
             .addDropdown(dropdown => {
                 // 添加预设模型
                 DEFAULT_SILICONFLOW_MODELS.forEach(model => {
@@ -285,8 +288,8 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
 
         // Custom API Address 设置
         new Setting(siliconflowSection)
-            .setName('Custom API Address')
-            .setDesc('Enter your custom API endpoint')
+            .setName(t('Custom API address'))
+            .setDesc(t('If using a custom API proxy, please enter the full API address'))
             .addText(text => {
                 const defaultUrl = 'https://api.siliconflow.cn/v1';
                 const currentValue = this.plugin.settings.ai.siliconflow?.baseUrl;

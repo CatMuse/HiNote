@@ -19,12 +19,13 @@ export class FlashcardSettingsTab {
             cls: 'flashcard-settings-container'
         });
 
-        // 添加标题
-        container.createEl('h3', { text: t('Flashcard Learning Settings') });
+        new Setting(container)
+            .setName(t('Flashcard learning'))
+            .setHeading();
 
         // 每日新卡片学习上限
         new Setting(container)
-            .setName(t('New Cards Per Day'))
+            .setName(t('New cards per day'))
             .setDesc(t('Maximum number of new cards to learn each day'))
             .addSlider(slider => {
                 const params = this.fsrsService.getParameters();
@@ -54,7 +55,7 @@ export class FlashcardSettingsTab {
 
         // 每日复习卡片上限
         new Setting(container)
-            .setName(t('Reviews Per Day'))
+            .setName(t('Reviews per day'))
             .setDesc(t('Maximum number of cards to review each day'))
             .addSlider(slider => {
                 const params = this.fsrsService.getParameters();
@@ -84,7 +85,7 @@ export class FlashcardSettingsTab {
 
         // 目标记忆保持率
         new Setting(container)
-            .setName(t('Target Retention'))
+            .setName(t('Target retention'))
             .setDesc(t('Target memory retention rate (0.8 = 80%)'))
             .addSlider(slider => {
                 const params = this.fsrsService.getParameters();
@@ -114,7 +115,7 @@ export class FlashcardSettingsTab {
 
         // 最大间隔天数
         new Setting(container)
-            .setName(t('Maximum Interval'))
+            .setName(t('Maximum interval'))
             .setDesc(t('Maximum interval in days between reviews'))
             .addSlider(slider => {
                 const params = this.fsrsService.getParameters();
@@ -144,7 +145,7 @@ export class FlashcardSettingsTab {
 
         // 重置学习统计
         new Setting(container)
-            .setName(t('Reset Daily Stats'))
+            .setName(t('Reset daily stats'))
             .setDesc(t('Reset today\'s learning statistics'))
             .addButton(button => button
                 .setButtonText(t('Reset'))
@@ -169,7 +170,9 @@ export class FlashcardSettingsTab {
                 }));
 
         // 添加高级设置标题
-        container.createEl('h3', { text: t('Advanced Settings') });
+        new Setting(container)
+            .setName(t('Advanced'))
+            .setHeading();
         
         // 添加高级设置说明
         container.createEl('p', { 
@@ -179,10 +182,10 @@ export class FlashcardSettingsTab {
         
         // 添加一个重置为默认值的按钮
         new Setting(container)
-            .setName(t('Reset Algorithm Parameters'))
+            .setName(t('Reset algorithm parameters'))
             .setDesc(t('Reset the FSRS algorithm parameters to default values'))
             .addButton(button => button
-                .setButtonText(t('Reset to Default'))
+                .setButtonText(t('Reset to default'))
                 .onClick(async () => {
                     // 重置 FSRS 参数
                     this.fsrsService.resetParameters();

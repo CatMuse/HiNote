@@ -21,7 +21,7 @@ export class AIServiceTab {
     display(): void {
         // AI 服务设置
         new Setting(this.containerEl)
-            .setName(t('AI Service'))
+            .setName('AI service')
             .setDesc(t('Select the AI service provider'))
             .addDropdown(dropdown => {
                 const options: Record<AIProvider, string> = {

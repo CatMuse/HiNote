@@ -26,7 +26,8 @@ export class AIService {
         if (settings.anthropic?.apiKey) {
             this.anthropicService = new AnthropicService(
                 settings.anthropic.apiKey,
-                settings.anthropic.baseUrl
+                settings.anthropic.apiAddress,
+                settings.anthropic.model
             );
         }
         if (settings.gemini?.apiKey) {

@@ -2,7 +2,6 @@ export default {
     
 //设置通用翻译
 
-"AI Service": "AI 服务",
 "Select the AI service provider": "选择 AI 服务提供商",
 "Ollama (Local)": "Ollama (本地)",
 "Model": "模型",
@@ -22,27 +21,34 @@ export default {
 //OpenAI 设置
 
 "Select the OpenAI model to use": "选择 OpenAI 模型",
-"OpenAI Settings": "OpenAI 设置",
+"OpenAI Settings": "OpenAI 服务",
 "Enter your OpenAI API Key and press Enter to validate": "输入您的 OpenAI API 密钥，然后按 Enter 键进行验证",
 "No available models found.": "无法获取模型列表。",
 
 //Anthropic 设置
 
-"Anthropic Settings": "Anthropic 设置",
+"Anthropic Settings": "Anthropic 服务",
 "Enter your Anthropic API Key, press Enter to verify.": "输入您的 Anthropic API 密钥，然后按 Enter 键进行验证",
 "Select the Anthropic model to use": "选择 Anthropic 模型",
+"Select a model or use a custom one": "选择模型或使用自定义模型",
+"Custom Model": "自定义模型",
+"Model ID can only contain letters, numbers, underscores, dots and hyphens": "模型 ID 只能包含字母、数字、下划线、点和连字符",
+"API Key is valid!": "API 密钥有效！",
+"Failed to validate API Key. Please check your key and try again.": "API 密钥验证失败，请检查您的密钥并重试",
+"Please enter an API Key first": "请先输入 API 密钥",
+"Checking...": "检查中...",
 
 //Gemini 设置
 
 "Select the Gemini model to use": "选择 Gemini 模型",
 "Unable to create model selection dropdown menu.": "无法创建模型选择下拉菜单。",
-"Gemini Settings": "Gemini 设置",
+"Gemini Settings": "Gemini 服务",
 "Enter your Gemini API Key and press Enter to validate": "输入您的 Gemini API 密钥，然后按 Enter 键进行验证",
 "Please enter your API Key first": "请先输入您的 API 密钥",
 
 //Ollama 设置
 
-"Ollama Settings": "Ollama 设置",
+"Ollama Settings": "Ollama 服务",
 "Server Address": "服务器地址",
 "Ollama server address (default: http://localhost:11434)": "Ollama 服务器地址（默认：http://localhost:11434）",
 "Check": "验证",
@@ -57,7 +63,7 @@ export default {
 
 //Prompt 设置
 
-    "Prompt Settings": "Prompt 设置",
+    "Prompt settings": "Prompt 自定义 Prompt",
     "Add Prompt": "添加 Prompt",
     "Input Prompt Name": "输入 Prompt 名称",
     "Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment": "输入 Prompt 内容\n可用参数:\n{{highlight}} - 当前高亮文本\n{{comment}} - 已存在的注释",
@@ -131,7 +137,7 @@ export default {
     'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': '设置高亮笔记的导出路径。留空则使用 vault 根目录。路径应相对于 vault 根目录。',
     "Exclusions": "排除",
     "Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md": "逗号分隔的路径，标签，笔记标题或文件扩展名，将从高亮中排除。例如：folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md",
-    "Text Extraction Settings": "文本提取设置",
+    "Custom text extraction": "自定义文本提取",
     "Use Custom Pattern": "使用自定义模式",
     "Enable to use a custom regular expression for extracting text.": "启用自定义正则表达式以提取文本。",
     "Custom Pattern": "自定义模式",
@@ -139,9 +145,31 @@ export default {
     "Default Color": "默认颜色",
     "Set the default color for decorators when no color is specified. Leave empty to use system default.": "设置当未指定颜色时的装饰器的默认颜色。留空以使用系统默认颜色。",
 
+// Flashcard Settings
+    "Flashcard learning": "闪卡学习设置",
+    "New cards per day": "每日新卡片数量",
+    "Maximum number of new cards to learn each day": "每天学习的新卡片最大数量",
+    "Reviews per day": "每日复习数量",
+    "Maximum number of cards to review each day": "每天复习的卡片最大数量",
+    "Target retention": "目标记忆保持率",
+    "Target memory retention rate (0.8 = 80%)": "目标记忆保持率（0.8 = 80%）",
+    "Maximum interval": "最大间隔",
+    "Maximum interval in days between reviews": "复习之间的最大间隔天数",
+    "Reset daily stats": "重置今日统计",
+    "Reset today's learning statistics": "重置今天的学习统计数据",
+    "Reset": "重置",
+    "Daily statistics have been reset": "今日统计已重置",
+    "No statistics to reset for today": "今天没有可重置的统计数据",
+    "Advanced": "高级设置",
+    "These settings control the FSRS algorithm parameters. Only change them if you understand the algorithm.": "这些设置控制FSRS算法参数。仅在理解算法的情况下更改它们。",
+    "Reset algorithm parameters": "重置算法参数",
+    "Reset the FSRS algorithm parameters to default values": "将FSRS算法参数重置为默认值",
+    "Reset to Default": "重置为默认值",
+    "FSRS parameters have been reset to default values": "FSRS参数已重置为默认值",
+    "days": "天",
 
 // 其他
 
-    "Open (DoubleClick)": "双击打开"
+    "Open (double-click)": "双击打开"
 
 };

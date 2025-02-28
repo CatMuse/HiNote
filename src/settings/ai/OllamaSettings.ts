@@ -9,7 +9,10 @@ export class OllamaSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h4', { text: t('Ollama Settings') });
+        // 添加标题
+        new Setting(settingsContainer)
+            .setName(t('Ollama Settings'))
+            .setHeading();
 
         // Set default host if not configured
         const defaultHost = 'http://localhost:11434';

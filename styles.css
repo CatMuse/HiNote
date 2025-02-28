@@ -1100,11 +1100,6 @@ textarea.flashcard-modal-input {
 .flashcard.is-flipped + .flashcard-rating .flashcard-rating-button:nth-child(3) { transition-delay: 0.3s; }
 .flashcard.is-flipped + .flashcard-rating .flashcard-rating-button:nth-child(4) { transition-delay: 0.4s; }
 
-.flashcard-rating-button span,
-.flashcard-rating-button .days {
-    color: white;
-}
-
 .flashcard-counter {
     font-size: 0.9em;
     color: var(--text-muted);
@@ -1338,6 +1333,19 @@ textarea.flashcard-modal-input {
     margin: 16px 0;
 }
 
+.prompt-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.prompt-settings-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
 .new-prompt-section {
     background-color: var(--background-primary);
     border-radius: 6px;
@@ -1383,13 +1391,6 @@ textarea.flashcard-modal-input {
     font-size: 13px;
     line-height: 1.5;
     resize: vertical;
-}
-
-.prompt-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
 }
 
 .prompt-add-btn {
@@ -2338,8 +2339,8 @@ textarea.flashcard-modal-input {
 /* AI 服务设置区域样式 */
 .ai-service-settings {
     background-color: var(--background-secondary);
-    border-radius: 6px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 12px 16px;
     margin: 16px 0;
 }
 
@@ -2359,30 +2360,6 @@ textarea.flashcard-modal-input {
     align-items: center;
     justify-content: flex-end;
     min-width: 200px;
-}
-
-/* AI 服务设置区域样式 */
-.ai-service-settings {
-    background-color: var(--background-secondary);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-}
-
-.ai-service-settings h4 {
-    margin: 0 0 16px 0;
-}
-
-.prompt-header h4{
-    margin-top: 0px;
-    margin-bottom: 0px;
-}
-
-/* 分隔线样式 */
-hr {
-    margin: 8px 0;
-    border: none;
-    border-top: 1px solid var(--background-modifier-border);
 }
 
 /* 添加新的操作提示区域样式 */
@@ -2893,4 +2870,9 @@ hr {
 
 .slider-option.disabled .slider-value {
     opacity: 0.5;
+}
+
+.flashcard-rating-button span,
+.flashcard-rating-button .days {
+    color: white;
 }

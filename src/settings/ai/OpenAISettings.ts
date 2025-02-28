@@ -89,7 +89,10 @@ export class OpenAISettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        openAISettingsContainer.createEl('h4', { text: t('OpenAI Settings') });
+        // 添加标题
+        new Setting(openAISettingsContainer)
+            .setName(t('OpenAI Settings'))
+            .setHeading();
 
         // API Key 设置
         new Setting(openAISettingsContainer)
