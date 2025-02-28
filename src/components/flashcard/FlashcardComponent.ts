@@ -1003,7 +1003,7 @@ export class FlashcardComponent {
                 cls: "flashcard-content"
             });
             if (frontIsHTML) {
-                frontEl.innerHTML = frontContent;
+                this.renderHTMLContent(frontEl, frontContent);
             } else {
                 frontEl.textContent = frontContent;
             }
@@ -1016,7 +1016,7 @@ export class FlashcardComponent {
                 cls: "flashcard-content"
             });
             if (!frontIsHTML) {
-                backEl.innerHTML = backContent; // 背面是评论时用 HTML
+                this.renderHTMLContent(backEl, backContent);
             } else {
                 backEl.textContent = backContent; // 背面是高亮时用纯文本
             }
@@ -1474,6 +1474,46 @@ export class FlashcardComponent {
             this.render();
             this.updateProgress();
         }
+    }
+
+    // Helper method to safely render HTML content using DOM API
+    private renderHTMLContent(containerEl: HTMLElement, htmlContent: string) {
+        // Clear the container first
+        while (containerEl.firstChild) {
+            containerEl.removeChild(containerEl.firstChild);
+        }
+        
+        // Split the content by <hr> tags to handle them separately
+        const parts = htmlContent.split('<hr>');
+        
+        parts.forEach((part, index) => {
+            if (part.trim()) {
+                // For each part, create a paragraph element
+                const paragraph = containerEl.createEl('div', { cls: 'flashcard-paragraph' });
+                
+                // Process the text content - handle basic formatting
+                // This is a simplified approach that handles common HTML tags
+                const text = part.trim()
+                    .replace(/<\/?b>/g, '**')  // Convert <b> tags to markdown bold
+                    .replace(/<\/?i>/g, '_')   // Convert <i> tags to markdown italic
+                    .replace(/<\/?u>/g, '')    // Remove underline tags
+                    .replace(/<\/?strong>/g, '**') // Convert <strong> tags to markdown bold
+                    .replace(/<\/?em>/g, '_')  // Convert <em> tags to markdown italic
+                    .replace(/<br\s*\/?>/g, '\n') // Convert <br> to newlines
+                    .replace(/<\/?p>/g, '\n')  // Convert <p> tags to newlines
+                    .replace(/<\/?div>/g, '\n') // Convert <div> tags to newlines
+                    .replace(/<span class="highlight-tag">(.*?)<\/span>/g, '$1') // Extract tag text
+                    .replace(/<[^>]*>/g, '');  // Remove any remaining HTML tags
+                
+                // Set the text content
+                paragraph.setText(text);
+            }
+            
+            // Add horizontal rule between parts (except after the last part)
+            if (index < parts.length - 1) {
+                containerEl.createEl('hr');
+            }
+        });
     }
 
     // 清理方法
