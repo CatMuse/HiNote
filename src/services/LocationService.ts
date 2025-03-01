@@ -1,157 +1,84 @@
-import { MarkdownView, Notice, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Notice, WorkspaceLeaf, EditorSelection } from "obsidian";
 import { HighlightInfo } from "../types";
-import { HighlightService } from "./HighlightService";
 
 export class LocationService {
-    private highlightService: HighlightService;
-
-    constructor(private app: any) {
-        this.highlightService = new HighlightService(app);
-    }
+    constructor(private app: any) {}
 
     /**
      * 跳转到指定的高亮位置
      */
     public async jumpToHighlight(highlight: HighlightInfo, currentFilePath: string) {
-        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
-        
-        // 找到当前文件对应的编辑器视图
-        let targetLeaf: WorkspaceLeaf | null = this.findTargetLeaf(markdownLeaves, currentFilePath);
-        
-        // 如果没有找到对应的视图，尝试打开文件
-        if (!targetLeaf) {
-            try {
-                // 先获取文件对象
-                const file = this.app.vault.getAbstractFileByPath(currentFilePath);
-                if (!file) {
-                    new Notice("未找到文件");
-                    return;
-                }
-                // 在新标签页中打开文件
-                const newLeaf = await this.app.workspace.getLeaf('tab');
-                if (!newLeaf) {
-                    new Notice("无法创建新标签页");
-                    return;
-                }
-                await newLeaf.openFile(file);
-                targetLeaf = newLeaf;
-            } catch (error) {
+        // 1. 打开或激活文件
+        const targetLeaf = await this.openOrActivateFile(currentFilePath);
+        if (!targetLeaf) return;
 
-                new Notice("打开文件失败");
-                return;
-            }
-        }
-
-        // 再次检查确保 targetLeaf 不为 null
-        if (!targetLeaf) {
-            new Notice("无法打开文件视图");
-            return;
-        }
-
-        try {
-            await this.scrollToHighlight(targetLeaf, highlight);
-        } catch (error) {
-
-            new Notice("定位失败，请重试");
-        }
+        // 2. 定位高亮内容
+        await this.locateAndHighlightText(targetLeaf, highlight.text);
     }
 
-    private findTargetLeaf(leaves: WorkspaceLeaf[], filePath: string): WorkspaceLeaf | null {
-        const leaf = leaves.find(leaf => {
+    /**
+     * 打开或激活指定文件，但不聚焦
+     */
+    private async openOrActivateFile(filePath: string): Promise<WorkspaceLeaf | null> {
+        // 先查找已打开的文件
+        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
+        let targetLeaf = markdownLeaves.find((leaf: WorkspaceLeaf) => {
             const view = leaf.view as MarkdownView;
             return view.file?.path === filePath;
         });
-        return leaf || null;
+        
+        // 如果文件未打开，则打开它
+        if (!targetLeaf) {
+            try {
+                const file = this.app.vault.getAbstractFileByPath(filePath);
+                if (!file) {
+                    new Notice("未找到文件");
+                    return null;
+                }
+                
+                targetLeaf = await this.app.workspace.getLeaf('tab');
+                await targetLeaf.openFile(file);
+            } catch (error) {
+                new Notice("打开文件失败");
+                return null;
+            }
+        }
+        
+        // 激活编辑器视图，但不聚焦
+        await this.app.workspace.setActiveLeaf(targetLeaf, { focus: false });
+        return targetLeaf;
     }
 
-    private async scrollToHighlight(leaf: WorkspaceLeaf, highlight: HighlightInfo) {
-        // 先激活编辑器视图
-        await this.app.workspace.setActiveLeaf(leaf, { focus: true });
-
-        // 等待编辑器准备就绪
-        await new Promise(resolve => setTimeout(resolve, 50));
-
+    /**
+     * 在编辑器中定位并高亮文本
+     */
+    private async locateAndHighlightText(leaf: WorkspaceLeaf, text: string) {
+        // 确保编辑器已准备就绪
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const markdownView = leaf.view as MarkdownView;
         const editor = markdownView.editor;
         const content = editor.getValue();
         
-        const position = this.findHighlightPosition(content, highlight);
-        
-        if (position !== -1) {
-            await this.scrollToPosition(editor, position);
-        } else {
+        // 直接搜索文本内容
+        const position = content.indexOf(text);
+        if (position === -1) {
             new Notice("未找到高亮内容");
+            return;
         }
-    }
-
-    private findHighlightPosition(content: string, highlight: HighlightInfo): number {
-        // 使用 HighlightService 的提取逻辑来定位高亮
-        const highlights = this.highlightService.extractHighlights(content);
         
-        // 找到与目标高亮匹配的项
-        const matchedHighlight = highlights.find(h => {
-            // 基本文本匹配
-            if (h.text !== highlight.text) return false;
-            
-            // 如果有位置信息，检查位置是否在合理范围内
-            if (highlight.position !== undefined && h.position !== undefined) {
-                return Math.abs(h.position - highlight.position) < 10;
-            }
-            
-            // 如果没有位置信息，只比较文本
-            return true;
-        });
-
-        return matchedHighlight?.position ?? -1;
-    }
-
-    private async scrollToPosition(editor: any, position: number) {
-        const pos = editor.offsetToPos(position);
+        // 将文本位置转换为编辑器位置
+        const start = editor.offsetToPos(position);
+        const end = editor.offsetToPos(position + text.length);
         
-        // 1. 确保编辑器已准备就绪
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        // 2. 先将目标行滚动到视图中央
-        editor.scrollIntoView({
-            from: { line: pos.line, ch: 0 },
-            to: { line: pos.line + 1, ch: 0 }
-        }, true);  // 居中对齐
-
-        // 3. 等待滚动完成
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-        // 4. 调整位置，确保有足够上下文
-        editor.scrollIntoView({
-            from: { line: Math.max(0, pos.line - 3), ch: 0 },
-            to: { line: Math.min(editor.lineCount() - 1, pos.line + 3), ch: 0 }
-        }, true);
-
-        // 5. 查找段落末尾并设置光标位置
-        const nextLineNumber = this.findParagraphEnd(editor, pos.line);
-        editor.setCursor({
-            line: nextLineNumber + 1,
-            ch: 0
-        });
-    }
-
-    private findParagraphEnd(editor: any, startLine: number): number {
-        let nextLineNumber = startLine;
-        const totalLines = editor.lineCount();
+        // 1. 选中文本
+        editor.setSelection(start, end);
         
-        while (nextLineNumber < totalLines - 1) {
-            const currentLine = editor.getLine(nextLineNumber);
-            const nextLine = editor.getLine(nextLineNumber + 1);
-            
-            if (currentLine.trim() !== '' && nextLine.trim() === '') {
-                break;
-            }
-            nextLineNumber++;
-        }
-
-        return nextLineNumber;
+        // 2. 滚动到目标位置，并确保选中内容在编辑器中间位置显示
+        editor.scrollIntoView({from: start, to: end}, true);
+        
+        // 3. 聚焦编辑器，确保用户可以看到选中内容
+        this.app.workspace.setActiveLeaf(leaf, { focus: true });
     }
 
-    private escapeRegExp(str: string): string {
-        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
 } 
