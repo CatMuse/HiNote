@@ -4,6 +4,7 @@ import { t } from '../i18n';
 import { ExcludePatternMatcher } from './ExcludePatternMatcher';
 import { ColorExtractorService } from './ColorExtractorService';
 import { EventManager } from './EventManager';
+import { BlockIdService } from './BlockIdService';
 
 type RegexMatch = [
     string,      // 完整匹配
@@ -17,6 +18,7 @@ type RegexMatch = [
 export class HighlightService {
     private colorExtractor: ColorExtractorService;
     private eventManager: EventManager;
+    private blockIdService: BlockIdService;
 
     // 默认的文本提取正则（可以被用户自定义替换）
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
@@ -31,6 +33,7 @@ export class HighlightService {
         this.settings = plugin?.settings;
         this.colorExtractor = new ColorExtractorService();
         this.eventManager = new EventManager(app);
+        this.blockIdService = new BlockIdService(app);
 
         // 调试输出当前设置
         console.debug('[HighlightService] Current settings:', this.settings);
@@ -94,6 +97,11 @@ export class HighlightService {
                             section.position.end.offset >= safeMatch.index
                         );
                         
+                        // 使用现有的 Block ID，如果存在的话
+                        const paragraphId = section?.id ? 
+                            `${file.path}#^${section.id}` : 
+                            this.blockIdService.getParagraphBlockId(file, safeMatch.index);
+                            
                         highlights.push({
                             text,
                             position: safeMatch.index,
@@ -104,8 +112,8 @@ export class HighlightService {
                             createdAt: Date.now(),
                             updatedAt: Date.now(),
                             originalLength: fullMatch.length,
-                            // 如果段落有 Block ID，就设置 paragraphId
-                            paragraphId: section?.id ? `${file.path}#^${section.id}` : undefined
+                            // 只使用现有的 Block ID，不创建新的
+                            paragraphId: paragraphId
                         });
                     }
                 }
@@ -160,5 +168,69 @@ export class HighlightService {
 
         console.info(`[HighlightService] Found ${totalHighlights} highlights in ${filesWithHighlights.length} files`);
         return filesWithHighlights;
+    }
+    
+    /**
+     * 为指定位置创建 Block ID
+     * 采用懒加载策略，只在特定场景下才实际创建 Block ID
+     * 
+     * @param file 文件
+     * @param position 位置
+     * @param forceCreate 是否强制创建 Block ID（用于拖拽和导出场景）
+     * @returns 段落 ID 引用或 undefined（如果不强制创建）
+     */
+    private createBlockIdForPosition(file: TFile, position: number, forceCreate: boolean = false): string | undefined {
+        try {
+            // 检查是否已有 Block ID
+            const existingId = this.blockIdService.getParagraphBlockId(file, position);
+            if (existingId) {
+                return existingId;
+            }
+            
+            // 如果强制创建（拖拽或导出场景），则创建并返回 Block ID
+            if (forceCreate) {
+                // 这里使用 Promise，但返回 undefined
+                // 实际创建会在后台进行，不阻塞当前操作
+                this.blockIdService.createParagraphBlockId(file, position)
+                    .then(blockId => {
+                        console.debug(`[HighlightService] Created block ID: ${blockId}`);
+                        return blockId;
+                    })
+                    .catch(error => {
+                        console.error('[HighlightService] Error creating block ID:', error);
+                        return undefined;
+                    });
+            }
+            
+            // 默认情况下不创建，返回 undefined
+            return undefined;
+        } catch (error) {
+            console.error('[HighlightService] Error in createBlockIdForPosition:', error);
+            return undefined;
+        }
+    }
+
+    /**
+     * 为高亮创建 Block ID（用于拖拽和导出场景）
+     * 这是一个公共方法，可以被插件的其他部分调用
+     * 
+     * @param file 文件
+     * @param position 高亮位置
+     * @returns Promise<string> 返回创建的 Block ID
+     */
+    public async createBlockIdForHighlight(file: TFile, position: number): Promise<string> {
+        try {
+            // 检查是否已有 Block ID
+            const existingId = this.blockIdService.getParagraphBlockId(file, position);
+            if (existingId) {
+                return existingId;
+            }
+            
+            // 强制创建并返回 Block ID
+            return await this.blockIdService.createParagraphBlockId(file, position);
+        } catch (error) {
+            console.error('[HighlightService] Error creating block ID for highlight:', error);
+            throw error; // 重新抛出错误，让调用者处理
+        }
     }
 }

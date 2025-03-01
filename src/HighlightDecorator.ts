@@ -151,10 +151,30 @@ export class HighlightDecorator {
                         highlightEndPos = highlight.position + highlight.text.length + 4; // +4 for == ==
                     }
 
-                    // 始终创建 widget，即使没有评论，以支持悬停显示
-                    // 在 CommentWidget 中处理空评论的情况
-                    const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
-                    decorations.push(widget.range(highlightEndPos));
+                    // 检查文本是否在段落末尾
+                    const isAtParagraphEnd = this.isAtParagraphEnd(text, highlightEndPos);
+                    
+                    // 调试日志
+                    console.log(`Highlight: "${highlight.text}", EndPos: ${highlightEndPos}, IsAtParagraphEnd: ${isAtParagraphEnd}`);
+                    
+                    if (isAtParagraphEnd) {
+                        // 如果在段落末尾，直接在高亮文本后面放置 Widget
+                        console.log(`Placing widget directly at end position: ${highlightEndPos}`);
+                        const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
+                        decorations.push(widget.range(highlightEndPos));
+                    } else {
+                        // 如果不在段落末尾，在高亮文本和 Widget 之间添加一个隐藏的空格
+                        console.log(`Adding spacer at positions: ${highlightEndPos} to ${highlightEndPos + 1}`);
+                        const spacer = Decoration.mark({
+                            class: 'hi-note-spacer'
+                        });
+                        decorations.push(spacer.range(highlightEndPos, highlightEndPos + 1));
+                        
+                        // 创建 widget
+                        console.log(`Placing widget after spacer at position: ${highlightEndPos + 1}`);
+                        const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
+                        decorations.push(widget.range(highlightEndPos + 1));
+                    }
                 }
 
                 // 为每个高亮添加背景色
@@ -244,7 +264,12 @@ export class HighlightDecorator {
                         highlightItems,
                         () => this.openCommentPanel(highlight)
                     ),
-                    side: 1
+                    side: 2, // 将小部件放在文本右侧
+                    stopEvent: (event: Event) => {
+                        // 阻止事件冒泡，防止意外切换视图
+                        console.log('Widget event stopped:', event.type);
+                        return true;
+                    }
                 });
             }
 
@@ -263,6 +288,49 @@ export class HighlightDecorator {
                         });
                     }
                 }
+            }
+            
+            /**
+             * 检查指定位置是否在段落末尾
+             * @param text 文本内容
+             * @param position 要检查的位置
+             * @returns 如果在段落末尾返回 true，否则返回 false
+             */
+            private isAtParagraphEnd(text: string, position: number): boolean {
+                // 如果位置已经在文本末尾，返回 true
+                if (position >= text.length) {
+                    console.log('Position is at text end');
+                    return true;
+                }
+                
+                // 检查位置后的字符是否为换行符
+                const nextChar = text.charAt(position);
+                const nextTwoChars = text.substr(position, 2);
+                
+                // 检查常见的换行符: \n, \r, \r\n
+                const isNewline = nextChar === '\n' || nextChar === '\r' || nextTwoChars === '\r\n';
+                
+                // 检查是否为段落结束标记（例如空行或文档结束）
+                let isParagraphEnd = isNewline;
+                
+                // 如果是换行符，还需要检查下一行是否为空行
+                if (isNewline) {
+                    // 跳过当前换行符
+                    let nextPos = position + (nextTwoChars === '\r\n' ? 2 : 1);
+                    
+                    // 检查下一行是否为空行或文档结束
+                    if (nextPos >= text.length) {
+                        isParagraphEnd = true;
+                    } else {
+                        // 检查下一个字符是否也是换行符（空行）
+                        const nextLineChar = text.charAt(nextPos);
+                        const nextLineTwoChars = text.substr(nextPos, 2);
+                        isParagraphEnd = nextLineChar === '\n' || nextLineChar === '\r' || nextLineTwoChars === '\r\n';
+                    }
+                }
+                
+                console.log(`Next char: "${nextChar.replace('\n', '\\n').replace('\r', '\\r')}", isParagraphEnd: ${isParagraphEnd}`);
+                return isParagraphEnd;
             }
         }, {
             decorations: v => v.decorations

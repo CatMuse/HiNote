@@ -1,4 +1,5 @@
 import { Plugin, TFile, MarkdownView, Editor, App } from "obsidian";
+import { BlockIdService } from './services/BlockIdService';
 
 export interface CommentItem {
     id: string;           // 评论的唯一ID
@@ -52,6 +53,7 @@ export class CommentStore {
     private comments: Map<string, HiNote[]> = new Map();
     private fileComments: Map<string, FileComment[]> = new Map();
     private eventManager: EventManager;
+    private blockIdService: BlockIdService;
     private commentCache: Map<string, HiNote[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
@@ -59,6 +61,7 @@ export class CommentStore {
     constructor(plugin: Plugin) {
         this.plugin = plugin;
         this.eventManager = new EventManager(plugin.app);
+        this.blockIdService = new BlockIdService(plugin.app);
     }
 
     async loadComments() {
@@ -171,12 +174,24 @@ export class CommentStore {
             const editor = view?.editor;
             const currentFile = view?.file;
             
-            if (editor && currentFile) {
-                const pos = editor.offsetToPos(highlight.position);
-                const blockId = currentFile.path + '#^' + this.getBlockId(editor, pos.line);
-                highlight.paragraphId = blockId;
+            if (editor && currentFile && typeof highlight.position === 'number') {
+                try {
+                    // 使用 BlockIdService 创建或获取 Block ID
+                    const pos = editor.offsetToPos(highlight.position);
+                    const blockId = this.blockIdService.getOrCreateBlockId(editor, pos.line);
+                    highlight.paragraphId = `${currentFile.path}#^${blockId}`;
+                    
+                    // 确保更改被保存
+                    const content = editor.getValue();
+                    await this.plugin.app.vault.modify(currentFile, content);
+                } catch (error) {
+                    console.error('Error creating block ID:', error);
+                    // 如果出错，使用时间戳作为后备
+                    highlight.paragraphId = `${file.path}#^${Date.now()}`;
+                }
             } else {
-                highlight.paragraphId = file.path + '#^' + Date.now();
+                // 如果无法获取编辑器或文件，使用时间戳作为后备
+                highlight.paragraphId = `${file.path}#^${Date.now()}`;
             }
         }
 
@@ -348,17 +363,7 @@ export class CommentStore {
 
     // 获取或生成 block ID
     private getBlockId(editor: Editor, line: number): string {
-        const lineText = editor.getLine(line);
-        const blockIdMatch = lineText.match(/\^([a-zA-Z0-9-]+)$/);
-        
-        if (blockIdMatch) {
-            return blockIdMatch[1];
-        }
-        
-        // 如果没有 block ID，生成一个并添加到行尾
-        const newBlockId = Math.random().toString(36).substr(2, 9);
-        editor.setLine(line, `${lineText} ^${newBlockId}`);
-        return newBlockId;
+        return this.blockIdService.getOrCreateBlockId(editor, line);
     }
 
     /**

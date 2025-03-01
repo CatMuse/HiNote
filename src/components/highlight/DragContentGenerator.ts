@@ -231,37 +231,43 @@ export class DragContentGenerator {
 
     /**
      * 生成并添加 Block ID 到文档
+     * 使用 HighlightService 的 createBlockIdForHighlight 方法
      */
-    private async generateBlockId(file: TFile, section: { position: { end: { line: number } } }): Promise<string> {
-        // 使用 Obsidian 的 API 生成唯一的 Block ID
-        // @ts-ignore Obsidian API 类型定义中未包含 uniqueId 方法
-        const blockId = (this.plugin.app.metadataCache as any).uniqueId('block');
-        
-        // 获取文件内容
-        const content = await this.plugin.app.vault.read(file);
-        const lines = content.split('\n');
-        
-        // 找到段落的最后一行
-        const endLine = section.position.end.line;
-        
-        // 在段落末尾添加 Block ID
-        lines[endLine] = lines[endLine] + ` ^${blockId}`;
-        
-        // 更新文件内容
-        await this.plugin.app.vault.modify(file, lines.join('\n'));
-        
-        // 更新高亮的 paragraphId
-        this.highlight.paragraphId = `${file.path}#^${blockId}`;
-        
-        // 更新存储
-        const commentStore = (this.plugin as any).commentStore;
-        if (commentStore) {
-            await commentStore.updateHighlight(file.path, this.highlight.id, this.highlight);
-        }
-        
-        // 等待元数据缓存更新
-        await new Promise(resolve => setTimeout(resolve, 100));
+    private async generateBlockId(file: TFile, section: { position: { start: { offset: number } } }): Promise<string> {
+        try {
+            // 获取 HighlightService 实例
+            const highlightService = (this.plugin as any).highlightService;
+            if (!highlightService) {
+                throw new Error("HighlightService not available");
+            }
+            
+            // 使用高亮位置或段落开始位置
+            const position = typeof this.highlight.position === 'number' ? 
+                this.highlight.position : 
+                section.position.start.offset;
+            
+            // 使用 HighlightService 的 createBlockIdForHighlight 方法
+            const blockIdRef = await highlightService.createBlockIdForHighlight(file, position);
+            
+            // 从引用中提取 Block ID
+            const blockId = blockIdRef.split('#^')[1];
+            
+            // 更新高亮的 paragraphId
+            this.highlight.paragraphId = blockIdRef;
+            
+            // 更新存储
+            const commentStore = (this.plugin as any).commentStore;
+            if (commentStore) {
+                await commentStore.updateHighlight(file.path, this.highlight.id, this.highlight);
+            }
+            
+            // 等待元数据缓存更新
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-        return blockId;
+            return blockId;
+        } catch (error) {
+            console.error('[DragContentGenerator] Error generating block ID:', error);
+            throw error;
+        }
     }
 }

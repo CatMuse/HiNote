@@ -484,6 +484,16 @@
     display: none !important;
 }
 
+/* 隐藏空格样式 */
+.hi-note-spacer {
+    display: inline-block;
+    width: 2px;
+    margin-right: 4px;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
 /* Flashcard styles */
 
 /* 删除重复代码 */
@@ -2228,19 +2238,24 @@ textarea.flashcard-modal-input {
     height: 20px;
     vertical-align: text-top;
     margin-top: -1px;
+    background-color: var(--background-secondary-alt);
+    border-radius: 4px;
+    padding: 0 4px;
 }
 
 /* 当没有评论时，最小化 widget 的空间占用 */
 .hi-note-widget-no-comments {
     margin: 0;
     width: 0;
+    opacity: 0.9;
+    transition: opacity 0.2s ease, width 0.2s ease, margin 0.2s ease;
 }
 
 /* 当鼠标悬停在高亮文本上时，恢复 widget 的宽度 */
-.cm-highlight:hover + .hi-note-widget-no-comments,
 .hi-note-widget-no-comments:hover {
     width: auto;
     margin-left: 1px;
+    opacity: 1;
 }
 
 /* AI 按钮和下拉菜单样式 */
