@@ -32,10 +32,10 @@ export class FlashcardComponent {
 
     // 评分按钮配置
     private readonly ratingButtons = [
-        { label: 'Again', rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again', stability: 0.1 },
-        { label: 'Hard', rating: FSRS_RATING.HARD, key: '2', ratingText: 'hard', stability: 0.5 },
-        { label: 'Good', rating: FSRS_RATING.GOOD, key: '3', ratingText: 'good', stability: 2 },
-        { label: 'Easy', rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy', stability: 4 }
+        { label: t('Again'), rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again', stability: 0.1 },
+        { label: t('Hard'), rating: FSRS_RATING.HARD, key: '2', ratingText: 'hard', stability: 0.5 },
+        { label: t('Good'), rating: FSRS_RATING.GOOD, key: '3', ratingText: 'good', stability: 2 },
+        { label: t('Easy'), rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy', stability: 4 }
     ];
 
     private formatInterval(days: number): string {
@@ -167,12 +167,12 @@ export class FlashcardComponent {
 
         const header = activationContainer.createEl('div', {
             cls: 'flashcard-activation-header',
-            text: 'Activate HiCard'
+            text: t('Activate HiCard')
         });
 
         const description = activationContainer.createEl('div', {
             cls: 'flashcard-activation-description',
-            text: 'Enter your license key to activate HiCard feature.'
+            text: t('Enter your license key to activate HiCard feature.')
         });
 
         const inputContainer = activationContainer.createEl('div', {
@@ -182,27 +182,27 @@ export class FlashcardComponent {
         const input = inputContainer.createEl('input', {
             cls: 'flashcard-activation-input',
             type: 'text',
-            placeholder: 'Enter license key'
+            placeholder: t('Enter license key')
         });
 
         const button = inputContainer.createEl('button', {
             cls: 'flashcard-activation-button',
-            text: 'Activate'
+            text: t('Activate')
         });
 
         button.addEventListener('click', async () => {
             const licenseKey = input.value.trim();
             if (!licenseKey) {
-                new Notice('Please enter a license key');
+                new Notice(t('Please enter a license key'));
                 return;
             }
 
             const activated = await this.licenseManager.activateLicense(licenseKey);
             if (activated) {
-                new Notice('HiCard activated successfully!');
+                new Notice(t('HiCard activated successfully!'));
                 this.render();
             } else {
-                new Notice('Invalid license key');
+                new Notice(t('Invalid license key'));
             }
         });
     }
@@ -236,18 +236,18 @@ export class FlashcardComponent {
         modalContent.className = 'flashcard-modal-content';
         
         const title = document.createElement('h3');
-        title.textContent = group ? 'Edit Group' : 'Create New Group';
+        title.textContent = group ? t('Edit Group') : t('Create New Group');
         modalContent.appendChild(title);
         
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.placeholder = 'Group Name';
+        nameInput.placeholder = t('Group Name');
         nameInput.className = 'flashcard-modal-input';
         if (group) nameInput.value = group.name;
         modalContent.appendChild(nameInput);
         
         const filterInput = document.createElement('textarea');
-        filterInput.placeholder = '支持以下格式：\n- 文件夹：folder1, folder1/folder2\n- 笔记：[[note1]], [[note2]]\n- 标签：#tag1, #tag2\n- 通配符：*.excalidraw.md\n- 内容：直接输入要搜索的文本';
+        filterInput.placeholder = t('支持以下格式：\n- 文件夹：folder1, folder1/folder2\n- 笔记：[[note1]], [[note2]]\n- 标签：#tag1, #tag2\n- 通配符：*.excalidraw.md\n- 内容：直接输入要搜索的文本');
         filterInput.className = 'flashcard-modal-input';
         filterInput.rows = 3;
         if (group) filterInput.value = group.filter;
@@ -264,7 +264,7 @@ export class FlashcardComponent {
         reverseContainer.appendChild(reverseCheckbox);
 
         const reverseLabel = document.createElement('label');
-        reverseLabel.textContent = '反转卡片（使用评论作为问题）';
+        reverseLabel.textContent = t('反转卡片（使用评论作为问题）');
         reverseLabel.className = 'flashcard-modal-label';
         reverseContainer.appendChild(reverseLabel);
 
@@ -280,7 +280,7 @@ export class FlashcardComponent {
         
         // 添加标题
         const settingsTitle = document.createElement('h4');
-        settingsTitle.textContent = '学习设置';
+        settingsTitle.textContent = t('Learning settings');
         settingsTitle.className = 'settings-title';
         settingsHeader.appendChild(settingsTitle);
         
@@ -296,7 +296,7 @@ export class FlashcardComponent {
         useGlobalContainer.appendChild(useGlobalCheckbox);
         
         const useGlobalLabel = document.createElement('label');
-        useGlobalLabel.textContent = '使用全局学习设置';
+        useGlobalLabel.textContent = t('Use global settings');
         useGlobalLabel.className = 'flashcard-modal-label';
         useGlobalLabel.htmlFor = 'use-global-settings';
         useGlobalContainer.appendChild(useGlobalLabel);
@@ -309,7 +309,7 @@ export class FlashcardComponent {
         newCardsContainer.className = 'flashcard-modal-option slider-option';
         
         const newCardsLabel = document.createElement('label');
-        newCardsLabel.textContent = '每日新卡数量：';
+        newCardsLabel.textContent = t('New cards per day:');
         newCardsLabel.className = 'flashcard-modal-label';
         newCardsContainer.appendChild(newCardsLabel);
         
@@ -350,7 +350,7 @@ export class FlashcardComponent {
         reviewsContainer.className = 'flashcard-modal-option slider-option';
         
         const reviewsLabel = document.createElement('label');
-        reviewsLabel.textContent = '每日复习数量：';
+        reviewsLabel.textContent = t('Reviews per day:');
         reviewsLabel.className = 'flashcard-modal-label';
         reviewsContainer.appendChild(reviewsLabel);
         
@@ -404,27 +404,27 @@ export class FlashcardComponent {
         buttonContainer.className = 'flashcard-modal-buttons';
         
         const cancelButton = document.createElement('button');
-        cancelButton.textContent = 'Cancel';
+        cancelButton.textContent = t('Cancel');
         cancelButton.className = 'flashcard-modal-button';
         cancelButton.onclick = () => {
             document.body.removeChild(modal);
         };
         
         const actionButton = document.createElement('button');
-        actionButton.textContent = group ? 'Save' : 'Create';
+        actionButton.textContent = group ? t('Save') : t('Create');
         actionButton.className = 'flashcard-modal-button primary';
         actionButton.onclick = async () => {
             const name = nameInput.value.trim();
             const filter = filterInput.value.trim();
             
             if (!name || !filter) {
-                new Notice('请填写所有字段');
+                new Notice(t('Please fill in all fields'));
                 return;
             }
             
             try {
                 actionButton.disabled = true;
-                actionButton.textContent = group ? '保存中...' : '创建中...';
+                actionButton.textContent = group ? t('Saving...') : t('Creating...');
                 
                 // 准备学习设置
                 const settings = {
@@ -450,9 +450,9 @@ export class FlashcardComponent {
                         
                         document.body.removeChild(modal);
                         this.render();
-                        new Notice('分组更新成功');
+                        new Notice(t('Group updated successfully'));
                     } else {
-                        new Notice('更新分组失败');
+                        new Notice(t('Failed to update group'));
                     }
                 } else {
                     // 创建新组
@@ -470,14 +470,14 @@ export class FlashcardComponent {
                     
                     document.body.removeChild(modal);
                     this.render();
-                    new Notice('分组创建成功');
+                    new Notice(t('Group created successfully'));
                 }
             } catch (error) {
 
-                new Notice((group ? '更新' : '创建') + '分组失败');
+                new Notice(t('Failed to create or update group'));
             } finally {
                 actionButton.disabled = false;
-                actionButton.textContent = group ? '保存' : '创建';
+                actionButton.textContent = group ? t('Save') : t('Create');
             }
         };
         
@@ -583,10 +583,10 @@ export class FlashcardComponent {
         
         // 添加统计信息
         const stats = [
-            { label: "Due", value: progress.due },
-            { label: "New", value: progress.newCards },
-            { label: "Learned", value: progress.learned },
-            { label: "Retention", value: `${(progress.retention * 100).toFixed(1)}%` }
+            { label: t('Due'), value: progress.due },
+            { label: t('New'), value: progress.newCards },
+            { label: t('Learned'), value: progress.learned },
+            { label: t('Retention'), value: `${(progress.retention * 100).toFixed(1)}%` }
         ];
 
         stats.forEach((stat, index) => {
@@ -606,12 +606,12 @@ export class FlashcardComponent {
             });
             
             // 为 Retention 添加问号图标和提示
-            if (stat.label === "Retention") {
+            if (stat.label === t('Retention')) {
                 const helpIcon = statEl.createSpan({ cls: "help-icon" });
                 setIcon(helpIcon, "help-circle");
                 helpIcon.setAttribute("aria-label", 
-                    "记忆保持率 = (总复习次数 - 遗忘次数) / 总复习次数\n" +
-                    "该指标反映了你的学习效果，越高说明记忆效果越好"
+                    t('记忆保持率 = (总复习次数 - 遗忘次数) / 总复习次数\n' +
+                    '该指标反映了你的学习效果，越高说明记忆效果越好')
                 );
             }
         });
@@ -623,7 +623,7 @@ export class FlashcardComponent {
         });
         
         const limitsEl = progressText.createEl("div", { cls: "stat" });
-        limitsEl.createEl("span", { text: "Limits: " });
+        limitsEl.createEl("span", { text: t('Limits:') });
         
         // 获取当前分组ID（如果是自定义分组）
         const currentGroup = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
@@ -634,7 +634,7 @@ export class FlashcardComponent {
         const reviewRemaining = this.fsrsManager.getRemainingReviewsToday(currentGroupId);
         
         limitsEl.createEl("span", { 
-            text: `${newRemaining} new, ${reviewRemaining} review`,
+            text: `${newRemaining} ${t('New')}, ${reviewRemaining} ${t('Review')}`,
             cls: "stat-value"
         });
         
@@ -642,17 +642,17 @@ export class FlashcardComponent {
         setIcon(helpIcon, "help-circle");
         
         // 根据当前分组设置提示信息
-        let tooltipText = "每日学习限制\n";
+        let tooltipText = t('每日学习限制\n');
         
         if (currentGroup && currentGroup.settings && !currentGroup.settings.useGlobalSettings) {
             // 显示分组特定的限制
-            tooltipText += `新卡片: ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
-            tooltipText += `复习卡片: ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
+            tooltipText += t('新卡片:') + ` ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
+            tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
         } else {
             // 显示全局限制
             const params = this.fsrsManager.fsrsService.getParameters();
-            tooltipText += `新卡片: ${newRemaining}/${params.newCardsPerDay}\n`;
-            tooltipText += `复习卡片: ${reviewRemaining}/${params.reviewsPerDay}`;
+            tooltipText += t('新卡片:') + ` ${newRemaining}/${params.newCardsPerDay}\n`;
+            tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${params.reviewsPerDay}`;
         }
         
         helpIcon.setAttribute("aria-label", tooltipText);
@@ -675,22 +675,22 @@ export class FlashcardComponent {
         
         const defaultGroupItems = [
             { 
-                name: "All Cards", 
+                name: t('All Cards'), 
                 icon: 'gallery-thumbnails',
                 getCards: () => allCards
             },
             { 
-                name: "Due Today", 
+                name: t('Due Today'), 
                 icon: 'calendar-clock',
                 getCards: () => allCards.filter(c => c.nextReview <= now)
             },
             { 
-                name: "New Cards", 
+                name: t('New Cards'), 
                 icon: 'sparkle',
                 getCards: () => allCards.filter(c => c.lastReview === 0)
             },
             { 
-                name: "Learned", 
+                name: t('Learned'), 
                 icon: 'check-small',
                 getCards: () => allCards.filter(c => c.lastReview > 0)
             }
@@ -796,7 +796,7 @@ export class FlashcardComponent {
             setIcon(deleteButton, 'trash');
             deleteButton.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if (confirm(`确定要删除分组 "${group.name}" 吗？`)) {
+                if (confirm(t('确定要删除分组 "') + group.name + t('" 吗？'))) {
                     try {
                         const deleted = await this.fsrsManager.deleteCardGroup(group.id);
                         if (deleted) {
@@ -804,14 +804,14 @@ export class FlashcardComponent {
                             if (this.currentGroupName === group.name) {
                                 this.currentGroupName = 'All Cards';
                             }
-                            new Notice('分组删除成功');
+                            new Notice(t('分组删除成功'));
                             this.render();
                         } else {
-                            new Notice('删除分组失败');
+                            new Notice(t('删除分组失败'));
                         }
                     } catch (error) {
 
-                        new Notice('删除分组失败');
+                        new Notice(t('删除分组失败'));
                     }
                 }
             });
@@ -918,7 +918,7 @@ export class FlashcardComponent {
             
             // 添加标题
             completionContainer.createEl("h3", { 
-                text: "学习完成！" 
+                text: t("学习完成！") 
             });
             
             // 添加消息
@@ -929,7 +929,7 @@ export class FlashcardComponent {
             // 添加按钮返回第一张卡片
             const returnButton = completionContainer.createEl("button", {
                 cls: "flashcard-return-button",
-                text: "返回第一张卡片"
+                text: t("返回第一张卡片")
             });
             
             returnButton.addEventListener("click", () => {
@@ -1143,26 +1143,26 @@ export class FlashcardComponent {
             
             // 如果是新卡片，检查是否还能学习新卡片
             if (this.currentGroupName === 'New Cards' && !this.fsrsManager.canLearnNewCardsToday()) {
-                this.completionMessage = `您今天的新卡片学习配额已用完！明天再来学习吧。`;
+                this.completionMessage = t('您今天的新卡片学习配额已用完！明天再来学习吧。');
             } 
             // 如果是到期卡片，检查是否还能复习卡片
             else if (this.currentGroupName === 'Due Today' && !this.fsrsManager.canReviewCardsToday()) {
-                this.completionMessage = `您今天的复习配额已用完！明天再来复习吧。`;
+                this.completionMessage = t('您今天的复习配额已用完！明天再来复习吧。');
             }
             // 如果是自定义分组，检查分组特定的学习限制
             else if (currentGroupId) {
                 const isNewCard = updatedCard.reviews === 1; // 刚刚从新卡片变为已学习卡片
                 
                 if (isNewCard && !this.fsrsManager.canLearnNewCardsToday(currentGroupId)) {
-                    this.completionMessage = `您今天在 "${this.currentGroupName}" 分组的新卡片学习配额已用完！明天再来学习吧。`;
+                    this.completionMessage = t('您今天在 "') + this.currentGroupName + t('" 分组的新卡片学习配额已用完！明天再来学习吧。');
                 } else if (!isNewCard && !this.fsrsManager.canReviewCardsToday(currentGroupId)) {
-                    this.completionMessage = `您今天在 "${this.currentGroupName}" 分组的复习配额已用完！明天再来复习吧。`;
+                    this.completionMessage = t('您今天在 "') + this.currentGroupName + t('" 分组的复习配额已用完！明天再来复习吧。');
                 } else if (this.currentIndex < this.cards.length - 1) {
                     this.currentIndex++;
                     hasMoreCards = true;
                 } else {
                     // 设置完成消息
-                    this.completionMessage = `恭喜！您已完成 "${this.currentGroupName}" 中的所有卡片学习。`;
+                    this.completionMessage = t('恭喜！您已完成 "') + this.currentGroupName + t('" 中的所有卡片学习。');
                     
                     // 回到第一张卡片
                     this.currentIndex = 0;
@@ -1177,7 +1177,7 @@ export class FlashcardComponent {
             // 如果是最后一张卡片，显示完成提示
             else {
                 // 设置完成消息
-                this.completionMessage = `恭喜！您已完成 "${this.currentGroupName}" 中的所有卡片学习。`;
+                this.completionMessage = t('恭喜！您已完成 "') + this.currentGroupName + t('" 中的所有卡片学习。');
                 
                 // 回到第一张卡片
                 this.currentIndex = 0;
@@ -1408,22 +1408,22 @@ export class FlashcardComponent {
                 const reviewRemaining = this.fsrsManager.getRemainingReviewsToday(currentGroupId);
                 
                 // 更新显示
-                statValues[4].textContent = `${newRemaining} new, ${reviewRemaining} review`;
+                statValues[4].textContent = `${newRemaining} ${t('New')}, ${reviewRemaining} ${t('Review')}`;
                 
                 // 更新提示信息
                 const helpIcon = this.progressContainer.querySelector('.help-icon');
                 if (helpIcon) {
-                    let tooltipText = "每日学习限制\n";
+                    let tooltipText = t('每日学习限制\n');
                     
                     if (currentGroup && currentGroup.settings && !currentGroup.settings.useGlobalSettings) {
                         // 显示分组特定的限制
-                        tooltipText += `新卡片: ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
-                        tooltipText += `复习卡片: ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
+                        tooltipText += t('新卡片:') + ` ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
+                        tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
                     } else {
                         // 显示全局限制
                         const params = this.fsrsManager.fsrsService.getParameters();
-                        tooltipText += `新卡片: ${newRemaining}/${params.newCardsPerDay}\n`;
-                        tooltipText += `复习卡片: ${reviewRemaining}/${params.reviewsPerDay}`;
+                        tooltipText += t('新卡片:') + ` ${newRemaining}/${params.newCardsPerDay}\n`;
+                        tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${params.reviewsPerDay}`;
                     }
                     
                     helpIcon.setAttribute("aria-label", tooltipText);
