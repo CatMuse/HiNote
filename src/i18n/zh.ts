@@ -1,67 +1,74 @@
 export default {
-    
-//设置通用翻译
+    //设置通用翻译
 
-"Select the AI service provider": "选择 AI 服务提供商",
-"Ollama (Local)": "Ollama (本地)",
-"Model": "模型",
-"Failed to fetch models": "无法获取模型列表",
-"API Key": "API 密钥",
-"Custom API Address": "自定义 API 地址",
-"If using a custom API proxy, please enter the full API address": "如果使用自定义 API 代理，请输入完整的 API 地址",
-"Please enter your API Key": "请输入您的 API 密钥",
-"Validating API Key...": "验证 API 密钥...",
-"API Key verification successful!": "API 密钥验证成功!",
-"API Key verification failed. Please check your API Key.": "API 密钥验证失败，请检查您的 API 密钥。",
-"Save": "保存",
-"Cancel": "取消",
-"Edit": "编辑",
-"Delete": "删除",
+    "Select the AI service provider": "选择 AI 服务提供商。",
+    "Ollama (Local)": "Ollama (本地)",
+    "Model": "模型",
+    "Failed to fetch models": "获取模型失败",
+    "API Key": "API 密钥",
+    "Custom API Address": "自定义 API 地址",
+    "If using a custom API proxy, please enter the full API address": "如果使用自定义 API 代理，请输入完整的 API 地址",
+    "Please enter your API Key": "请输入您的 API 密钥",
+    "Validating API Key...": "正在验证 API 密钥...",
+    "API Key verification successful!": "API 密钥验证成功！",
+    "API Key verification failed. Please check your API Key.": "API 密钥验证失败。请检查您的 API 密钥。",
+    "Save": "保存",
+    "Cancel": "取消",
+    "Edit": "编辑",
+    "Delete": "删除",
+    "Custom Model": "自定义模型",
+    "API Key is valid!": "API 密钥有效！",
+    "Failed to validate API Key. Please check your key and try again.": "API 密钥验证失败，请检查您的密钥并重试",
+    "Please enter an API Key first": "请先输入 API 密钥",
+    "Checking...": "检查中...",
+    "API Key and the current model are both available!": "API 密钥和当前模型都可用！",
+    "API Key is invalid or there is a server error. Please check if your API Key is correct.": "API 密钥无效或服务器错误。请检查您的 API 密钥是否正确。",
 
-//OpenAI 设置
+    //OpenAI 设置
 
-"Select the OpenAI model to use": "选择 OpenAI 模型",
-"OpenAI Settings": "OpenAI 服务",
-"Enter your OpenAI API Key and press Enter to validate": "输入您的 OpenAI API 密钥，然后按 Enter 键进行验证",
-"No available models found.": "无法获取模型列表。",
+    "Select the OpenAI model to use": "选择 OpenAI 模型",
+    "OpenAI Settings": "OpenAI 服务",
+    "Enter your OpenAI API Key.": "输入您的 OpenAI API 密钥。",
+    "No available models found.": "未找到可用模型。",
+    "API Key validated successfully!": "API 密钥验证成功！",
+    "No models available. Please check your API Key.": "没有可用的模型。请检查您的 API 密钥。",
 
-//Anthropic 设置
+    //Anthropic 设置
 
-"Anthropic Settings": "Anthropic 服务",
-"Enter your Anthropic API Key, press Enter to verify.": "输入您的 Anthropic API 密钥，然后按 Enter 键进行验证",
-"Select the Anthropic model to use": "选择 Anthropic 模型",
-"Select a model or use a custom one": "选择模型或使用自定义模型",
-"Custom Model": "自定义模型",
-"Model ID can only contain letters, numbers, underscores, dots and hyphens": "模型 ID 只能包含字母、数字、下划线、点和连字符",
-"API Key is valid!": "API 密钥有效！",
-"Failed to validate API Key. Please check your key and try again.": "API 密钥验证失败，请检查您的密钥并重试",
-"Please enter an API Key first": "请先输入 API 密钥",
-"Checking...": "检查中...",
+    "Anthropic Settings": "Anthropic 服务",
+    "Enter your Anthropic API Key.": "输入您的 Anthropic API 密钥。",
+    "Select the Anthropic model to use": "选择 Anthropic 模型",
+    "Select a model or use a custom one": "选择模型或使用自定义模型",
+    "Model ID can only contain letters, numbers, underscores, dots and hyphens": "模型 ID 只能包含字母、数字、下划线、点和连字符",
 
-//Gemini 设置
+    //Gemini 设置
 
-"Select the Gemini model to use": "选择 Gemini 模型",
-"Unable to create model selection dropdown menu.": "无法创建模型选择下拉菜单。",
-"Gemini Settings": "Gemini 服务",
-"Enter your Gemini API Key and press Enter to validate": "输入您的 Gemini API 密钥，然后按 Enter 键进行验证",
-"Please enter your API Key first": "请先输入您的 API 密钥",
+    "Select the Gemini model to use": "选择 Gemini 模型",
+    "Unable to create model selection dropdown menu.": "无法创建模型选择下拉菜单。",
+    "Gemini Settings": "Gemini 服务",
+    "Enter your Gemini API Key": "输入您的 Gemini API 密钥",
 
-//Ollama 设置
+    //Deepseek 设置
 
-"Ollama Settings": "Ollama 服务",
-"Server Address": "服务器地址",
-"Ollama server address (default: http://localhost:11434)": "Ollama 服务器地址（默认：http://localhost:11434）",
-"Check": "验证",
-"Successfully connected to Ollama service": "成功连接到 Ollama 服务",
-"No models found. Please download models using ollama": "未找到模型。请使用 ollama 下载模型",
-"Could not connect to Ollama service": "无法连接到 Ollama 服务",
-"Failed to connect to Ollama service. Please check the server address.": "无法连接到 Ollama 服务，请检查服务器地址。",
-"Currently selected model (Test connection to see all available models)": "当前选择的模型（测试连接以查看可用模型）",
-"Select a model to use": "选择一个模型",
-"No models available. Please load an available model first.": "无可用模型，请先加载可用模型。",
-"No models available": "无可用模型",
+    "Deepseek Settings": "Deepseek 服务",
+    "Enter your Deepseek API Key": "输入您的 Deepseek API 密钥",
 
-//Prompt 设置
+    //Ollama 设置
+
+    "Ollama Settings": "Ollama 服务",
+    "Server Address": "服务器地址",
+    "Ollama server address (default: http://localhost:11434)": "Ollama 服务器地址（默认：http://localhost:11434）",
+    "Check": "验证",
+    "Successfully connected to Ollama service": "成功连接到 Ollama 服务",
+    "No models found. Please download models using ollama": "未找到模型。请使用 ollama 下载模型",
+    "Could not connect to Ollama service": "无法连接到 Ollama 服务",
+    "Failed to connect to Ollama service. Please check the server address.": "无法连接到 Ollama 服务，请检查服务器地址。",
+    "Currently selected model (Test connection to see all available models)": "当前选择的模型（测试连接以查看可用模型）",
+    "Select a model to use": "选择一个模型",
+    "No models available. Please load an available model first.": "无可用模型，请先加载可用模型。",
+    "No models available": "无可用模型",
+
+    //Prompt 设置
 
     "Prompt settings": "Prompt 自定义 Prompt",
     "Add Prompt": "添加 Prompt",
@@ -70,39 +77,39 @@ export default {
     "Prompt added": "Prompt 已添加",
     "Prompt updated": "Prompt 已更新",
 
-//CommentInput
+    //CommentInput
 
-"Shift + Enter Wrap, Enter Save": "Shift + Enter 换行，Enter 保存",
-"Delete comment": "删除评论",
+    "Shift + Enter Wrap, Enter Save": "Shift + Enter 换行，Enter 保存",
+    "Delete comment": "删除评论",
 
-//ActionButtons
+    //ActionButtons
 
     "Add Comment": "添加评论",
     "Export as Image": "导出为图片",
 
-//AIButton
+    //AIButton
 
     "Select Prompt": "选择 Prompt",
     "Please add Prompt in the settings first": "请先在设置中添加 Prompt",
     "AI comments have been added": "AI 评论已添加",
     "AI comments failed:": "AI 评论失败：",
 
-//ChatView
+    //ChatView
 
-"Chat": "对话",
-"Failed to process dropped highlight:": "无法处理删除的高亮：",
-"highlighted notes": " 条高亮笔记",
-"Input message...": "输入消息...",
-"Unable to access the Ollama model, please check the service.": "无法访问 Ollama 模型，请检查服务是否正常运行",
-"Unable to get Gemini model list, please check API Key and network connection.": "无法获取 Gemini 模型列表，请检查 API Key 和网络连接",
+    "Chat": "对话",
+    "Failed to process dropped highlight:": "无法处理删除的高亮：",
+    "highlighted notes": " 条高亮笔记",
+    "Input message...": "输入消息...",
+    "Unable to access the Ollama model, please check the service.": "无法访问 Ollama 模型，请检查服务是否正常运行",
+    "Unable to get Gemini model list, please check API Key and network connection.": "无法获取 Gemini 模型列表，请检查 API Key 和网络连接",
 
-//ExportModal
+    //ExportModal
 
     "Download": "下载",
     "Export successful!": "导出成功！",
     "Export failed, please try again.": "导出失败，请重试",
 
-//CommentView
+    //CommentView
 
     "Loading...": "加载中...",
     "Search...": "搜索高亮或评论...",
@@ -117,7 +124,7 @@ export default {
     "Successfully exported highlights to: ": "成功导出高亮到：",
     "Failed to export highlights: ": "无法导出高亮：",
 
-//index
+    //index
 
     "Default Template": "默认模板",
     "Modern minimalist knowledge card style": "现代极简知识卡片风格",
@@ -126,12 +133,12 @@ export default {
     "Social Template": "社交模板",
     "Modern style suitable for social media sharing": "适用于社交媒体分享的现代风格",
 
-//main
+    //main
 
     "Open AI chat window": "打开 AI 对话窗口",
     "Open HiNote window": "打开 HiNote 窗口",
 
-// Settings
+    // Settings
     'General Settings': '通用设置',
     'Export Path': '导出路径',
     'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': '设置高亮笔记的导出路径。留空则使用 vault 根目录。路径应相对于 vault 根目录。',
@@ -145,7 +152,7 @@ export default {
     "Default Color": "默认颜色",
     "Set the default color for decorators when no color is specified. Leave empty to use system default.": "设置当未指定颜色时的装饰器的默认颜色。留空以使用系统默认颜色。",
 
-// Flashcard Settings
+    // Flashcard Settings
     "Flashcard learning": "闪卡学习设置",
     "New cards per day": "每日新卡片数量",
     "Maximum number of new cards to learn each day": "每天学习的新卡片最大数量",
@@ -168,8 +175,7 @@ export default {
     "FSRS parameters have been reset to default values": "FSRS参数已重置为默认值",
     "days": "天",
 
-// 其他
+    // 其他
 
     "Open (double-click)": "双击打开"
-
 };

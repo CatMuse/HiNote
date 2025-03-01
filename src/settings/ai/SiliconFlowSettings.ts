@@ -149,13 +149,13 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
 
         // 添加标题
         new Setting(siliconflowSection)
-            .setName(t('SiliconFlow Settings'))
+            .setName(t('SiliconFlow service'))
             .setHeading();
 
         // API Key 设置
         const apiKeySetting = new Setting(siliconflowSection)
             .setName(t('API key'))
-            .setDesc(t('Enter your SiliconFlow API key and press Enter to validate'))
+            .setDesc(t('Enter your SiliconFlow API key.'))
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.modelState.apiKey)

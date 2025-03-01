@@ -165,7 +165,22 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
-                    await this.validateApiKey(this.modelState.apiKey);
+                    if (!this.modelState.apiKey) {
+                        new Notice(t('Please enter an API Key first'));
+                        return;
+                    }
+                    
+                    // 禁用按钮，防止重复点击
+                    button.setDisabled(true);
+                    button.setButtonText(t('Checking...'));
+                    
+                    try {
+                        await this.validateApiKey(this.modelState.apiKey);
+                    } finally {
+                        // 恢复按钮状态
+                        button.setDisabled(false);
+                        button.setButtonText(t('Check'));
+                    }
                 }));
 
         // 模型选择设置

@@ -175,7 +175,17 @@ export class GeminiSettings extends BaseAIServiceSettings {
                         return;
                     }
 
-                    await this.validateApiKey(this.modelState.apiKey);
+                    // 禁用按钮，防止重复点击
+                    button.setDisabled(true);
+                    button.setButtonText(t('Checking...'));
+                    
+                    try {
+                        await this.validateApiKey(this.modelState.apiKey);
+                    } finally {
+                        // 恢复按钮状态
+                        button.setDisabled(false);
+                        button.setButtonText(t('Check'));
+                    }
                 }));
 
         // 模型选择设置

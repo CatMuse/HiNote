@@ -2,7 +2,7 @@ export default {
 
 //设置通用翻译
 
-    "Select the AI service provider": "Select the AI service provider",
+    "Select the AI service provider": "Select the AI service provider.",
     "Ollama (Local)": "Ollama (local)",
     "Model": "Model",
     "Failed to fetch models": "Failed to fetch models",
@@ -17,36 +17,43 @@ export default {
     "Cancel": "Cancel",
     "Edit": "Edit",
     "Delete": "Delete",
+    "Custom Model": "Custom Model",
+    "API Key is valid!": "API Key is valid!",
+    "Failed to validate API Key. Please check your key and try again.": "Failed to validate API Key. Please check your key and try again.",
+    "Please enter an API Key first": "Please enter an API Key first",
+    "Checking...": "Checking...",
+    "API Key and the current model are both available!": "API Key and the current model are both available!",
+    "API Key is invalid or there is a server error. Please check if your API Key is correct.": "API Key is invalid or there is a server error. Please check if your API Key is correct.",
     
 //OpenAI 设置
 
     "Select the OpenAI model to use": "Select the OpenAI model to use",
     "OpenAI Settings": "OpenAI service",
-    "Enter your OpenAI API Key and press Enter to validate": "Enter your OpenAI API key and press Enter to validate",
+    "Enter your OpenAI API Key.": "Enter your OpenAI API key.",
     "No available models found.": "No available models found.",
+    "API Key validated successfully!": "API Key validated successfully!",
+    "No models available. Please check your API Key.": "No models available. Please check your API Key.",
     
 
 //Anthropic 设置
 
     "Anthropic Settings": "Anthropic service",
-    "Enter your Anthropic API Key, press Enter to verify.": "Enter your Anthropic API key, press Enter to verify.",
+    "Enter your Anthropic API Key.": "Enter your Anthropic API key.",
     "Select the Anthropic model to use": "Select the Anthropic model to use",
     "Select a model or use a custom one": "Select a model or use a custom one",
-    "Custom Model": "Custom Model",
     "Model ID can only contain letters, numbers, underscores, dots and hyphens": "Model ID can only contain letters, numbers, underscores, dots and hyphens",
-    "API Key is valid!": "API Key is valid!",
-    "Failed to validate API Key. Please check your key and try again.": "Failed to validate API Key. Please check your key and try again.",
-    "Please enter an API Key first": "Please enter an API Key first",
-    "Checking...": "Checking...",
 
 //Gemini 设置
 
     "Select the Gemini model to use": "Select the Gemini model to use",
     "Unable to create model selection dropdown menu.": "Unable to create model selection dropdown menu.",
     "Gemini Settings": "Gemini service",
-    "Enter your Gemini API Key and press Enter to validate": "Enter your Gemini API key and press Enter to validate",
-    "Please enter your API Key first": "Please enter your API key first",
+    "Enter your Gemini API Key": "Enter your Gemini API key",
 
+//Deepseek 设置
+
+    "Deepseek Settings": "Deepseek service",
+    "Enter your Deepseek API Key": "Enter your Deepseek API key",
 
 //Ollama 设置
 

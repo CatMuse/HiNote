@@ -101,7 +101,7 @@ export class AnthropicSettings extends BaseAIServiceSettings {
         // API Key 设置
         new Setting(settingsContainer)
             .setName(t('API Key'))
-            .setDesc(t('Enter your Anthropic API Key, press Enter to verify.'))
+            .setDesc(t('Enter your Anthropic API Key.'))
             .addText(text => text
                 .setPlaceholder('sk-ant-...')
                 .setValue(this.modelState.apiKey)

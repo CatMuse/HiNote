@@ -38,14 +38,30 @@ export class OllamaSettings extends BaseAIServiceSettings {
                         await this.plugin.saveSettings();
                     });
                 return text;
-            })
-            .addButton(button => button
+            });
+
+        // 添加检查按钮，并保存引用以便更新状态
+        let checkButton: HTMLButtonElement;
+        hostSetting.addButton(button => {
+            checkButton = button.buttonEl;
+            return button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
                     const host = this.plugin.settings.ai.ollama?.host || defaultHost;
+                    
+                    // 禁用按钮并显示检查中状态
+                    checkButton.disabled = true;
+                    const originalText = checkButton.textContent;
+                    checkButton.textContent = t('Checking...');
+                    
                     const ollamaService = new OllamaService(host);
                     try {
                         const models = await ollamaService.listModels();
+                        
+                        // 恢复按钮状态
+                        checkButton.disabled = false;
+                        checkButton.textContent = originalText;
+                        
                         if (models && models.length > 0) {
                             // Update available models in settings
                             this.plugin.settings.ai.ollama.availableModels = models;
@@ -54,15 +70,19 @@ export class OllamaSettings extends BaseAIServiceSettings {
                             // 验证成功后更新模型选择下拉框
                             this.displayOllamaModelDropdown(settingsContainer, models);
 
-                            new Notice(t('Successfully connected to Ollama server!'));
+                            new Notice(t('Successfully connected to Ollama service'));
                         } else {
-                            new Notice(t('No models found on Ollama server. Please install some models first.'));
+                            new Notice(t('No models found. Please download models using ollama'));
                         }
                     } catch (error) {
-
-                        new Notice(t('Failed to connect to Ollama server. Please check the server address and ensure Ollama is running.'));
+                        // 恢复按钮状态
+                        checkButton.disabled = false;
+                        checkButton.textContent = originalText;
+                        
+                        new Notice(t('Failed to connect to Ollama service. Please check the server address.'));
                     }
-                }));
+                });
+        });
 
         // 默认显示模型选择（如果有保存的模型列表）
         if (this.plugin.settings.ai.ollama?.availableModels?.length) {

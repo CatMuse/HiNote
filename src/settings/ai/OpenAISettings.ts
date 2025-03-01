@@ -97,7 +97,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
         // API Key 设置
         new Setting(openAISettingsContainer)
             .setName(t('API Key'))
-            .setDesc(t('Enter your OpenAI API Key'))
+            .setDesc(t('Enter your OpenAI API Key.'))
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.modelState.apiKey)
@@ -113,6 +113,10 @@ export class OpenAISettings extends BaseAIServiceSettings {
                         return;
                     }
                     
+                    // 禁用按钮，防止重复点击
+                    button.setDisabled(true);
+                    button.setButtonText(t('Checking...'));
+                    
                     try {
                         const models = await this.fetchAvailableModels(this.modelState.apiKey);
                         if (models.length > 0) {
@@ -121,8 +125,11 @@ export class OpenAISettings extends BaseAIServiceSettings {
                             new Notice(t('No models available. Please check your API Key.'));
                         }
                     } catch (error) {
-
                         new Notice(t('Failed to validate API Key. Please check your key and try again.'));
+                    } finally {
+                        // 恢复按钮状态
+                        button.setDisabled(false);
+                        button.setButtonText(t('Check'));
                     }
                 }));
 
