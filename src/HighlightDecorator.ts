@@ -38,14 +38,13 @@ export class HighlightDecorator {
             if (!fileComments) return;
 
             buttons.forEach(button => {
-                const highlightTexts = button.getAttribute('data-highlights')?.split(',') || [];
+                const highlightText = button.getAttribute('data-highlight-text');
                 
-                // 如果这个段落包含更新的高亮文本
-                if (highlightTexts.includes(updatedText)) {
-                    // 获取段落中所有高亮的评论
-                    const allComments = fileComments
-                        .filter(comment => highlightTexts.includes(comment.text))
-                        .flatMap(h => h.comments || []);
+                // 如果这个高亮文本是更新的文本
+                if (highlightText === updatedText) {
+                    // 获取当前高亮的评论
+                    const highlight = fileComments.find(h => h.text === highlightText);
+                    const allComments = highlight?.comments || [];
 
                     // 更新评论数量
                     const countEl = button.querySelector('.hi-note-count');
@@ -108,8 +107,7 @@ export class HighlightDecorator {
                 // 使用 HighlightService 提取高亮
                 const highlights = this.highlightService.extractHighlights(text);
 
-                // 将高亮分组到段落中
-                const paragraphMap = new Map<string, HiNote[]>();
+                // 为每个高亮文本添加 CommentWidget
                 for (const highlight of highlights) {
                     if (highlight.position === undefined) continue;
 
@@ -132,32 +130,31 @@ export class HighlightDecorator {
                         commentHighlight.comments = storedHighlight[0].comments || [];
                     }
 
-                    // 使用 paragraphId 作为 Map 的键
-                    const highlightsInParagraph = paragraphMap.get(commentHighlight.paragraphId) || [];
-                    highlightsInParagraph.push(commentHighlight);
-                    paragraphMap.set(commentHighlight.paragraphId, highlightsInParagraph);
-                }
-
-                // 为每个段落添加 CommentWidget
-                for (const [paragraphId, paragraphHighlights] of paragraphMap.entries()) {
-                    // 找到段落中最后一个高亮的位置
-                    const lastHighlight = paragraphHighlights[paragraphHighlights.length - 1];
-                    if (!lastHighlight) continue;
-
-                    // 找到段落的末尾位置
-                    let paragraphEndPos = lastHighlight.position;
-                    const textAfterOffset = text.slice(paragraphEndPos);
-                    const nextNewlineMatch = textAfterOffset.match(/\n\s*\n|\n\s*$|\n?$/);
+                    // 计算高亮文本的结束位置
+                    let highlightEndPos;
+                    const originalLength = highlight.originalLength ?? highlight.text.length + 4;
+                    const originalText = text.slice(highlight.position, highlight.position + originalLength);
+                    const isHtmlTag = originalText.startsWith('<');
                     
-                    if (nextNewlineMatch) {
-                        paragraphEndPos += nextNewlineMatch.index || textAfterOffset.length;
+                    if (isHtmlTag) {
+                        // 对于 HTML 标签，找到内容的结束位置
+                        const startTagMatch = /<[^>]+>/.exec(originalText);
+                        const endTagMatch = /<\/[^>]+>/.exec(originalText);
+                        
+                        if (startTagMatch && endTagMatch) {
+                            highlightEndPos = highlight.position + originalLength;
+                        } else {
+                            highlightEndPos = highlight.position + originalLength;
+                        }
                     } else {
-                        paragraphEndPos += textAfterOffset.length;
+                        // 对于 Markdown 语法的高亮
+                        highlightEndPos = highlight.position + highlight.text.length + 4; // +4 for == ==
                     }
 
-                    // 创建并添加 widget
-                    const widget = this.createCommentWidget(lastHighlight, paragraphHighlights);
-                    decorations.push(widget.range(paragraphEndPos));
+                    // 始终创建 widget，即使没有评论，以支持悬停显示
+                    // 在 CommentWidget 中处理空评论的情况
+                    const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
+                    decorations.push(widget.range(highlightEndPos));
                 }
 
                 // 为每个高亮添加背景色
@@ -239,12 +236,12 @@ export class HighlightDecorator {
                 return Decoration.set(decorations.sort((a, b) => a.from - b.from));
             }
 
-            private createCommentWidget(highlight: HiNote, paragraphHighlights: HiNote[]) {
+            private createCommentWidget(highlight: HiNote, highlightItems: HiNote[]) {
                 return Decoration.widget({
                     widget: new CommentWidget(
                         this.plugin,
                         highlight,
-                        paragraphHighlights,
+                        highlightItems,
                         () => this.openCommentPanel(highlight)
                     ),
                     side: 1

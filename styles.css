@@ -328,15 +328,6 @@
     color: var(--text-faint);
 }
 
-.hi-note-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 8px 0 0 0;
-    margin-top: 2px;
-    border-top: 1px solid var(--background-modifier-border);
-}
-
 /* 导出为图片按钮 */
 .highlight-btn {
     /* 布局相关 */
@@ -399,24 +390,29 @@
 .hi-note-button {
     display: inline-flex;
     align-items: center;
-    gap: 1px;
-    padding: 0px 4px;
+    gap: 2px;
+    padding: 0px 3px;
+    margin: 0px 2px;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
     opacity: 1;
     transition: all 0.2s ease;
-    height: 22px;
+    height: 20px;
     z-index: 1;
+    line-height: 1;
 }
 
 .hi-note-button-hidden {
     opacity: 0;
 }
 
-.cm-line:hover .hi-note-button-hidden {
+/* 鼠标悬停时显示按钮 */
+.cm-line:hover .hi-note-button-hidden,
+.cm-highlight:hover + .hi-note-widget .hi-note-button-hidden,
+.hi-note-widget:hover .hi-note-button-hidden {
     opacity: 1;
 }
 
@@ -425,13 +421,17 @@
     align-items: center;
     gap: 1px;
     color: var(--text-muted);
+    transform: scale(0.9);
+    line-height: 1;
 }
 
 .hi-note-count {
-    font-size: 11px;
-    font-weight: 400;
+    font-size: 14px;
+    font-weight: 500;
     color: var(--text-muted);
     margin-left: 1px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .hi-note-tooltip {
@@ -481,7 +481,7 @@
 }
 
 .hi-note-tooltip.hi-note-tooltip-hidden {
-    display: none;
+    display: none !important;
 }
 
 /* Flashcard styles */
@@ -1797,10 +1797,6 @@ textarea.flashcard-modal-input {
     overflow-y: auto;
 }
 
-.highlight-chat-input-container .hi-note-buttons {
-    display: none;
-}
-
 /* 聊天消息样式 */
 .highlight-chat-message {
     max-width: 85%;
@@ -2223,15 +2219,28 @@ textarea.flashcard-modal-input {
 
 /* 修改评论按钮容器的样式 */
 .hi-note-widget {
-    position: absolute;
-    right: -32px;
-    top: 0;
-    transform: translateY(10%);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 1px;
     isolation: isolate;
     z-index: 999;
-    height: 22px;
-    display: flex;
-    align-items: center;
+    height: 20px;
+    vertical-align: text-top;
+    margin-top: -1px;
+}
+
+/* 当没有评论时，最小化 widget 的空间占用 */
+.hi-note-widget-no-comments {
+    margin: 0;
+    width: 0;
+}
+
+/* 当鼠标悬停在高亮文本上时，恢复 widget 的宽度 */
+.cm-highlight:hover + .hi-note-widget-no-comments,
+.hi-note-widget-no-comments:hover {
+    width: auto;
+    margin-left: 1px;
 }
 
 /* AI 按钮和下拉菜单样式 */

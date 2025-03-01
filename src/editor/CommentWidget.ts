@@ -14,7 +14,7 @@ export class CommentWidget extends WidgetType {
     constructor(
         private plugin: Plugin,
         private highlight: HiNote,
-        private paragraphHighlights: HiNote[],
+        private highlightItems: HiNote[],
         private onClick: () => void
     ) {
         super();
@@ -29,11 +29,8 @@ export class CommentWidget extends WidgetType {
     eq(widget: WidgetType): boolean {
         if (!(widget instanceof CommentWidget)) return false;
         
-        return this.paragraphHighlights.length === widget.paragraphHighlights.length &&
-               this.paragraphHighlights.every((h, i) => 
-                   h.text === widget.paragraphHighlights[i].text &&
-                   h.comments.length === widget.paragraphHighlights[i].comments.length
-               );
+        return this.highlight.text === widget.highlight.text &&
+               this.highlight.comments.length === widget.highlight.comments.length;
     }
 
     /**
@@ -68,7 +65,15 @@ export class CommentWidget extends WidgetType {
         const wrapper = document.createElement("span");
         wrapper.addClass("hi-note-widget");
         wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
-        wrapper.setAttribute('data-highlights', this.paragraphHighlights.map(h => h.text).join(','));
+        wrapper.setAttribute('data-highlight-text', this.highlight.text);
+        
+        // 检查是否有评论
+        const hasComments = (this.highlight.comments || []).length > 0;
+        
+        // 如果没有评论，添加一个额外的类，但不完全隐藏
+        if (!hasComments) {
+            wrapper.addClass("hi-note-widget-no-comments");
+        }
         
         this.createButton(wrapper);
         return wrapper;
@@ -79,13 +84,20 @@ export class CommentWidget extends WidgetType {
      * @param wrapper 父容器元素
      */
     private createButton(wrapper: HTMLElement) {
+        // 检查是否有评论
+        const hasComments = (this.highlight.comments || []).length > 0;
+        
+        // 创建按钮，如果没有评论，添加隐藏类
         const button = wrapper.createEl("button", {
-            cls: "hi-note-button hi-note-button-hidden"
+            cls: `hi-note-button ${!hasComments ? 'hi-note-button-hidden' : ''}`
         });
 
         const iconContainer = this.createIconContainer(button);
+        
+        // 创建工具提示，无论是否有评论
         const tooltipData = this.createTooltip(wrapper);
         
+        // 设置事件监听器
         this.setupEventListeners(wrapper, button, tooltipData);
     }
 
@@ -102,21 +114,16 @@ export class CommentWidget extends WidgetType {
         // 使用 setIcon API 替代内联 SVG
         setIcon(iconContainer, "message-circle");
         
-        // 添加调试日志
+        // 获取评论数量
+        const comments = this.highlight.comments || [];
+        const commentCount = comments.length;
 
         // 如果有评论，显示评论数量
-        const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
-
-        const commentCount = allComments.length;
-
         if (commentCount > 0) {
-
             iconContainer.createEl("span", {
                 cls: "hi-note-count",
                 text: commentCount.toString()
             });
-            button.removeClass("hi-note-button-hidden");
-
         }
 
         return iconContainer;
@@ -130,14 +137,17 @@ export class CommentWidget extends WidgetType {
     private createTooltip(wrapper: HTMLElement) {
         const tooltip = document.createElement("div");
         tooltip.addClass("hi-note-tooltip", "hi-note-tooltip-hidden");
+        
+        // 添加高亮 ID 作为工具提示的标识符
+        tooltip.setAttribute("data-highlight-id", this.highlight.id);
 
         const commentsList = tooltip.createEl("div", {
             cls: "hi-note-tooltip-list"
         });
 
-        // 获取所有评论并渲染到工具提示中
-        const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
-        this.renderTooltipContent(commentsList, allComments, tooltip);
+        // 获取评论并渲染到工具提示中
+        const comments = this.highlight.comments || [];
+        this.renderTooltipContent(commentsList, comments, tooltip);
 
         document.body.appendChild(tooltip);
 
@@ -197,8 +207,8 @@ export class CommentWidget extends WidgetType {
      */
     private setupEventListeners(wrapper: HTMLElement, button: HTMLElement, tooltipData: { tooltip: HTMLElement, updateTooltipPosition: () => void }) {
         const { tooltip, updateTooltipPosition } = tooltipData;
-        const allComments = this.paragraphHighlights.flatMap(h => h.comments || []);
-        const commentCount = allComments.length;
+        const comments = this.highlight.comments || [];
+        const commentCount = comments.length;
 
         // 如果有评论，添加工具提示的显示/隐藏事件，并保持按钮始终可见
         if (commentCount > 0) {
@@ -231,6 +241,9 @@ export class CommentWidget extends WidgetType {
             e.preventDefault();
             e.stopPropagation();
             this.onClick();
+            
+            // 隐藏工具提示
+            tooltip.addClass("hi-note-tooltip-hidden");
 
             const event = new CustomEvent("open-comment-input", {
                 detail: {
@@ -243,6 +256,14 @@ export class CommentWidget extends WidgetType {
 
         // 监听窗口大小改变事件，更新工具提示位置
         window.addEventListener("resize", updateTooltipPosition);
+        
+        // 添加全局点击事件监听器，在点击其他区域时隐藏工具提示
+        document.addEventListener("click", (e) => {
+            // 如果点击的不是按钮或其子元素，则隐藏工具提示
+            if (!button.contains(e.target as Node)) {
+                tooltip.addClass("hi-note-tooltip-hidden");
+            }
+        });
     }
 
     /**
@@ -250,10 +271,13 @@ export class CommentWidget extends WidgetType {
      * @param dom 小部件的 DOM 元素
      */
     destroy(dom: HTMLElement): void {
-        const tooltip = document.querySelector(`.hi-note-tooltip[data-paragraph-id="${this.highlight.paragraphId}"]`);
+        // 查找并移除对应的工具提示
+        const tooltip = document.querySelector(`.hi-note-tooltip[data-highlight-id="${this.highlight.id}"]`);
         if (tooltip) {
             tooltip.remove();
         }
+        
+        // 移除 DOM 元素
         dom.remove();
     }
 
