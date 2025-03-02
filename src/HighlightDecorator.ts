@@ -165,25 +165,19 @@ export class HighlightDecorator {
 
                     // 检查文本是否在段落末尾
                     const isAtParagraphEnd = this.isAtParagraphEnd(text, highlightEndPos);
-                    
-                    // 调试日志
-                    console.log(`Highlight: "${highlight.text}", EndPos: ${highlightEndPos}, IsAtParagraphEnd: ${isAtParagraphEnd}`);
-                    
+
                     if (isAtParagraphEnd) {
                         // 如果在段落末尾，直接在高亮文本后面放置 Widget
-                        console.log(`Placing widget directly at end position: ${highlightEndPos}`);
                         const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
                         decorations.push(widget.range(highlightEndPos));
                     } else {
                         // 如果不在段落末尾，在高亮文本和 Widget 之间添加一个隐藏的空格
-                        console.log(`Adding spacer at positions: ${highlightEndPos} to ${highlightEndPos + 1}`);
                         const spacer = Decoration.mark({
                             class: 'hi-note-spacer'
                         });
                         decorations.push(spacer.range(highlightEndPos, highlightEndPos + 1));
                         
                         // 创建 widget
-                        console.log(`Placing widget after spacer at position: ${highlightEndPos + 1}`);
                         const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
                         decorations.push(widget.range(highlightEndPos + 1));
                     }
@@ -291,7 +285,6 @@ export class HighlightDecorator {
                     side: 2, // 将小部件放在文本右侧
                     stopEvent: (event: Event) => {
                         // 阻止事件冒泡，防止意外切换视图
-                        console.log('Widget event stopped:', event.type);
                         return true;
                     }
                 });
@@ -323,7 +316,6 @@ export class HighlightDecorator {
             private isAtParagraphEnd(text: string, position: number): boolean {
                 // 如果位置已经在文本末尾，返回 true
                 if (position >= text.length) {
-                    console.log('Position is at text end');
                     return true;
                 }
                 
@@ -353,7 +345,6 @@ export class HighlightDecorator {
                     }
                 }
                 
-                console.log(`Next char: "${nextChar.replace('\n', '\\n').replace('\r', '\\r')}", isParagraphEnd: ${isParagraphEnd}`);
                 return isParagraphEnd;
             }
         }, {
