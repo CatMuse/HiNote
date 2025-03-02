@@ -85,6 +85,17 @@
     background-color: var(--background-modifier-hover);
 }
 
+.highlight-card-filename svg {
+    opacity: 0.7;
+    transition: all 200ms ease-in-out;
+}
+
+.highlight-card-filename:hover svg {
+    opacity: 1;
+    transform: scale(1.1);
+    color: var(--text-accent);
+}
+
 .highlight-card.selected {
     border-color: var(--interactive-accent);
     box-shadow: 0 0 0 1px var(--interactive-accent);
@@ -317,15 +328,6 @@
     color: var(--text-faint);
 }
 
-.hi-note-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding: 8px 0 0 0;
-    margin-top: 2px;
-    border-top: 1px solid var(--background-modifier-border);
-}
-
 /* 导出为图片按钮 */
 .highlight-btn {
     /* 布局相关 */
@@ -388,24 +390,28 @@
 .hi-note-button {
     display: inline-flex;
     align-items: center;
-    gap: 1px;
-    padding: 0px 4px;
+    gap: 2px;
+    padding: 0px 2px;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
     opacity: 1;
     transition: all 0.2s ease;
-    height: 22px;
+    height: 20px;
     z-index: 1;
+    line-height: 1;
 }
 
 .hi-note-button-hidden {
     opacity: 0;
 }
 
-.cm-line:hover .hi-note-button-hidden {
+/* 鼠标悬停时显示按钮 */
+.cm-line:hover .hi-note-button-hidden,
+.cm-highlight:hover + .hi-note-widget .hi-note-button-hidden,
+.hi-note-widget:hover .hi-note-button-hidden {
     opacity: 1;
 }
 
@@ -414,13 +420,17 @@
     align-items: center;
     gap: 1px;
     color: var(--text-muted);
+    transform: scale(0.9);
+    line-height: 1;
 }
 
 .hi-note-count {
-    font-size: 11px;
-    font-weight: 400;
+    font-size: 14px;
+    font-weight: 500;
     color: var(--text-muted);
     margin-left: 1px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .hi-note-tooltip {
@@ -470,7 +480,674 @@
 }
 
 .hi-note-tooltip.hi-note-tooltip-hidden {
-    display: none;
+    display: none !important;
+}
+
+/* 隐藏空格样式 */
+.hi-note-spacer {
+    display: inline-block;
+    width: 2px;
+    margin-right: 4px;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Flashcard styles */
+
+/* 删除重复代码 */
+
+.flashcard-progress-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress-width, 0%);
+    background: linear-gradient(to right, var(--interactive-accent-hover), var(--interactive-accent));
+    opacity: 0.15;
+    transition: width 0.3s ease;
+    z-index: 0;
+    border-radius: 8px 0 0 8px;
+}
+
+/* 当进度为 100% 时显示完整圆角 */
+.flashcard-progress-container::before[style*="width: 100%"] {
+    border-radius: 8px;
+}
+
+.flashcard-progress-container > * {
+    position: relative;
+    z-index: 1;
+}
+
+.flashcard-progress-text {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.flashcard-progress-text .separator {
+    color: var(--text-faint);
+}
+
+.flashcard-progress-text .stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.flashcard-progress-text .stat-value {
+    color: var(--text-normal);
+}
+
+.flashcard-progress-text .group-name {
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+
+.flashcard-modal-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 16px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+textarea.flashcard-modal-input {
+    min-height: 80px;
+    font-family: var(--font-text);
+}
+
+.flashcard-modal-input.small {
+    width: 80px;
+    margin-bottom: 0;
+    margin-left: 8px;
+    padding: 4px 8px;
+}
+
+.flashcard-modal-settings {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.flashcard-modal-settings h4 {
+    font-size: 16px;
+    color: var(--text-normal);
+}
+
+.flashcard-modal-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.flashcard-modal-checkbox {
+    margin-right: 8px;
+}
+
+.flashcard-modal-label {
+    font-size: 14px;
+    color: var(--text-normal);
+}
+
+/* Rating buttons */
+.flashcard-rating-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+
+.flashcard-rating-button[data-rating='again'] {
+    background-color: #6A8390;
+}
+
+.flashcard-rating-button[data-rating='hard'] {
+    background-color: #FF977B;
+}
+
+.flashcard-rating-button[data-rating='good'] {
+    background-color: #77D1C1;
+}
+
+.flashcard-rating-button[data-rating='easy'] {
+    background-color: #6BC8FC;
+}
+
+.flashcard-rating-button:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+
+.flashcard-rating-button .days {
+    font-size: 0.8em;
+    margin-top: 4px;
+    opacity: 0.9;
+}
+
+.flashcard-mode {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 20px;
+    justify-content: center;
+}
+
+.flashcard-main-container {
+    display: flex;
+    flex: 1;
+    gap: 12px;
+}
+
+.flashcard-sidebar {
+    width: 280px;
+    border-right: 1px solid var(--background-modifier-border);
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.flashcard-add-group {
+    padding: 4px;
+    margin: 8px 0px;
+    border-radius: 4px;
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--background-modifier-border);
+}
+
+.flashcard-add-group:hover {
+    color: var(--text-accent);
+    background-color: var(--background-modifier-hover);
+}
+
+/* 模态框样式 */
+.flashcard-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.flashcard-modal-content {
+    background-color: var(--background-primary);
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.flashcard-modal h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-normal);
+}
+
+.flashcard-modal-input,
+.flashcard-modal-select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.flashcard-modal-option {
+    display: flex;
+    align-items: center;
+}
+
+.flashcard-modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.flashcard-modal-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: var(--background-modifier-border);
+    color: var(--text-normal);
+    transition: background-color 0.2s;
+}
+
+.flashcard-modal-button:hover {
+    background-color: var(--background-modifier-border-hover);
+}
+
+.flashcard-modal-button.primary {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.flashcard-modal-button.primary:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+.flashcard-default-groups,
+.flashcard-custom-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.flashcard-group-section-title {
+    padding: 4px 12px;
+    font-size: 0.8em;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.flashcard-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* 自定义分组卡片样式 */
+.flashcard-custom-groups .flashcard-group-item {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    margin: 4px 0;
+    background: var(--background-primary);
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-items: stretch;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.flashcard-custom-groups .flashcard-group-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.flashcard-custom-groups .flashcard-group-item.active {
+    border: 1px solid var(--interactive-accent);
+}
+
+/* 分组标题和操作按钮行 */
+.flashcard-custom-groups .flashcard-group-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.flashcard-custom-groups .flashcard-group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.flashcard-custom-groups .flashcard-group-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.flashcard-custom-groups .flashcard-group-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.flashcard-custom-groups .flashcard-group-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.flashcard-custom-groups .flashcard-group-action:hover {
+    color: var(--text-accent);
+    background: var(--background-modifier-hover);
+}
+
+/* 统计数据行 */
+.flashcard-custom-groups .flashcard-group-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px;
+    background: var(--background-secondary);
+    border-radius: 4px;
+    margin-top: auto;
+}
+
+.flashcard-custom-groups .flashcard-group-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.flashcard-custom-groups .flashcard-stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flashcard-custom-groups .flashcard-stat-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.flashcard-group-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.flashcard-group-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flashcard-group-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.flashcard-group-item.active .flashcard-group-icon {
+    color: var(--text-accent);
+}
+
+.flashcard-group-name {
+    font-size: 0.9em;
+}
+
+.flashcard-group-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.flashcard-group-item:hover .flashcard-group-actions {
+    opacity: 1;
+}
+
+.flashcard-group-action {
+    padding: 2px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.flashcard-group-action:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+}
+
+.flashcard-group-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.flashcard-group-item.active {
+    background-color: var(--background-modifier-hover);
+    font-weight: 600;
+    color: var(--text-accent);
+}
+
+.flashcard-group-count {
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--background-secondary);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.flashcard-content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.flashcard-progress-container {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.flashcard-stats {
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.flashcard-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    background: var(--background-secondary);
+    border-radius: 8px;
+}
+
+.flashcard {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    height: 400px;
+    perspective: 2000px;
+    cursor: pointer;
+}
+
+.flashcard-side {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flashcard-content {
+    font-size: 1.2em;
+    line-height: 1.75;
+    text-align: left;
+    max-width: 90%;
+    overflow-y: auto;
+    max-height: 100%;
+    padding: 16px 0px;
+    white-space: pre-wrap;
+}
+
+.flashcard-back .flashcard-content hr {
+    margin: 20px 0;
+    border: none;
+    height: 1px;
+    background: var(--text-muted);
+    background-color: var(--background-modifier-border);
+}
+
+.flashcard-front {
+    transform: rotateY(0);
+}
+
+.flashcard-back {
+    transform: rotateY(-180deg);
+}
+
+.flashcard.is-flipped .flashcard-front {
+    transform: rotateY(180deg);
+}
+
+.flashcard.is-flipped .flashcard-back {
+    transform: rotateY(0);
+}
+
+.flashcard-flip-btn {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.flashcard-flip-btn:hover {
+    background: var(--interactive-accent-hover);
+}
+
+.flashcard-rating {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 0;
+    padding: 0 20px;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.4s ease-in-out;
+}
+
+.flashcard.is-flipped + .flashcard-rating {
+    margin-top: 30px;
+    max-height: 100px;
+    opacity: 1;
+}
+
+.flashcard-rating-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flashcard-rating-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2.5;
+}
+
+.flashcard-rating-text {
+    font-weight: 600;
+}
+
+.flashcard-rating-button {
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.flashcard.is-flipped + .flashcard-rating .flashcard-rating-button {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.flashcard.is-flipped + .flashcard-rating .flashcard-rating-button:nth-child(1) { transition-delay: 0.1s; }
+.flashcard.is-flipped + .flashcard-rating .flashcard-rating-button:nth-child(2) { transition-delay: 0.2s; }
+.flashcard.is-flipped + .flashcard-rating .flashcard-rating-button:nth-child(3) { transition-delay: 0.3s; }
+.flashcard.is-flipped + .flashcard-rating .flashcard-rating-button:nth-child(4) { transition-delay: 0.4s; }
+
+.flashcard-counter {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-top: 10px;
+}
+
+.flashcard-source {
+    font-size: 0.8em;
+    color: var(--text-faint);
+    margin-top: 5px;
+}
+
+.flashcard-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1.2em;
+    padding: 40px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .flashcard {
+        height: 250px;
+    }
+
+    .flashcard-content {
+        font-size: 1em;
+    }
+
+    .flashcard-rating {
+        flex-wrap: wrap;
+    }
+}
+
+/* 深色模式优化 */
+.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-front,
+.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-back {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
+        0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* 修改编辑器容器样式确保有足够空间显示按钮 */
@@ -665,6 +1342,19 @@
     margin: 16px 0;
 }
 
+.prompt-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.prompt-settings-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
 .new-prompt-section {
     background-color: var(--background-primary);
     border-radius: 6px;
@@ -710,13 +1400,6 @@
     font-size: 13px;
     line-height: 1.5;
     resize: vertical;
-}
-
-.prompt-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
 }
 
 .prompt-add-btn {
@@ -1121,11 +1804,6 @@
     line-height: 1.5;
     resize: none;
     overflow-y: auto;
-    transition: all 0.2s ease;
-}
-
-.highlight-chat-input-container .hi-note-buttons {
-    display: none;
 }
 
 /* 聊天消息样式 */
@@ -1550,15 +2228,31 @@
 
 /* 修改评论按钮容器的样式 */
 .hi-note-widget {
-    position: absolute;
-    right: -32px;
-    top: 0;
-    transform: translateY(10%);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
     isolation: isolate;
     z-index: 999;
-    height: 22px;
-    display: flex;
-    align-items: center;
+    height: 20px;
+    vertical-align: text-top;
+    margin-top: 0px;
+    background-color: var(--background-secondary-alt);
+    border-radius: 4px;
+}
+
+/* 当没有评论时，最小化 widget 的空间占用 */
+.hi-note-widget-no-comments {
+    margin: 0;
+    width: 0;
+    opacity: 0.9;
+    transition: opacity 0.2s ease, width 0.2s ease, margin 0.2s ease;
+}
+
+/* 当鼠标悬停在高亮文本上时，恢复 widget 的宽度 */
+.hi-note-widget-no-comments:hover {
+    width: auto;
+    margin-left: 1px;
+    opacity: 1;
 }
 
 /* AI 按钮和下拉菜单样式 */
@@ -1666,8 +2360,8 @@
 /* AI 服务设置区域样式 */
 .ai-service-settings {
     background-color: var(--background-secondary);
-    border-radius: 6px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 12px 16px;
     margin: 16px 0;
 }
 
@@ -1687,30 +2381,6 @@
     align-items: center;
     justify-content: flex-end;
     min-width: 200px;
-}
-
-/* AI 服务设置区域样式 */
-.ai-service-settings {
-    background-color: var(--background-secondary);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-}
-
-.ai-service-settings h4 {
-    margin: 0 0 16px 0;
-}
-
-.prompt-header h4{
-    margin-top: 0px;
-    margin-bottom: 0px;
-}
-
-/* 分隔线样式 */
-hr {
-    margin: 8px 0;
-    border: none;
-    border-top: 1px solid var(--background-modifier-border);
 }
 
 /* 添加新的操作提示区域样式 */
@@ -1978,6 +2648,95 @@ hr {
     pointer-events: none !important;
 }
 
+/* Flashcard Activation Styles */
+.flashcard-activation-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--background-primary);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.flashcard-activation-header {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: var(--text-normal);
+}
+
+.flashcard-activation-description {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+.flashcard-activation-input-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.flashcard-activation-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.flashcard-activation-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.flashcard-activation-button {
+    padding: 8px 16px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.flashcard-activation-button:hover {
+    background: var(--interactive-accent-hover);
+}
+
+/* 帮助图标样式 */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    color: var(--text-faint);
+    cursor: help;
+    opacity: 0.7;
+    font-size: 14px;
+}
+
+.help-icon:hover {
+    color: var(--text-accent);
+    opacity: 0.9;
+}
+
+.progress-text {
+    margin-left: auto;
+    color: var(--text-accent);
+    font-size: 12px;
+    min-width: 60px;
+    text-align: right;
+    font-weight: 500;
+}
+
+/* 使用 Obsidian 的内置提示样式 */
+.help-icon[aria-label] {
+    position: relative;
+}
+
 .highlight-text-content {
     white-space: pre-wrap;
     word-break: break-word;
@@ -1985,4 +2744,156 @@ hr {
 
 .highlight-text-line {
     margin: 0;
+}
+
+.flashcard-empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 32px;
+    font-size: 14px;
+}
+
+/* 完成消息样式 */
+.flashcard-completion-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--background-primary);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.flashcard-completion-message .completion-icon {
+    font-size: 48px;
+    color: var(--interactive-accent);
+    margin-bottom: 20px;
+}
+
+.completion-icon svg {
+    width: 56px;
+    height: 56px;
+}
+
+.flashcard-completion-message h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: var(--text-normal);
+}
+
+.flashcard-completion-message p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 24px 0;
+    color: var(--text-muted);
+}
+
+.flashcard-return-button {
+    padding: 8px 16px;
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.flashcard-return-button:hover {
+    background-color: var(--interactive-accent-hover);
+    color: var(--interactive-normal);
+}
+
+/* 学习设置样式 */
+.flashcard-modal-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.settings-title {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-normal);
+}
+
+.use-global-option {
+    margin-bottom: 0 !important;
+}
+
+.slider-option {
+    display: flex;
+    margin-bottom: 16px;
+}
+
+.slider-with-value {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.flashcard-modal-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--background-modifier-border);
+    outline: none;
+    border-radius: 3px;
+}
+
+.flashcard-modal-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--interactive-accent);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.flashcard-modal-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--interactive-accent);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border: none;
+}
+
+.flashcard-modal-slider:hover::-webkit-slider-thumb {
+    background: var(--interactive-accent-hover);
+}
+
+.flashcard-modal-slider:hover::-moz-range-thumb {
+    background: var(--interactive-accent-hover);
+}
+
+.slider-value {
+    min-width: 30px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+.slider-option.disabled .flashcard-modal-slider {
+    opacity: 0.5;
+}
+
+.slider-option.disabled .slider-value {
+    opacity: 0.5;
+}
+
+.flashcard-rating-button span,
+.flashcard-rating-button .days {
+    color: white;
 }

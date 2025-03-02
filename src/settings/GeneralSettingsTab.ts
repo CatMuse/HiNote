@@ -58,7 +58,9 @@ export class GeneralSettingsTab {
             });
 
         // 高亮提取设置组
-        container.createEl('h3', { text: t('Text Extraction Settings') });
+        new Setting(container)
+            .setName(t('Custom text extraction'))
+            .setHeading();
 
         // 启用自定义正则表达式的开关
         new Setting(container)

@@ -75,6 +75,8 @@ export class DeepseekSettings extends BaseAIServiceSettings {
         
         // 立即保存设置
         await this.plugin.saveSettings();
+
+        
     }
 
     private async validateApiKey(apiKey: string): Promise<boolean> {
@@ -86,7 +88,8 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             // 使用当前选择的模型来验证
             const modelId = this.modelState.selectedModel.id;
             const url = `${baseUrl}/models/${modelId}`;
-            
+
+
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
@@ -103,6 +106,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
                 
                 // 如果是预设模型但不是 deepseek-chat，先检查 API Key 是否有效
                 if (modelId !== 'deepseek-chat') {
+
                     const checkUrl = `${baseUrl}/models/deepseek-chat`;
                     const checkResponse = await fetch(checkUrl, {
                         headers: {
@@ -127,12 +131,12 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             const isValid = !!(data && data.id);
             
             if (isValid) {
-                new Notice(t('API Key 和当前模型都可用！'));
+                new Notice(t('API Key and the current model are both available!'));
             }
             
             return isValid;
         } catch (error) {
-            console.error('Error validating API key:', error);
+
             new Notice(t('Failed to validate API Key. Please check your key and try again.'));
             return false;
         }
@@ -142,7 +146,10 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h4', { text: t('Deepseek Settings') });
+        // 添加标题
+        new Setting(settingsContainer)
+            .setName(t('Deepseek Settings'))
+            .setHeading();
 
         // API Key 设置
         new Setting(settingsContainer)
@@ -158,7 +165,22 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
-                    await this.validateApiKey(this.modelState.apiKey);
+                    if (!this.modelState.apiKey) {
+                        new Notice(t('Please enter an API Key first'));
+                        return;
+                    }
+                    
+                    // 禁用按钮，防止重复点击
+                    button.setDisabled(true);
+                    button.setButtonText(t('Checking...'));
+                    
+                    try {
+                        await this.validateApiKey(this.modelState.apiKey);
+                    } finally {
+                        // 恢复按钮状态
+                        button.setDisabled(false);
+                        button.setButtonText(t('Check'));
+                    }
                 }));
 
         // 模型选择设置

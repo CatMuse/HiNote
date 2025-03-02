@@ -47,7 +47,7 @@ export class ChatService {
                 timestamp: Date.now()
             };
         } catch (error) {
-            console.error('Error getting AI response:', error);
+
             new Notice('获取 AI 响应失败，请检查服务配置和网络连接');
             throw error;
         }

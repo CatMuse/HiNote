@@ -18,21 +18,22 @@ export class PromptSettingsTab {
             cls: 'prompt-settings-container'
         });
 
-        // 创建标题栏容器
+        // 标题和添加按钮容器
         const headerContainer = container.createEl('div', {
-            cls: 'prompt-header'
+            cls: 'prompt-settings-header setting-item-heading'
         });
 
-        // 标题
+        // 使用直接创建标题元素，而不是使用Setting组件
         headerContainer.createEl('h4', { 
-            text: t('Prompt Settings'),
+            text: t('Prompt settings'),
+            cls: 'prompt-settings-title'
         });
 
         // 添加按钮
         const addButton = headerContainer.createEl('button', {
             cls: 'prompt-add-btn',
             attr: {
-                'aria-label': t('Add Prompt')
+                'aria-label': t('Add prompt')
             }
         });
         setIcon(addButton, 'plus');

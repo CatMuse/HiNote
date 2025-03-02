@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon } from "obsidian";
+import { FlashcardComponent } from './components/flashcard/FlashcardComponent';
 import { CommentStore, HiNote, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
@@ -12,6 +13,7 @@ import { ExportService } from './services/ExportService';
 import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
+import { LicenseManager } from './services/LicenseManager';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -21,6 +23,7 @@ export class CommentView extends ItemView {
     private fileListContainer: HTMLElement;
     private mainContentContainer: HTMLElement;
     private currentFile: TFile | null = null;
+    private isFlashcardMode: boolean = false;
     private highlights: HighlightInfo[] = [];
     private commentStore: CommentStore;
     private searchInput: HTMLInputElement;
@@ -28,6 +31,7 @@ export class CommentView extends ItemView {
     private locationService: LocationService;
     private exportService: ExportService;
     private highlightService: HighlightService;
+    private licenseManager: LicenseManager;
     private isDraggedToMainView: boolean = false;
     private currentBatch: number = 0;
     private isLoading: boolean = false;
@@ -36,6 +40,7 @@ export class CommentView extends ItemView {
     private floatingButton: HTMLElement | null = null;
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
     private currentEditingHighlightId: string | null | undefined = null;
+    private flashcardComponent: FlashcardComponent | null = null;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -44,6 +49,7 @@ export class CommentView extends ItemView {
         this.locationService = new LocationService(this.app);
         this.exportService = new ExportService(this.app, this.commentStore);
         this.highlightService = new HighlightService(this.app);
+        this.licenseManager = new LicenseManager(this.plugin);
         
         // 监听文档切换
         this.registerEvent(
@@ -573,7 +579,7 @@ export class CommentView extends ItemView {
             const html2canvas = (await import('html2canvas')).default;
             new ExportPreviewModal(this.app, highlight, html2canvas).open();
         } catch (error) {
-            console.error("Failed to load html2canvas:", error);
+
             new Notice(t("Export failed: Failed to load necessary components."));
         }
     }
@@ -619,8 +625,19 @@ export class CommentView extends ItemView {
         if (this.isDraggedToMainView !== isInMainView) {
             this.isDraggedToMainView = isInMainView;
             
-            // 如果从主视图切换到侧边栏，重新同步当前文件
+            // 如果从主视图切换到侧边栏
             if (!isInMainView) {
+                // 如果当前处于 Flashcard 模式，自动清理
+                if (this.isFlashcardMode) {
+                    this.isFlashcardMode = false;
+                    if (this.flashcardComponent) {
+                        this.flashcardComponent.deactivate();
+                        this.flashcardComponent = null;
+                    }
+                    this.updateFileListSelection();
+                }
+
+                // 重新同步当前文件
                 const activeFile = this.app.workspace.getActiveFile();
                 if (activeFile) {
                     this.currentFile = activeFile;
@@ -690,6 +707,22 @@ export class CommentView extends ItemView {
             cls: `highlight-file-item highlight-file-item-all ${this.currentFile === null ? 'is-active' : ''}`
         });
 
+        allFilesItem.addEventListener("click", () => {
+            this.currentFile = null;
+            this.isFlashcardMode = false;
+            this.updateHighlights();
+            this.updateFileListSelection();
+            
+            // 显示搜索容器
+            this.searchContainer.style.display = '';
+            
+            // 隐藏搜索图标按钮
+            const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+            if (iconButtons) {
+                iconButtons.style.display = 'none';
+            }
+        });
+
         // 创建左侧内容容器
         const allFilesLeft = allFilesItem.createEl("div", {
             cls: "highlight-file-item-left"
@@ -705,6 +738,123 @@ export class CommentView extends ItemView {
         allFilesLeft.createEl("span", {
             text: t("All Highlight"),
             cls: "highlight-file-item-name"
+        });
+
+        // 创建闪卡按钮的容器
+        const flashcardItem = fileList.createEl("div", {
+            cls: "highlight-file-item highlight-file-item-flashcard"
+        });
+
+        flashcardItem.addEventListener("click", async () => {
+            // 更新文件列表选中状态
+            this.currentFile = null;
+            this.isFlashcardMode = true;
+            this.updateFileListSelection();
+            
+            // 隐藏搜索容器
+            this.searchContainer.style.display = 'none';
+
+            // 获取所有文件
+            const files = await this.getFilesWithHighlights();
+            
+            // 获取所有高亮和评论数据
+            const allHighlights: HiNote[] = [];
+            for (const file of files) {
+                const fileHighlights = this.commentStore.getFileComments(file);
+                // 只添加非虚拟高亮且有评论的卡片
+                const validHighlights = fileHighlights.filter(h => !h.isVirtual && h.comments?.length > 0);
+                allHighlights.push(...validHighlights);
+            }
+
+            // 清空当前容器
+            this.highlightContainer.empty();
+            
+            // 创建或更新闪卡组件
+            if (!this.flashcardComponent) {
+                this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
+                this.flashcardComponent.setLicenseManager(this.licenseManager);
+            }
+            
+            // 激活闪卡组件并设置数据
+            await this.flashcardComponent.activate();
+            this.flashcardComponent.setCards(allHighlights);
+        });
+
+        const flashcardLeft = flashcardItem.createEl("div", {
+            cls: "highlight-file-item-left"
+        });
+
+        // 添加图标
+        const flashcardIcon = flashcardLeft.createEl("span", {
+            cls: "highlight-file-item-icon"
+        });
+        setIcon(flashcardIcon, 'book-heart');
+
+        flashcardLeft.createEl("span", {
+            text: t("HiCard"),
+            cls: "highlight-file-item-name"
+        });
+
+        // 创建卡片数量标签
+        const flashcardCount = flashcardItem.createEl("span", {
+            cls: "highlight-file-item-count"
+        });
+
+        // 更新卡片数量的函数
+        const updateFlashcardCount = async () => {
+            // 使用 getLatestCards() 获取最新版本的卡片数量
+            const latestCards = this.plugin.fsrsManager.getLatestCards();
+            flashcardCount.textContent = `${latestCards.length}`;
+        };
+
+        // 初始化卡片数量
+        updateFlashcardCount();
+
+        // 监听闪卡变化事件
+        this.registerEvent(
+            this.plugin.eventManager.on('flashcard:changed', () => {
+                updateFlashcardCount();
+            })
+        );
+
+        flashcardLeft.addEventListener("click", async () => {
+            // 获取最新版本的卡片
+            const latestCards = this.plugin.fsrsManager.getLatestCards();
+            
+            // 将 FlashcardState 转换为 HiNote
+            const allHighlights: HiNote[] = latestCards.map(card => ({
+                id: card.id,
+                text: card.text,
+                filePath: card.filePath,
+                comments: [{
+                    id: card.id + '-answer',
+                    content: card.answer,
+                    createdAt: card.createdAt,
+                    updatedAt: card.lastReview || card.createdAt
+                }],
+                isVirtual: false,
+                position: 0,
+                paragraphOffset: 0,
+                paragraphId: '',
+                createdAt: card.createdAt,
+                updatedAt: card.lastReview || card.createdAt
+            }));
+
+            // 清空当前容器
+            this.highlightContainer.empty();
+            
+            // 创建或更新闪卡组件
+            if (!this.flashcardComponent) {
+                this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
+                this.flashcardComponent.setLicenseManager(this.licenseManager);
+            }
+            
+            // 设置闪卡数据
+            await this.flashcardComponent.activate();
+            this.flashcardComponent.setCards(allHighlights);
+
+            // 更新文件列表选中状态
+            this.updateFileListSelection();
         });
 
         // 获取所有文件的高亮总数
@@ -724,6 +874,12 @@ export class CommentView extends ItemView {
         // 修改点击事件
         allFilesItem.addEventListener("click", async () => {
             this.currentFile = null;
+            this.isFlashcardMode = false;
+            // 确保清理 Flashcard 组件
+            if (this.flashcardComponent) {
+                this.flashcardComponent.deactivate();
+                this.flashcardComponent = null;
+            }
             this.updateFileListSelection();
             await this.updateAllHighlights();
         });
@@ -780,7 +936,20 @@ export class CommentView extends ItemView {
             // 添加点击事件
             fileItem.addEventListener("click", async () => {
                 this.currentFile = file;
+                this.isFlashcardMode = false;
+                // 确保清理 Flashcard 组件
+                if (this.flashcardComponent) {
+                    this.flashcardComponent.deactivate();
+                    this.flashcardComponent = null;
+                }
                 this.updateFileListSelection();
+                // 显示搜索容器
+                this.searchContainer.style.display = '';
+                // 显示搜索图标按钮
+                const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+                if (iconButtons) {
+                    iconButtons.style.display = '';
+                }
                 await this.updateHighlights();
             });
         }
@@ -791,11 +960,17 @@ export class CommentView extends ItemView {
         // 更新"全部"选项的选中状态
         const allFilesItem = this.fileListContainer.querySelector('.highlight-file-item-all');
         if (allFilesItem) {
-            allFilesItem.classList.toggle('is-active', this.currentFile === null);
+            allFilesItem.classList.toggle('is-active', this.currentFile === null && !this.isFlashcardMode);
+        }
+
+        // 更新闪卡选项的选中状态
+        const flashcardItem = this.fileListContainer.querySelector('.highlight-file-item-flashcard');
+        if (flashcardItem) {
+            flashcardItem.classList.toggle('is-active', this.isFlashcardMode);
         }
 
         // 更新文件项的选中状态
-        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all)');
+        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all):not(.highlight-file-item-flashcard)');
         fileItems.forEach((item: HTMLElement) => {
             const isActive = this.currentFile?.path === item.getAttribute('data-path');
             item.classList.toggle('is-active', isActive);
@@ -918,7 +1093,7 @@ export class CommentView extends ItemView {
             this.currentBatch++;
             
         } catch (error) {
-            console.error("Error loading highlights:", error);
+
             new Notice("加载高亮内容时出错");
         } finally {
             this.isLoading = false;
@@ -959,7 +1134,7 @@ export class CommentView extends ItemView {
                 const chatView = ChatView.getInstance(this.app, this.plugin);
                 chatView.show();
             } catch (error) {
-                console.error('Failed to open chat view:', error);
+
             }
         });
         

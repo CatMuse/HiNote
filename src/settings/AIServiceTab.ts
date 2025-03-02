@@ -6,6 +6,7 @@ import { AnthropicSettings } from './ai/AnthropicSettings';
 import { DeepseekSettings } from './ai/DeepseekSettings';
 import { GeminiSettings } from './ai/GeminiSettings';
 import { OllamaSettings } from './ai/OllamaSettings';
+import { SiliconFlowSettings } from './ai/SiliconFlowSettings';
 import { PromptSettingsTab } from './PromptSettingsTab';
 
 export class AIServiceTab {
@@ -20,7 +21,7 @@ export class AIServiceTab {
     display(): void {
         // AI 服务设置
         new Setting(this.containerEl)
-            .setName(t('AI Service'))
+            .setName('AI service')
             .setDesc(t('Select the AI service provider'))
             .addDropdown(dropdown => {
                 const options: Record<AIProvider, string> = {
@@ -28,6 +29,7 @@ export class AIServiceTab {
                     'gemini': 'Gemini',
                     'anthropic': 'Anthropic',
                     'deepseek': 'Deepseek',
+                    'siliconflow': 'SiliconFlow',
                     'ollama': 'Ollama (Local)'
                 };
 
@@ -59,6 +61,9 @@ export class AIServiceTab {
                 break;
             case 'deepseek':
                 new DeepseekSettings(this.plugin, this.containerEl).display(this.containerEl);
+                break;
+            case 'siliconflow':
+                new SiliconFlowSettings(this.plugin, this.containerEl).display(this.containerEl);
                 break;
         }
 

@@ -2,17 +2,19 @@ import { requestUrl } from 'obsidian';
 
 export class AnthropicService {
     private apiKey: string;
-    private baseUrl: string;
+    private apiAddress: string;
+    private model: string;
 
-    constructor(apiKey: string, baseUrl?: string) {
+    constructor(apiKey: string, apiAddress?: string, model?: string) {
         this.apiKey = apiKey;
-        this.baseUrl = baseUrl || 'https://api.anthropic.com';
+        this.apiAddress = apiAddress || 'https://api.anthropic.com';
+        this.model = model || 'claude-3-opus-20240229'; // 默认使用最新模型
     }
 
     async generateResponse(prompt: string): Promise<string> {
         try {
             const response = await requestUrl({
-                url: `${this.baseUrl}/v1/messages`,
+                url: `${this.apiAddress}/v1/messages`,
                 method: 'POST',
                 headers: {
                     'x-api-key': this.apiKey,
@@ -20,7 +22,7 @@ export class AnthropicService {
                     'content-type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'claude-3-opus-20240229',
+                    model: this.model,
                     max_tokens: 4096,
                     messages: [{
                         role: 'user',
@@ -36,7 +38,7 @@ export class AnthropicService {
             const data = response.json;
             return data.content[0].text;
         } catch (error) {
-            console.error('Error calling Anthropic API:', error);
+
             throw new Error('Failed to generate response from Anthropic API');
         }
     }
@@ -44,7 +46,7 @@ export class AnthropicService {
     async testConnection(): Promise<boolean> {
         try {
             const response = await requestUrl({
-                url: `${this.baseUrl}/v1/messages`,
+                url: `${this.apiAddress}/v1/messages`,
                 method: 'POST',
                 headers: {
                     'x-api-key': this.apiKey,
@@ -52,7 +54,7 @@ export class AnthropicService {
                     'content-type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'claude-3-opus-20240229',
+                    model: this.model,
                     max_tokens: 1,
                     messages: [{
                         role: 'user',
@@ -63,7 +65,7 @@ export class AnthropicService {
 
             return response.status === 200;
         } catch (error) {
-            console.error('Error testing Anthropic connection:', error);
+
             return false;
         }
     }

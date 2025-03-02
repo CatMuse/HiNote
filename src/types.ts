@@ -10,7 +10,8 @@ export interface HighlightInfo {
     text: string;          // 只保留高亮的文本内容
     position?: number;     // 修改为可选
     paragraphOffset?: number;  // 修改为可选
-    paragraphId?: string;  // 使用 paragraphId 来引用段落
+    blockId?: string;     // 纯 BlockID，不包含文件路径
+    paragraphId?: string;  // 兼容旧数据，将被 blockId 替代
     backgroundColor?: string;
     comments?: CommentItem[];
     createdAt?: number;
@@ -25,15 +26,17 @@ export interface HighlightInfo {
     originalLength?: number;  // 原始匹配文本的长度，包括标签
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek';
+export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';
 export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini';
-export type AnthropicModel = 'claude-2' | 'claude-instant-1';
+export type AnthropicModel = 'claude-3-opus-20240229' | 'claude-3-sonnet-20240229' | 'claude-3-haiku-20240307' | 'claude-2' | 'claude-instant-1';
 
-export interface DeepseekModel {
+export interface AIModel {
     id: string;
     name: string;
     isCustom?: boolean;
 }
+
+export interface DeepseekModel extends AIModel {}
 
 export interface DeepseekModelState {
     selectedModel: DeepseekModel;
@@ -45,11 +48,7 @@ export const DEFAULT_DEEPSEEK_MODELS: DeepseekModel[] = [
     { id: 'deepseek-reasoner', name: 'Deepseek Reasoner' }
 ];
 
-export interface GeminiModel {
-    id: string;
-    name: string;
-    isCustom?: boolean;
-}
+export interface GeminiModel extends AIModel {}
 
 export interface GeminiModelState {
     selectedModel: GeminiModel;
@@ -67,14 +66,25 @@ export interface AISettings {
     provider: AIProvider;
     openai?: {
         apiKey: string;
-        model: OpenAIModel;
+        model: string;
         baseUrl?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
+    };
+    siliconflow?: {
+        apiKey: string;
+        model: string;
+        baseUrl?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
     };
     anthropic?: {
         apiKey: string;
-        model: AnthropicModel;
+        model: string;
         availableModels?: string[];
-        baseUrl?: string;
+        apiAddress?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
     };
     ollama?: {
         host: string;
@@ -99,10 +109,17 @@ export interface AISettings {
     };
 }
 
+export interface FlashcardLicense {
+    key: string;
+    token: string;
+    features: string[];
+}
+
 export interface PluginSettings extends HighlightSettings {
     ai: AISettings;
     comments?: Record<string, Record<string, HighlightInfo>>;
     fileComments?: Record<string, FileComment[]>;
+    'flashcard-license'?: FlashcardLicense;
 }
 
 export interface FileComment {
@@ -112,6 +129,15 @@ export interface FileComment {
     updatedAt: number;
     filePath: string;
 }
+
+export const DEFAULT_SILICONFLOW_MODELS: AIModel[] = [
+    { id: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek V3', isCustom: false },
+    { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5 7B', isCustom: false },
+    { id: 'Qwen/Qwen2.5-14B-Instruct', name: 'Qwen2.5 14B', isCustom: false },
+    { id: 'Pro/Qwen/Qwen2-7B-Instruct', name: 'Qwen2 7B', isCustom: false },
+    { id: 'Pro/THUDM/glm-4-9b-chat', name: 'GLM-4 9B', isCustom: false },
+    { id: 'google/gemma-2-9b-it', name: 'Gemma2 9B', isCustom: false },
+];
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     excludePatterns: '',  // 默认不排除任何文件
@@ -138,7 +164,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         anthropic: {
             apiKey: '',
             model: 'claude-2',
-            baseUrl: ''
+            apiAddress: '',
+            isCustomModel: false,
+            lastCustomModel: ''
         },
         deepseek: {
             apiKey: '',

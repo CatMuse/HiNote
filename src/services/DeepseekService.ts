@@ -45,19 +45,19 @@ export class DeepseekService {
             });
 
             if (response.status !== 200) {
-                console.error('Deepseek API error response:', response.text);
+
                 throw new Error(`Deepseek API error (${response.status}): ${response.text}`);
             }
 
             const data = response.json;
             if (!data.choices?.[0]?.message?.content) {
-                console.error('Unexpected Deepseek API response format:', data);
+
                 throw new Error('Invalid response format from Deepseek API');
             }
 
             return data.choices[0].message.content;
         } catch (error) {
-            console.error('Error calling Deepseek API:', error);
+
             if (error instanceof Error) {
                 throw error;
             }
@@ -84,7 +84,7 @@ export class DeepseekService {
 
             return response.status === 200;
         } catch (error) {
-            console.error('Deepseek connection test failed:', error);
+
             return false;
         }
     }

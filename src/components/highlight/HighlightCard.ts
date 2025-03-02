@@ -57,8 +57,19 @@ export class HighlightCard {
             // 添加拖拽属性到文件名区域
             fileNameEl.setAttribute("draggable", "true");
             
+            // 预先生成 Block ID，确保拖拽时可以使用
+            if (this.highlight && this.highlight.filePath && typeof this.highlight.position === 'number') {
+                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
+                if (file instanceof TFile) {
+                    // 异步预生成 Block ID，但不阻塞界面
+                    this.generateDragContent().catch(error => {
+                        console.error('[HighlightCard] Error pre-generating block ID:', error);
+                    });
+                }
+            }
+            
             // 添加拖拽事件
-            fileNameEl.addEventListener("dragstart", (e) => {
+            fileNameEl.addEventListener("dragstart", async (e) => {
                 
                 try {
                     // 首先确保 highlight 对象存在并且有所需的属性
@@ -66,8 +77,24 @@ export class HighlightCard {
                         throw new Error('Invalid highlight data');
                     }
 
-                    // 生成格式化的内容
-                    const formattedContent = this.generateDragContentSync();
+                    // 尝试异步生成带有 Block ID 的内容
+                    // 设置一个超时，避免拖拽操作等待太久
+                    let formattedContent;
+                    try {
+                        const timeoutPromise = new Promise<string>((_, reject) => {
+                            setTimeout(() => reject(new Error('Block ID generation timeout')), 300);
+                        });
+                        
+                        // 使用 Promise.race 确保不会等待太久
+                        formattedContent = await Promise.race([
+                            this.generateDragContent(),
+                            timeoutPromise
+                        ]);
+                    } catch (timeoutError) {
+                        // 如果超时或出错，回退到同步方法
+                        console.debug('[HighlightCard] Using sync fallback for drag content:', timeoutError);
+                        formattedContent = this.generateDragContentSync();
+                    }
                     
                     // 使用 text/plain 格式来确保编辑器能正确识别 Markdown 格式
                     e.dataTransfer?.setData("text/plain", formattedContent);
@@ -81,7 +108,7 @@ export class HighlightCard {
                     // 使用 DragPreview 替代原来的预览处理
                     DragPreview.start(e, this.highlight.text);
                 } catch (error) {
-                    console.error('Failed to start drag:', error);
+                    console.error('[HighlightCard] Error during drag start:', error);
                     // 防止错误时的拖拽
                     e.preventDefault();
                     e.stopPropagation();
@@ -89,8 +116,11 @@ export class HighlightCard {
             });
 
             fileNameEl.addEventListener("dragend", () => {
+
                 fileNameEl.removeClass("dragging");
+
                 DragPreview.clear();
+
             });
 
             // 创建文件图标

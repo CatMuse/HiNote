@@ -1,4 +1,5 @@
 import { Plugin, TFile, MarkdownView, Editor, App } from "obsidian";
+import { BlockIdService } from './services/BlockIdService';
 
 export interface CommentItem {
     id: string;           // 评论的唯一ID
@@ -11,7 +12,8 @@ export interface HiNote {
     id: string;           
     text: string;         
     position: number;     
-    paragraphId: string;  // 新增：段落的唯一ID
+    paragraphId?: string;  // 兼容旧数据，将被 blockId 替代
+    blockId?: string;     // 新增：纯 BlockID，不包含文件路径
     comments: CommentItem[];  
     createdAt: number;    
     updatedAt: number;    
@@ -43,24 +45,34 @@ export interface FileCommentsData {
     [filePath: string]: FileComment[];
 }
 
+import { EventManager } from './services/EventManager';
+
 export class CommentStore {
     private plugin: Plugin;
     private data: CommentsData = {};
     private fileCommentsData: FileCommentsData = {};
     private comments: Map<string, HiNote[]> = new Map();
     private fileComments: Map<string, FileComment[]> = new Map();
+    private eventManager: EventManager;
+    private blockIdService: BlockIdService;
     private commentCache: Map<string, HiNote[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
 
     constructor(plugin: Plugin) {
         this.plugin = plugin;
+        this.eventManager = new EventManager(plugin.app);
+        this.blockIdService = new BlockIdService(plugin.app);
     }
 
     async loadComments() {
         const data = await this.plugin.loadData();
+
         this.data = data?.comments || {};
         this.fileCommentsData = data?.fileComments || {};
+
+        // 数据迁移：将 paragraphId 转换为 blockId
+        this.migrateDataToBlockId();
 
         // 将 data 转换为正确的格式
         this.comments = new Map(
@@ -73,16 +85,55 @@ export class CommentStore {
         this.fileComments = new Map(Object.entries(this.fileCommentsData));
     }
 
+    /**
+     * 数据迁移：将 paragraphId 转换为 blockId
+     */
+    private migrateDataToBlockId() {
+        let migrationCount = 0;
+        
+        // 遍历所有文件的高亮
+        for (const filePath in this.data) {
+            const fileHighlights = this.data[filePath];
+            
+            // 遍历文件中的所有高亮
+            for (const highlightId in fileHighlights) {
+                const highlight = fileHighlights[highlightId];
+                
+                // 如果有 paragraphId 但没有 blockId
+                if (highlight.paragraphId && !highlight.blockId) {
+                    // 从 paragraphId 中提取纯 BlockID
+                    // 使用与 BlockIdService 一致的正则表达式
+                    const blockIdMatch = highlight.paragraphId.match(/#\^([a-zA-Z0-9-]+)/);
+                    if (blockIdMatch && blockIdMatch[1]) {
+                        // 设置 blockId
+                        highlight.blockId = blockIdMatch[1];
+                        migrationCount++;
+                    }
+                }
+            }
+        }
+        
+        if (migrationCount > 0) {
+            console.info(`[CommentStore] Migrated ${migrationCount} highlights from paragraphId to blockId`);
+        }
+    }
+
     async saveComments() {
+        
         // 先加载当前的数据
         const currentData = await this.plugin.loadData() || {};
-        
-        // 更新评论数据，保持其他数据不变
-        await this.plugin.saveData({
+
+        const dataToSave = {
             ...currentData,  // 保持其他设置不变
             comments: this.data,
             fileComments: Object.fromEntries(this.fileComments)
-        });
+        };
+
+        // 更新评论数据，保持其他数据不变
+        await this.plugin.saveData(dataToSave);
+
+        // 验证数据是否成功保存
+        const verifyData = await this.plugin.loadData();
     }
 
     /**
@@ -154,18 +205,42 @@ export class CommentStore {
             return;
         }
 
-        // 确保 highlight 包含 paragraphId
-        if (!highlight.paragraphId) {
+        // 只确保 highlight 包含 blockId，不再设置 paragraphId
+        if (!highlight.blockId) {
             const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
             const editor = view?.editor;
             const currentFile = view?.file;
             
-            if (editor && currentFile) {
-                const pos = editor.offsetToPos(highlight.position);
-                const blockId = currentFile.path + '#^' + this.getBlockId(editor, pos.line);
-                highlight.paragraphId = blockId;
+            if (editor && currentFile && typeof highlight.position === 'number') {
+                try {
+                    // 使用 BlockIdService 创建或获取 Block ID
+                    const pos = editor.offsetToPos(highlight.position);
+                    const blockId = this.blockIdService.getOrCreateBlockId(editor, pos.line);
+                    
+                    // 只设置 blockId
+                    highlight.blockId = blockId;
+                    
+                    // 确保更改被保存
+                    const content = editor.getValue();
+                    await this.plugin.app.vault.modify(currentFile, content);
+                } catch (error) {
+                    console.error('Error creating block ID:', error);
+                    // 如果出错，使用时间戳作为后备
+                    const fallbackId = Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+                    highlight.blockId = fallbackId;
+                }
             } else {
-                highlight.paragraphId = file.path + '#^' + Date.now();
+                // 如果无法获取编辑器或文件，使用时间戳作为后备
+                const fallbackId = Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+                highlight.blockId = fallbackId;
+            }
+        }
+        
+        // 如果有 paragraphId 但没有 blockId，从 paragraphId 提取 blockId
+        if (highlight.paragraphId && !highlight.blockId) {
+            const blockIdMatch = highlight.paragraphId.match(/#\^([a-zA-Z0-9-]+)/);
+            if (blockIdMatch && blockIdMatch[1]) {
+                highlight.blockId = blockIdMatch[1];
             }
         }
 
@@ -311,11 +386,11 @@ export class CommentStore {
         const duration = performance.now() - start;
         
         if (duration > this.PERFORMANCE_THRESHOLD) {
-            console.warn(`Performance warning: Operation took ${duration}ms`);
+
         }
     }
 
-    // 新增：根据段落ID获取评论
+    // 根据段落ID获取评论
     getCommentsByParagraphId(file: TFile, paragraphId: string): HiNote[] {
         const fileComments = this.data[file.path] || {};
         return Object.values(fileComments).filter(
@@ -323,9 +398,23 @@ export class CommentStore {
         ).sort((a, b) => a.position - b.position);
     }
 
-    // 新增：检查段落是否有评论
+    // 根据 Block ID 获取评论
+    getCommentsByBlockId(file: TFile, blockId: string): HiNote[] {
+        const fileComments = this.data[file.path] || {};
+        return Object.values(fileComments).filter(
+            highlight => highlight.blockId === blockId
+        ).sort((a, b) => a.position - b.position);
+    }
+
+    // 检查段落是否有评论
     hasParagraphComments(file: TFile, paragraphId: string): boolean {
         const comments = this.getCommentsByParagraphId(file, paragraphId);
+        return comments.length > 0;
+    }
+    
+    // 检查指定 Block ID 是否有评论
+    hasBlockComments(file: TFile, blockId: string): boolean {
+        const comments = this.getCommentsByBlockId(file, blockId);
         return comments.length > 0;
     }
 
@@ -337,17 +426,7 @@ export class CommentStore {
 
     // 获取或生成 block ID
     private getBlockId(editor: Editor, line: number): string {
-        const lineText = editor.getLine(line);
-        const blockIdMatch = lineText.match(/\^([a-zA-Z0-9-]+)$/);
-        
-        if (blockIdMatch) {
-            return blockIdMatch[1];
-        }
-        
-        // 如果没有 block ID，生成一个并添加到行尾
-        const newBlockId = Math.random().toString(36).substr(2, 9);
-        editor.setLine(line, `${lineText} ^${newBlockId}`);
-        return newBlockId;
+        return this.blockIdService.getOrCreateBlockId(editor, line);
     }
 
     /**

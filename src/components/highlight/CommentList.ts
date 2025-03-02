@@ -68,11 +68,37 @@ export class CommentList {
                 // 如果是纯标签格式，将每个标签替换为样式化的标签
                 let formattedContent = content;
                 const tags = content.match(TAG_REGEX) || [];
-                tags.forEach(tag => {
-                    formattedContent = formattedContent.replace(tag, `<span class="highlight-tag">${tag}</span>`);
-                });
-                const textNode = document.createTextNode(formattedContent);
-                contentEl.replaceChildren(textNode);
+                
+                // Clear the content element
+                while (contentEl.firstChild) {
+                    contentEl.removeChild(contentEl.firstChild);
+                }
+                
+                // If there are tags, process them
+                if (tags.length > 0) {
+                    // Split the content by tags to preserve the order
+                    const parts = formattedContent.split(TAG_REGEX);
+                    let currentIndex = 0;
+                    
+                    // Interleave text parts and styled tags
+                    parts.forEach((part, index) => {
+                        // Add the text part
+                        if (part) {
+                            contentEl.appendChild(document.createTextNode(part));
+                        }
+                        
+                        // Add the tag (if there is one after this part)
+                        if (index < tags.length) {
+                            const tagSpan = document.createElement('span');
+                            tagSpan.className = 'highlight-tag';
+                            tagSpan.textContent = tags[index];
+                            contentEl.appendChild(tagSpan);
+                        }
+                    });
+                } else {
+                    // 如果不是纯标签格式，直接显示原始内容
+                    contentEl.textContent = content;
+                }
             } else {
                 // 如果不是纯标签格式，直接显示原始内容
                 contentEl.textContent = content;

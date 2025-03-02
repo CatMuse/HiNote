@@ -122,23 +122,26 @@ export class ExportService {
             } else {
                 // 普通高亮
                 lines.push("> [!quote] Highlight");
-                // 使用 Obsidian 的 Block ID
-                const cache = this.app.metadataCache.getFileCache(file);
-                if (cache?.sections && typeof highlight.position === 'number') {
-                    // 找到对应的段落
-                    const position = highlight.position || 0;
-                    const section = cache.sections.find(section => 
-                        section.position.start.offset <= position && 
-                        section.position.end.offset >= position
-                    );
-                    
-                    if (section?.id) {
-                        // 使用 Obsidian 的 Block ID
-                        lines.push(`> ![[${file.basename}#^${section.id}]]`);
-                    } else {
+                
+                // 尝试使用或创建 Block ID
+                if (typeof highlight.position === 'number') {
+                    try {
+                        // 尝试获取或创建 Block ID
+                        const blockIdRef = await this.highlightService.createBlockIdForHighlight(file, highlight.position);
+                        if (blockIdRef) {
+                            // 使用 Block ID 引用
+                            lines.push(`> ![[${blockIdRef}]]`);
+                        } else {
+                            // 如果没有成功创建 Block ID，使用原文本
+                            lines.push(`> ${highlight.text}`);
+                        }
+                    } catch (error) {
+                        console.error('[ExportService] Error creating block ID:', error);
+                        // 如果创建 Block ID 失败，使用原文本
                         lines.push(`> ${highlight.text}`);
                     }
                 } else {
+                    // 如果没有位置信息，使用原文本
                     lines.push(`> ${highlight.text}`);
                 }
                 lines.push("> ");

@@ -82,3 +82,26 @@ In the bottom right corner of the main view, you can click the conversation icon
 Additionally, you can drag highlighted cards into the conversation window as part of the dialogue, and it supports dragging in multiple highlighted items simultaneously.
 
 ![AI chat](./doc/ai-chat.jpg)
+
+---
+
+## Pro Features
+
+HiNote offers additional premium features that enhance your note-taking and learning experience:
+
+### Flashcard System
+
+The Flashcard feature is available in the Pro version of HiNote. This advanced spaced repetition system helps you memorize your highlighted content more effectively:
+
+- Convert your highlights into flashcards with just one click
+- Utilize the FSRS (Free Spaced Repetition Scheduler) algorithm for optimal learning efficiency
+<!-- - Track your learning progress with detailed statistics -->
+- Customize review schedules to match your learning style
+
+To access these premium features, you'll need to [obtain a license](https://hinote.vip).
+
+---
+
+## License
+
+This plugin is released under the MIT License. The basic features are free and open-source, while some advanced features require a Pro license.

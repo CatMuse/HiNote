@@ -86,28 +86,50 @@ export class GeminiSettings extends BaseAIServiceSettings {
             // 使用当前选择的模型来验证
             const modelId = this.modelState.selectedModel.id;
             const url = `${baseUrl}/v1/models/${modelId}?key=${apiKey}`;
-            
+
+
             const response = await fetch(url);
             if (!response.ok) {
-                // 如果是自定义模型，直接提示错误
+                // 获取错误详情
+                const errorData = await response.json().catch(() => null);
+
+                // 检查是否是实验性模型
+                const isExperimentalModel = modelId.includes('-exp-');
+                
+                // 如果是实验性模型，提供更具体的错误信息
+                if (isExperimentalModel) {
+                    // 先验证 API Key 是否有效
+                    const checkUrl = `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`;
+                    const checkResponse = await fetch(checkUrl);
+                    
+                    if (checkResponse.ok) {
+                        new Notice(t('API Key 有效，但无法访问实验性模型。请确保你有权限访问此模型，或等待模型正式发布。'));
+                        throw new Error(`Experimental model not accessible: ${modelId}`);
+                    } else {
+                        new Notice(t('API Key 无效。请检查你的 API Key 是否正确。'));
+                        throw new Error('Invalid API Key');
+                    }
+                }
+                
+                // 如果是自定义模型
                 if (this.modelState.selectedModel.isCustom) {
-                    new Notice(t('自定义模型不可用，请检查模型 ID 和 API 地址'));
+                    new Notice(t('自定义模型不可用。请检查模型 ID 是否正确，以及你是否有权限访问此模型。'));
                     throw new Error(`Custom model not available: ${modelId}`);
                 }
                 
-                // 如果是预设模型但不是 gemini-pro，先检查 API Key 是否有效
+                // 如果是预设模型但不是 gemini-pro
                 if (modelId !== 'gemini-pro') {
                     const checkUrl = `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`;
                     const checkResponse = await fetch(checkUrl);
                     
                     if (checkResponse.ok) {
-                        // API Key 有效，但当前选择的模型不可用
-                        new Notice(t('当前选择的模型不可用，但 API Key 是有效的'));
+                        new Notice(t('API Key 有效，但当前选择的模型不可用。可能是模型未发布或你没有访问权限。'));
                         throw new Error(`Selected model not available: ${modelId}`);
                     }
                 }
                 
                 // 其他情况，API Key 无效
+                new Notice(t('API Key is invalid or there is a server error. Please check if your API Key is correct.'));
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
@@ -115,12 +137,12 @@ export class GeminiSettings extends BaseAIServiceSettings {
             const isValid = !!(data && data.name);
             
             if (isValid) {
-                new Notice(t('API Key 和当前模型都可用！'));
+                new Notice(t('API Key and the current model are both available！'));
             }
             
             return isValid;
         } catch (error) {
-            console.error('Error validating API key:', error);
+
             return false;
         }
     }
@@ -129,7 +151,10 @@ export class GeminiSettings extends BaseAIServiceSettings {
             cls: 'ai-service-settings'
         });
 
-        settingsContainer.createEl('h4', { text: t('Gemini Settings') });
+        // 添加标题
+        new Setting(settingsContainer)
+            .setName(t('Gemini Settings'))
+            .setHeading();
 
         // API Key 设置
         new Setting(settingsContainer)
@@ -150,7 +175,17 @@ export class GeminiSettings extends BaseAIServiceSettings {
                         return;
                     }
 
-                    await this.validateApiKey(this.modelState.apiKey);
+                    // 禁用按钮，防止重复点击
+                    button.setDisabled(true);
+                    button.setButtonText(t('Checking...'));
+                    
+                    try {
+                        await this.validateApiKey(this.modelState.apiKey);
+                    } finally {
+                        // 恢复按钮状态
+                        button.setDisabled(false);
+                        button.setButtonText(t('Check'));
+                    }
                 }));
 
         // 模型选择设置
@@ -323,12 +358,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
                 }
             }
             
-            // 切换到默认模型
-            const defaultModel = DEFAULT_GEMINI_MODELS[0];
-            this.modelState.selectedModel = defaultModel;
-            
-            // 更新设置
-            settings.model = defaultModel.id;
+            // 更新设置，标记为非自定义模型
             settings.isCustomModel = false;
             await this.plugin.saveSettings();
         }

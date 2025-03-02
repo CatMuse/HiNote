@@ -7,16 +7,32 @@ import { PluginSettings, DEFAULT_SETTINGS, HighlightSettings } from './src/types
 import html2canvas from 'html2canvas';
 import { ChatView } from './src/components/ChatView';
 import { t } from './src/i18n';
+import { FSRSManager } from './src/services/FSRSManager';
+
+import { EventManager } from './src/services/EventManager';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
-	DEFAULT_SETTINGS = DEFAULT_SETTINGS;
+	DEFAULT_SETTINGS = {
+		...DEFAULT_SETTINGS,
+		anthropic: {
+			apiKey: '',
+			model: 'claude-2',
+			apiAddress: '',
+			isCustomModel: false,
+			lastCustomModel: ''
+		}
+	};
 	private commentStore: CommentStore;
 	private highlightDecorator: HighlightDecorator;
+	public fsrsManager: FSRSManager;
+	public eventManager: EventManager;
 
 	async onload() {
+
 		// 加载设置
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loadedData = await this.loadData();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
 		// 将 html2canvas 添加到全局对象
 		(window as any).html2canvas = html2canvas;
@@ -24,6 +40,12 @@ export default class CommentPlugin extends Plugin {
 		// 初始化评论存储
 		this.commentStore = new CommentStore(this);
 		await this.commentStore.loadComments();
+
+		// 初始化事件管理器
+		this.eventManager = new EventManager(this.app);
+
+		// 初始化 FSRS 管理器
+		this.fsrsManager = new FSRSManager(this);
 
 		// 初始化高亮装饰器
 		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
@@ -63,7 +85,7 @@ export default class CommentPlugin extends Plugin {
 		// 添加打开评论面板的命令
 		this.addCommand({
 			id: 'open-comment-window',
-			name: t('Open the right window'),
+			name: t('Open hinote in right sidebar'),
 			callback: async () => {
 				const { workspace } = this.app;
 				
@@ -124,7 +146,16 @@ export default class CommentPlugin extends Plugin {
 		});
 	}
 
-	onunload() {
+	async onunload() {
+
+        // 保存最终状态
+		try {
+			await this.commentStore.saveComments();
+			const finalData = await this.loadData();
+		} catch (error) {
+
+		}
+
 		// 清理高亮装饰器
 		if (this.highlightDecorator) {
 			this.highlightDecorator.disable();
@@ -183,7 +214,9 @@ export default class CommentPlugin extends Plugin {
                     apiKey: loadedData.ai.anthropic.apiKey || this.settings.ai.anthropic.apiKey,
                     model: loadedData.ai.anthropic.model || this.settings.ai.anthropic.model,
                     availableModels: loadedData.ai.anthropic.availableModels,
-                    baseUrl: loadedData.ai.anthropic.baseUrl
+                    apiAddress: loadedData.ai.anthropic.apiAddress || loadedData.ai.anthropic.baseUrl,
+                    isCustomModel: loadedData.ai.anthropic.isCustomModel || false,
+                    lastCustomModel: loadedData.ai.anthropic.lastCustomModel || ''
                 };
             }
             if (loadedData.ai.gemini && this.settings.ai.gemini) {
@@ -239,6 +272,12 @@ export default class CommentPlugin extends Plugin {
             this.settings = { ...DEFAULT_SETTINGS };
         }
 
+        // 保护现有的 flashcard-license 数据
+        const existingData = await this.loadData();
+        if (existingData?.['flashcard-license']) {
+            this.settings['flashcard-license'] = existingData['flashcard-license'];
+        }
+
         // 确保高亮相关设置存在并有默认值
         this.settings.excludePatterns = this.settings.excludePatterns ?? DEFAULT_SETTINGS.excludePatterns;
         this.settings.useCustomPattern = this.settings.useCustomPattern ?? DEFAULT_SETTINGS.useCustomPattern;
@@ -268,7 +307,9 @@ export default class CommentPlugin extends Plugin {
                 apiKey: '',  // 提供默认值
                 model: 'claude-2',  // 提供默认值
                 availableModels: DEFAULT_SETTINGS.ai.anthropic?.availableModels,
-                baseUrl: DEFAULT_SETTINGS.ai.anthropic?.baseUrl
+                apiAddress: DEFAULT_SETTINGS.ai.anthropic?.apiAddress,
+                isCustomModel: false,  // 提供默认值
+                lastCustomModel: ''  // 提供默认值
             };
         }
         if (!this.settings.ai.gemini) {
