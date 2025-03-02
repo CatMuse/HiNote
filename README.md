@@ -95,10 +95,11 @@ The Flashcard feature is available in the Pro version of HiNote. This advanced s
 
 - Convert your highlights into flashcards with just one click
 - Utilize the FSRS (Free Spaced Repetition Scheduler) algorithm for optimal learning efficiency
-<!-- - Track your learning progress with detailed statistics -->
 - Customize review schedules to match your learning style
 
 To access these premium features, you'll need to [obtain a license](https://hinote.vip).
+
+![HiCard](./doc/hi-card.jpg)
 
 ---
 
