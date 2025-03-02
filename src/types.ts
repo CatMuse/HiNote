@@ -10,7 +10,8 @@ export interface HighlightInfo {
     text: string;          // 只保留高亮的文本内容
     position?: number;     // 修改为可选
     paragraphOffset?: number;  // 修改为可选
-    paragraphId?: string;  // 使用 paragraphId 来引用段落
+    blockId?: string;     // 纯 BlockID，不包含文件路径
+    paragraphId?: string;  // 兼容旧数据，将被 blockId 替代
     backgroundColor?: string;
     comments?: CommentItem[];
     createdAt?: number;

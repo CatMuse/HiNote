@@ -97,10 +97,20 @@ export class HighlightService {
                             section.position.end.offset >= safeMatch.index
                         );
                         
-                        // 使用现有的 Block ID，如果存在的话
-                        const paragraphId = section?.id ? 
-                            `${file.path}#^${section.id}` : 
-                            this.blockIdService.getParagraphBlockId(file, safeMatch.index);
+                        // 只存储纯 BlockID，不存储完整路径
+                        let blockId = section?.id;
+                        
+                        // 如果没有直接的 section.id，尝试使用 BlockIdService 获取
+                        if (!blockId) {
+                            const paragraphIdRef = this.blockIdService.getParagraphBlockId(file, safeMatch.index);
+                            if (paragraphIdRef) {
+                                // 使用与 BlockIdService 一致的正则表达式提取 BlockID
+                                const match = paragraphIdRef.match(/#\^([a-zA-Z0-9-]+)/);
+                                if (match && match[1]) {
+                                    blockId = match[1];
+                                }
+                            }
+                        }
                             
                         highlights.push({
                             text,
@@ -112,8 +122,8 @@ export class HighlightService {
                             createdAt: Date.now(),
                             updatedAt: Date.now(),
                             originalLength: fullMatch.length,
-                            // 只使用现有的 Block ID，不创建新的
-                            paragraphId: paragraphId
+                            // 只存储纯 BlockID，不存储完整路径
+                            blockId: blockId
                         });
                     }
                 }
@@ -177,14 +187,19 @@ export class HighlightService {
      * @param file 文件
      * @param position 位置
      * @param forceCreate 是否强制创建 Block ID（用于拖拽和导出场景）
-     * @returns 段落 ID 引用或 undefined（如果不强制创建）
+     * @returns 纯 BlockID 或 undefined（如果不强制创建）
      */
     private createBlockIdForPosition(file: TFile, position: number, forceCreate: boolean = false): string | undefined {
         try {
             // 检查是否已有 Block ID
-            const existingId = this.blockIdService.getParagraphBlockId(file, position);
-            if (existingId) {
-                return existingId;
+            const existingIdRef = this.blockIdService.getParagraphBlockId(file, position);
+            if (existingIdRef) {
+                // 使用与 BlockIdService 一致的正则表达式提取 BlockID
+                const match = existingIdRef.match(/#\^([a-zA-Z0-9-]+)/);
+                if (match && match[1]) {
+                    return match[1];
+                }
+                return undefined;
             }
             
             // 如果强制创建（拖拽或导出场景），则创建并返回 Block ID
@@ -192,7 +207,13 @@ export class HighlightService {
                 // 这里使用 Promise，但返回 undefined
                 // 实际创建会在后台进行，不阻塞当前操作
                 this.blockIdService.createParagraphBlockId(file, position)
-                    .then(blockId => {
+                    .then(blockIdRef => {
+                        // 使用与 BlockIdService 一致的正则表达式提取 BlockID
+                        let blockId;
+                        const match = blockIdRef.match(/#\^([a-zA-Z0-9-]+)/);
+                        if (match && match[1]) {
+                            blockId = match[1];
+                        }
                         console.debug(`[HighlightService] Created block ID: ${blockId}`);
                         return blockId;
                     })
@@ -216,7 +237,7 @@ export class HighlightService {
      * 
      * @param file 文件
      * @param position 高亮位置
-     * @returns Promise<string> 返回创建的 Block ID
+     * @returns Promise<string> 返回创建的 Block ID 引用（文件名#^BlockID）
      */
     public async createBlockIdForHighlight(file: TFile, position: number): Promise<string> {
         try {
@@ -226,7 +247,7 @@ export class HighlightService {
                 return existingId;
             }
             
-            // 强制创建并返回 Block ID
+            // 强制创建并返回 Block ID 引用
             return await this.blockIdService.createParagraphBlockId(file, position);
         } catch (error) {
             console.error('[HighlightService] Error creating block ID for highlight:', error);

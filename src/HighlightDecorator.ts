@@ -118,6 +118,9 @@ export class HighlightDecorator {
                         comments: highlight.comments || [],
                         position: highlight.position,
                         paragraphOffset: highlight.paragraphOffset || 0,
+                        // 优先使用 blockId
+                        blockId: highlight.blockId,
+                        // 保留 paragraphId 以保持兼容性
                         paragraphId: highlight.paragraphId || `p-${highlight.paragraphOffset || 0}`,
                         createdAt: highlight.createdAt || Date.now(),
                         updatedAt: highlight.updatedAt || Date.now(),
@@ -125,9 +128,18 @@ export class HighlightDecorator {
                     };
 
                     // 从 CommentStore 中获取最新的评论数据
-                    const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
-                    if (storedHighlight && storedHighlight.length > 0) {
-                        commentHighlight.comments = storedHighlight[0].comments || [];
+                    // 先尝试使用 blockId 获取
+                    if (commentHighlight.blockId) {
+                        const blockComments = this.commentStore.getCommentsByBlockId(activeView.file, commentHighlight.blockId);
+                        if (blockComments && blockComments.length > 0) {
+                            commentHighlight.comments = blockComments[0].comments || [];
+                        }
+                    } else {
+                        // 如果没有 blockId，则使用旧的方法
+                        const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
+                        if (storedHighlight && storedHighlight.length > 0) {
+                            commentHighlight.comments = storedHighlight[0].comments || [];
+                        }
                     }
 
                     // 计算高亮文本的结束位置
@@ -188,6 +200,9 @@ export class HighlightDecorator {
                         comments: highlight.comments || [],
                         position: highlight.position,
                         paragraphOffset: highlight.paragraphOffset || 0,
+                        // 优先使用 blockId
+                        blockId: highlight.blockId,
+                        // 保留 paragraphId 以保持兼容性
                         paragraphId: highlight.paragraphId || `p-${highlight.paragraphOffset || 0}`,
                         createdAt: highlight.createdAt || Date.now(),
                         updatedAt: highlight.updatedAt || Date.now(),
@@ -195,9 +210,18 @@ export class HighlightDecorator {
                     };
 
                     // 从 CommentStore 中获取最新的评论数据
-                    const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
-                    if (storedHighlight && storedHighlight.length > 0) {
-                        commentHighlight.comments = storedHighlight[0].comments || [];
+                    // 先尝试使用 blockId 获取
+                    if (commentHighlight.blockId) {
+                        const blockComments = this.commentStore.getCommentsByBlockId(activeView.file, commentHighlight.blockId);
+                        if (blockComments && blockComments.length > 0) {
+                            commentHighlight.comments = blockComments[0].comments || [];
+                        }
+                    } else {
+                        // 如果没有 blockId，则使用旧的方法
+                        const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
+                        if (storedHighlight && storedHighlight.length > 0) {
+                            commentHighlight.comments = storedHighlight[0].comments || [];
+                        }
                     }
 
                     // 获取原始的匹配文本，包括标签

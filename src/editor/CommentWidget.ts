@@ -64,7 +64,17 @@ export class CommentWidget extends WidgetType {
     toDOM() {
         const wrapper = document.createElement("span");
         wrapper.addClass("hi-note-widget");
-        wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
+        
+        // 优先使用 blockId，如果没有则使用 paragraphId
+        if (this.highlight.blockId) {
+            wrapper.setAttribute('data-block-id', this.highlight.blockId);
+        }
+        
+        // 保留 paragraphId 以保持兼容性
+        if (this.highlight.paragraphId) {
+            wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
+        }
+        
         wrapper.setAttribute('data-highlight-text', this.highlight.text);
         
         // 检查是否有评论

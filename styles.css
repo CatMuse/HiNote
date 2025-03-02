@@ -391,8 +391,7 @@
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    padding: 0px 3px;
-    margin: 0px 2px;
+    padding: 0px 2px;
     border: none;
     border-radius: 3px;
     background: transparent;
@@ -2232,15 +2231,13 @@ textarea.flashcard-modal-input {
     position: relative;
     display: inline-flex;
     align-items: center;
-    margin-left: 1px;
     isolation: isolate;
     z-index: 999;
     height: 20px;
     vertical-align: text-top;
-    margin-top: -1px;
+    margin-top: 0px;
     background-color: var(--background-secondary-alt);
     border-radius: 4px;
-    padding: 0 4px;
 }
 
 /* 当没有评论时，最小化 widget 的空间占用 */

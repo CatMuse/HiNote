@@ -12,7 +12,8 @@ export interface HiNote {
     id: string;           
     text: string;         
     position: number;     
-    paragraphId: string;  // 新增：段落的唯一ID
+    paragraphId?: string;  // 兼容旧数据，将被 blockId 替代
+    blockId?: string;     // 新增：纯 BlockID，不包含文件路径
     comments: CommentItem[];  
     createdAt: number;    
     updatedAt: number;    
@@ -70,6 +71,9 @@ export class CommentStore {
         this.data = data?.comments || {};
         this.fileCommentsData = data?.fileComments || {};
 
+        // 数据迁移：将 paragraphId 转换为 blockId
+        this.migrateDataToBlockId();
+
         // 将 data 转换为正确的格式
         this.comments = new Map(
             Object.entries(this.data).map(([key, value]) => [
@@ -79,6 +83,39 @@ export class CommentStore {
         );
 
         this.fileComments = new Map(Object.entries(this.fileCommentsData));
+    }
+
+    /**
+     * 数据迁移：将 paragraphId 转换为 blockId
+     */
+    private migrateDataToBlockId() {
+        let migrationCount = 0;
+        
+        // 遍历所有文件的高亮
+        for (const filePath in this.data) {
+            const fileHighlights = this.data[filePath];
+            
+            // 遍历文件中的所有高亮
+            for (const highlightId in fileHighlights) {
+                const highlight = fileHighlights[highlightId];
+                
+                // 如果有 paragraphId 但没有 blockId
+                if (highlight.paragraphId && !highlight.blockId) {
+                    // 从 paragraphId 中提取纯 BlockID
+                    // 使用与 BlockIdService 一致的正则表达式
+                    const blockIdMatch = highlight.paragraphId.match(/#\^([a-zA-Z0-9-]+)/);
+                    if (blockIdMatch && blockIdMatch[1]) {
+                        // 设置 blockId
+                        highlight.blockId = blockIdMatch[1];
+                        migrationCount++;
+                    }
+                }
+            }
+        }
+        
+        if (migrationCount > 0) {
+            console.info(`[CommentStore] Migrated ${migrationCount} highlights from paragraphId to blockId`);
+        }
     }
 
     async saveComments() {
@@ -168,8 +205,8 @@ export class CommentStore {
             return;
         }
 
-        // 确保 highlight 包含 paragraphId
-        if (!highlight.paragraphId) {
+        // 只确保 highlight 包含 blockId，不再设置 paragraphId
+        if (!highlight.blockId) {
             const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
             const editor = view?.editor;
             const currentFile = view?.file;
@@ -179,7 +216,9 @@ export class CommentStore {
                     // 使用 BlockIdService 创建或获取 Block ID
                     const pos = editor.offsetToPos(highlight.position);
                     const blockId = this.blockIdService.getOrCreateBlockId(editor, pos.line);
-                    highlight.paragraphId = `${currentFile.path}#^${blockId}`;
+                    
+                    // 只设置 blockId
+                    highlight.blockId = blockId;
                     
                     // 确保更改被保存
                     const content = editor.getValue();
@@ -187,11 +226,21 @@ export class CommentStore {
                 } catch (error) {
                     console.error('Error creating block ID:', error);
                     // 如果出错，使用时间戳作为后备
-                    highlight.paragraphId = `${file.path}#^${Date.now()}`;
+                    const fallbackId = Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+                    highlight.blockId = fallbackId;
                 }
             } else {
                 // 如果无法获取编辑器或文件，使用时间戳作为后备
-                highlight.paragraphId = `${file.path}#^${Date.now()}`;
+                const fallbackId = Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
+                highlight.blockId = fallbackId;
+            }
+        }
+        
+        // 如果有 paragraphId 但没有 blockId，从 paragraphId 提取 blockId
+        if (highlight.paragraphId && !highlight.blockId) {
+            const blockIdMatch = highlight.paragraphId.match(/#\^([a-zA-Z0-9-]+)/);
+            if (blockIdMatch && blockIdMatch[1]) {
+                highlight.blockId = blockIdMatch[1];
             }
         }
 
@@ -341,7 +390,7 @@ export class CommentStore {
         }
     }
 
-    // 新增：根据段落ID获取评论
+    // 根据段落ID获取评论
     getCommentsByParagraphId(file: TFile, paragraphId: string): HiNote[] {
         const fileComments = this.data[file.path] || {};
         return Object.values(fileComments).filter(
@@ -349,9 +398,23 @@ export class CommentStore {
         ).sort((a, b) => a.position - b.position);
     }
 
-    // 新增：检查段落是否有评论
+    // 根据 Block ID 获取评论
+    getCommentsByBlockId(file: TFile, blockId: string): HiNote[] {
+        const fileComments = this.data[file.path] || {};
+        return Object.values(fileComments).filter(
+            highlight => highlight.blockId === blockId
+        ).sort((a, b) => a.position - b.position);
+    }
+
+    // 检查段落是否有评论
     hasParagraphComments(file: TFile, paragraphId: string): boolean {
         const comments = this.getCommentsByParagraphId(file, paragraphId);
+        return comments.length > 0;
+    }
+    
+    // 检查指定 Block ID 是否有评论
+    hasBlockComments(file: TFile, blockId: string): boolean {
+        const comments = this.getCommentsByBlockId(file, blockId);
         return comments.length > 0;
     }
 
