@@ -2,7 +2,7 @@ import { EditorView, ViewPlugin, DecorationSet, Decoration } from "@codemirror/v
 import type { Range } from "@codemirror/state";
 import { Plugin, MarkdownView } from "obsidian";
 import { CommentStore, HiNote, CommentItem } from "./CommentStore";
-import { CommentWidget } from "./editor/CommentWidget";
+import { CommentWidget } from "./components/comment/CommentWidget";
 import { HighlightService } from './services/HighlightService';
 
 export class HighlightDecorator {
