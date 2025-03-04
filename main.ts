@@ -35,7 +35,8 @@ export default class CommentPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
 		// 将 html2canvas 添加到全局对象
-		(window as any).html2canvas = html2canvas;
+		// 安全地扩展 Window 接口并添加 html2canvas
+		(window as Window & typeof globalThis & { html2canvas?: typeof html2canvas }).html2canvas = html2canvas;
 
 		// 初始化评论存储
 		this.commentStore = new CommentStore(this);

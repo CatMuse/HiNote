@@ -3,6 +3,7 @@ import type CommentPlugin from "../../../main";
 import { HighlightContent } from "./HighlightContent";
 import { ActionButtons } from "./ActionButtons";
 import { CommentList } from "./CommentList";
+import { MarkdownView } from "obsidian";
 import { setIcon, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView } from "obsidian";
 import { DragPreview } from './DragPreview';
 import { VIEW_TYPE_COMMENT } from '../../CommentView';
@@ -166,7 +167,8 @@ export class HighlightCard {
                 if (this.highlight.position !== undefined) {
                     const view = targetLeaf.view;
                     if (view.getViewType() === 'markdown') {
-                        const editor = (view as any).editor;
+                        // 如果是 markdown 视图，则获取其编辑器
+                        const editor = view.getViewType() === 'markdown' ? (view as MarkdownView).editor : null;
                         if (editor) {
                             const pos = editor.offsetToPos(this.highlight.position);
                             editor.setCursor(pos);

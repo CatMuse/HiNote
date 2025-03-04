@@ -1,4 +1,4 @@
-import { Editor, TFile, App } from 'obsidian';
+import { Editor, TFile, App, MarkdownView } from 'obsidian';
 
 /**
  * 处理 Block ID 相关操作的服务
@@ -80,7 +80,7 @@ export class BlockIdService {
         // 打开文件并获取编辑器
         const leaf = this.app.workspace.getLeaf();
         await leaf.openFile(file, { active: false });
-        const view = leaf.view as any;
+        const view = leaf.view as MarkdownView;
         const editor = view.editor;
         
         // 获取位置对应的行号

@@ -29,7 +29,11 @@ export class HighlightService {
 
     constructor(private app: App) {
         // 获取插件实例
-        const plugin = (app as any).plugins.plugins['hi-note'];
+        // 使用类型安全的方式获取插件实例
+        // 通过类型断言访问内部属性
+        const plugins = (app as any).plugins;
+        const plugin = plugins && plugins.plugins ? 
+            plugins.plugins['hi-note'] : undefined;
         this.settings = plugin?.settings;
         this.colorExtractor = new ColorExtractorService();
         this.eventManager = new EventManager(app);

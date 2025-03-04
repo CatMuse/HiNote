@@ -177,8 +177,8 @@ export class CommentStore {
         const comments = this.data[file.path] || {};
         // 修改排序逻辑，虚拟高亮始终在最前面
         return Object.values(comments).sort((a, b) => {
-            const aIsVirtual = (a as any).isVirtual || false;
-            const bIsVirtual = (b as any).isVirtual || false;
+            const aIsVirtual = 'isVirtual' in a ? a.isVirtual : false;
+            const bIsVirtual = 'isVirtual' in b ? b.isVirtual : false;
             if (aIsVirtual && !bIsVirtual) return -1;
             if (!aIsVirtual && bIsVirtual) return 1;
             return a.position - b.position;
@@ -199,7 +199,7 @@ export class CommentStore {
         }
         
         // 如果是虚拟高亮，直接使用已有的 paragraphId
-        if ((highlight as any).isVirtual) {
+        if ('isVirtual' in highlight && highlight.isVirtual) {
             this.data[file.path][highlight.id] = highlight;
             await this.saveComments();
             return;

@@ -45,7 +45,14 @@ export class CommentView extends ItemView {
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
         this.commentStore = commentStore;
-        this.plugin = (this.app as any).plugins.plugins['hi-note'] as CommentPlugin;
+        // 使用类型安全的方式获取插件实例
+        // 通过类型断言访问内部属性
+        const plugins = (this.app as any).plugins;
+        if (plugins && plugins.plugins && plugins.plugins['hi-note']) {
+            this.plugin = plugins.plugins['hi-note'] as CommentPlugin;
+        } else {
+            throw new Error('Hi-Note plugin not found');
+        }
         this.locationService = new LocationService(this.app);
         this.exportService = new ExportService(this.app, this.commentStore);
         this.highlightService = new HighlightService(this.app);
