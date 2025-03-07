@@ -52,6 +52,7 @@ export class CommentInput {
         // 添加输入事件监听器
         this.textarea.addEventListener('input', () => {
             this.processTagsInInput();
+            this.autoResizeTextarea();
         });
 
         // 替换内容为编辑框
@@ -106,6 +107,7 @@ export class CommentInput {
         // 添加输入事件监听器
         this.textarea.addEventListener('input', () => {
             this.processTagsInInput();
+            this.autoResizeTextarea();
         });
 
         // 添加快捷键提示
@@ -191,6 +193,24 @@ export class CommentInput {
                 }
             }
         };
+    }
+
+    /**
+     * 自动调整文本框高度以适应内容
+     */
+    private autoResizeTextarea() {
+        // 保存当前滚动位置
+        const scrollTop = window.scrollY;
+        
+        // 重置高度，以便能够准确计算内容高度
+        this.textarea.style.height = 'auto';
+        
+        // 设置新高度 (内容高度 + 边距)
+        const newHeight = this.textarea.scrollHeight;
+        this.textarea.style.height = `${newHeight}px`;
+        
+        // 恢复滚动位置，避免页面跳动
+        window.scrollTo(0, scrollTop);
     }
 
     private processTagsInInput() {
