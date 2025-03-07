@@ -494,9 +494,6 @@
 }
 
 /* Flashcard styles */
-
-/* 删除重复代码 */
-
 .flashcard-progress-container::before {
     content: '';
     position: absolute;
@@ -725,11 +722,6 @@ textarea.flashcard-modal-input {
     color: var(--text-normal);
 }
 
-.flashcard-modal-option {
-    display: flex;
-    align-items: center;
-}
-
 .flashcard-modal-buttons {
     display: flex;
     justify-content: flex-end;
@@ -765,15 +757,6 @@ textarea.flashcard-modal-input {
     display: flex;
     flex-direction: column;
     gap: 4px;
-}
-
-.flashcard-group-section-title {
-    padding: 4px 12px;
-    font-size: 0.8em;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .flashcard-group-list {
@@ -1044,21 +1027,6 @@ textarea.flashcard-modal-input {
     transform: rotateY(0);
 }
 
-.flashcard-flip-btn {
-    padding: 10px 20px;
-    font-size: 1.1em;
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.flashcard-flip-btn:hover {
-    background: var(--interactive-accent-hover);
-}
-
 .flashcard-rating {
     display: flex;
     gap: 16px;
@@ -1075,28 +1043,6 @@ textarea.flashcard-modal-input {
     margin-top: 30px;
     max-height: 100px;
     opacity: 1;
-}
-
-.flashcard-rating-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.flashcard-rating-icon svg {
-    width: 20px;
-    height: 20px;
-    stroke-width: 2.5;
-}
-
-.flashcard-rating-text {
-    font-weight: 600;
-}
-
-.flashcard-rating-button {
-    transform: translateY(20px);
-    opacity: 0;
-    transition: all 0.3s ease;
 }
 
 .flashcard.is-flipped + .flashcard-rating .flashcard-rating-button {
@@ -1148,75 +1094,6 @@ textarea.flashcard-modal-input {
 .theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-back {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
         0 2px 4px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* 修改编辑器容器样式确保有足够空间显示按钮 */
-.markdown-source-view {
-    padding-right: 40px !important;
-}
-
-/* 确保编辑器有足够的右侧空间 */
-.markdown-source-view.mod-cm6 .cm-content {
-    padding-right: 50px !important;
-}
-
-/* 悬停效果 */
-.hi-note-button:hover {
-    background-color: var(--background-modifier-hover);
-    opacity: 1;
-}
-
-/* 编辑状态的评论样式 */
-.hi-note-editing {
-    background-color: var(--background-primary);
-    border-radius: 6px;
-    padding: 12px;
-}
-
-.hi-note-editing textarea {
-    width: 100%;
-    min-height: 80px;
-    padding: 8px 12px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: 13px;
-    line-height: 1.5;
-    resize: vertical;
-    margin-bottom: 8px;
-}
-
-.hi-note-editing textarea:focus {
-    outline: none;
-    border-color: var(--interactive-accent);
-}
-
-/* 编辑区域样式 */
-.hi-note-edit-area {
-    padding: 0;
-    margin: 0;
-    width: 100%;
-}
-
-.hi-note-edit-area textarea {
-    width: 100%;
-    min-height: 60px;
-    padding: 8px 12px;
-    margin: 0 0 8px 0;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: 13px;
-    line-height: 1.5;
-    resize: vertical;
-    box-sizing: border-box;
-}
-
-.hi-note-edit-area textarea:focus {
-    outline: none;
-    border-color: var(--interactive-accent);
 }
 
 /* 模板选择器样式 */
@@ -1306,10 +1183,6 @@ textarea.flashcard-modal-input {
     padding: 20px;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     border-radius: 4px;
-}
-
-.highlight-export-card {
-    transition: all 0.3s ease;
 }
 
 /* 悬停效果 */
@@ -1684,6 +1557,7 @@ textarea.flashcard-modal-input {
 
 .highlight-file-item:hover .highlight-file-item-icon {
     opacity: 0.9;
+    color: var(--text-accent);
 }
 
 .highlight-file-item.is-active .highlight-file-item-icon {
@@ -1774,17 +1648,6 @@ textarea.flashcard-modal-input {
 
 .highlight-chat-close:hover {
     background-color: var(--background-modifier-hover);
-}
-
-.highlight-chat-history {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    background-color: var(--background-primary);
-    position: relative;
 }
 
 /* 聊天输入框样式 */
@@ -2031,38 +1894,9 @@ textarea.flashcard-modal-input {
     animation: fade-slide-up 0.2s ease;
 }
 
-/* 预览容器 */
-.highlight-chat-previews {
-    background-color: var(--background-secondary);
-    border-radius: 8px;
-    padding: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* 预览卡片 */
-.highlight-chat-preview-card {
-    position: relative;
-    padding: 8px 12px;
-    background-color: var(--background-primary);
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    min-height: 40px;
-    max-height: 80px;
-    margin-bottom: 8px;
-}
-
-.highlight-chat-preview-card:last-child {
-    margin-bottom: 0;
-}
-
 /* 拖拽目标区域的反馈 */
 .highlight-chat-history.drag-over {
     position: relative;
-}
-
-/* 拖拽过程中的光标样式 */
-.highlight-text-content {
-    cursor: grab;
 }
 
 .highlight-text-content:active {
@@ -2184,43 +2018,6 @@ textarea.flashcard-modal-input {
     display: none !important;
 }
 
-/* 控制按钮容器 */
-.highlight-controls {
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--background-modifier-border);
-    margin-bottom: 8px;
-}
-
-.highlight-toggle-all-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background: var(--background-primary);
-    color: var(--text-muted);
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.highlight-toggle-all-btn:hover {
-    color: var(--text-normal);
-    background-color: var(--background-modifier-hover);
-    border-color: var(--text-muted);
-}
-
-.highlight-toggle-all-icon {
-    transition: transform 0.3s ease;
-}
-
-/* 删除编辑器容器的右侧 padding */
-.markdown-source-view,
-.markdown-source-view.mod-cm6 .cm-content {
-    padding-right: initial !important;
-}
-
 /* 聊天窗口隐藏样式 */
 .highlight-chat-hidden {
     display: none !important;
@@ -2242,7 +2039,7 @@ textarea.flashcard-modal-input {
 
 /* 当没有评论时，最小化 widget 的空间占用 */
 .hi-note-widget-no-comments {
-    margin: 0;
+    margin: 0 2px;
     width: 0;
     opacity: 0.9;
     transition: opacity 0.2s ease, width 0.2s ease, margin 0.2s ease;
@@ -2251,7 +2048,6 @@ textarea.flashcard-modal-input {
 /* 当鼠标悬停在高亮文本上时，恢复 widget 的宽度 */
 .hi-note-widget-no-comments:hover {
     width: auto;
-    margin-left: 1px;
     opacity: 1;
 }
 
@@ -2331,23 +2127,6 @@ textarea.flashcard-modal-input {
     transition: all 0.2s ease;
 }
 
-/* AI 图标基础样式 */
-.highlight-ai-icon,
-.highlight-ai-icon-loading {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    transition: opacity 0.2s ease;
-}
-
-/* 加载图标动画 */
-.highlight-ai-icon-loading svg {
-    animation: ai-loading-spin 1s linear infinite;
-}
-
 @keyframes ai-loading-spin {
     from {
         transform: rotate(0deg);
@@ -2402,13 +2181,6 @@ textarea.flashcard-modal-input {
 
 .hi-note-delete-link:hover {
     color: var(--text-error);
-}
-
-/* 调整提示文本样式 */
-.hi-note-hint {
-    font-size: 11px;
-    color: var(--text-faint);
-    margin-right: auto;
 }
 
 /* 特定样式 */
@@ -2531,11 +2303,6 @@ textarea.flashcard-modal-input {
     align-items: center;
 }
 
-/* AI 下拉菜单显示/隐藏状态 */
-.highlight-dropdown-hidden {
-    display: none !important;
-}
-
 /* 虚拟高亮的样式  */
 .virtual-highlight {
     font-style: italic;
@@ -2618,14 +2385,6 @@ textarea.flashcard-modal-input {
 
 /* 插件专用隐藏类 */
 .hi-note-hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-/* AI 按钮加载图标隐藏状态 */
-.highlight-ai-icon-loading.hi-note-hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -2740,17 +2499,11 @@ textarea.flashcard-modal-input {
 .highlight-text-content {
     white-space: pre-wrap;
     word-break: break-word;
+    cursor: grab;
 }
 
 .highlight-text-line {
     margin: 0;
-}
-
-.flashcard-empty {
-    color: var(--text-muted);
-    text-align: center;
-    padding: 32px;
-    font-size: 14px;
 }
 
 /* 完成消息样式 */
