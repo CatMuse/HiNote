@@ -24,11 +24,14 @@ export class LicenseManager {
             
             // 如果没有存储的设备 ID，则生成一个新的
             // 主要使用相对稳定的因素
-            // 使用类型保护检查 adapter 是否有 getBasePath 方法
+            // 获取保存路径信息
             const adapter = this.plugin.app.vault.adapter;
-            const vaultPath = 'getBasePath' in adapter && typeof adapter.getBasePath === 'function' 
-                ? adapter.getBasePath() 
-                : this.plugin.app.vault.getName();
+            // 使用更安全的方式获取路径信息
+            let vaultPath = this.plugin.app.vault.getName();
+            // 尝试使用 adapter 的其他属性或方法获取更多信息
+            if (adapter && 'basePath' in adapter) {
+                vaultPath = (adapter as any).basePath + '/' + vaultPath;
+            }
             const platform = navigator.platform || '';
             
             // 组合因素 (减少变化频繁的因素)

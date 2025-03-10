@@ -1,7 +1,7 @@
 {
 	"id": "hi-note",
 	"name": "HiNote",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"minAppVersion": "0.15.0",
 	"description": "Enhance your highlighted notes with comment management and export features.",
 	"author": "Kai",
