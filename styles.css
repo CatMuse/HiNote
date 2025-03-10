@@ -1,3 +1,56 @@
+/* @settings
+
+name: HiNote
+id: highlight-comment-settings
+settings:
+    - 
+        id: highlight-comment-general
+        title: 高亮卡片
+        type: heading
+        level: 1
+    - 
+        id: highlight-text-settings
+        title: 文本设置
+        type: heading
+        level: 2
+    - 
+        id: highlight-text-font-size
+        title: 高亮文本字号
+        type: variable-number
+        default: 12
+        format: px
+        description: 调整高亮文本的字体大小
+    - 
+        id: highlight-text-line-height
+        title: 高亮文本行高
+        type: variable-number-slider
+        default: 1.5
+        min: 1
+        max: 2
+        step: 0.1
+    - 
+        id: highlight-note-settings
+        title: 评论设置
+        type: heading
+        level: 2
+    - 
+        id: hi-note-font-size
+        title: 评论文本字号
+        type: variable-number
+        default: 13
+        format: px
+        description: 调整评论文本的字体大小
+    - 
+        id: hi-note-line-height
+        title: 评论文本行高
+        type: variable-number-slider
+        default: 1.5
+        min: 1
+        max: 2
+        step: 0.1
+        description: 调整评论文本的行间距
+*/
+
 /* 只针对评论插件内容移除内边距 */
 .workspace-leaf-content[data-type="comment-view"] .view-content {
     padding: 0 !important;
@@ -71,7 +124,7 @@
 .highlight-card {
     border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
-    background-color: var(--background-primary);
+    background-color: var(--highlight-card-bg-color, var(--background-primary));
     transition: all 0.2s ease;
     break-inside: avoid;
     page-break-inside: avoid;
@@ -82,7 +135,7 @@
 }
 
 .highlight-card:hover {
-    background-color: var(--background-modifier-hover);
+    background-color: var(--highlight-card-hover-bg-color, var(--background-modifier-hover));
 }
 
 .highlight-card-filename svg {
@@ -121,8 +174,8 @@
 .highlight-text {
     position: relative;
     color: var(--text-muted);
-    line-height: 1.5;
-    font-size: 12px;
+    line-height: var(--highlight-text-line-height, 1.5);
+    font-size: var(--highlight-text-font-size, 12px);
     flex-grow: 1;
     padding: 2px 0;
     overflow-wrap: break-word;
@@ -172,7 +225,7 @@
 
 .hi-note {
     padding: 8px;
-    background-color: var(--background-primary);
+    background-color: var(--hi-note-bg-color, var(--background-primary));
     border-radius: 4px;
     margin-bottom: 4px;
     position: relative;
@@ -180,8 +233,8 @@
 
 .hi-note-content {
     color: var(--text-normal);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: var(--hi-note-font-size, 13px);
+    line-height: var(--hi-note-line-height, 1.5);
     margin-bottom: 0;
     cursor: text;
     transition: background-color 0.2s ease;
@@ -192,7 +245,7 @@
 }
 
 .hi-note-content:hover {
-    background-color: var(--background-modifier-hover);
+    background-color: var(--hi-note-hover-bg-color, var(--background-modifier-hover));
 }
 
 .hi-note-edit-hint {
