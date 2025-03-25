@@ -2420,6 +2420,89 @@ textarea.flashcard-modal-input {
     font-weight: 600;
 }
 
+/* Prompt textarea styling */
+.prompt-textarea {
+    min-height: 100px;
+    width: 100%;
+}
+
+/* OpenAI Settings styling */
+.custom-model-container {
+    display: none;
+    margin-right: 10px;
+}
+
+.custom-model-container.visible {
+    display: block;
+}
+
+.openai-dropdown-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.openai-setting-no-border {
+    border: none;
+    padding: 0;
+}
+
+.openai-setting-no-margin {
+    margin-left: 0;
+}
+
+/* ChatView styling */
+.highlight-chat-window {
+    position: fixed;
+    z-index: 1000;
+}
+
+.highlight-chat-preview {
+    position: absolute;
+}
+
+.highlight-chat-history-drag-guide {
+    --drag-guide-top: 12px;
+    --drag-guide-left: 12px;
+    --drag-guide-right: 12px;
+    --drag-guide-height: calc(100% - 24px);
+}
+
+.highlight-chat-input {
+    height: auto;
+    min-height: 24px;
+    max-height: 150px;
+}
+
+/* DragPreview positioning */
+.highlight-dragging {
+    position: absolute;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+/* CommentView display states */
+.highlight-display-block {
+    display: block;
+}
+
+.highlight-display-none {
+    display: none;
+}
+
+.highlight-display-flex {
+    display: flex;
+}
+
+.highlight-display-default {
+    display: '';
+}
+
+/* Highlight text formatting */
+.highlight-text-line-spacing {
+    margin-bottom: 4px;
+}
+
 .setting-tab-btn:focus {
     outline: none;
 }

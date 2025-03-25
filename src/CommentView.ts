@@ -127,7 +127,7 @@ export class CommentView extends ItemView {
             cls: "highlight-loading-indicator",
             text: t("Loading...")
         });
-        this.loadingIndicator.style.display = "none";
+        this.loadingIndicator.addClass('highlight-display-none');
     }
 
     getViewType(): string {
@@ -674,11 +674,11 @@ export class CommentView extends ItemView {
     // 添加新方法来更新视图布局
     private async updateViewLayout() {
         if (this.isDraggedToMainView) {
-            this.fileListContainer.style.display = "block";
+            this.fileListContainer.addClass('highlight-display-block');
             await this.updateFileList();
             this.createFloatingButton();
         } else {
-            this.fileListContainer.style.display = "none";
+            this.fileListContainer.addClass('highlight-display-none');
             this.removeFloatingButton();
         }
     }
@@ -721,12 +721,12 @@ export class CommentView extends ItemView {
             this.updateFileListSelection();
             
             // 显示搜索容器
-            this.searchContainer.style.display = '';
+            this.searchContainer.addClass('highlight-display-default');
             
             // 隐藏搜索图标按钮
             const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
             if (iconButtons) {
-                iconButtons.style.display = 'none';
+                iconButtons.addClass('highlight-display-none');
             }
         });
 
@@ -759,7 +759,7 @@ export class CommentView extends ItemView {
             this.updateFileListSelection();
             
             // 隐藏搜索容器
-            this.searchContainer.style.display = 'none';
+            this.searchContainer.addClass('highlight-display-none');
 
             // 获取所有文件
             const files = await this.getFilesWithHighlights();
@@ -951,11 +951,11 @@ export class CommentView extends ItemView {
                 }
                 this.updateFileListSelection();
                 // 显示搜索容器
-                this.searchContainer.style.display = '';
+                this.searchContainer.addClass('highlight-display-default');
                 // 显示搜索图标按钮
                 const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
                 if (iconButtons) {
-                    iconButtons.style.display = '';
+                    iconButtons.addClass('highlight-display-default');
                 }
                 await this.updateHighlights();
             });
@@ -1033,7 +1033,7 @@ export class CommentView extends ItemView {
     private async loadMoreHighlights() {
         if (this.isLoading) return;
         this.isLoading = true;
-        this.loadingIndicator.style.display = "block";
+        this.loadingIndicator.addClass('highlight-display-block');
 
         try {
             const files = await this.getFilesWithHighlights();
@@ -1104,7 +1104,7 @@ export class CommentView extends ItemView {
             new Notice("加载高亮内容时出错");
         } finally {
             this.isLoading = false;
-            this.loadingIndicator.style.display = "none";
+            this.loadingIndicator.addClass('highlight-display-none');
         }
     }
 

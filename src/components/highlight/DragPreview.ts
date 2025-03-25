@@ -49,8 +49,7 @@ export class DragPreview {
 
     private static updatePosition(x: number, y: number) {
         if (this.instance) {
-            this.instance.style.left = `${x + 10}px`;
-            this.instance.style.top = `${y + 10}px`;
+            this.instance.setAttribute('style', `left: ${x + 10}px; top: ${y + 10}px;`);
         }
     }
 

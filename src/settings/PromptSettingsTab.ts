@@ -69,8 +69,7 @@ export class PromptSettingsTab {
         contentArea
             .setPlaceholder(t('Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment'))
             .setValue('');
-        contentArea.inputEl.style.minHeight = '100px';
-        contentArea.inputEl.style.width = '100%';
+        contentArea.inputEl.addClass('prompt-textarea');
 
         // Buttons container
         const buttonsContainer = newPromptSection.createEl('div', { cls: 'prompt-buttons' });
@@ -164,8 +163,7 @@ export class PromptSettingsTab {
             const contentArea = new TextAreaComponent(editContainer);
             contentArea.setValue(content as string);
             contentArea.inputEl.classList.add('prompt-content-input');
-            contentArea.inputEl.style.minHeight = '100px';
-            contentArea.inputEl.style.width = '100%';
+            contentArea.inputEl.addClass('prompt-textarea');
 
             // Edit mode buttons container
             const editButtonsContainer = editContainer.createEl('div', { cls: 'prompt-edit-buttons' });

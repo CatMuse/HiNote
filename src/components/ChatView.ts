@@ -110,14 +110,14 @@ export class ChatView {
             const visibleHeight = chatHistoryRect.height;  // 可视区域高度
             
             // 设置虚线框的位置，使其始终在可视区域内
+            chatHistory.addClass('highlight-chat-history-drag-guide');
             chatHistory.style.setProperty('--drag-guide-top', `${visibleTop + 12}px`);  // 顶部留出16px边距
-            chatHistory.style.setProperty('--drag-guide-left', '12px');
-            chatHistory.style.setProperty('--drag-guide-right', '12px');
             chatHistory.style.setProperty('--drag-guide-height', `${visibleHeight - 24}px`);  // 高度减去上下边距
 
             // 更新预览元素位置
             const preview = document.querySelector('.highlight-dragging') as HTMLElement;
             if (preview) {
+                preview.addClass('highlight-chat-preview');
                 preview.style.left = `${e.clientX + 10}px`;
                 preview.style.top = `${e.clientY + 10}px`;
             }
@@ -191,6 +191,7 @@ export class ChatView {
             currentX = Math.max(0, Math.min(currentX, maxX));
             currentY = Math.max(0, Math.min(currentY, maxY));
 
+            this.containerEl.addClass('highlight-chat-window');
             this.containerEl.style.left = `${currentX}px`;
             this.containerEl.style.top = `${currentY}px`;
         });
@@ -416,7 +417,7 @@ export class ChatView {
         // 自动调整高度
         const adjustHeight = () => {
             if (this.textarea) {  // 添加空值检查
-                this.textarea.style.height = 'auto';
+                this.textarea.addClass('highlight-chat-input');
                 this.textarea.style.height = `${Math.min(this.textarea.scrollHeight, 150)}px`;
             }
         };
@@ -483,7 +484,7 @@ export class ChatView {
             // 清空输入框
             requestAnimationFrame(() => {
                 textarea.value = '';
-                textarea.style.height = 'auto';
+                textarea.addClass('highlight-chat-input');
                 textarea.dispatchEvent(new Event('input'));
             });
 
@@ -555,7 +556,7 @@ export class ChatView {
         // 清空输入框
         if (this.textarea) {
             this.textarea.value = '';
-            this.textarea.style.height = 'auto';
+            this.textarea.addClass('highlight-chat-input');
         }
     }
 

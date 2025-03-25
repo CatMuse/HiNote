@@ -226,14 +226,12 @@ export class DeepseekSettings extends BaseAIServiceSettings {
 
         // 创建自定义模型输入容器
         this.customModelContainer = modelSetting.settingEl.createDiv('custom-model-container');
-        this.customModelContainer.style.display = 'none';
+        this.customModelContainer.addClass('custom-model-container');
         
         // 将自定义输入框容器移到下拉框之前
         const dropdownEl = modelSetting.settingEl.querySelector('.setting-item-control');
         if (dropdownEl) {
-            (dropdownEl as HTMLElement).style.display = 'flex';
-            (dropdownEl as HTMLElement).style.flexDirection = 'row';
-            (dropdownEl as HTMLElement).style.alignItems = 'center';
+            (dropdownEl as HTMLElement).addClass('openai-dropdown-container');
             dropdownEl.insertBefore(this.customModelContainer, dropdownEl.firstChild);
         }
 
@@ -261,7 +259,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
     private async showCustomModelInput() {
         if (!this.customModelContainer) return;
         
-        this.customModelContainer.style.display = 'block';
+        this.customModelContainer.addClass('visible');
         this.customModelContainer.empty();
         
         const input = document.createElement('input');
@@ -298,7 +296,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
 
     private hideCustomModelInput() {
         if (this.customModelContainer) {
-            this.customModelContainer.style.display = 'none';
+            this.customModelContainer.removeClass('visible');
             this.customModelContainer.empty();
         }
     }

@@ -64,7 +64,7 @@ export class HighlightContent {
             
             // 如果不是最后一行，添加换行
             if (index < lines.length - 1) {
-                p.style.marginBottom = "4px";
+                p.addClass('highlight-text-line-spacing');
             }
         });
 

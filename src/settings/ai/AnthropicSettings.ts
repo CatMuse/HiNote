@@ -191,15 +191,12 @@ export class AnthropicSettings extends BaseAIServiceSettings {
 
         // 创建自定义模型输入容器
         this.customModelContainer = modelSetting.settingEl.createDiv('custom-model-container');
-        this.customModelContainer.style.display = 'none';
-        this.customModelContainer.style.cssText = 'display: none; margin-right: 10px;';
+        this.customModelContainer.addClass('custom-model-container');
         
         // 将自定义输入框容器移到下拉框之前
         const dropdownEl = modelSetting.settingEl.querySelector('.setting-item-control');
         if (dropdownEl) {
-            (dropdownEl as HTMLElement).style.display = 'flex';
-            (dropdownEl as HTMLElement).style.flexDirection = 'row';
-            (dropdownEl as HTMLElement).style.alignItems = 'center';
+            (dropdownEl as HTMLElement).addClass('openai-dropdown-container');
             dropdownEl.insertBefore(this.customModelContainer, dropdownEl.firstChild);
         }
 
@@ -233,11 +230,10 @@ export class AnthropicSettings extends BaseAIServiceSettings {
 
         // 移除 Setting 组件的额外样式
         const settingItem = textComponent.settingEl;
-        settingItem.style.border = 'none';
-        settingItem.style.padding = '0';
+        settingItem.addClass('openai-setting-no-border');
         const controlEl = settingItem.querySelector('.setting-item-control');
         if (controlEl) {
-            (controlEl as HTMLElement).style.marginLeft = '0';
+            (controlEl as HTMLElement).addClass('openai-setting-no-margin');
         }
 
         // 如果当前是自定义模型，显示输入框
@@ -263,7 +259,7 @@ export class AnthropicSettings extends BaseAIServiceSettings {
 
     private async showCustomModelInput() {
         if (this.customModelContainer && this.modelSelectEl) {
-            this.customModelContainer.style.display = 'block';
+            this.customModelContainer.addClass('visible');
             this.modelSelectEl.value = 'custom';
             
             const settings = this.plugin.settings.ai.anthropic;
@@ -296,7 +292,7 @@ export class AnthropicSettings extends BaseAIServiceSettings {
 
     private async hideCustomModelInput() {
         if (this.customModelContainer) {
-            this.customModelContainer.style.display = 'none';
+            this.customModelContainer.removeClass('visible');
         }
     }
 }
