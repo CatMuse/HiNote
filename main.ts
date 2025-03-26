@@ -86,7 +86,7 @@ export default class CommentPlugin extends Plugin {
 		// 添加打开评论面板的命令
 		this.addCommand({
 			id: 'open-comment-window',
-			name: t('Open hinote in right sidebar'),
+			name: t('Open in right sidebar'),
 			callback: async () => {
 				const { workspace } = this.app;
 				
@@ -143,6 +143,49 @@ export default class CommentPlugin extends Plugin {
 			callback: () => {
 				const chatView = ChatView.getInstance(this.app, this);
 				chatView.show();
+			}
+		});
+
+		// 添加在主窗口打开评论面板的命令
+		this.addCommand({
+			id: 'open-comment-main-window',
+			name: t('Open in main window'),
+			callback: async () => {
+				const { workspace } = this.app;
+				
+				// 检查评论面板是否已经打开，如果已经打开，就激活它
+				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+				if (existing.length) {
+					workspace.revealLeaf(existing[0]);
+					
+					// 将现有视图标记为主窗口模式
+					const view = existing[0].view;
+					if (view && view instanceof CommentView) {
+						(view as any).isDraggedToMainView = true;
+						(view as any).updateViewLayout();
+						(view as any).updateHighlights();
+					}
+					return;
+				}
+
+				// 在主窗口打开评论面板
+				const leaf = workspace.getLeaf(false);
+				if (leaf) {
+					await leaf.setViewState({
+						type: VIEW_TYPE_COMMENT,
+						active: true,
+					});
+					
+					// 将新创建的视图标记为主窗口模式
+					setTimeout(() => {
+						const view = leaf.view;
+						if (view && view instanceof CommentView) {
+							(view as any).isDraggedToMainView = true;
+							(view as any).updateViewLayout();
+							(view as any).updateHighlights();
+						}
+					}, 100);
+				}
 			}
 		});
 	}

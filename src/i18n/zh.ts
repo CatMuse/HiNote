@@ -70,7 +70,7 @@ export default {
 
     //Prompt 设置
 
-    "Prompt settings": "Prompt 自定义 Prompt",
+    "Prompt settings": "自定义 Prompt",
     "Add Prompt": "添加 Prompt",
     "Input Prompt Name": "输入 Prompt 名称",
     "Input Prompt Content\nAvailable parameters:\n{{highlight}} - Current highlighted text\n{{comment}} - Existing comment": "输入 Prompt 内容\n可用参数:\n{{highlight}} - 当前高亮文本\n{{comment}} - 已存在的注释",

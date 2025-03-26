@@ -430,10 +430,11 @@ export class FSRSManager {
         // 获取全局设置作为默认值
         const params = this.fsrsService.getParameters();
 
+        // 保留传入的设置，如果没有提供则使用默认值
         const newGroup: CardGroup = {
             ...group,
             id: this.generateUUID(),
-            settings: {
+            settings: group.settings || {
                 useGlobalSettings: true,  // 默认使用全局设置
                 newCardsPerDay: params.newCardsPerDay,
                 reviewsPerDay: params.reviewsPerDay

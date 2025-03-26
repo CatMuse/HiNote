@@ -638,25 +638,6 @@ export class FlashcardComponent {
             cls: "stat-value"
         });
         
-        const helpIcon = limitsEl.createSpan({ cls: "help-icon" });
-        setIcon(helpIcon, "help-circle");
-        
-        // 根据当前分组设置提示信息
-        let tooltipText = t('每日学习限制\n');
-        
-        if (currentGroup && currentGroup.settings && !currentGroup.settings.useGlobalSettings) {
-            // 显示分组特定的限制
-            tooltipText += t('新卡片:') + ` ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
-            tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
-        } else {
-            // 显示全局限制
-            const params = this.fsrsManager.fsrsService.getParameters();
-            tooltipText += t('新卡片:') + ` ${newRemaining}/${params.newCardsPerDay}\n`;
-            tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${params.reviewsPerDay}`;
-        }
-        
-        helpIcon.setAttribute("aria-label", tooltipText);
-        
         // 更新进度条
         this.updateProgress();
 
@@ -1409,25 +1390,6 @@ export class FlashcardComponent {
                 
                 // 更新显示
                 statValues[4].textContent = `${newRemaining} ${t('New')}, ${reviewRemaining} ${t('Review')}`;
-                
-                // 更新提示信息
-                const helpIcon = this.progressContainer.querySelector('.help-icon');
-                if (helpIcon) {
-                    let tooltipText = t('每日学习限制\n');
-                    
-                    if (currentGroup && currentGroup.settings && !currentGroup.settings.useGlobalSettings) {
-                        // 显示分组特定的限制
-                        tooltipText += t('新卡片:') + ` ${newRemaining}/${currentGroup.settings.newCardsPerDay}\n`;
-                        tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${currentGroup.settings.reviewsPerDay}`;
-                    } else {
-                        // 显示全局限制
-                        const params = this.fsrsManager.fsrsService.getParameters();
-                        tooltipText += t('新卡片:') + ` ${newRemaining}/${params.newCardsPerDay}\n`;
-                        tooltipText += t('复习卡片:') + ` ${reviewRemaining}/${params.reviewsPerDay}`;
-                    }
-                    
-                    helpIcon.setAttribute("aria-label", tooltipText);
-                }
             }
         }
     }

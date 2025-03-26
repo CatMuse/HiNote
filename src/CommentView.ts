@@ -673,11 +673,17 @@ export class CommentView extends ItemView {
 
     // 添加新方法来更新视图布局
     private async updateViewLayout() {
+        // 先清除所有显示相关的类
+        this.fileListContainer.removeClass('highlight-display-block');
+        this.fileListContainer.removeClass('highlight-display-none');
+        
         if (this.isDraggedToMainView) {
+            // 在主视图中显示文件列表
             this.fileListContainer.addClass('highlight-display-block');
             await this.updateFileList();
             this.createFloatingButton();
         } else {
+            // 在侧边栏中隐藏文件列表
             this.fileListContainer.addClass('highlight-display-none');
             this.removeFloatingButton();
         }
