@@ -3,7 +3,7 @@
 	"name": "HiNote",
 	"version": "0.3.2",
 	"minAppVersion": "0.15.0",
-	"description": "Enhance your highlighted notes with comment management and export features.",
+	"description": "Add comments to highlighted notes, use AI for thinking, and flashcards for memory.",
 	"author": "Kai",
 	"authorUrl": "https://github.com/CatMuse",
 	"isDesktopOnly": false
