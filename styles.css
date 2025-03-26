@@ -1092,6 +1092,12 @@ textarea.flashcard-modal-input {
     transition: all 0.4s ease-in-out;
 }
 
+.flashcard-rating-button {
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
 .flashcard.is-flipped + .flashcard-rating {
     margin-top: 30px;
     max-height: 100px;
