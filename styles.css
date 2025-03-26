@@ -2092,7 +2092,6 @@ textarea.flashcard-modal-input {
 
 /* 当没有评论时，最小化 widget 的空间占用 */
 .hi-note-widget-no-comments {
-    margin: 0 2px;
     width: 0;
     opacity: 0.9;
     transition: opacity 0.2s ease, width 0.2s ease, margin 0.2s ease;

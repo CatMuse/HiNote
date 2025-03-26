@@ -166,20 +166,16 @@ export class HighlightDecorator {
                     // 检查文本是否在段落末尾
                     const isAtParagraphEnd = this.isAtParagraphEnd(text, highlightEndPos);
 
+                    // 创建 widget
+                    const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
+                    
                     if (isAtParagraphEnd) {
                         // 如果在段落末尾，直接在高亮文本后面放置 Widget
-                        const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
                         decorations.push(widget.range(highlightEndPos));
                     } else {
-                        // 如果不在段落末尾，在高亮文本和 Widget 之间添加一个隐藏的空格
-                        const spacer = Decoration.mark({
-                            class: 'hi-note-spacer'
-                        });
-                        decorations.push(spacer.range(highlightEndPos, highlightEndPos + 1));
-                        
-                        // 创建 widget
-                        const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
-                        decorations.push(widget.range(highlightEndPos + 1));
+                        // 如果不在段落末尾，直接在高亮文本后面放置 Widget
+                        // 不添加额外的装饰器，避免"吞掉"高亮后的第一个字符
+                        decorations.push(widget.range(highlightEndPos));
                     }
                 }
 
