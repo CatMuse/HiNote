@@ -616,27 +616,27 @@ export class FlashcardComponent {
             }
         });
         
-        // 添加每日学习限制信息
-        progressText.createSpan({
-            text: "|",
-            cls: "separator"
-        });
+        // // 添加每日学习限制信息，先隐藏
+        // progressText.createSpan({
+        //     text: "|",
+        //     cls: "separator"
+        // });
         
-        const limitsEl = progressText.createEl("div", { cls: "stat" });
-        limitsEl.createEl("span", { text: t('Limits:') });
+        // const limitsEl = progressText.createEl("div", { cls: "stat" });
+        // limitsEl.createEl("span", { text: t('Limits:') });
         
-        // 获取当前分组ID（如果是自定义分组）
-        const currentGroup = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
-        const currentGroupId = currentGroup?.id;
+        // // 获取当前分组ID（如果是自定义分组）
+        // const currentGroup = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
+        // const currentGroupId = currentGroup?.id;
         
-        // 根据当前分组获取剩余学习限制
-        const newRemaining = this.fsrsManager.getRemainingNewCardsToday(currentGroupId);
-        const reviewRemaining = this.fsrsManager.getRemainingReviewsToday(currentGroupId);
+        // // 根据当前分组获取剩余学习限制
+        // const newRemaining = this.fsrsManager.getRemainingNewCardsToday(currentGroupId);
+        // const reviewRemaining = this.fsrsManager.getRemainingReviewsToday(currentGroupId);
         
-        limitsEl.createEl("span", { 
-            text: `${newRemaining} ${t('New')}, ${reviewRemaining} ${t('Review')}`,
-            cls: "stat-value"
-        });
+        // limitsEl.createEl("span", { 
+        //     text: `${newRemaining} ${t('New')}, ${reviewRemaining} ${t('Review')}`,
+        //     cls: "stat-value"
+        // });
         
         // 更新进度条
         this.updateProgress();
