@@ -131,11 +131,20 @@ export class ExportService {
                 // 尝试使用或创建 Block ID
                 if (typeof highlight.position === 'number') {
                     try {
-                        // 尝试获取或创建 Block ID
-                        const blockIdRef = await this.highlightService.createBlockIdForHighlight(file, highlight.position);
+                        // 获取高亮长度（如果有）
+                        const highlightLength = highlight.originalLength || highlight.text.length;
+                        
+                        // 尝试获取或创建 Block ID，传递高亮的起始位置和长度
+                        const blockIdRef = await this.highlightService.createBlockIdForHighlight(
+                            file, 
+                            highlight.position, 
+                            highlightLength
+                        );
+                        
                         if (blockIdRef) {
                             // 使用 Block ID 引用
                             lines.push(`> ![[${blockIdRef}]]`);
+                            console.debug(`[ExportService] 使用 Block ID 引用: ${blockIdRef}`);
                         } else {
                             // 如果没有成功创建 Block ID，使用原文本
                             lines.push(`> ${highlight.text}`);

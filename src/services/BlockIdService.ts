@@ -29,7 +29,9 @@ export class BlockIdService {
         const randomPart = Math.random().toString(36).substr(2, 5);
         const newBlockId = `${timestamp}-${randomPart}`;
         
-        editor.setLine(line, `${lineText} ^${newBlockId}`);
+        // 处理行尾空格，先去除所有行尾空格，然后只添加一个空格
+        const trimmedLineText = lineText.trimEnd();
+        editor.setLine(line, `${trimmedLineText} ^${newBlockId}`);
         return newBlockId;
     }
 
@@ -69,12 +71,13 @@ export class BlockIdService {
      * 为指定位置的段落创建 Block ID（如果不存在）
      * 
      * @param file 文件
-     * @param position 文本位置
+     * @param startPosition 高亮起始位置
+     * @param endPosition 高亮结束位置（可选）
      * @returns 完整的段落引用 (filePath#^blockId)
      */
-    public async createParagraphBlockId(file: TFile, position: number): Promise<string> {
+    public async createParagraphBlockId(file: TFile, startPosition: number, endPosition?: number): Promise<string> {
         // 先检查是否已有 Block ID
-        const existingId = this.getParagraphBlockId(file, position);
+        const existingId = this.getParagraphBlockId(file, startPosition);
         if (existingId) return existingId;
         
         // 打开文件并获取编辑器
@@ -84,10 +87,34 @@ export class BlockIdService {
         const editor = view.editor;
         
         // 获取位置对应的行号
-        const pos = editor.offsetToPos(position);
+        const startPos = editor.offsetToPos(startPosition);
         
-        // 创建 Block ID
-        const blockId = this.getOrCreateBlockId(editor, pos.line);
+        // 找到包含高亮内容的段落的结束行
+        let endLine = startPos.line;
+        const cache = this.app.metadataCache.getFileCache(file);
+        
+        if (cache?.sections) {
+            // 如果提供了结束位置，则找到包含整个高亮的段落
+            const position = endPosition || startPosition;
+            
+            // 先尝试找到包含结束位置的段落
+            const section = cache.sections.find(section => 
+                section.position.start.offset <= position &&
+                section.position.end.offset >= position
+            );
+            
+            if (section) {
+                // 使用段落的结束位置
+                const endPos = editor.offsetToPos(section.position.end.offset);
+                endLine = endPos.line;
+                
+                // 记录调试信息
+                console.debug(`[BlockIdService] 找到包含高亮的段落，结束行: ${endLine}`);
+            }
+        }
+        
+        // 创建 Block ID 在段落的结束行
+        const blockId = this.getOrCreateBlockId(editor, endLine);
         
         // 保存文件
         await this.app.vault.modify(file, editor.getValue());

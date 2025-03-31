@@ -240,10 +240,11 @@ export class HighlightService {
      * 这是一个公共方法，可以被插件的其他部分调用
      * 
      * @param file 文件
-     * @param position 高亮位置
+     * @param position 高亮起始位置
+     * @param length 高亮长度（可选）
      * @returns Promise<string> 返回创建的 Block ID 引用（文件名#^BlockID）
      */
-    public async createBlockIdForHighlight(file: TFile, position: number): Promise<string> {
+    public async createBlockIdForHighlight(file: TFile, position: number, length?: number): Promise<string> {
         try {
             // 检查是否已有 Block ID
             const existingId = this.blockIdService.getParagraphBlockId(file, position);
@@ -251,8 +252,11 @@ export class HighlightService {
                 return existingId;
             }
             
-            // 强制创建并返回 Block ID 引用
-            return await this.blockIdService.createParagraphBlockId(file, position);
+            // 计算高亮结束位置（如果提供了长度）
+            const endPosition = length ? position + length : position;
+            
+            // 强制创建并返回 Block ID 引用，传递起始和结束位置
+            return await this.blockIdService.createParagraphBlockId(file, position, endPosition);
         } catch (error) {
             console.error('[HighlightService] Error creating block ID for highlight:', error);
             throw error; // 重新抛出错误，让调用者处理
