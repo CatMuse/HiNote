@@ -33,6 +33,36 @@ export class GeneralSettingsTab {
                     this.plugin.settings.export.exportPath = value;
                     await this.plugin.saveSettings();
                 }));
+                
+        // 导出模板设置
+        new Setting(container)
+            .setName(t('Export Template'))
+            .setDesc(t('Customize the format of exported highlights and comments using variables. Available variables: {{sourceFile}}, {{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}. Leave empty to use default template.'))
+            .addTextArea(text => {
+                const defaultTemplate = 
+`[[{{sourceFile}}]] - HighlightsNotes
+
+> [!quote] Highlight
+> ![[{{highlightBlockRef}}]]
+> 
+> ---
+> 
+>> [!note] Comment
+>> {{commentContent}}
+>> *{{commentDate}}*`;
+                
+                text
+                    .setPlaceholder(defaultTemplate)
+                    .setValue(this.plugin.settings.export.exportTemplate || '')
+                    .onChange(async (value) => {
+                        // 如果用户删除所有内容，则存储空字符串，表示使用默认模板
+                        this.plugin.settings.export.exportTemplate = value;
+                        await this.plugin.saveSettings();
+                    });
+                    
+                text.inputEl.rows = 10;
+                text.inputEl.cols = 40;
+            });
 
             // 排除设置
             new Setting(container)

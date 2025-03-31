@@ -112,6 +112,143 @@ export class ExportService {
      * 生成导出内容
      */
     private async generateExportContent(file: TFile, highlights: HighlightInfo[]): Promise<string> {
+        // 获取插件实例和设置
+        const plugins = (this.app as any).plugins;
+        const hiNotePlugin = plugins && plugins.plugins ? 
+            plugins.plugins['hi-note'] : undefined;
+        
+        // 检查是否有自定义模板
+        const customTemplate = hiNotePlugin?.settings?.export?.exportTemplate;
+        
+        // 如果有自定义模板且不为空，使用模板解析方式
+        if (customTemplate && customTemplate.trim() !== '') {
+            return this.generateContentFromTemplate(file, highlights, customTemplate);
+        }
+        
+        // 如果没有自定义模板或模板为空，使用原来的方式
+        return this.generateDefaultContent(file, highlights);
+    }
+    
+    /**
+     * 使用模板生成导出内容
+     */
+    private async generateContentFromTemplate(file: TFile, highlights: HighlightInfo[], template: string): Promise<string> {
+        const content: string[] = [];
+        
+        // 处理文档头部（只处理一次）
+        let documentHeader = template.split('\n\n')[0] || '';
+        documentHeader = this.replaceVariables(documentHeader, {
+            sourceFile: file.basename,
+            exportDate: window.moment().format("YYYY-MM-DD HH:mm:ss")
+        });
+        content.push(documentHeader);
+        
+        // 提取高亮和评论模板
+        const templateParts = template.split('\n\n');
+        const highlightTemplate = templateParts.length > 1 ? templateParts.slice(1).join('\n\n') : template;
+        
+        // 处理每个高亮和评论
+        for (const highlight of highlights) {
+            // 如果是虚拟高亮，只处理评论部分
+            if (highlight.isVirtual) {
+                if (highlight.comments && highlight.comments.length > 0) {
+                    // 虚拟高亮只包含评论部分
+                    for (const comment of highlight.comments) {
+                        // 创建一个简化的虚拟高亮模板
+                        let virtualCommentTemplate = "> [!note] File Comment\n> {{commentContent}}\n> *{{commentDate}}*";
+                        
+                        // 替换评论变量
+                        let commentContent = virtualCommentTemplate;
+                        commentContent = this.replaceVariables(commentContent, {
+                            sourceFile: file.basename,
+                            commentContent: comment.content || '',
+                            commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss")
+                        });
+                        content.push(commentContent);
+                    }
+                }
+            } else {
+                // 普通高亮的处理
+                let blockIdRef = '';
+                let highlightText = highlight.text || '';
+                
+                // 获取 BlockID 引用（如果可能）
+                if (typeof highlight.position === 'number') {
+                    try {
+                        const highlightLength = highlight.originalLength || highlight.text.length;
+                        blockIdRef = await this.highlightService.createBlockIdForHighlight(
+                            file, 
+                            highlight.position, 
+                            highlightLength
+                        ) || '';
+                    } catch (error) {
+                        console.error('[ExportService] Error creating block ID:', error);
+                    }
+                }
+                
+                // 处理高亮部分
+                let highlightContent = highlightTemplate;
+                highlightContent = this.replaceVariables(highlightContent, {
+                    sourceFile: file.basename,
+                    highlightText: highlightText,
+                    highlightBlockRef: blockIdRef,
+                    highlightType: 'Highlight'
+                });
+                
+                // 如果有评论，处理评论
+                if (highlight.comments && highlight.comments.length > 0) {
+                    for (const comment of highlight.comments) {
+                        // 替换评论变量
+                        let commentContent = highlightContent;
+                        commentContent = this.replaceVariables(commentContent, {
+                            commentContent: comment.content || '',
+                            commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss")
+                        });
+                        content.push(commentContent);
+                    }
+                } else {
+                    // 如果没有评论，删除模板中与评论相关的部分
+                    let cleanedTemplate = highlightContent;
+                    
+                    // 删除所有包含评论变量的行
+                    cleanedTemplate = cleanedTemplate.replace(/.*\{\{commentContent\}\}.*\n?/g, '');
+                    cleanedTemplate = cleanedTemplate.replace(/.*\{\{commentDate\}\}.*\n?/g, '');
+                    
+                    // 删除评论相关的标记，如 [!note] Comment
+                    cleanedTemplate = cleanedTemplate.replace(/.*\[!note\]\s*Comment.*\n?/g, '');
+                    
+                    // 删除分隔线（如果有）
+                    cleanedTemplate = cleanedTemplate.replace(/.*---.*\n?/g, '');
+                    
+                    // 删除过多的空行
+                    cleanedTemplate = cleanedTemplate.replace(/\n{3,}/g, '\n\n');
+                    
+                    // 添加处理后的高亮内容
+                    content.push(cleanedTemplate);
+                }
+            }
+            
+            content.push(""); // 添加空行分隔
+        }
+        
+        return content.join("\n");
+    }
+    
+    /**
+     * 替换模板中的变量
+     */
+    private replaceVariables(template: string, variables: Record<string, string>): string {
+        let result = template;
+        for (const [key, value] of Object.entries(variables)) {
+            result = result.replace(new RegExp(`{{${key}}}`, 'g'), value || '');
+        }
+        return result;
+    }
+    
+    /**
+     * 使用默认方式生成导出内容（保持原有功能）
+     */
+    private async generateDefaultContent(file: TFile, highlights: HighlightInfo[]): Promise<string> {
         const lines: string[] = [];
         
         // 添加标题 - 使用双链接格式

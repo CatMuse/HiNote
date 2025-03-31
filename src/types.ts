@@ -218,6 +218,7 @@ declare global {
 export interface HighlightSettings {
     export: {
         exportPath: string;
+        exportTemplate?: string;
     };
     excludePatterns: string;
     useCustomPattern: boolean;
