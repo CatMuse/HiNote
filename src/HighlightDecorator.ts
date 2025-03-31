@@ -132,13 +132,37 @@ export class HighlightDecorator {
                     if (commentHighlight.blockId) {
                         const blockComments = this.commentStore.getCommentsByBlockId(activeView.file, commentHighlight.blockId);
                         if (blockComments && blockComments.length > 0) {
-                            commentHighlight.comments = blockComments[0].comments || [];
+                            // 找到与当前高亮文本和位置匹配的特定高亮
+                            const matchingHighlight = blockComments.find(h => 
+                                h.text === commentHighlight.text && 
+                                (typeof h.position !== 'number' || 
+                                 typeof commentHighlight.position !== 'number' || 
+                                 Math.abs(h.position - commentHighlight.position) < 10)
+                            );
+                            
+                            if (matchingHighlight) {
+                                commentHighlight.comments = matchingHighlight.comments || [];
+                            } else {
+                                commentHighlight.comments = blockComments[0].comments || [];
+                            }
                         }
                     } else {
                         // 如果没有 blockId，则使用旧的方法
                         const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
                         if (storedHighlight && storedHighlight.length > 0) {
-                            commentHighlight.comments = storedHighlight[0].comments || [];
+                            // 找到与当前高亮文本和位置匹配的特定高亮
+                            const matchingHighlight = storedHighlight.find(h => 
+                                h.text === commentHighlight.text && 
+                                (typeof h.position !== 'number' || 
+                                 typeof commentHighlight.position !== 'number' || 
+                                 Math.abs(h.position - commentHighlight.position) < 10)
+                            );
+                            
+                            if (matchingHighlight) {
+                                commentHighlight.comments = matchingHighlight.comments || [];
+                            } else {
+                                commentHighlight.comments = storedHighlight[0].comments || [];
+                            }
                         }
                     }
 
@@ -204,13 +228,37 @@ export class HighlightDecorator {
                     if (commentHighlight.blockId) {
                         const blockComments = this.commentStore.getCommentsByBlockId(activeView.file, commentHighlight.blockId);
                         if (blockComments && blockComments.length > 0) {
-                            commentHighlight.comments = blockComments[0].comments || [];
+                            // 找到与当前高亮文本和位置匹配的特定高亮
+                            const matchingHighlight = blockComments.find(h => 
+                                h.text === commentHighlight.text && 
+                                (typeof h.position !== 'number' || 
+                                 typeof commentHighlight.position !== 'number' || 
+                                 Math.abs(h.position - commentHighlight.position) < 10)
+                            );
+                            
+                            if (matchingHighlight) {
+                                commentHighlight.comments = matchingHighlight.comments || [];
+                            } else {
+                                commentHighlight.comments = blockComments[0].comments || [];
+                            }
                         }
                     } else {
                         // 如果没有 blockId，则使用旧的方法
                         const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
                         if (storedHighlight && storedHighlight.length > 0) {
-                            commentHighlight.comments = storedHighlight[0].comments || [];
+                            // 找到与当前高亮文本和位置匹配的特定高亮
+                            const matchingHighlight = storedHighlight.find(h => 
+                                h.text === commentHighlight.text && 
+                                (typeof h.position !== 'number' || 
+                                 typeof commentHighlight.position !== 'number' || 
+                                 Math.abs(h.position - commentHighlight.position) < 10)
+                            );
+                            
+                            if (matchingHighlight) {
+                                commentHighlight.comments = matchingHighlight.comments || [];
+                            } else {
+                                commentHighlight.comments = storedHighlight[0].comments || [];
+                            }
                         }
                     }
 

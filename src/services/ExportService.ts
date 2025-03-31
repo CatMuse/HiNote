@@ -197,14 +197,41 @@ export class ExportService {
                 
                 // 如果有评论，处理评论
                 if (highlight.comments && highlight.comments.length > 0) {
-                    for (const comment of highlight.comments) {
+                    // 先提取高亮部分和评论部分
+                    const templateParts = highlightTemplate.split('---');
+                    let highlightPart = templateParts[0] || '';
+                    let commentPart = templateParts.length > 1 ? templateParts[1] : '';
+                    
+                    // 替换高亮部分的变量
+                    highlightPart = this.replaceVariables(highlightPart, {
+                        sourceFile: file.basename,
+                        highlightText: highlightText,
+                        highlightBlockRef: blockIdRef,
+                        highlightType: 'Highlight'
+                    });
+                    
+                    // 添加高亮部分（只添加一次）
+                    content.push(highlightPart.trim());
+                    content.push('> ---'); // 添加分隔线
+                    
+                    // 处理每个评论
+                    for (let i = 0; i < highlight.comments.length; i++) {
+                        const comment = highlight.comments[i];
+                        
                         // 替换评论变量
-                        let commentContent = highlightContent;
-                        commentContent = this.replaceVariables(commentContent, {
+                        let processedComment = commentPart;
+                        processedComment = this.replaceVariables(processedComment, {
                             commentContent: comment.content || '',
                             commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss")
                         });
-                        content.push(commentContent);
+                        
+                        // 添加评论
+                        content.push(processedComment.trim());
+                        
+                        // 如果不是最后一个评论，添加分隔线
+                        if (i < highlight.comments.length - 1) {
+                            content.push('> ---');
+                        }
                     }
                 } else {
                     // 如果没有评论，删除模板中与评论相关的部分
