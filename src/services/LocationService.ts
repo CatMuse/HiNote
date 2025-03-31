@@ -12,8 +12,8 @@ export class LocationService {
         const targetLeaf = await this.openOrActivateFile(currentFilePath);
         if (!targetLeaf) return;
 
-        // 2. 定位高亮内容
-        await this.locateAndHighlightText(targetLeaf, highlight.text);
+        // 2. 定位高亮内容，传递 position 参数
+        await this.locateAndHighlightText(targetLeaf, highlight.text, highlight.position);
     }
 
     /**
@@ -52,24 +52,75 @@ export class LocationService {
     /**
      * 在编辑器中定位并高亮文本
      */
-    private async locateAndHighlightText(leaf: WorkspaceLeaf, text: string) {
+    private async locateAndHighlightText(leaf: WorkspaceLeaf, text: string, position?: number) {
         // 确保编辑器已准备就绪
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         const markdownView = leaf.view as MarkdownView;
         const editor = markdownView.editor;
         const content = editor.getValue();
         
-        // 直接搜索文本内容
-        const position = content.indexOf(text);
-        if (position === -1) {
-            new Notice("未找到高亮内容");
-            return;
+
+        
+        let textPosition = -1;
+        let allMatches: number[] = [];
+        
+        // 找出所有匹配项
+        let searchPos = 0;
+        let foundPos = -1;
+        while ((foundPos = content.indexOf(text, searchPos)) !== -1) {
+            allMatches.push(foundPos);
+            searchPos = foundPos + 1;
+        }
+        
+
+        
+        // 如果提供了 position，则优先使用它
+        if (position !== undefined && position >= 0) {
+
+            
+            // 首先检查精确匹配
+            if (content.substring(position, position + text.length) === text) {
+
+                textPosition = position;
+            } else {
+                // 如果没有精确匹配，则找最接近的匹配项
+                if (allMatches.length > 0) {
+                    // 找到与指定位置最接近的匹配项
+                    let closestMatch = allMatches[0];
+                    let minDistance = Math.abs(position - closestMatch);
+                    
+                    for (const match of allMatches) {
+                        const distance = Math.abs(position - match);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestMatch = match;
+                        }
+                    }
+                    
+
+                    textPosition = closestMatch;
+                }
+            }
+        }
+        
+        // 如果没有找到匹配项，则使用第一个匹配项
+        if (textPosition === -1) {
+            if (allMatches.length > 0) {
+
+                textPosition = allMatches[0];
+            } else {
+
+                new Notice("未找到高亮内容");
+                return;
+            }
         }
         
         // 将文本位置转换为编辑器位置
-        const start = editor.offsetToPos(position);
-        const end = editor.offsetToPos(position + text.length);
+        const start = editor.offsetToPos(textPosition);
+        const end = editor.offsetToPos(textPosition + text.length);
+        
+
         
         // 1. 选中文本
         editor.setSelection(start, end);
