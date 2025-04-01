@@ -1,8 +1,13 @@
 import { MarkdownView, Notice, WorkspaceLeaf, EditorSelection } from "obsidian";
 import { HighlightInfo } from "../types";
+import { TextSimilarityService } from "./TextSimilarityService";
 
 export class LocationService {
-    constructor(private app: any) {}
+    private textSimilarityService: TextSimilarityService;
+    
+    constructor(private app: any) {
+        this.textSimilarityService = new TextSimilarityService(app);
+    }
 
     /**
      * 跳转到指定的高亮位置
@@ -60,12 +65,11 @@ export class LocationService {
         const editor = markdownView.editor;
         const content = editor.getValue();
         
-
-        
         let textPosition = -1;
         let allMatches: number[] = [];
+        let matchedText = text; // 默认使用原始文本
         
-        // 找出所有匹配项
+        // 找出所有精确匹配项
         let searchPos = 0;
         let foundPos = -1;
         while ((foundPos = content.indexOf(text, searchPos)) !== -1) {
@@ -73,15 +77,10 @@ export class LocationService {
             searchPos = foundPos + 1;
         }
         
-
-        
         // 如果提供了 position，则优先使用它
         if (position !== undefined && position >= 0) {
-
-            
             // 首先检查精确匹配
             if (content.substring(position, position + text.length) === text) {
-
                 textPosition = position;
             } else {
                 // 如果没有精确匹配，则找最接近的匹配项
@@ -98,29 +97,38 @@ export class LocationService {
                         }
                     }
                     
-
                     textPosition = closestMatch;
                 }
             }
         }
         
-        // 如果没有找到匹配项，则使用第一个匹配项
+        // 如果没有找到精确匹配项，尝试使用模糊匹配
         if (textPosition === -1) {
             if (allMatches.length > 0) {
-
                 textPosition = allMatches[0];
             } else {
-
-                new Notice("未找到高亮内容");
-                return;
+                // 使用模糊匹配查找最相似的文本
+                console.log(`[LocationService] 未找到精确匹配，尝试模糊匹配: "${text}"`);
+                
+                const bestMatch = this.textSimilarityService.findBestMatch(text, content, position);
+                if (bestMatch) {
+                    console.log(`[LocationService] 找到模糊匹配: "${bestMatch.text}" 位置: ${bestMatch.position}`);
+                    textPosition = bestMatch.position;
+                    matchedText = bestMatch.text; // 使用匹配到的文本
+                    
+                    // 显示通知，告知用户使用了模糊匹配
+                    new Notice(`使用模糊匹配找到了相似内容`);
+                } else {
+                    console.log(`[LocationService] 模糊匹配失败`);
+                    new Notice("未找到高亮内容");
+                    return;
+                }
             }
         }
         
         // 将文本位置转换为编辑器位置
         const start = editor.offsetToPos(textPosition);
-        const end = editor.offsetToPos(textPosition + text.length);
-        
-
+        const end = editor.offsetToPos(textPosition + matchedText.length);
         
         // 1. 选中文本
         editor.setSelection(start, end);

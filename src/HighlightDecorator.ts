@@ -1,20 +1,81 @@
 import { EditorView, ViewPlugin, DecorationSet, Decoration } from "@codemirror/view";
 import type { Range } from "@codemirror/state";
-import { Plugin, MarkdownView } from "obsidian";
+import { Plugin, MarkdownView, TFile } from "obsidian";
 import { CommentStore, HiNote, CommentItem } from "./CommentStore";
 import { CommentWidget } from "./components/comment/CommentWidget";
 import { HighlightService } from './services/HighlightService';
+import { TextSimilarityService } from './services/TextSimilarityService';
 
 export class HighlightDecorator {
     private plugin: Plugin;
     private commentStore: CommentStore;
     private highlightPlugin: any;
     private highlightService: HighlightService;
+    private textSimilarityService: TextSimilarityService;
 
     constructor(plugin: Plugin, commentStore: CommentStore) {
         this.plugin = plugin;
         this.commentStore = commentStore;
         this.highlightService = new HighlightService(this.plugin.app);
+        this.textSimilarityService = new TextSimilarityService(this.plugin.app);
+    }
+    
+    /**
+     * 使用多种策略匹配高亮和评论
+     * @param file 当前文件
+     * @param commentHighlight 高亮对象
+     * @param storedHighlights 存储的高亮列表
+     * @returns 匹配到的高亮对象，如果没有匹配到则返回 null
+     */
+    private findMatchingHighlight(file: TFile, commentHighlight: HiNote, storedHighlights: HiNote[]): HiNote | null {
+        if (!storedHighlights || storedHighlights.length === 0) return null;
+        
+        // 1. 首先尝试精确匹配文本和位置
+        let matchingHighlight = storedHighlights.find(h => 
+            h.text === commentHighlight.text && 
+            (typeof h.position !== 'number' || 
+             typeof commentHighlight.position !== 'number' || 
+             Math.abs(h.position - commentHighlight.position) < 10)
+        ) || null;
+        
+        // 2. 如果精确匹配失败，尝试只匹配位置（允许文本有变化）
+        if (!matchingHighlight && typeof commentHighlight.position === 'number') {
+            matchingHighlight = storedHighlights.find(h => 
+                typeof h.position === 'number' && 
+                Math.abs(h.position - commentHighlight.position) < 30
+            ) || null;
+        }
+        
+        // 3. 如果位置匹配也失败，尝试使用模糊文本匹配
+        if (!matchingHighlight) {
+            // 对每个存储的高亮计算与当前高亮文本的相似度
+            let bestMatch = null;
+            let highestSimilarity = 0;
+            
+            for (const h of storedHighlights) {
+                // 跳过没有评论的高亮
+                if (!h.comments || h.comments.length === 0) continue;
+                
+                const similarity = this.textSimilarityService.calculateSimilarity(
+                    h.text, 
+                    commentHighlight.text
+                );
+                
+                if (similarity > highestSimilarity && similarity > 0.6) { // 设置一个相似度阈值
+                    highestSimilarity = similarity;
+                    bestMatch = h;
+                }
+            }
+            
+            if (bestMatch) {
+                console.log(`[HighlightDecorator] 使用模糊匹配找到高亮: 相似度 ${highestSimilarity.toFixed(2)}`);
+                console.log(`  原文本: "${bestMatch.text}"`);
+                console.log(`  当前文本: "${commentHighlight.text}"`);
+                matchingHighlight = bestMatch;
+            }
+        }
+        
+        return matchingHighlight;
     }
 
     private getActiveMarkdownView() {
@@ -74,12 +135,72 @@ export class HighlightDecorator {
             plugin: Plugin;
             commentStore: CommentStore;
             highlightService: HighlightService;
+            textSimilarityService: TextSimilarityService;
 
             constructor(view: EditorView) {
                 this.plugin = plugin;
                 this.commentStore = commentStore;
                 this.highlightService = new HighlightService(this.plugin.app);
+                this.textSimilarityService = new TextSimilarityService(this.plugin.app);
                 this.decorations = this.buildDecorations(view);
+            }
+            
+            /**
+             * 使用多种策略匹配高亮和评论
+             * @param file 当前文件
+             * @param commentHighlight 高亮对象
+             * @param storedHighlights 存储的高亮列表
+             * @returns 匹配到的高亮对象，如果没有匹配到则返回 null
+             */
+            private findMatchingHighlight(file: TFile, commentHighlight: HiNote, storedHighlights: HiNote[]): HiNote | null {
+                if (!storedHighlights || storedHighlights.length === 0) return null;
+                
+                // 1. 首先尝试精确匹配文本和位置
+                let matchingHighlight = storedHighlights.find(h => 
+                    h.text === commentHighlight.text && 
+                    (typeof h.position !== 'number' || 
+                     typeof commentHighlight.position !== 'number' || 
+                     Math.abs(h.position - commentHighlight.position) < 10)
+                ) || null;
+                
+                // 2. 如果精确匹配失败，尝试只匹配位置（允许文本有变化）
+                if (!matchingHighlight && typeof commentHighlight.position === 'number') {
+                    matchingHighlight = storedHighlights.find(h => 
+                        typeof h.position === 'number' && 
+                        Math.abs(h.position - commentHighlight.position) < 30
+                    ) || null;
+                }
+                
+                // 3. 如果位置匹配也失败，尝试使用模糊文本匹配
+                if (!matchingHighlight) {
+                    // 对每个存储的高亮计算与当前高亮文本的相似度
+                    let bestMatch = null;
+                    let highestSimilarity = 0;
+                    
+                    for (const h of storedHighlights) {
+                        // 跳过没有评论的高亮
+                        if (!h.comments || h.comments.length === 0) continue;
+                        
+                        const similarity = this.textSimilarityService.calculateSimilarity(
+                            h.text, 
+                            commentHighlight.text
+                        );
+                        
+                        if (similarity > highestSimilarity && similarity > 0.6) { // 设置一个相似度阈值
+                            highestSimilarity = similarity;
+                            bestMatch = h;
+                        }
+                    }
+                    
+                    if (bestMatch) {
+                        console.log(`[HighlightDecorator] 使用模糊匹配找到高亮: 相似度 ${highestSimilarity.toFixed(2)}`);
+                        console.log(`  原文本: "${bestMatch.text}"`);
+                        console.log(`  当前文本: "${commentHighlight.text}"`);
+                        matchingHighlight = bestMatch;
+                    }
+                }
+                
+                return matchingHighlight;
             }
 
             update(update: any) {

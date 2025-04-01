@@ -2,8 +2,11 @@ import { WidgetType } from "@codemirror/view";
 import type { Plugin } from "obsidian";
 import { HiNote, CommentItem } from "../../CommentStore";
 import { setIcon } from "obsidian";
+import { TextSimilarityService } from "../../services/TextSimilarityService";
 
 export class CommentWidget extends WidgetType {
+    private textSimilarityService: TextSimilarityService;
+    
     /**
      * 构造函数
      * @param plugin Obsidian 插件实例
@@ -18,6 +21,7 @@ export class CommentWidget extends WidgetType {
         private onClick: () => void
     ) {
         super();
+        this.textSimilarityService = new TextSimilarityService(this.plugin.app);
     }
 
     /**
@@ -29,7 +33,14 @@ export class CommentWidget extends WidgetType {
     eq(widget: WidgetType): boolean {
         if (!(widget instanceof CommentWidget)) return false;
         
-        return this.highlight.text === widget.highlight.text &&
+        // 使用模糊匹配来比较文本相似度
+        const textSimilarity = this.textSimilarityService.calculateSimilarity(
+            this.highlight.text,
+            widget.highlight.text
+        );
+        
+        // 如果文本相似度超过阈值，或者文本完全相同，则认为是相同的小部件
+        return (textSimilarity > 0.7 || this.highlight.text === widget.highlight.text) &&
                this.highlight.comments.length === widget.highlight.comments.length;
     }
 
@@ -124,8 +135,29 @@ export class CommentWidget extends WidgetType {
         // 使用 setIcon API 替代内联 SVG
         setIcon(iconContainer, "message-circle");
         
+        // 尝试从 highlightItems 中找到最匹配的高亮
+        let bestMatch = this.highlight;
+        let highestSimilarity = 0;
+        
+        // 如果有多个高亮项，尝试找到最匹配的一个
+        if (this.highlightItems && this.highlightItems.length > 1) {
+            for (const item of this.highlightItems) {
+                if (!item.comments || item.comments.length === 0) continue;
+                
+                const similarity = this.textSimilarityService.calculateSimilarity(
+                    this.highlight.text,
+                    item.text
+                );
+                
+                if (similarity > highestSimilarity) {
+                    highestSimilarity = similarity;
+                    bestMatch = item;
+                }
+            }
+        }
+        
         // 获取评论数量
-        const comments = this.highlight.comments || [];
+        const comments = bestMatch.comments || [];
         const commentCount = comments.length;
 
         // 如果有评论，显示评论数量

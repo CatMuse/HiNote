@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import { ChatView } from './src/components/ChatView';
 import { t } from './src/i18n';
 import { FSRSManager } from './src/services/FSRSManager';
+import { HighlightMatchingService } from './src/services/HighlightMatchingService';
 
 import { EventManager } from './src/services/EventManager';
 
@@ -27,6 +28,7 @@ export default class CommentPlugin extends Plugin {
 	private highlightDecorator: HighlightDecorator;
 	public fsrsManager: FSRSManager;
 	public eventManager: EventManager;
+	public highlightMatchingService: HighlightMatchingService;
 
 	async onload() {
 
@@ -47,6 +49,9 @@ export default class CommentPlugin extends Plugin {
 
 		// 初始化 FSRS 管理器
 		this.fsrsManager = new FSRSManager(this);
+
+		// 初始化高亮匹配服务
+		this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
 
 		// 初始化高亮装饰器
 		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
@@ -110,16 +115,6 @@ export default class CommentPlugin extends Plugin {
 
 		// 添加设置标签页
 		this.addSettingTab(new AISettingTab(this.app, this));
-
-		// 定期清理不存在文件的评论
-		this.registerInterval(
-			window.setInterval(async () => {
-				const existingFiles = new Set(
-					this.app.vault.getFiles().map(file => file.path)
-				);
-				await this.commentStore.cleanupComments(existingFiles);
-			}, 24 * 60 * 60 * 1000) // 每天检查一次
-		);
 
 		// 监控评论加载性能
 		const measureCommentPerformance = () => {

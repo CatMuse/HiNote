@@ -46,6 +46,7 @@ export interface FileCommentsData {
 }
 
 import { EventManager } from './services/EventManager';
+import { HighlightService } from './services/HighlightService';
 
 export class CommentStore {
     private plugin: Plugin;
@@ -55,6 +56,7 @@ export class CommentStore {
     private fileComments: Map<string, FileComment[]> = new Map();
     private eventManager: EventManager;
     private blockIdService: BlockIdService;
+    private highlightService: HighlightService;
     private commentCache: Map<string, HiNote[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
@@ -63,6 +65,7 @@ export class CommentStore {
         this.plugin = plugin;
         this.eventManager = new EventManager(plugin.app);
         this.blockIdService = new BlockIdService(plugin.app);
+        this.highlightService = new HighlightService(plugin.app);
     }
 
     async loadComments() {
@@ -134,6 +137,139 @@ export class CommentStore {
 
         // 验证数据是否成功保存
         const verifyData = await this.plugin.loadData();
+    }
+    
+    /**
+     * 检查孤立数据数量
+     * 检查所有存储的高亮和评论，统计那些在文档中找不到对应高亮文本的孤立数据数量
+     * @returns 孤立数据数量
+     */
+    async checkOrphanedDataCount(): Promise<{orphanedHighlights: number, affectedFiles: number}> {
+        let orphanedHighlights = 0;
+        let affectedFiles = new Set<string>();
+        
+        // 遍历所有文件的高亮数据
+        for (const filePath in this.data) {
+            // 尝试获取文件
+            const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) {
+                // 如果文件不存在，计算整个文件的数据
+                affectedFiles.add(filePath);
+                orphanedHighlights += Object.keys(this.data[filePath] || {}).length;
+                continue;
+            }
+            
+            try {
+                // 读取文件内容
+                const content = await this.plugin.app.vault.read(file);
+                
+                // 提取文件中的高亮
+                const extractedHighlights = this.highlightService.extractHighlights(content);
+                const extractedTexts = new Set(extractedHighlights.map(h => h.text));
+                
+                // 获取存储的高亮
+                const storedHighlights = this.data[filePath] || {};
+                let fileHasOrphans = false;
+                
+                // 检查每个存储的高亮是否在文件中存在
+                for (const highlightId in storedHighlights) {
+                    const highlight = storedHighlights[highlightId];
+                    
+                    // 如果高亮是虚拟的，跳过它
+                    if (highlight.isVirtual) continue;
+                    
+                    // 检查高亮文本是否在提取的高亮中
+                    if (!extractedTexts.has(highlight.text)) {
+                        // 高亮文本不在文件中
+                        orphanedHighlights++;
+                        fileHasOrphans = true;
+                    }
+                }
+                
+                // 如果文件有孤立数据，添加到受影响文件列表
+                if (fileHasOrphans) {
+                    affectedFiles.add(filePath);
+                }
+            } catch (error) {
+                console.error(`[CommentStore] Error checking orphaned data for file ${filePath}:`, error);
+            }
+        }
+        
+        return { orphanedHighlights, affectedFiles: affectedFiles.size };
+    }
+    
+    /**
+     * 清理孤立数据
+     * 检查所有存储的高亮和评论，移除那些在文档中找不到对应高亮文本的孤立数据
+     * @returns 清理的数据数量
+     */
+    async cleanOrphanedData(): Promise<{removedHighlights: number, affectedFiles: number}> {
+        let removedHighlights = 0;
+        let affectedFiles = new Set<string>();
+        
+        // 遍历所有文件的高亮数据
+        for (const filePath in this.data) {
+            // 尝试获取文件
+            const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+            if (!file || !(file instanceof TFile)) {
+                // 如果文件不存在，移除整个文件的数据
+                delete this.data[filePath];
+                this.comments.delete(filePath);
+                affectedFiles.add(filePath);
+                removedHighlights += Object.keys(this.data[filePath] || {}).length;
+                continue;
+            }
+            
+            try {
+                // 读取文件内容
+                const content = await this.plugin.app.vault.read(file);
+                
+                // 提取文件中的高亮
+                const extractedHighlights = this.highlightService.extractHighlights(content);
+                const extractedTexts = new Set(extractedHighlights.map(h => h.text));
+                
+                // 获取存储的高亮
+                const storedHighlights = this.data[filePath] || {};
+                let fileModified = false;
+                
+                // 检查每个存储的高亮是否在文件中存在
+                for (const highlightId in storedHighlights) {
+                    const highlight = storedHighlights[highlightId];
+                    
+                    // 如果高亮是虚拟的，保留它
+                    if (highlight.isVirtual) continue;
+                    
+                    // 检查高亮文本是否在提取的高亮中
+                    if (!extractedTexts.has(highlight.text)) {
+                        // 高亮文本不在文件中，移除它
+                        delete storedHighlights[highlightId];
+                        removedHighlights++;
+                        fileModified = true;
+                    }
+                }
+                
+                // 如果文件被修改，更新 comments Map
+                if (fileModified) {
+                    affectedFiles.add(filePath);
+                    this.comments.set(filePath, Object.values(storedHighlights));
+                    
+                    // 如果文件中没有高亮了，移除整个文件的数据
+                    if (Object.keys(storedHighlights).length === 0) {
+                        delete this.data[filePath];
+                        this.comments.delete(filePath);
+                    }
+                }
+            } catch (error) {
+                console.error(`[CommentStore] Error cleaning orphaned data for file ${filePath}:`, error);
+            }
+        }
+        
+        // 保存更新后的数据
+        if (removedHighlights > 0) {
+            await this.saveComments();
+        }
+        
+        return { removedHighlights, affectedFiles: affectedFiles.size };
     }
 
     /**

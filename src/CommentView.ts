@@ -317,13 +317,53 @@ export class CommentView extends ItemView {
         
         // 合并高亮和评论数据
         this.highlights = highlights.map(highlight => {
-            const storedComment = storedComments.find(c => {
+            // 1. 首先尝试精确匹配
+            let storedComment = storedComments.find(c => {
                 const textMatch = c.text === highlight.text;
                 if (textMatch && highlight.position !== undefined && c.position !== undefined) {
                     return Math.abs(c.position - highlight.position) < 1000;
                 }
                 return textMatch; // 如果没有位置信息，只比较文本
             });
+            
+            // 2. 如果精确匹配失败，尝试使用位置匹配
+            if (!storedComment && highlight.position !== undefined) {
+                storedComment = storedComments.find(c => 
+                    c.position !== undefined && 
+                    highlight.position !== undefined &&
+                    Math.abs(c.position - highlight.position) < 50
+                );
+            }
+            
+            // 3. 如果位置匹配也失败，尝试使用模糊文本匹配
+            if (!storedComment && this.plugin.highlightMatchingService) {
+                // 将 highlight 转换为 HiNote 格式
+                const hiNote: HiNote = {
+                    id: highlight.id || `highlight-${Date.now()}-${highlight.position !== undefined ? highlight.position : 0}`,
+                    text: highlight.text,
+                    position: highlight.position || 0, // 确保 position 不为 undefined
+                    comments: [],
+                    createdAt: highlight.createdAt || Date.now(),
+                    updatedAt: highlight.updatedAt || Date.now(),
+                    blockId: highlight.blockId,
+                    paragraphId: highlight.paragraphId,
+                    paragraphOffset: highlight.paragraphOffset || 0,
+                    isVirtual: false
+                };
+                
+                // 使用 HighlightMatchingService 查找最匹配的高亮
+                if (this.currentFile) {
+                    const matchingHighlight = this.plugin.highlightMatchingService.findMatchingHighlight(
+                        this.currentFile, 
+                        hiNote
+                    );
+                    
+                    if (matchingHighlight) {
+                        console.log(`[CommentView] 使用模糊匹配找到高亮: "${matchingHighlight.text}"`);
+                        storedComment = matchingHighlight;
+                    }
+                }
+            }
 
             if (storedComment) {
                 return {

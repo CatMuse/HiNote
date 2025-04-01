@@ -3,12 +3,14 @@ import { EventManager } from './services/EventManager';
 import { FSRSManager } from './services/FSRSManager';
 import { CommentStore } from './CommentStore';
 import { HighlightService } from './services/HighlightService';
+import { HighlightMatchingService } from './services/HighlightMatchingService';
 
 export default class HiNotePlugin extends Plugin {
     private eventManager: EventManager;
     private fsrsManager: FSRSManager;
     private commentStore: CommentStore;
     public highlightService: HighlightService;
+    public highlightMatchingService: HighlightMatchingService;
 
     async onload() {
 
@@ -17,6 +19,7 @@ export default class HiNotePlugin extends Plugin {
         this.fsrsManager = new FSRSManager(this);
         this.commentStore = new CommentStore(this);
         this.highlightService = new HighlightService(this.app);
+        this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
 
         // 注册事件监听器
         this.registerEventHandlers();

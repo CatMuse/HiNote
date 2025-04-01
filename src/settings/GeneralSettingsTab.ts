@@ -1,4 +1,4 @@
-import { Setting } from 'obsidian';
+import { Setting, Notice, Modal } from 'obsidian';
 import { t } from '../i18n';
 import { DEFAULT_SETTINGS } from '../types';
 
@@ -10,11 +10,83 @@ export class GeneralSettingsTab {
         this.plugin = plugin;
         this.containerEl = containerEl;
     }
+    
+    /**
+     * 添加样式
+     */
+    private addStyles() {
+        // 添加模态框按钮样式
+        const styleEl = document.createElement('style');
+        styleEl.id = 'hinote-settings-styles';
+        styleEl.textContent = `
+            .modal-button-container {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+                margin-top: 20px;
+            }
+            
+            .orphaned-data-count {
+                color: var(--text-error);
+                font-weight: bold;
+                margin-top: 8px;
+            }
+            
+            .no-orphaned-data {
+                color: var(--text-success);
+                font-weight: bold;
+                margin-top: 8px;
+            }
+        `;
+        
+        // 如果已存在，先移除
+        const existingStyle = document.getElementById('hinote-settings-styles');
+        if (existingStyle) {
+            existingStyle.remove();
+        }
+        
+        document.head.appendChild(styleEl);
+    }
+    
+    /**
+     * 更新孤立数据计数
+     */
+    private async updateOrphanedDataCount(descEl: HTMLElement) {
+        try {
+            // 移除现有的计数元素
+            const existingCount = descEl.querySelector('.orphaned-data-count, .no-orphaned-data');
+            if (existingCount) {
+                existingCount.remove();
+            }
+            
+            // 获取孤立数据数量
+            const stats = await this.plugin.commentStore.checkOrphanedDataCount();
+            
+            // 创建新的计数元素
+            const countEl = document.createElement('div');
+            
+            if (stats.orphanedHighlights > 0) {
+                countEl.className = 'orphaned-data-count';
+                countEl.textContent = `Found ${stats.orphanedHighlights} orphaned highlights in ${stats.affectedFiles} files.`;
+            } else {
+                countEl.className = 'no-orphaned-data';
+                countEl.textContent = 'No orphaned data found.';
+            }
+            
+            // 添加到描述元素
+            descEl.appendChild(countEl);
+        } catch (error) {
+            console.error('[HiNote] Error updating orphaned data count:', error);
+        }
+    }
 
     display(): void {
         const container = this.containerEl.createEl('div', {
             cls: 'general-settings-container'
         });
+        
+        // 添加样式
+        this.addStyles();
 
 
         // 导出路径设置
@@ -132,5 +204,101 @@ export class GeneralSettingsTab {
                         await this.plugin.saveSettings();
                     }
                 }));
+                
+        // 数据管理设置组
+        new Setting(container)
+            .setName(t('Data Management'))
+            .setHeading();
+            
+        // 清理孤立数据按钮
+        const orphanedDataSetting = new Setting(container)
+            .setName(t('Clean Orphaned Data'))
+            .setDesc(t('Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.'))
+            .addButton(button => button
+                .setButtonText(t('Clean Data'))
+                .onClick(async () => {
+                    // 检查孤立数据数量
+                    button.setButtonText(t('Checking...'));
+                    button.setDisabled(true);
+                    
+                    try {
+                        // 调用检查方法
+                        const stats = await this.plugin.commentStore.checkOrphanedDataCount();
+                        
+                        if (stats.orphanedHighlights === 0) {
+                            new Notice('No orphaned data found.');
+                            return;
+                        }
+                        
+                        // 创建确认对话框
+                        const confirmModal = new Modal(this.plugin.app);
+                        confirmModal.titleEl.setText(t('Confirm Data Cleanup'));
+                        
+                        const contentEl = confirmModal.contentEl;
+                        contentEl.empty();
+                        
+                        contentEl.createEl('p', {
+                            text: `Found ${stats.orphanedHighlights} orphaned highlights in ${stats.affectedFiles} files.`
+                        });
+                        contentEl.createEl('p', {
+                            text: 'Do you want to clean up these orphaned highlights and comments?'
+                        });
+                        
+                        const buttonContainer = contentEl.createDiv({
+                            cls: 'modal-button-container'
+                        });
+                        
+                        // 添加取消按钮
+                        buttonContainer.createEl('button', {
+                            text: t('Cancel'),
+                            cls: 'mod-warning'
+                        }).addEventListener('click', () => {
+                            confirmModal.close();
+                        });
+                        
+                        // 添加确认按钮
+                        buttonContainer.createEl('button', {
+                            text: t('Clean'),
+                            cls: 'mod-cta'
+                        }).addEventListener('click', async () => {
+                            confirmModal.close();
+                            
+                            button.setButtonText(t('Cleaning...'));
+                            button.setDisabled(true);
+                            
+                            try {
+                                // 调用清理方法
+                                const result = await this.plugin.commentStore.cleanOrphanedData();
+                                
+                                // 显示结果通知
+                                if (result.removedHighlights > 0) {
+                                    new Notice(`Cleaned ${result.removedHighlights} orphaned highlights from ${result.affectedFiles} files.`);
+                                } else {
+                                    new Notice('No orphaned data found.');
+                                }
+                                
+                                // 更新孤立数据计数
+                                this.updateOrphanedDataCount(orphanedDataSetting.descEl);
+                            } catch (error) {
+                                console.error('[HiNote] Error cleaning orphaned data:', error);
+                                new Notice('Error cleaning orphaned data. Check console for details.');
+                            } finally {
+                                button.setButtonText(t('Clean Data'));
+                                button.setDisabled(false);
+                            }
+                        });
+                        
+                        confirmModal.open();
+                    } catch (error) {
+                        console.error('[HiNote] Error checking orphaned data:', error);
+                        new Notice('Error checking orphaned data. Check console for details.');
+                    } finally {
+                        button.setButtonText(t('Clean Data'));
+                        button.setDisabled(false);
+                    }
+                }));
+                
+        // 初始化时检查孤立数据数量
+        this.updateOrphanedDataCount(orphanedDataSetting.descEl);
     }
 }
