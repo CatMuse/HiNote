@@ -1,10 +1,11 @@
 import { CommentItem, HighlightInfo } from "../../types";
+import { MarkdownRenderer, Component } from "obsidian";
 
 // 标签格式的正则表达式
 const TAG_REGEX = /#[\w\u4e00-\u9fa5]+/g;
 const PURE_TAGS_FORMAT = /^\s*(#[\w\u4e00-\u9fa5]+(\s+#[\w\u4e00-\u9fa5]+)*\s*)$/;
 
-export class CommentList {
+export class CommentList extends Component {
     private container: HTMLElement;
 
     constructor(
@@ -12,6 +13,7 @@ export class CommentList {
         private highlight: HighlightInfo,
         private onCommentEdit: (comment: CommentItem) => void
     ) {
+        super();
         this.render(parentEl);
     }
 
@@ -27,10 +29,12 @@ export class CommentList {
             cls: "hi-notes-list"
         });
 
-        this.renderComments();
+        this.renderComments().catch(error => {
+            console.error('Error rendering comments:', error);
+        });
     }
 
-    private renderComments() {
+    private async renderComments() {
         const comments = this.highlight.comments || [];
         
         // 按更新时间倒序排序，并将纯标签评论放在前面
@@ -47,7 +51,8 @@ export class CommentList {
             this.container.removeChild(this.container.firstChild);
         }
         
-        comments.forEach(comment => {
+        // 使用 for...of 循环以支持 await
+        for (const comment of comments) {
             // 检查是否是纯标签评论
             const isPureTagComment = PURE_TAGS_FORMAT.test(comment.content);
 
@@ -59,7 +64,7 @@ export class CommentList {
             // 评论内容 - 添加双击事件
             // 处理标签和内容
             const contentEl = commentEl.createEl("div", {
-                cls: "hi-note-content"
+                cls: "hi-note-content markdown-rendered"
             });
 
             const content = comment.content;
@@ -100,8 +105,25 @@ export class CommentList {
                     contentEl.textContent = content;
                 }
             } else {
-                // 如果不是纯标签格式，直接显示原始内容
-                contentEl.textContent = content;
+                try {
+                    // 使用 MarkdownRenderer 渲染 Markdown 内容
+                    await MarkdownRenderer.renderMarkdown(
+                        content,
+                        contentEl,
+                        this.highlight.filePath || '',
+                        this
+                    );
+                    
+                    // 添加自定义样式类以修复可能的样式问题
+                    const lists = contentEl.querySelectorAll('ul, ol');
+                    lists.forEach(list => {
+                        list.addClass('comment-markdown-list');
+                    });
+                } catch (error) {
+                    console.error('Error rendering markdown in comment:', error);
+                    // 如果渲染失败，回退到纯文本渲染
+                    contentEl.textContent = content;
+                }
             }
 
             // 添加双击事件监听
@@ -137,6 +159,6 @@ export class CommentList {
             footer.createEl("div", {
                 cls: "hi-note-actions"
             });
-        });
+        }
     }
 } 

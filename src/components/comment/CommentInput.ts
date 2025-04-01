@@ -41,7 +41,8 @@ export class CommentInput {
         const contentEl = commentEl.querySelector('.hi-note-content') as HTMLElement;
         if (!contentEl) return;
 
-        const originalContent = contentEl.textContent || '';
+        // 使用原始评论内容而不是渲染后的文本内容，这样可以保留 Markdown 符号
+        const originalContent = this.existingComment?.content || '';
 
         // 创建编辑框
         this.textarea = document.createElement('textarea');

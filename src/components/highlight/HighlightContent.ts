@@ -1,8 +1,8 @@
-import { setIcon } from "obsidian";
+import { setIcon, MarkdownRenderer, Component, App } from "obsidian";
 import { HighlightInfo } from "../../types";
 import { DragPreview } from './DragPreview';
 
-export class HighlightContent {
+export class HighlightContent extends Component {
     private container: HTMLElement;
     private textContainer: HTMLElement;
 
@@ -12,20 +12,24 @@ export class HighlightContent {
     constructor(
         parentEl: HTMLElement,
         private highlight: HighlightInfo,
-        private onHighlightClick: (highlight: HighlightInfo) => Promise<void>
+        private onHighlightClick: (highlight: HighlightInfo) => Promise<void>,
+        private app: App = (window as any).app
     ) {
-        this.render(parentEl);
+        super();
+        this.render(parentEl).catch(error => {
+            console.error('Error rendering highlight content:', error);
+        });
     }
 
-    private render(parentEl: HTMLElement) {
+    private async render(parentEl: HTMLElement) {
         this.container = parentEl.createEl("div", {
             cls: "highlight-content"
         });
 
-        this.renderText();
+        await this.renderText();
     }
 
-    private renderText() {
+    private async renderText() {
         // 高亮文本容器
         this.textContainer = this.container.createEl("div", {
             cls: "highlight-text-container"
@@ -48,25 +52,44 @@ export class HighlightContent {
 
         // 创建文本内容元素，如果是虚拟高亮则使用 displayText
         const textContent = textEl.createEl("div", {
-            cls: `highlight-text-content ${this.highlight.isVirtual ? 'virtual-highlight' : ''}`
+            cls: `highlight-text-content ${this.highlight.isVirtual ? 'virtual-highlight' : ''} markdown-rendered`
         });
 
         // 处理文本中的换行符，添加空值检查
         const text = (this.highlight.isVirtual ? this.highlight.displayText : this.highlight.text) || '';
-        const lines = text.split('\n');
         
-        // 为每一行创建单独的段落
-        lines.forEach((line, index) => {
-            const p = textContent.createEl("p", {
-                text: line,
-                cls: "highlight-text-line"
-            });
+        try {
+            // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown 内容
+            await MarkdownRenderer.render(
+                this.app,
+                text,
+                textContent,
+                this.highlight.filePath || '',
+                this
+            );
             
-            // 如果不是最后一行，添加换行
-            if (index < lines.length - 1) {
-                p.addClass('highlight-text-line-spacing');
-            }
-        });
+            // 添加自定义样式类以修复可能的样式问题
+            const lists = textContent.querySelectorAll('ul, ol');
+            lists.forEach(list => {
+                list.addClass('highlight-markdown-list');
+            });
+        } catch (error) {
+            console.error('Error rendering markdown in highlight:', error);
+            
+            // 如果渲染失败，回退到纯文本渲染
+            const lines = text.split('\n');
+            lines.forEach((line, index) => {
+                const p = textContent.createEl("p", {
+                    text: line,
+                    cls: "highlight-text-line"
+                });
+                
+                // 如果不是最后一行，添加换行
+                if (index < lines.length - 1) {
+                    p.addClass('highlight-text-line-spacing');
+                }
+            });
+        }
 
         // 只保留点击事件
         textContent.addEventListener("mousedown", async (e) => {

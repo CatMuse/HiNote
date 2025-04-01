@@ -1,4 +1,4 @@
-import { Notice, setIcon, TFile } from "obsidian";
+import { Notice, setIcon, TFile, MarkdownRenderer, Component } from "obsidian";
 import { HiNote } from "../../CommentStore";
 import { LicenseManager } from "../../services/LicenseManager";
 import { FSRSManager } from "../../services/FSRSManager";
@@ -11,7 +11,7 @@ import {
 } from "../../types/FSRSTypes";
 import { t } from "../../i18n";
 
-export class FlashcardComponent {
+export class FlashcardComponent extends Component {
     private progressContainer: HTMLElement | null = null;
     private container: HTMLElement;
     private currentIndex: number = 0;
@@ -52,6 +52,7 @@ export class FlashcardComponent {
     }
 
     constructor(container: HTMLElement, plugin: any) {
+        super();
         this.container = container;
         this.fsrsManager = plugin.fsrsManager;
         this.app = plugin.app;
@@ -981,26 +982,22 @@ export class FlashcardComponent {
                 cls: "flashcard-side flashcard-front"
             });
             const frontEl = frontSide.createEl("div", {
-                cls: "flashcard-content"
+                cls: "flashcard-content markdown-rendered"
             });
-            if (frontIsHTML) {
-                this.renderHTMLContent(frontEl, frontContent);
-            } else {
-                frontEl.textContent = frontContent;
-            }
+            
+            // 使用 Markdown 渲染正面内容
+            this.renderMarkdownContent(frontEl, frontContent, this.currentCard.filePath);
 
             // 创建卡片背面
             const backSide = card.createEl("div", { 
                 cls: "flashcard-side flashcard-back"
             });
             const backEl = backSide.createEl("div", {
-                cls: "flashcard-content"
+                cls: "flashcard-content markdown-rendered"
             });
-            if (!frontIsHTML) {
-                this.renderHTMLContent(backEl, backContent);
-            } else {
-                backEl.textContent = backContent; // 背面是高亮时用纯文本
-            }
+            
+            // 使用 Markdown 渲染背面内容
+            this.renderMarkdownContent(backEl, backContent, this.currentCard.filePath);
 
             // 添加卡片点击事件
             card.addEventListener("click", () => this.flipCard());
@@ -1476,6 +1473,71 @@ export class FlashcardComponent {
                 containerEl.createEl('hr');
             }
         });
+    }
+    
+    // 新方法：使用 Obsidian 的 MarkdownRenderer 渲染 Markdown 内容
+    private async renderMarkdownContent(containerEl: HTMLElement, content: string, filePath?: string) {
+        // 清空容器
+        while (containerEl.firstChild) {
+            containerEl.removeChild(containerEl.firstChild);
+        }
+        
+        // 处理 HTML 内容，将其转换为 Markdown
+        let markdownContent = content;
+        
+        // 如果内容包含 HTML 标签，将其转换为 Markdown
+        if (content.includes('<') && content.includes('>')) {
+            markdownContent = content
+                .replace(/<\/?b>/g, '**')  // Convert <b> tags to markdown bold
+                .replace(/<\/?i>/g, '_')   // Convert <i> tags to markdown italic
+                .replace(/<\/?u>/g, '')    // Remove underline tags
+                .replace(/<\/?strong>/g, '**') // Convert <strong> tags to markdown bold
+                .replace(/<\/?em>/g, '_')  // Convert <em> tags to markdown italic
+                .replace(/<br\s*\/?>/g, '\n') // Convert <br> to newlines
+                .replace(/<\/?p>/g, '\n')  // Convert <p> tags to newlines
+                .replace(/<\/?div>/g, '\n') // Convert <div> tags to newlines
+                .replace(/<span class="highlight-tag">(.*?)<\/span>/g, '$1') // Extract tag text
+                .replace(/<hr>/g, '---\n') // Convert <hr> to markdown horizontal rule
+                .replace(/<[^>]*>/g, '');  // Remove any remaining HTML tags
+        }
+        
+        // 分割内容并处理每一部分
+        const parts = markdownContent.split('---\n');
+        
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i].trim();
+            if (!part) continue;
+            
+            // 创建容器来放置当前部分
+            const partContainer = containerEl.createEl('div', { cls: 'flashcard-paragraph markdown-rendered' });
+            
+            try {
+                // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown
+                await MarkdownRenderer.render(
+                    this.app,
+                    part,
+                    partContainer,
+                    filePath || '',
+                    this
+                );
+                
+                // 添加自定义样式类以修复可能的样式问题
+                const lists = partContainer.querySelectorAll('ul, ol');
+                lists.forEach(list => {
+                    list.addClass('flashcard-markdown-list');
+                });
+            } catch (error) {
+                console.error('Error rendering markdown in flashcard:', error);
+                
+                // 如果渲染失败，回退到纯文本渲染
+                partContainer.textContent = part;
+            }
+            
+            // 添加水平分隔线（除了最后一部分）
+            if (i < parts.length - 1) {
+                containerEl.createEl('hr');
+            }
+        }
     }
 
     // 清理方法

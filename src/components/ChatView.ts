@@ -1,9 +1,9 @@
-import { ItemView, App, setIcon, Menu, MenuItem, Notice } from "obsidian";
+import { ItemView, App, setIcon, Menu, MenuItem, Notice, MarkdownRenderer, Component } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
 import { HighlightInfo, ChatViewState, AIModel, DEFAULT_SILICONFLOW_MODELS } from '../types';
 import { t } from "src/i18n";
 
-export class ChatView {
+export class ChatView extends Component {
     public static instance: ChatView | null = null;
     private chatService: ChatService;
     private isProcessing: boolean = false;
@@ -17,6 +17,8 @@ export class ChatView {
     private app: App;
 
     constructor(app: App, private plugin: any) {
+        super();
+        
         if (ChatView.instance) {
             return ChatView.instance;
         }
@@ -351,7 +353,7 @@ export class ChatView {
         });
 
         const contentEl = messageEl.createEl("div", {
-            cls: "highlight-chat-message-content"
+            cls: "highlight-chat-message-content markdown-rendered"
         });
 
         // 添加类型特定的样式
@@ -362,8 +364,8 @@ export class ChatView {
             // 为新的 AI 回复添加打字机效果
             this.typeWriter(contentEl, content);
         } else {
-            // 用户消息或恢复的消息直接显示
-            contentEl.textContent = content;
+            // 用户消息或恢复的消息使用 Markdown 渲染
+            this.renderMarkdownContent(contentEl, content);
         }
 
         container.scrollTop = container.scrollHeight;
@@ -386,6 +388,9 @@ export class ChatView {
             } else {
                 // 打字完成后移除光标
                 cursor.remove();
+                
+                // 打字完成后渲染 Markdown
+                this.renderMarkdownContent(element, text);
             }
         };
 
@@ -397,6 +402,36 @@ export class ChatView {
             ChatView.instance = new ChatView(app, plugin);
         }
         return ChatView.instance;
+    }
+    
+    // 新方法：使用 Obsidian 的 MarkdownRenderer 渲染 Markdown 内容
+    private async renderMarkdownContent(containerEl: HTMLElement, content: string) {
+        // 清空容器
+        while (containerEl.firstChild) {
+            containerEl.removeChild(containerEl.firstChild);
+        }
+        
+        try {
+            // 使用 Obsidian 的 MarkdownRenderer.render 方法（替代过期的 renderMarkdown）
+            await MarkdownRenderer.render(
+                this.app,
+                content,
+                containerEl,
+                '',  // 没有关联文件路径
+                this
+            );
+            
+            // 添加自定义样式类以修复可能的样式问题
+            const lists = containerEl.querySelectorAll('ul, ol');
+            lists.forEach(list => {
+                list.addClass('chat-markdown-list');
+            });
+        } catch (error) {
+            console.error('Error rendering markdown in chat:', error);
+            
+            // 如果渲染失败，回退到纯文本渲染
+            containerEl.textContent = content;
+        }
     }
 
     // 添加新的输入框实现

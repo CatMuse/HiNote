@@ -56,6 +56,58 @@ settings:
     padding: 0 !important;
 }
 
+/* Markdown 渲染样式修复 - 移除段落上下边距 */
+.highlight-text-content.markdown-rendered p,
+.hi-note-content.markdown-rendered p,
+.flashcard-content.markdown-rendered p,
+.flashcard-paragraph.markdown-rendered p,
+.highlight-chat-message-content.markdown-rendered p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* 修复有序和无序列表的边距问题 */
+.highlight-text-content.markdown-rendered ul,
+.highlight-text-content.markdown-rendered ol,
+.hi-note-content.markdown-rendered ul,
+.hi-note-content.markdown-rendered ol,
+.flashcard-content.markdown-rendered ul,
+.flashcard-content.markdown-rendered ol,
+.flashcard-paragraph.markdown-rendered ul,
+.flashcard-paragraph.markdown-rendered ol,
+.highlight-chat-message-content.markdown-rendered ul,
+.highlight-chat-message-content.markdown-rendered ol {
+    margin-top: -1.2em !important; /* 使用负值减小上边距 */
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 1.5em !important; /* 保留左侧缩进以显示列表标记 */
+}
+
+/* 减小列表项之间的间距 */
+.highlight-text-content.markdown-rendered li,
+.hi-note-content.markdown-rendered li,
+.flashcard-content.markdown-rendered li,
+.flashcard-paragraph.markdown-rendered li,
+.highlight-chat-message-content.markdown-rendered li {
+    margin: 0 !important;
+    margin-bottom: -1em !important; /* 使用负值边距使列表项更紧凑 */
+    padding: 0 !important;
+    line-height: 1.5 !important; /* 减小行高 */
+    min-height: 0 !important;
+}
+
+/* 处理列表项内的段落 */
+.highlight-text-content.markdown-rendered li > p,
+.hi-note-content.markdown-rendered li > p,
+.flashcard-content.markdown-rendered li > p,
+.flashcard-paragraph.markdown-rendered li > p,
+.highlight-chat-message-content.markdown-rendered li > p {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline; /* 使段落内容与列表标记在同一行 */
+}
+
 .highlight-empty-state {
     color: var(--text-muted);
     text-align: center;
