@@ -60,12 +60,13 @@ export class HighlightContent extends Component {
         
         try {
             // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown 内容
+            // 使用新的 Component 实例代替 this，避免继承复杂的样式规则
             await MarkdownRenderer.render(
                 this.app,
                 text,
                 textContent,
                 this.highlight.filePath || '',
-                this
+                new Component()
             );
             
             // 添加自定义样式类以修复可能的样式问题

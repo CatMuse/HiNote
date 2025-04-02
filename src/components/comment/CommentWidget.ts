@@ -1,10 +1,11 @@
 import { WidgetType } from "@codemirror/view";
 import type { Plugin } from "obsidian";
 import { HiNote, CommentItem } from "../../CommentStore";
-import { setIcon } from "obsidian";
+import { setIcon, MarkdownRenderer, Component, App } from "obsidian";
 import { TextSimilarityService } from "../../services/TextSimilarityService";
 
 export class CommentWidget extends WidgetType {
+    private app: App;
     private textSimilarityService: TextSimilarityService;
     
     /**
@@ -21,6 +22,7 @@ export class CommentWidget extends WidgetType {
         private onClick: () => void
     ) {
         super();
+        this.app = this.plugin.app;
         this.textSimilarityService = new TextSimilarityService(this.plugin.app);
     }
 
@@ -219,11 +221,13 @@ export class CommentWidget extends WidgetType {
                 cls: "hi-note-tooltip-item"
             });
             
-            // 显示评论内容
-            commentItem.createEl("div", {
-                cls: "hi-note-tooltip-content",
-                text: comment.content
+            // 显示评论内容 - 使用 Markdown 渲染
+            const contentEl = commentItem.createEl("div", {
+                cls: "hi-note-tooltip-content markdown-rendered"
             });
+            
+            // 异步渲染 Markdown 内容
+            this.renderMarkdownContent(contentEl, comment.content);
             
             // 显示评论时间
             commentItem.createEl("div", {
@@ -298,14 +302,35 @@ export class CommentWidget extends WidgetType {
 
         // 监听窗口大小改变事件，更新工具提示位置
         window.addEventListener("resize", updateTooltipPosition);
-        
-        // 添加全局点击事件监听器，在点击其他区域时隐藏工具提示
-        document.addEventListener("click", (e) => {
-            // 如果点击的不是按钮或其子元素，则隐藏工具提示
-            if (!button.contains(e.target as Node)) {
-                tooltip.addClass("hi-note-tooltip-hidden");
-            }
-        });
+    }
+    
+    /**
+     * 渲染 Markdown 内容
+     * @param containerEl 容器元素
+     * @param content Markdown 文本内容
+     */
+    private async renderMarkdownContent(containerEl: HTMLElement, content: string) {
+        try {
+            // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown
+            await MarkdownRenderer.render(
+                this.app,
+                content,
+                containerEl,
+                '',  // 没有关联文件路径
+                new Component()
+            );
+            
+            // 添加自定义样式类以修复可能的样式问题
+            const lists = containerEl.querySelectorAll('ul, ol');
+            lists.forEach(list => {
+                list.addClass('tooltip-markdown-list');
+            });
+        } catch (error) {
+            console.error('Error rendering markdown in tooltip:', error);
+            
+            // 如果渲染失败，回退到纯文本渲染
+            containerEl.textContent = content;
+        }
     }
 
     /**
