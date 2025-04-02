@@ -26,13 +26,25 @@ export class HighlightMatchingService {
             return null;
         }
         
-        // 1. 首先尝试精确匹配（文本和位置）
-        let matchingHighlight = fileHighlights.find(h => 
-            h.text === highlight.text && 
-            (typeof h.position !== 'number' || 
-             typeof highlight.position !== 'number' || 
-             Math.abs(h.position - highlight.position) < 10)
-        );
+        // 1. 首先尝试精确匹配（文本和位置）- 改进版
+        let matchingHighlight = fileHighlights.find(h => {
+            // 文本必须相同
+            if (h.text !== highlight.text) return false;
+            
+            // 如果两者都有位置信息，则位置必须接近
+            if (typeof h.position === 'number' && typeof highlight.position === 'number') {
+                return Math.abs(h.position - highlight.position) < 10;
+            }
+            
+            // 如果有blockId，则blockId必须相同
+            if (h.blockId && highlight.blockId) {
+                return h.blockId === highlight.blockId;
+            }
+            
+            // 如果没有位置信息也没有blockId，则不认为是同一个高亮
+            // 这样可以避免相同文本在不同位置被视为同一个高亮
+            return false;
+        });
         
         if (matchingHighlight) {
             console.log(`[HighlightMatchingService] 找到精确匹配: "${matchingHighlight.text}"`);
