@@ -207,7 +207,7 @@ export class GeneralSettingsTab {
                 
         // 数据管理设置组
         new Setting(container)
-            .setName(t('Data Management'))
+            .setName(t('Data management'))
             .setHeading();
             
         // 清理孤立数据按钮

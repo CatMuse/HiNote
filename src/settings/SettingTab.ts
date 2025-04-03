@@ -33,12 +33,12 @@ export class AISettingTab extends PluginSettingTab {
 
         // 创建标签按钮
         const generalTab = tabContainer.createEl('div', { 
-          text: 'General',
+          text: t('General'),
           cls: 'setting-tab-btn active',
           attr: { role: 'button', tabindex: '0' }
         });
         const aiTab = tabContainer.createEl('div', { 
-          text: 'AI service',
+          text: t('AI service'),
           cls: 'setting-tab-btn',
           attr: { role: 'button', tabindex: '0' }
         });
