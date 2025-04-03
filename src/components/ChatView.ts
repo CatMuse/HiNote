@@ -629,7 +629,7 @@ export class ChatView extends Component {
                 // 否则使用设置中的模型或默认值
                 return aiSettings.siliconflow?.model || 'SiliconFlow';
             default:
-                return 'Unknown Model';
+                return 'Unknown model';
         }
     }
 

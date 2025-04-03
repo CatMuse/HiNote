@@ -167,7 +167,6 @@ export class HighlightService {
         for (const file of files) {
             // 检查文件是否应该被排除
             if (!this.shouldProcessFile(file)) {
-                console.debug(`[HighlightService] Skipping excluded file: ${file.path}`);
                 continue;
             }
 
@@ -176,11 +175,9 @@ export class HighlightService {
             if (highlights.length > 0) {
                 filesWithHighlights.push(file);
                 totalHighlights += highlights.length;
-                console.debug(`[HighlightService] Found ${highlights.length} highlights in ${file.path}`);
             }
         }
 
-        console.info(`[HighlightService] Found ${totalHighlights} highlights in ${filesWithHighlights.length} files`);
         return filesWithHighlights;
     }
     

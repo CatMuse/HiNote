@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon, debounce } from "obsidian";
 import { FlashcardComponent } from './components/flashcard/FlashcardComponent';
 import { CommentStore, HiNote, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
@@ -262,7 +262,7 @@ export class CommentView extends ItemView {
         });
 
         // 添加搜索事件监听
-        this.searchInput.addEventListener("input", this.debounce(() => {
+        this.searchInput.addEventListener("input", debounce(() => {
             this.updateHighlightsList();
         }, 300));
 
@@ -282,13 +282,7 @@ export class CommentView extends ItemView {
         this.updateViewLayout();
     }
 
-    private debounce(func: Function, wait: number) {
-        let timeout: NodeJS.Timeout;
-        return (...args: any[]) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
-    }
+    // 使用Obsidian API提供的debounce函数
 
     private async updateHighlights() {
         // 如果在全部高亮视图，使用 updateAllHighlights
@@ -1060,7 +1054,7 @@ export class CommentView extends ItemView {
         await this.loadMoreHighlights();
 
         // 添加滚动监听
-        const handleScroll = this.debounce(async (e: Event) => {
+        const handleScroll = debounce(async (e: Event) => {
             const container = e.target as HTMLElement;
             const { scrollTop, scrollHeight, clientHeight } = container;
             

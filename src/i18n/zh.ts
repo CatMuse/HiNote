@@ -151,6 +151,9 @@ export default {
     "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.": "输入自定义正则表达式以提取文本。使用捕获组 () 指定要提取的文本。第一个非空捕获组将用作提取的文本。",
     "Default Color": "默认颜色",
     "Set the default color for decorators when no color is specified. Leave empty to use system default.": "设置当未指定颜色时的装饰器的默认颜色。留空以使用系统默认颜色。",
+    "Export template": "导出模板",
+    "Clean orphaned data": "清理孤立数据",
+    "Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.": "删除不再存在于您的文档中的高亮和注释。这在您删除高亮但注释仍然存储在数据文件中时很有用。",
 
     // Flashcard Settings
     "Flashcard learning": "闪卡学习设置",
@@ -197,7 +200,6 @@ export default {
     "Hard": "困难",
     "Good": "良好",
     "Easy": "简单",
-    "Show Answer": "显示答案",
     "Card": "卡片",
     "of": "共",
     "Settings": "设置",

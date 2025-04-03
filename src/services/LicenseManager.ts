@@ -1,9 +1,9 @@
-import { Notice, Plugin } from 'obsidian';
+import { Notice, Plugin, requestUrl } from 'obsidian';
 
 export class LicenseManager {
     private plugin: Plugin;
     private readonly STORAGE_KEY = 'flashcard-license';
-    private readonly DEVICE_ID_KEY = 'device-id';
+    private readonly VAULT_ID_KEY = 'vault-id';
     private readonly API_URL = 'https://hi-note-license-server-production.up.railway.app';
     private readonly FEATURES = ['flashcard'];
     private readonly VERIFICATION_INTERVAL_DAYS = 7; // 验证间隔天数
@@ -13,16 +13,16 @@ export class LicenseManager {
         this.plugin = plugin;
     }
 
-    // 生成设备ID
-    private async generateDeviceId(): Promise<string> {
+    // 生成Vault ID（笔记库唯一标识符）
+    private async generateVaultId(): Promise<string> {
         try {
-            // 首先尝试从存储中获取设备 ID
+            // 首先尝试从存储中获取Vault ID
             const data = await this.plugin.loadData() || {};
-            if (data[this.DEVICE_ID_KEY]) {
-                return data[this.DEVICE_ID_KEY];
+            if (data[this.VAULT_ID_KEY]) {
+                return data[this.VAULT_ID_KEY];
             }
             
-            // 如果没有存储的设备 ID，则生成一个新的
+            // 如果没有存储的Vault ID，则生成一个新的
             // 主要使用相对稳定的因素
             // 获取保存路径信息
             const adapter = this.plugin.app.vault.adapter;
@@ -35,19 +35,19 @@ export class LicenseManager {
             const platform = navigator.platform || '';
             
             // 组合因素 (减少变化频繁的因素)
-            const deviceInfo = [vaultPath, platform].join('|');
+            const vaultInfo = [vaultPath, platform].join('|');
             
             // 使用 SHA-256 哈希
             const encoder = new TextEncoder();
-            const data2 = encoder.encode(deviceInfo);
+            const data2 = encoder.encode(vaultInfo);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data2);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const deviceId = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const vaultId = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             
-            // 存储生成的设备 ID
-            await this.saveDeviceId(deviceId);
+            // 存储生成的Vault ID
+            await this.saveVaultId(vaultId);
             
-            return deviceId;
+            return vaultId;
         } catch (error) {
 
             // 如果出错，回退到简单的 vault 路径哈希
@@ -56,21 +56,21 @@ export class LicenseManager {
             const data = encoder.encode(vaultPath);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const deviceId = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const vaultId = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             
-            // 存储生成的设备 ID
-            await this.saveDeviceId(deviceId);
+            // 存储生成的Vault ID
+            await this.saveVaultId(vaultId);
             
-            return deviceId;
+            return vaultId;
         }
     }
     
-    // 保存设备 ID
-    private async saveDeviceId(deviceId: string): Promise<void> {
+    // 保存Vault ID
+    private async saveVaultId(vaultId: string): Promise<void> {
         const currentData = await this.plugin.loadData() || {};
         await this.plugin.saveData({
             ...currentData,
-            [this.DEVICE_ID_KEY]: deviceId
+            [this.VAULT_ID_KEY]: vaultId
         });
     }
 
@@ -78,30 +78,24 @@ export class LicenseManager {
     async activateLicense(licenseKey: string): Promise<boolean> {
         try {
 
-            const deviceId = await this.generateDeviceId();
+            const vaultId = await this.generateVaultId();
 
             const url = `${this.API_URL}/api/verify`;
 
-            const requestBody = { licenseKey, deviceId };
+            // 使用vaultId但在API请求中仍保持deviceId字段名称以兼容服务器
+            const requestBody = { licenseKey, deviceId: vaultId };
 
-            const response = await fetch(url, {
+            const response = await requestUrl({
+                url: url,
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Origin': 'app://obsidian.md',
                     'Accept': 'application/json'
                 },
-                mode: 'cors',
-                credentials: 'include',
                 body: JSON.stringify(requestBody)
             });
 
-            if (!response.ok) {
-
-                throw new Error(`Server response failed: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
+            const data = response.json;
 
             if (data.valid) {
                 // 保存许可证信息
@@ -112,7 +106,7 @@ export class LicenseManager {
                         key: licenseKey,
                         token: data.token,
                         features: data.features,
-                        deviceId: deviceId, // 保存当前设备 ID
+                        vaultId: vaultId, // 保存当前Vault ID
                         lastVerified: Date.now()
                     }
                 });
@@ -183,30 +177,30 @@ export class LicenseManager {
     // 向服务器验证许可证
     private async verifyWithServer(licenseData: any): Promise<boolean> {
         try {
-            const deviceId = await this.generateDeviceId();
+            const vaultId = await this.generateVaultId();
             
-            // 检查当前设备 ID 是否与激活时的设备 ID 不同
-            const activationDeviceId = licenseData.deviceId;
-            const isDeviceChanged = activationDeviceId && activationDeviceId !== deviceId;
+            // 检查当前Vault ID 是否与激活时的Vault ID 不同
+            const activationVaultId = licenseData.vaultId;
+            const isVaultChanged = activationVaultId && activationVaultId !== vaultId;
             
-            const response = await fetch(`${this.API_URL}/api/verify`, {
+            const response = await requestUrl({
+                url: `${this.API_URL}/api/verify`,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Origin': 'app://obsidian.md',
                     'Accept': 'application/json',
                     'Authorization': `Bearer ${licenseData.token}`
                 },
-                mode: 'cors',
-                credentials: 'include',
                 body: JSON.stringify({
                     licenseKey: licenseData.key,
-                    deviceId,
-                    isDeviceChanged // 告知服务器设备已更改
+                    deviceId: vaultId, // 使用旧字段名以兼容服务器
+                    isDeviceChanged: isVaultChanged // 使用旧字段名以兼容服务器
                 })
             });
 
-            if (!response.ok) {
+            const result = response.json;
+            
+            if (!result) {
                 // 如果服务器返回错误，但我们有本地令牌，仍然允许使用
                 // 这样在网络问题时用户仍能使用插件
                 if (this.licenseToken) {
@@ -214,8 +208,6 @@ export class LicenseManager {
                 }
                 return false;
             }
-
-            const result = await response.json();
             if (result.valid) {
                 // 更新验证时间、token 和设备 ID
                 const currentData = await this.plugin.loadData() || {};
@@ -224,7 +216,7 @@ export class LicenseManager {
                     [this.STORAGE_KEY]: {
                         ...licenseData,
                         token: result.token || licenseData.token,
-                        deviceId: deviceId, // 更新设备 ID
+                        vaultId: vaultId, // 更新Vault ID
                         lastVerified: Date.now()
                     }
                 });

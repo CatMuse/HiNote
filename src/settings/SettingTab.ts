@@ -25,8 +25,7 @@ export class AISettingTab extends PluginSettingTab {
         // 检查许可证状态
         const isFlashcardActivated = await this.licenseManager.isActivated();
 
-        // 添加主标题
-        containerEl.createEl('h1', { text: 'Obsidian HiNote Plugin' });
+        // 移除了顶级标题，符合Obsidian官方建议
 
         // 创建标签页容器
         const tabContainer = containerEl.createEl('div', { cls: 'setting-tabs' });

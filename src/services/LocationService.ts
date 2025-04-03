@@ -108,18 +108,14 @@ export class LocationService {
                 textPosition = allMatches[0];
             } else {
                 // 使用模糊匹配查找最相似的文本
-                console.log(`[LocationService] 未找到精确匹配，尝试模糊匹配: "${text}"`);
-                
                 const bestMatch = this.textSimilarityService.findBestMatch(text, content, position);
                 if (bestMatch) {
-                    console.log(`[LocationService] 找到模糊匹配: "${bestMatch.text}" 位置: ${bestMatch.position}`);
                     textPosition = bestMatch.position;
                     matchedText = bestMatch.text; // 使用匹配到的文本
                     
                     // 显示通知，告知用户使用了模糊匹配
                     new Notice(`使用模糊匹配找到了相似内容`);
                 } else {
-                    console.log(`[LocationService] 模糊匹配失败`);
                     new Notice("未找到高亮内容");
                     return;
                 }

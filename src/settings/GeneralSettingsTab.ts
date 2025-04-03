@@ -108,7 +108,7 @@ export class GeneralSettingsTab {
                 
         // 导出模板设置
         new Setting(container)
-            .setName(t('Export Template'))
+            .setName(t('Export template'))
             .setDesc(t('Customize the format of exported highlights and comments using variables. Available variables: {{sourceFile}}, {{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}. Leave empty to use default template.'))
             .addTextArea(text => {
                 const defaultTemplate = 
@@ -212,10 +212,10 @@ export class GeneralSettingsTab {
             
         // 清理孤立数据按钮
         const orphanedDataSetting = new Setting(container)
-            .setName(t('Clean Orphaned Data'))
+            .setName(t('Clean orphaned data'))
             .setDesc(t('Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.'))
             .addButton(button => button
-                .setButtonText(t('Clean Data'))
+                .setButtonText(t('Clean data'))
                 .onClick(async () => {
                     // 检查孤立数据数量
                     button.setButtonText(t('Checking...'));
@@ -232,7 +232,7 @@ export class GeneralSettingsTab {
                         
                         // 创建确认对话框
                         const confirmModal = new Modal(this.plugin.app);
-                        confirmModal.titleEl.setText(t('Confirm Data Cleanup'));
+                        confirmModal.titleEl.setText(t('Confirm data cleanup'));
                         
                         const contentEl = confirmModal.contentEl;
                         contentEl.empty();
@@ -283,7 +283,7 @@ export class GeneralSettingsTab {
                                 console.error('[HiNote] Error cleaning orphaned data:', error);
                                 new Notice('Error cleaning orphaned data. Check console for details.');
                             } finally {
-                                button.setButtonText(t('Clean Data'));
+                                button.setButtonText(t('Clean data'));
                                 button.setDisabled(false);
                             }
                         });
@@ -293,7 +293,7 @@ export class GeneralSettingsTab {
                         console.error('[HiNote] Error checking orphaned data:', error);
                         new Notice('Error checking orphaned data. Check console for details.');
                     } finally {
-                        button.setButtonText(t('Clean Data'));
+                        button.setButtonText(t('Clean data'));
                         button.setDisabled(false);
                     }
                 }));

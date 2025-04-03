@@ -1,4 +1,4 @@
-import { Setting, Notice } from 'obsidian';
+import { Setting, Notice, requestUrl } from 'obsidian';
 import { BaseAIServiceSettings } from './AIServiceSettings';
 import { t } from '../../i18n';
 
@@ -90,14 +90,15 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             const url = `${baseUrl}/models/${modelId}`;
 
 
-            const response = await fetch(url, {
+            const response = await requestUrl({
+                url: url,
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            if (!response.ok) {
+            if (!response.status || response.status < 200 || response.status >= 300) {
                 // 如果是自定义模型，直接返回 false
                 if (this.modelState.selectedModel.isCustom) {
                     new Notice(t('自定义模型不可用，请检查模型 ID 和 API 地址'));
@@ -108,14 +109,15 @@ export class DeepseekSettings extends BaseAIServiceSettings {
                 if (modelId !== 'deepseek-chat') {
 
                     const checkUrl = `${baseUrl}/models/deepseek-chat`;
-                    const checkResponse = await fetch(checkUrl, {
+                    const checkResponse = await requestUrl({
+                        url: checkUrl,
                         headers: {
                             'Authorization': `Bearer ${apiKey}`,
                             'Content-Type': 'application/json'
                         }
                     });
                     
-                    if (checkResponse.ok) {
+                    if (checkResponse.status && checkResponse.status >= 200 && checkResponse.status < 300) {
                         // API Key 有效，但当前选择的模型不可用
                         new Notice(t('当前选择的模型不可用，但 API Key 是有效的'));
                         return false;
@@ -127,7 +129,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
                 return false;
             }
             
-            const data = await response.json();
+            const data = response.json;
             const isValid = !!(data && data.id);
             
             if (isValid) {

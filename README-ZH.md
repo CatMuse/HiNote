@@ -15,7 +15,9 @@
 
 >  我完全没有研发经验，这款插件是我和 AI 共同完成，作为 Beta 版请谨慎使用。
 
-[![HiNote Plugin Tutorial](https://img.youtube.com/vi/M3K80g5MYM8/maxresdefault.jpg)](https://www.youtube.com/watch?v=M3K80g5MYM8)
+👇🏻 点击图片查看视频教程
+
+[![HiNote Plugin Tutorial](https://img.youtube.com/vi/c1mxMGi1ZEk/maxresdefault.jpg)](https://www.youtube.com/watch?v=c1mxMGi1ZEk)
 
 ---
 ## 高亮文本获取

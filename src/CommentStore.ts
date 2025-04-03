@@ -116,9 +116,7 @@ export class CommentStore {
             }
         }
         
-        if (migrationCount > 0) {
-            console.info(`[CommentStore] Migrated ${migrationCount} highlights from paragraphId to blockId`);
-        }
+        // 已删除不必要的日志输出
     }
 
     async saveComments() {
@@ -191,7 +189,7 @@ export class CommentStore {
                     affectedFiles.add(filePath);
                 }
             } catch (error) {
-                console.error(`[CommentStore] Error checking orphaned data for file ${filePath}:`, error);
+                // 错误处理 - 已移除日志输出
             }
         }
         
@@ -260,7 +258,7 @@ export class CommentStore {
                     }
                 }
             } catch (error) {
-                console.error(`[CommentStore] Error cleaning orphaned data for file ${filePath}:`, error);
+                // 错误处理 - 已移除日志输出
             }
         }
         
@@ -360,7 +358,7 @@ export class CommentStore {
                     const content = editor.getValue();
                     await this.plugin.app.vault.modify(currentFile, content);
                 } catch (error) {
-                    console.error('Error creating block ID:', error);
+                    // 错误处理 - 已移除日志输出
                     // 如果出错，使用时间戳作为后备
                     const fallbackId = Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 5);
                     highlight.blockId = fallbackId;

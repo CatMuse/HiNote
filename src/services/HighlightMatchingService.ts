@@ -47,7 +47,6 @@ export class HighlightMatchingService {
         });
         
         if (matchingHighlight) {
-            console.log(`[HighlightMatchingService] 找到精确匹配: "${matchingHighlight.text}"`);
             return matchingHighlight;
         }
         
@@ -59,7 +58,6 @@ export class HighlightMatchingService {
             );
             
             if (matchingHighlight) {
-                console.log(`[HighlightMatchingService] 找到位置匹配: "${matchingHighlight.text}" 位置: ${matchingHighlight.position}`);
                 return matchingHighlight;
             }
         }
@@ -84,9 +82,6 @@ export class HighlightMatchingService {
         }
         
         if (bestMatch) {
-            console.log(`[HighlightMatchingService] 使用模糊匹配找到高亮: 相似度 ${highestSimilarity.toFixed(2)}`);
-            console.log(`  原文本: "${bestMatch.text}"`);
-            console.log(`  当前文本: "${highlight.text}"`);
             return bestMatch;
         }
         
@@ -94,12 +89,10 @@ export class HighlightMatchingService {
         if (highlight.blockId) {
             const blockHighlights = fileHighlights.filter(h => h.blockId === highlight.blockId);
             if (blockHighlights.length > 0) {
-                console.log(`[HighlightMatchingService] 使用块ID匹配找到高亮: "${blockHighlights[0].text}"`);
                 return blockHighlights[0];
             }
         }
         
-        console.log(`[HighlightMatchingService] 未找到匹配的高亮`);
         return null;
     }
     
@@ -118,7 +111,6 @@ export class HighlightMatchingService {
         // 保存恢复的高亮
         await this.commentStore.addComment(file, recoveredHighlight);
         
-        console.log(`[HighlightMatchingService] 恢复了高亮: "${newText}"`);
         return recoveredHighlight;
     }
 }

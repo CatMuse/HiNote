@@ -1,4 +1,4 @@
-import { Setting, Notice } from 'obsidian';
+import { Setting, Notice, requestUrl } from 'obsidian';
 import { BaseAIServiceSettings } from './AIServiceSettings';
 import { t } from '../../i18n';
 import { GeminiModel, GeminiModelState, DEFAULT_GEMINI_MODELS } from '../../types';
@@ -88,10 +88,12 @@ export class GeminiSettings extends BaseAIServiceSettings {
             const url = `${baseUrl}/v1/models/${modelId}?key=${apiKey}`;
 
 
-            const response = await fetch(url);
-            if (!response.ok) {
+            const response = await requestUrl({
+                url: url
+            });
+            if (!response.status || response.status < 200 || response.status >= 300) {
                 // 获取错误详情
-                const errorData = await response.json().catch(() => null);
+                const errorData = response.json || null;
 
                 // 检查是否是实验性模型
                 const isExperimentalModel = modelId.includes('-exp-');
@@ -100,9 +102,11 @@ export class GeminiSettings extends BaseAIServiceSettings {
                 if (isExperimentalModel) {
                     // 先验证 API Key 是否有效
                     const checkUrl = `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`;
-                    const checkResponse = await fetch(checkUrl);
+                    const checkResponse = await requestUrl({
+                        url: checkUrl
+                    });
                     
-                    if (checkResponse.ok) {
+                    if (checkResponse.status && checkResponse.status >= 200 && checkResponse.status < 300) {
                         new Notice(t('API Key 有效，但无法访问实验性模型。请确保你有权限访问此模型，或等待模型正式发布。'));
                         throw new Error(`Experimental model not accessible: ${modelId}`);
                     } else {
@@ -120,9 +124,11 @@ export class GeminiSettings extends BaseAIServiceSettings {
                 // 如果是预设模型但不是 gemini-pro
                 if (modelId !== 'gemini-pro') {
                     const checkUrl = `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`;
-                    const checkResponse = await fetch(checkUrl);
+                    const checkResponse = await requestUrl({
+                        url: checkUrl
+                    });
                     
-                    if (checkResponse.ok) {
+                    if (checkResponse.status && checkResponse.status >= 200 && checkResponse.status < 300) {
                         new Notice(t('API Key 有效，但当前选择的模型不可用。可能是模型未发布或你没有访问权限。'));
                         throw new Error(`Selected model not available: ${modelId}`);
                     }

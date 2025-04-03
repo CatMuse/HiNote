@@ -1,4 +1,4 @@
-import { Setting, Notice } from 'obsidian';
+import { Setting, Notice, requestUrl } from 'obsidian';
 import { AIModel } from '../../types';
 import { DEFAULT_SILICONFLOW_MODELS } from '../../types';
 import { BaseAIServiceSettings } from './AIServiceSettings';
@@ -90,7 +90,8 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
             const chatUrl = `${baseUrl}/chat/completions`;
 
 
-            const response = await fetch(chatUrl, {
+            const response = await requestUrl({
+                url: chatUrl,
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
@@ -108,8 +109,8 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
                 })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
+            if (!response.status || response.status < 200 || response.status >= 300) {
+                const errorData = response.json || null;
 
                 return {
                     isValid: false,

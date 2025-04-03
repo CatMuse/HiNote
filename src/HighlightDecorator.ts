@@ -68,9 +68,6 @@ export class HighlightDecorator {
             }
             
             if (bestMatch) {
-                console.log(`[HighlightDecorator] 使用模糊匹配找到高亮: 相似度 ${highestSimilarity.toFixed(2)}`);
-                console.log(`  原文本: "${bestMatch.text}"`);
-                console.log(`  当前文本: "${commentHighlight.text}"`);
                 matchingHighlight = bestMatch;
             }
         }
@@ -193,9 +190,6 @@ export class HighlightDecorator {
                     }
                     
                     if (bestMatch) {
-                        console.log(`[HighlightDecorator] 使用模糊匹配找到高亮: 相似度 ${highestSimilarity.toFixed(2)}`);
-                        console.log(`  原文本: "${bestMatch.text}"`);
-                        console.log(`  当前文本: "${commentHighlight.text}"`);
                         matchingHighlight = bestMatch;
                     }
                 }
