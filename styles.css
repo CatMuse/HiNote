@@ -67,6 +67,53 @@ settings:
     margin-bottom: 0 !important;
 }
 
+/* Markdown 渲染样式修复 - 设置分割线的上下边距 */
+.highlight-text-content.markdown-rendered hr,
+.hi-note-content.markdown-rendered hr,
+.flashcard-content.markdown-rendered hr,
+.flashcard-paragraph.markdown-rendered hr,
+.hi-note-tooltip-content.markdown-rendered hr,
+.highlight-chat-message-content.markdown-rendered hr {
+    margin-top: 12px !important;
+    margin-bottom: 12px !important;
+}
+
+/* Markdown 渲染样式修复 - 移除引用块的边距 */
+.highlight-text-content.markdown-rendered blockquote,
+.hi-note-content.markdown-rendered blockquote,
+.flashcard-content.markdown-rendered blockquote,
+.flashcard-paragraph.markdown-rendered blockquote,
+.hi-note-tooltip-content.markdown-rendered blockquote,
+.highlight-chat-message-content.markdown-rendered blockquote {
+    margin: 0 !important;
+}
+
+/* Markdown 渲染样式修复 - 移除代码块的边距 */
+.highlight-text-content.markdown-rendered pre,
+.hi-note-content.markdown-rendered pre,
+.flashcard-content.markdown-rendered pre,
+.flashcard-paragraph.markdown-rendered pre,
+.hi-note-tooltip-content.markdown-rendered pre,
+.highlight-chat-message-content.markdown-rendered pre {
+    margin: 0 !important;
+}
+
+/* Markdown 渲染样式修复 - 移除表格相关元素的边距 */
+.highlight-text-content.markdown-rendered div.table-wrapper,
+.hi-note-content.markdown-rendered div.table-wrapper,
+.flashcard-content.markdown-rendered div.table-wrapper,
+.flashcard-paragraph.markdown-rendered div.table-wrapper,
+.hi-note-tooltip-content.markdown-rendered div.table-wrapper,
+.highlight-chat-message-content.markdown-rendered div.table-wrapper,
+.highlight-text-content.markdown-rendered table,
+.hi-note-content.markdown-rendered table,
+.flashcard-content.markdown-rendered table,
+.flashcard-paragraph.markdown-rendered table,
+.hi-note-tooltip-content.markdown-rendered table,
+.highlight-chat-message-content.markdown-rendered table {
+    margin: 0 !important;
+}
+
 /* Markdown 渲染样式修复 - 移除标题上下边距 */
 .highlight-text-content.markdown-rendered h1,
 .highlight-text-content.markdown-rendered h2,
@@ -561,6 +608,18 @@ settings:
 .cm-line:hover .hi-note-button-hidden,
 .cm-highlight:hover + .hi-note-widget .hi-note-button-hidden,
 .hi-note-widget:hover .hi-note-button-hidden {
+    opacity: 1;
+}
+
+/* 新样式：没有评论的按钮半透明显示 */
+.hi-note-button-no-comments {
+    opacity: 0.5; /* 半透明而不是完全隐藏 */
+}
+
+/* 鼠标悬停时显示没有评论的按钮 */
+.cm-line:hover .hi-note-button-no-comments,
+.cm-highlight:hover + .hi-note-widget .hi-note-button-no-comments,
+.hi-note-widget:hover .hi-note-button-no-comments {
     opacity: 1;
 }
 

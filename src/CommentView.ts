@@ -280,114 +280,10 @@ export class CommentView extends ItemView {
 
         // 更新视图布局
         this.updateViewLayout();
-    }
-
-    // 使用Obsidian API提供的debounce函数
-
-    private async updateHighlights() {
-        // 如果在全部高亮视图，使用 updateAllHighlights
-        if (this.isInAllHighlightsView()) {
-            await this.updateAllHighlights();
-            return;
-        }
-
-        // 以下是单文件视图的逻辑
-        if (!this.currentFile) {
-            this.renderHighlights([]);
-            return;
-        }
-
-        // 检查文件是否应该被排除
-        if (!this.highlightService.shouldProcessFile(this.currentFile)) {
-            this.renderHighlights([]);
-            return;
-        }
-
-        const content = await this.app.vault.read(this.currentFile);
-        const highlights = this.highlightService.extractHighlights(content);
-        
-        // 获取已存储的评论
-        const storedComments = this.commentStore.getFileComments(this.currentFile);
-        
-        // 合并高亮和评论数据
-        this.highlights = highlights.map(highlight => {
-            // 1. 首先尝试精确匹配
-            let storedComment = storedComments.find(c => {
-                const textMatch = c.text === highlight.text;
-                if (textMatch && highlight.position !== undefined && c.position !== undefined) {
-                    return Math.abs(c.position - highlight.position) < 1000;
-                }
-                return textMatch; // 如果没有位置信息，只比较文本
-            });
-            
-            // 2. 如果精确匹配失败，尝试使用位置匹配
-            if (!storedComment && highlight.position !== undefined) {
-                storedComment = storedComments.find(c => 
-                    c.position !== undefined && 
-                    highlight.position !== undefined &&
-                    Math.abs(c.position - highlight.position) < 50
-                );
-            }
-            
-            // 3. 如果位置匹配也失败，尝试使用模糊文本匹配
-            if (!storedComment && this.plugin.highlightMatchingService) {
-                // 将 highlight 转换为 HiNote 格式
-                const hiNote: HiNote = {
-                    id: highlight.id || `highlight-${Date.now()}-${highlight.position !== undefined ? highlight.position : 0}`,
-                    text: highlight.text,
-                    position: highlight.position || 0, // 确保 position 不为 undefined
-                    comments: [],
-                    createdAt: highlight.createdAt || Date.now(),
-                    updatedAt: highlight.updatedAt || Date.now(),
-                    blockId: highlight.blockId,
-                    paragraphId: highlight.paragraphId,
-                    paragraphOffset: highlight.paragraphOffset || 0,
-                    isVirtual: false
-                };
-                
-                // 使用 HighlightMatchingService 查找最匹配的高亮
-                if (this.currentFile) {
-                    const matchingHighlight = this.plugin.highlightMatchingService.findMatchingHighlight(
-                        this.currentFile, 
-                        hiNote
-                    );
-                    
-                    if (matchingHighlight) {
-                        console.log(`[CommentView] 使用模糊匹配找到高亮: "${matchingHighlight.text}"`);
-                        storedComment = matchingHighlight;
-                    }
-                }
-            }
-
-            if (storedComment) {
-                return {
-                    ...highlight,
-                    id: storedComment.id,
-                    comments: storedComment.comments,
-                    createdAt: storedComment.createdAt,
-                    updatedAt: storedComment.updatedAt
-                };
-            }
-
-            return highlight;
-        });
-
-        // 添加虚拟高亮到列表最前面
-        const virtualHighlights = storedComments
-            .filter(c => c.isVirtual && c.comments && c.comments.length > 0); // 只保留有评论的虚拟高亮
-        this.highlights.unshift(...virtualHighlights);
-
-        // 渲染高亮列表
-        this.renderHighlights(this.highlights);
-    }
-
-    private async updateHighlightsList() {
-        const searchTerm = this.searchInput.value.toLowerCase().trim();
-        
-        // 清空容器
         this.highlightContainer.empty();
 
         // 过滤并显示高亮评论
+        const searchTerm = this.searchInput.value.toLowerCase().trim();
         const filteredHighlights = this.highlights.filter(highlight => {
             // 搜索高亮文本
             if (highlight.text.toLowerCase().includes(searchTerm)) {
@@ -704,7 +600,7 @@ export class CommentView extends ItemView {
         }
         return false;
     }
-
+    
     // 添加新方法来更新视图布局
     private async updateViewLayout() {
         // 先清除所有显示相关的类
@@ -720,9 +616,19 @@ export class CommentView extends ItemView {
             // 在侧边栏中隐藏文件列表
             this.fileListContainer.addClass('highlight-display-none');
             this.removeFloatingButton();
+            
+            // 在侧边栏中显示搜索容器（除非在闪卡模式）
+            if (!this.isFlashcardMode) {
+                this.searchContainer.removeClass('highlight-display-none');
+                // 显示搜索图标按钮
+                const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+                if (iconButtons) {
+                    iconButtons.removeClass('highlight-display-none');
+                }
+            }
         }
     }
-
+    
     // 修改 updateFileList 方法
     private async updateFileList() {
         // 如果文件列表已经存在，只更新选中状态
@@ -761,7 +667,7 @@ export class CommentView extends ItemView {
             this.updateFileListSelection();
             
             // 显示搜索容器
-            this.searchContainer.addClass('highlight-display-default');
+            this.searchContainer.removeClass('highlight-display-none');
             
             // 隐藏搜索图标按钮
             const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
@@ -991,11 +897,11 @@ export class CommentView extends ItemView {
                 }
                 this.updateFileListSelection();
                 // 显示搜索容器
-                this.searchContainer.addClass('highlight-display-default');
+                this.searchContainer.removeClass('highlight-display-none');
                 // 显示搜索图标按钮
                 const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
                 if (iconButtons) {
-                    iconButtons.addClass('highlight-display-default');
+                    iconButtons.removeClass('highlight-display-none');
                 }
                 await this.updateHighlights();
             });
@@ -1228,6 +1134,33 @@ export class CommentView extends ItemView {
     private isInAllHighlightsView(): boolean {
         return this.currentFile === null;
     }
+    
+    // 添加方法来更新高亮列表显示（搜索筛选）
+    private updateHighlightsList() {
+        const searchTerm = this.searchInput.value.toLowerCase().trim();
+        
+        // 过滤并显示高亮评论
+        const filteredHighlights = this.highlights.filter(highlight => {
+            // 搜索高亮文本
+            if (highlight.text.toLowerCase().includes(searchTerm)) {
+                return true;
+            }
+            // 搜索评论内容
+            if (highlight.comments?.some(comment => 
+                comment.content.toLowerCase().includes(searchTerm)
+            )) {
+                return true;
+            }
+            // 在全部视图中也搜索文件名
+            if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
+                return true;
+            }
+            return false;
+        });
+
+        // 更新显示
+        this.renderHighlights(filteredHighlights);
+    }
 
     // 修改更新视图的方法
     private async refreshView() {
@@ -1236,6 +1169,118 @@ export class CommentView extends ItemView {
         } else {
             await this.updateHighlights();
         }
+    }
+    
+    // 更新单个文件的高亮
+    private async updateHighlights() {
+        // 如果在全部高亮视图，使用 updateAllHighlights
+        if (this.isInAllHighlightsView()) {
+            await this.updateAllHighlights();
+            return;
+        }
+
+        // 以下是单文件视图的逻辑
+        if (!this.currentFile) {
+            this.renderHighlights([]);
+            return;
+        }
+
+        // 检查文件是否应该被排除
+        if (!this.highlightService.shouldProcessFile(this.currentFile)) {
+            this.renderHighlights([]);
+            return;
+        }
+
+        const content = await this.app.vault.read(this.currentFile);
+        const highlights = this.highlightService.extractHighlights(content);
+        
+        // 获取已存储的评论
+        const storedComments = this.commentStore.getFileComments(this.currentFile);
+        
+        // 创建一个集合来跟踪已使用的批注ID，防止重复匹配
+        const usedCommentIds = new Set<string>();
+        
+        // 合并高亮和评论数据
+        this.highlights = highlights.map(highlight => {
+            // 1. 首先尝试精确匹配
+            let storedComment = storedComments.find(c => {
+                // 如果这个批注ID已经被使用过，跳过它
+                if (usedCommentIds.has(c.id)) return false;
+                
+                const textMatch = c.text === highlight.text;
+                if (textMatch && highlight.position !== undefined && c.position !== undefined) {
+                    return Math.abs(c.position - highlight.position) < 1000;
+                }
+                return textMatch; // 如果没有位置信息，只比较文本
+            });
+            
+            // 2. 如果精确匹配失败，尝试使用位置匹配
+            if (!storedComment && highlight.position !== undefined) {
+                storedComment = storedComments.find(c => 
+                    !usedCommentIds.has(c.id) && // 确保批注ID未被使用
+                    c.position !== undefined && 
+                    highlight.position !== undefined &&
+                    Math.abs(c.position - highlight.position) < 50
+                );
+            }
+            
+            // 3. 如果位置匹配也失败，尝试使用模糊文本匹配
+            if (!storedComment && this.plugin.highlightMatchingService) {
+                // 将 highlight 转换为 HiNote 格式
+                const hiNote: HiNote = {
+                    id: highlight.id || `highlight-${Date.now()}-${highlight.position !== undefined ? highlight.position : 0}`,
+                    text: highlight.text,
+                    position: highlight.position || 0, // 确保 position 不为 undefined
+                    comments: [],
+                    createdAt: highlight.createdAt || Date.now(),
+                    updatedAt: highlight.updatedAt || Date.now(),
+                    blockId: highlight.blockId,
+                    paragraphId: highlight.paragraphId,
+                    paragraphOffset: highlight.paragraphOffset || 0,
+                    isVirtual: false
+                };
+                
+                // 使用 HighlightMatchingService 查找最匹配的高亮
+                if (this.currentFile) {
+                    const matchingHighlight = this.plugin.highlightMatchingService.findMatchingHighlight(
+                        this.currentFile, 
+                        hiNote
+                    );
+                    
+                    // 确保找到的匹配高亮的ID未被使用过
+                    if (matchingHighlight && !usedCommentIds.has(matchingHighlight.id)) {
+                        console.log(`[CommentView] 使用模糊匹配找到高亮: "${matchingHighlight.text}"`);
+                        storedComment = matchingHighlight;
+                    }
+                }
+            }
+
+            if (storedComment) {
+                // 标记这个批注ID已被使用
+                usedCommentIds.add(storedComment.id);
+                
+                return {
+                    ...highlight,
+                    id: storedComment.id,
+                    comments: storedComment.comments,
+                    createdAt: storedComment.createdAt,
+                    updatedAt: storedComment.updatedAt
+                };
+            }
+
+            return highlight;
+        });
+
+        // 添加虚拟高亮到列表最前面，但只添加那些还没有被使用过的
+        const virtualHighlights = storedComments
+            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id)); // 只保留有评论且未被使用的虚拟高亮
+        
+        // 将这些虚拟高亮添加到列表并标记为已使用
+        virtualHighlights.forEach(vh => usedCommentIds.add(vh.id));
+        this.highlights.unshift(...virtualHighlights);
+
+        // 渲染高亮列表
+        this.renderHighlights(this.highlights);
     }
 
     // 添加页面预览功能

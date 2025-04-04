@@ -258,7 +258,37 @@ export class HighlightDecorator {
                             if (matchingHighlight) {
                                 commentHighlight.comments = matchingHighlight.comments || [];
                             } else {
-                                commentHighlight.comments = blockComments[0].comments || [];
+                                // 使用模糊匹配找到最佳匹配的高亮
+                                const file = activeView.file;
+                                if (!file) continue;
+                                
+                                const bestMatch = this.findMatchingHighlight(file, commentHighlight, blockComments);
+                                
+                                if (bestMatch) {
+                                    // 如果找到最佳匹配，但文本有变化，则调用 recoverHighlight
+                                    if (bestMatch.text !== commentHighlight.text) {
+                                        // 使用 highlightMatchingService 恢复高亮
+                                        (this.plugin as any).highlightMatchingService.recoverHighlight(
+                                            file,
+                                            bestMatch,
+                                            commentHighlight.text
+                                        ).then((recoveredHighlight: HiNote | null) => {
+                                            if (recoveredHighlight) {
+                                                // 触发高亮更新事件
+                                                (this.plugin as any).eventManager.emitHighlightUpdate(
+                                                    file.path,
+                                                    bestMatch.text,
+                                                    commentHighlight.text
+                                                );
+                                            }
+                                        });
+                                    }
+                                    
+                                    // 使用最佳匹配的评论
+                                    commentHighlight.comments = bestMatch.comments || [];
+                                } else {
+                                    commentHighlight.comments = blockComments[0].comments || [];
+                                }
                             }
                         }
                     } else {
@@ -276,7 +306,37 @@ export class HighlightDecorator {
                             if (matchingHighlight) {
                                 commentHighlight.comments = matchingHighlight.comments || [];
                             } else {
-                                commentHighlight.comments = storedHighlight[0].comments || [];
+                                // 使用模糊匹配找到最佳匹配的高亮
+                                const file = activeView.file;
+                                if (!file) continue;
+                                
+                                const bestMatch = this.findMatchingHighlight(file, commentHighlight, storedHighlight);
+                                
+                                if (bestMatch) {
+                                    // 如果找到最佳匹配，但文本有变化，则调用 recoverHighlight
+                                    if (bestMatch.text !== commentHighlight.text) {
+                                        // 使用 highlightMatchingService 恢复高亮
+                                        (this.plugin as any).highlightMatchingService.recoverHighlight(
+                                            file,
+                                            bestMatch,
+                                            commentHighlight.text
+                                        ).then((recoveredHighlight: HiNote | null) => {
+                                            if (recoveredHighlight) {
+                                                // 触发高亮更新事件
+                                                (this.plugin as any).eventManager.emitHighlightUpdate(
+                                                    file.path,
+                                                    bestMatch.text,
+                                                    commentHighlight.text
+                                                );
+                                            }
+                                        });
+                                    }
+                                    
+                                    // 使用最佳匹配的评论
+                                    commentHighlight.comments = bestMatch.comments || [];
+                                } else {
+                                    commentHighlight.comments = storedHighlight[0].comments || [];
+                                }
                             }
                         }
                     }
