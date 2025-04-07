@@ -531,7 +531,7 @@ export class CommentView extends ItemView {
                 } else {
                     await this.addComment(highlight, content);
                 }
-                await this.updateHighlights();
+                await this.refreshView();
             },
             onDelete: existingComment ? async () => {
                 await this.deleteComment(highlight, existingComment.id);
