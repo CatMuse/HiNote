@@ -41,6 +41,7 @@ export class CommentView extends ItemView {
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
     private currentEditingHighlightId: string | null | undefined = null;
     private flashcardComponent: FlashcardComponent | null = null;
+    private isFileCommentMode: boolean = false; // 在CommentView类的属性中添加
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -628,7 +629,83 @@ export class CommentView extends ItemView {
             }
         }
     }
-    
+    // 添加新方法来更新全部文件评论
+    private async updateAllFileComments() {
+        // 重置批次计数
+        this.currentBatch = 0;
+        this.highlights = [];
+        
+        // 清空容器并添加加载指示
+        this.highlightContainer.empty();
+        this.highlightContainer.appendChild(this.loadingIndicator);
+        
+        // 加载所有文件的评论
+        await this.loadAllFileComments();
+    }
+
+    // 添加新方法：加载所有文件评论
+    private async loadAllFileComments() {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        this.loadingIndicator.addClass('highlight-display-block');
+
+        try {
+            // 获取所有文件路径
+            const files = this.app.vault.getMarkdownFiles();
+            
+            // 收集所有文件的评论
+            const allFileComments: HighlightInfo[] = [];
+            
+            for (const file of files) {
+                const fileHighlights = this.commentStore.getFileComments(file);
+                
+                // 只过滤出虚拟高亮（文件评论）
+                const fileComments = fileHighlights.filter(h => h.isVirtual && h.comments && h.comments.length > 0);
+                
+                // 添加文件名和路径信息
+                fileComments.forEach(comment => {
+                    allFileComments.push({
+                        ...comment,
+                        fileName: file.basename,
+                        filePath: file.path,
+                        fileIcon: 'file-text'
+                    });
+                });
+            }
+            
+            // 按文件名排序
+            allFileComments.sort((a, b) => {
+                if (a.fileName && b.fileName) {
+                    return a.fileName.localeCompare(b.fileName);
+                }
+                return 0;
+            });
+            
+            // 更新高亮列表
+            this.highlights = allFileComments;
+            
+            // 渲染评论
+            this.renderHighlights(allFileComments);
+            
+        } catch (error) {
+            new Notice(t("加载文件评论时出错"));
+        } finally {
+            this.isLoading = false;
+            this.loadingIndicator.addClass('highlight-display-none');
+        }
+    }
+
+    // 添加新方法：获取所有文件评论的数量
+    private async getTotalFileCommentsCount(): Promise<string> {
+        const files = this.app.vault.getMarkdownFiles();
+        let total = 0;
+        for (const file of files) {
+            const fileHighlights = this.commentStore.getFileComments(file);
+            const fileComments = fileHighlights.filter(h => h.isVirtual && h.comments && h.comments.length > 0);
+            total += fileComments.length;
+        }
+        return `${total}`;
+    }
     // 修改 updateFileList 方法
     private async updateFileList() {
         // 如果文件列表已经存在，只更新选中状态
@@ -692,16 +769,71 @@ export class CommentView extends ItemView {
             text: t("All Highlight"),
             cls: "highlight-file-item-name"
         });
+        
+        // 添加"All FileComment"选项
+        const allFileCommentsItem = fileList.createEl("div", {
+            cls: `highlight-file-item highlight-file-item-all-file-comments ${this.currentFile === null && this.isFileCommentMode ? 'is-active' : ''}`
+        });
 
+        allFileCommentsItem.addEventListener("click", () => {
+            this.currentFile = null;
+            this.isFlashcardMode = false;
+            this.isFileCommentMode = true;
+            
+            // 确保清理闪卡组件
+            if (this.flashcardComponent) {
+                this.flashcardComponent.deactivate();
+                this.flashcardComponent = null;
+            }
+            
+            // 确保完全重置highlightContainer
+            this.highlightContainer.empty();
+            
+            this.updateFileListSelection();
+            
+            // 显示搜索容器
+            this.searchContainer.removeClass('highlight-display-none');
+            
+            // 隐藏搜索图标按钮
+            const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+            if (iconButtons) {
+                iconButtons.addClass('highlight-display-none');
+            }
+            
+            this.updateAllFileComments();
+        });
+
+        // 创建左侧内容容器
+        const allFileCommentsLeft = allFileCommentsItem.createEl("div", {
+            cls: "highlight-file-item-left"
+        });
+
+        // 创建图标
+        const allFileCommentsIcon = allFileCommentsLeft.createEl("span", {
+            cls: "highlight-file-item-icon"
+        });
+        setIcon(allFileCommentsIcon, 'message-square'); // 使用消息图标表示评论
+
+        // 创建文本
+        allFileCommentsLeft.createEl("span", {
+            text: t("All FileComment"),
+            cls: "highlight-file-item-name"
+        });
+
+        // 创建评论数量标签
+        allFileCommentsItem.createEl("span", {
+            text: await this.getTotalFileCommentsCount(),
+            cls: "highlight-file-item-count"
+        });
         // 创建闪卡按钮的容器
         const flashcardItem = fileList.createEl("div", {
             cls: "highlight-file-item highlight-file-item-flashcard"
         });
-
         flashcardItem.addEventListener("click", async () => {
             // 更新文件列表选中状态
             this.currentFile = null;
             this.isFlashcardMode = true;
+            this.isFileCommentMode = false; // 添加这一行
             this.updateFileListSelection();
             
             // 隐藏搜索容器
@@ -828,6 +960,7 @@ export class CommentView extends ItemView {
         allFilesItem.addEventListener("click", async () => {
             this.currentFile = null;
             this.isFlashcardMode = false;
+            this.isFileCommentMode = false; // 添加这一行
             // 确保清理 Flashcard 组件
             if (this.flashcardComponent) {
                 this.flashcardComponent.deactivate();
@@ -890,6 +1023,7 @@ export class CommentView extends ItemView {
             fileItem.addEventListener("click", async () => {
                 this.currentFile = file;
                 this.isFlashcardMode = false;
+                this.isFileCommentMode = false; 
                 // 确保清理 Flashcard 组件
                 if (this.flashcardComponent) {
                     this.flashcardComponent.deactivate();
@@ -913,7 +1047,13 @@ export class CommentView extends ItemView {
         // 更新"全部"选项的选中状态
         const allFilesItem = this.fileListContainer.querySelector('.highlight-file-item-all');
         if (allFilesItem) {
-            allFilesItem.classList.toggle('is-active', this.currentFile === null && !this.isFlashcardMode);
+            allFilesItem.classList.toggle('is-active', this.currentFile === null && !this.isFlashcardMode && !this.isFileCommentMode);
+        }
+
+        // 更新"All FileComment"选项的选中状态
+        const allFileCommentsItem = this.fileListContainer.querySelector('.highlight-file-item-all-file-comments');
+        if (allFileCommentsItem) {
+            allFileCommentsItem.classList.toggle('is-active', this.currentFile === null && this.isFileCommentMode && !this.isFlashcardMode);
         }
 
         // 更新闪卡选项的选中状态
@@ -923,7 +1063,7 @@ export class CommentView extends ItemView {
         }
 
         // 更新文件项的选中状态
-        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all):not(.highlight-file-item-flashcard)');
+        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all):not(.highlight-file-item-flashcard):not(.highlight-file-item-all-file-comments)');
         fileItems.forEach((item: HTMLElement) => {
             const isActive = this.currentFile?.path === item.getAttribute('data-path');
             item.classList.toggle('is-active', isActive);
@@ -1130,9 +1270,9 @@ export class CommentView extends ItemView {
         }
     }
 
-    // 添加新方法来判断是否在全部高亮视图
+    // 修改判断是否在全部高亮视图的方法
     private isInAllHighlightsView(): boolean {
-        return this.currentFile === null;
+        return this.currentFile === null && !this.isFileCommentMode && !this.isFlashcardMode;
     }
     
     // 添加方法来更新高亮列表显示（搜索筛选）
@@ -1164,7 +1304,9 @@ export class CommentView extends ItemView {
 
     // 修改更新视图的方法
     private async refreshView() {
-        if (this.isInAllHighlightsView()) {
+        if (this.isFileCommentMode) {
+            await this.updateAllFileComments();
+        } else if (this.isInAllHighlightsView()) {
             await this.updateAllHighlights();
         } else {
             await this.updateHighlights();
