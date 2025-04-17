@@ -210,95 +210,76 @@ export class GeneralSettingsTab {
             .setName(t('Data management'))
             .setHeading();
             
-        // 清理孤立数据按钮
+        // 检查/清理孤立数据按钮
         const orphanedDataSetting = new Setting(container)
             .setName(t('Clean orphaned data'))
-            .setDesc(t('Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.'))
-            .addButton(button => button
-                .setButtonText(t('Clean data'))
-                .onClick(async () => {
+            .setDesc(t('Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.'));
+
+        let orphanedCount = 0;
+        let affectedFiles = 0;
+        let isChecked = false;
+        const checkButton = orphanedDataSetting.addButton(button => {
+            button.setButtonText(t('Check'));
+            button.onClick(async () => {
+                button.setButtonText(t('Checking...'));
+                button.setDisabled(true);
+                try {
                     // 检查孤立数据数量
-                    button.setButtonText(t('Checking...'));
-                    button.setDisabled(true);
-                    
-                    try {
-                        // 调用检查方法
-                        const stats = await this.plugin.commentStore.checkOrphanedDataCount();
-                        
-                        if (stats.orphanedHighlights === 0) {
-                            new Notice('No orphaned data found.');
-                            return;
-                        }
-                        
-                        // 创建确认对话框
-                        const confirmModal = new Modal(this.plugin.app);
-                        confirmModal.titleEl.setText(t('Confirm data cleanup'));
-                        
-                        const contentEl = confirmModal.contentEl;
-                        contentEl.empty();
-                        
-                        contentEl.createEl('p', {
-                            text: `Found ${stats.orphanedHighlights} orphaned highlights in ${stats.affectedFiles} files.`
-                        });
-                        contentEl.createEl('p', {
-                            text: 'Do you want to clean up these orphaned highlights and comments?'
-                        });
-                        
-                        const buttonContainer = contentEl.createDiv({
-                            cls: 'modal-button-container'
-                        });
-                        
-                        // 添加取消按钮
-                        buttonContainer.createEl('button', {
-                            text: t('Cancel'),
-                            cls: 'mod-warning'
-                        }).addEventListener('click', () => {
-                            confirmModal.close();
-                        });
-                        
-                        // 添加确认按钮
-                        buttonContainer.createEl('button', {
-                            text: t('Clean'),
-                            cls: 'mod-cta'
-                        }).addEventListener('click', async () => {
-                            confirmModal.close();
-                            
+                    const stats = await this.plugin.commentStore.checkOrphanedDataCount();
+                    orphanedCount = stats.orphanedHighlights;
+                    affectedFiles = stats.affectedFiles;
+                    isChecked = true;
+
+                    // 更新描述
+                    const descEl = orphanedDataSetting.descEl;
+                    // 移除现有的计数元素
+                    const existingCount = descEl.querySelector('.orphaned-data-count, .no-orphaned-data');
+                    if (existingCount) existingCount.remove();
+                    const countEl = document.createElement('div');
+                    if (orphanedCount > 0) {
+                        countEl.className = 'orphaned-data-count';
+                        countEl.textContent = `Found ${orphanedCount} orphaned highlights in ${affectedFiles} files.`;
+                        button.setButtonText(t('Clean data'));
+                        button.setDisabled(false);
+                        // 改为清理模式
+                        button.onClick(async () => {
                             button.setButtonText(t('Cleaning...'));
                             button.setDisabled(true);
-                            
                             try {
-                                // 调用清理方法
                                 const result = await this.plugin.commentStore.cleanOrphanedData();
-                                
-                                // 显示结果通知
                                 if (result.removedHighlights > 0) {
                                     new Notice(`Cleaned ${result.removedHighlights} orphaned highlights from ${result.affectedFiles} files.`);
                                 } else {
                                     new Notice('No orphaned data found.');
                                 }
-                                
-                                // 更新孤立数据计数
-                                this.updateOrphanedDataCount(orphanedDataSetting.descEl);
+                                // 清理后重置按钮和描述
+                                button.setButtonText(t('Check'));
+                                isChecked = false;
+                                // 移除计数元素
+                                if (countEl && countEl.parentElement) countEl.parentElement.removeChild(countEl);
                             } catch (error) {
                                 console.error('[HiNote] Error cleaning orphaned data:', error);
                                 new Notice('Error cleaning orphaned data. Check console for details.');
+                                button.setButtonText(t('Check'));
                             } finally {
-                                button.setButtonText(t('Clean data'));
                                 button.setDisabled(false);
                             }
                         });
-                        
-                        confirmModal.open();
-                    } catch (error) {
-                        console.error('[HiNote] Error checking orphaned data:', error);
-                        new Notice('Error checking orphaned data. Check console for details.');
-                    } finally {
-                        button.setButtonText(t('Clean data'));
+                    } else {
+                        countEl.className = 'no-orphaned-data';
+                        countEl.textContent = 'No orphaned data found.';
+                        button.setButtonText(t('Check'));
                         button.setDisabled(false);
                     }
-                }));
-                
-        // 初始化时检查孤立数据数量
-        this.updateOrphanedDataCount(orphanedDataSetting.descEl);
+                    descEl.appendChild(countEl);
+                } catch (error) {
+                    console.error('[HiNote] Error checking orphaned data:', error);
+                    new Notice('Error checking orphaned data. Check console for details.');
+                    button.setButtonText(t('Check'));
+                    button.setDisabled(false);
+                }
+            });
+        });
+
     }
 }

@@ -67,6 +67,17 @@ settings:
     margin-bottom: 0 !important;
 }
 
+/* Markdown 渲染样式修复 - 移除 callout 上下边距 */
+.highlight-text-content.markdown-rendered .callout,
+.hi-note-content.markdown-rendered .callout,
+.flashcard-content.markdown-rendered .callout,
+.flashcard-paragraph.markdown-rendered .callout,
+.hi-note-tooltip-content.markdown-rendered .callout,
+.highlight-chat-message-content.markdown-rendered .callout {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
 /* Markdown 渲染样式修复 - 设置分割线的上下边距 */
 .highlight-text-content.markdown-rendered hr,
 .hi-note-content.markdown-rendered hr,
@@ -1210,7 +1221,7 @@ textarea.flashcard-modal-input {
 
 .flashcard-content {
     font-size: 1.2em;
-    line-height: 1.75;
+    line-height: 1.5;
     text-align: left;
     max-width: 90%;
     overflow-y: auto;
@@ -1220,7 +1231,7 @@ textarea.flashcard-modal-input {
 }
 
 .flashcard-back .flashcard-content hr {
-    margin: 20px 0;
+    margin: 16px 0;
     border: none;
     height: 1px;
     background: var(--text-muted);

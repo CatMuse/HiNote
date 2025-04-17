@@ -75,6 +75,31 @@ export class FlashcardComponent extends Component {
     }
 
     setCards(highlights: HiNote[]) {
+        // --- 新增：自动同步删除已被移除的高亮/批注对应的闪卡 ---
+        // 1. 按文件分组 highlights
+        const highlightsByFile: Record<string, HiNote[]> = {};
+        for (const h of highlights) {
+            if (!h.filePath) continue;
+            if (!highlightsByFile[h.filePath]) highlightsByFile[h.filePath] = [];
+            highlightsByFile[h.filePath].push(h);
+        }
+        // 2. 对每个文件，找出所有实际应存在的卡片内容
+        for (const filePath in highlightsByFile) {
+            const fileHighlights = highlightsByFile[filePath];
+            const validPairs = new Set(
+                fileHighlights.filter(h=>h.comments?.length)
+                    .map(h => h.text + '||' + h.comments.map(c => c.content).join('<hr>'))
+            );
+            // 3. 获取当前文件所有闪卡
+            const allCards = this.fsrsManager.getCardsByFile(filePath);
+            for (const card of allCards) {
+                const key = card.text + '||' + card.answer;
+                if (!validPairs.has(key)) {
+                    this.fsrsManager.deleteCardsByContent(filePath, card.text, card.answer);
+                }
+            }
+        }
+        // --- 新增结束 ---
 
         // 为每个高亮创建或更新闪卡
         for (const highlight of highlights) {
