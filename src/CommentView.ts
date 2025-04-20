@@ -555,7 +555,7 @@ export class CommentView extends ItemView {
     }
 
     // 添加新方法来检查视图位置
-    private checkViewPosition() {
+    private async checkViewPosition() {
         const root = this.app.workspace.rootSplit;
         const isInMainView = this.isViewInMainArea(this.leaf, root);
         
@@ -563,10 +563,16 @@ export class CommentView extends ItemView {
             this.isDraggedToMainView = isInMainView;
 
             if (isInMainView) {
-                // 拖拽到主视图，如果没有激活文档（currentFile 为 null），自动刷新全部高亮
-                if (this.currentFile === null) {
-                    this.updateAllHighlights();
+                // 拖拽到主视图时，若有激活文档则显示该文档高亮，否则显示全部高亮
+                const activeFile = this.app.workspace.getActiveFile();
+                if (activeFile) {
+                    this.currentFile = activeFile;
+                    await this.updateHighlights();
+                } else {
+                    this.currentFile = null;
+                    await this.updateAllHighlights();
                 }
+                this.updateFileListSelection();
             } else {
                 // 如果从主视图切换到侧边栏
                 // 如果当前处于 Flashcard 模式，自动清理
