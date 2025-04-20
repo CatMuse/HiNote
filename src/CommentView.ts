@@ -724,7 +724,7 @@ export class CommentView extends ItemView {
             for (const file of files) {
                 const fileHighlights = this.commentStore.getFileComments(file);
                 // 只添加非虚拟高亮且有评论的卡片
-                const validHighlights = fileHighlights.filter(h => !h.isVirtual && h.comments?.length > 0);
+                const validHighlights = fileHighlights.filter(h => !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/.test(h.text)));
                 allHighlights.push(...validHighlights);
             }
 

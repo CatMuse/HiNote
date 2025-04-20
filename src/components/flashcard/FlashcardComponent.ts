@@ -103,29 +103,37 @@ export class FlashcardComponent extends Component {
 
         // 为每个高亮创建或更新闪卡
         for (const highlight of highlights) {
-            // 检查是否有评论
-            if (!highlight.comments?.length) continue;
-            
-            // 检查是否包含标签
-            const containsTags = highlight.text && highlight.text.includes('#');
-            
-            
-            // 合并所有评论作为答案，保留标签信息用于分组和过滤
-            const answer = highlight.comments.map(c => c.content).join('<hr>');
-            
-            // 检查是否已存在相同内容的卡片
-            if (highlight.filePath) {
-                const existingCards = this.fsrsManager.getCardsByFile(highlight.filePath)
-                    .filter(card => card.text === highlight.text);
-                
-                if (existingCards.length === 0) {
-                    // 创建新卡片
-                    
-                    this.fsrsManager.addCard(highlight.text, answer, highlight.filePath);
-                } else {
-                    // 更新现有卡片
-                    
-                    this.fsrsManager.updateCardContent(highlight.text, answer, highlight.filePath);
+            // 多个挖空支持
+            const clozeMatches = [...highlight.text.matchAll(/\{\{([^{}]+)\}\}/g)];
+            let isCloze = clozeMatches.length > 0;
+            let clozeText = highlight.text;
+            let clozeAnswers: string[] = clozeMatches.map(m => m[1]);
+            if (isCloze) {
+                // 替换所有挖空为对应长度的下划线
+                clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
+            }
+            // 合并所有挖空答案
+            let clozeAnswer = clozeAnswers.join('<hr>');
+
+            // 修正逻辑：只要有批注 或 有挖空格式（即使 comments 为空数组），都识别为闪卡
+            if ((highlight.comments && highlight.comments.length > 0) || isCloze) {
+                // 合并所有评论作为答案
+                let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('<hr>') : '';
+                // 挖空格式优先，若有则拼接所有挖空答案
+                if (isCloze && clozeAnswer) {
+                    answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
+                }
+                // 检查是否已存在相同内容的卡片
+                if (highlight.filePath) {
+                    const existingCards = this.fsrsManager.getCardsByFile(highlight.filePath)
+                        .filter(card => card.text === clozeText);
+                    if (existingCards.length === 0) {
+                        // 创建新卡片
+                        this.fsrsManager.addCard(clozeText, answer, highlight.filePath);
+                    } else {
+                        // 更新现有卡片
+                        this.fsrsManager.updateCardContent(clozeText, answer, highlight.filePath);
+                    }
                 }
             }
         }
