@@ -63,7 +63,7 @@ export class HighlightService {
      * @param content 文本内容
      * @returns 高亮信息数组
      */
-    extractHighlights(content: string): HighlightInfo[] {
+    extractHighlights(content: string, file: TFile): HighlightInfo[] {
         const highlights: HighlightInfo[] = [];
         const pattern = this.settings.useCustomPattern 
             ? new RegExp(this.settings.highlightPattern, 'g')
@@ -91,7 +91,6 @@ export class HighlightService {
 
             if (!isDuplicate && text) {
                 // 获取当前文件的元数据缓存
-                const file = this.app.workspace.getActiveFile();
                 if (file) {
                     const cache = this.app.metadataCache.getFileCache(file);
                     if (cache?.sections) {
@@ -171,7 +170,7 @@ export class HighlightService {
             }
 
             const content = await this.app.vault.read(file);
-            const highlights = this.extractHighlights(content);
+            const highlights = this.extractHighlights(content, file);
             if (highlights.length > 0) {
                 filesWithHighlights.push(file);
                 totalHighlights += highlights.length;
@@ -180,7 +179,24 @@ export class HighlightService {
 
         return filesWithHighlights;
     }
-    
+
+    /**
+     * 获取所有包含高亮内容的文件及其高亮内容
+     */
+    async getAllHighlights(): Promise<{ file: TFile, highlights: HighlightInfo[] }[]> {
+        const files = this.app.vault.getMarkdownFiles();
+        const result: { file: TFile, highlights: HighlightInfo[] }[] = [];
+        for (const file of files) {
+            if (!this.shouldProcessFile(file)) continue;
+            const content = await this.app.vault.read(file);
+            const highlights = this.extractHighlights(content, file);
+            if (highlights.length > 0) {
+                result.push({ file, highlights });
+            }
+        }
+        return result;
+    }
+
     /**
      * 为指定位置创建 Block ID
      * 采用懒加载策略，只在特定场景下才实际创建 Block ID

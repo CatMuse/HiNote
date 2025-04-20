@@ -561,9 +561,14 @@ export class CommentView extends ItemView {
         
         if (this.isDraggedToMainView !== isInMainView) {
             this.isDraggedToMainView = isInMainView;
-            
-            // 如果从主视图切换到侧边栏
-            if (!isInMainView) {
+
+            if (isInMainView) {
+                // 拖拽到主视图，如果没有激活文档（currentFile 为 null），自动刷新全部高亮
+                if (this.currentFile === null) {
+                    this.updateAllHighlights();
+                }
+            } else {
+                // 如果从主视图切换到侧边栏
                 // 如果当前处于 Flashcard 模式，自动清理
                 if (this.isFlashcardMode) {
                     this.isFlashcardMode = false;
@@ -579,9 +584,13 @@ export class CommentView extends ItemView {
                 if (activeFile) {
                     this.currentFile = activeFile;
                     this.updateHighlights();
+                } else {
+                    // 没有激活文档，手动清空高亮，显示空提示
+                    this.highlights = [];
+                    this.renderHighlights([]);
                 }
             }
-            
+
             this.updateViewLayout();  // 更新视图布局
             this.updateHighlightsList();
         }
@@ -938,7 +947,7 @@ export class CommentView extends ItemView {
         
         for (const file of files) {
             const content = await this.app.vault.read(file);
-            if (this.highlightService.extractHighlights(content).length > 0) {
+            if (this.highlightService.extractHighlights(content, file).length > 0) {
                 filesWithHighlights.push(file);
             }
         }
@@ -948,116 +957,76 @@ export class CommentView extends ItemView {
 
     // 添加新方法来更新全部高亮
     private async updateAllHighlights() {
-        // 重置批次计数
-        this.currentBatch = 0;
-        this.highlights = [];
-        
-        // 清空容器并添加加载指示
-        this.highlightContainer.empty();
-        this.highlightContainer.appendChild(this.loadingIndicator);
-        
-        // 初始加载
-        await this.loadMoreHighlights();
+    // 重置批次计数
+    this.currentBatch = 0;
+    this.highlights = [];
 
-        // 添加滚动监听
-        const handleScroll = debounce(async (e: Event) => {
-            const container = e.target as HTMLElement;
-            const { scrollTop, scrollHeight, clientHeight } = container;
-            
-            // 当滚动到底部附近时加载更多
-            if (scrollHeight - scrollTop - clientHeight < 300) {
-                await this.loadMoreHighlights();
-            }
-        }, 100);
+    // 清空容器并添加加载指示
+    this.highlightContainer.empty();
+    this.highlightContainer.appendChild(this.loadingIndicator);
 
-        // 注册和清理滚动监听
-        this.highlightContainer.addEventListener('scroll', handleScroll);
-        this.register(() => this.highlightContainer.removeEventListener('scroll', handleScroll));
-    }
+    // 获取所有高亮
+    const allHighlights = await this.highlightService.getAllHighlights();
+    // 展平成扁平数组，附加文件信息
+    this.highlights = allHighlights.flatMap(({ file, highlights }) =>
+        highlights.map(h => ({
+            ...h,
+            fileName: file.basename,
+            filePath: file.path,
+            fileIcon: 'file-text'
+        }))
+    );
+
+    // 初始加载
+    await this.loadMoreHighlights();
+
+    // 添加滚动监听
+    const handleScroll = debounce(async (e: Event) => {
+        const container = e.target as HTMLElement;
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        // 当滚动到底部附近时加载更多
+        if (scrollHeight - scrollTop - clientHeight < 300) {
+            await this.loadMoreHighlights();
+        }
+    }, 100);
+
+    // 注册和清理滚动监听
+    this.highlightContainer.addEventListener('scroll', handleScroll);
+    this.register(() => this.highlightContainer.removeEventListener('scroll', handleScroll));
+}
+
 
     // 添加新方法：加载更多高亮
     private async loadMoreHighlights() {
-        if (this.isLoading) return;
-        this.isLoading = true;
-        this.loadingIndicator.addClass('highlight-display-block');
+    if (this.isLoading) return;
+    this.isLoading = true;
+    this.loadingIndicator.addClass('highlight-display-block');
 
-        try {
-            const files = await this.getFilesWithHighlights();
-            const start = this.currentBatch * this.BATCH_SIZE;
-            const batch = files.slice(start, start + this.BATCH_SIZE);
-            
-            if (batch.length === 0) {
-                this.loadingIndicator.remove();
-                return;
-            }
+    try {
+        const start = this.currentBatch * this.BATCH_SIZE;
+        const batch = this.highlights.slice(start, start + this.BATCH_SIZE);
 
-            // 处理这一批文件的高亮
-            const batchHighlights: HighlightInfo[] = [];
-            for (const file of batch) {
-                const content = await this.app.vault.read(file);
-                const highlights = this.highlightService.extractHighlights(content);
-                const storedComments = this.commentStore.getFileComments(file);
-                
-                // 处理每个高亮
-                const fileHighlights = highlights.map((highlight: HighlightInfo) => {
-                    const storedComment = storedComments.find(c => {
-                        const textMatch = c.text === highlight.text;
-                        if (textMatch && highlight.position !== undefined && c.position !== undefined) {
-                            // 如果文本匹配且都有位置信息，检查是否在同一段落内
-                            return Math.abs(c.position - highlight.position) < 1000; // 使用一个合理的范围值
-                        }
-                        return textMatch; // 如果没有位置信息，只比较文本
-                    });
-
-                    if (storedComment) {
-                        // 对评论按时间倒序排序
-                        const sortedComments = [...storedComment.comments].sort((a, b) => b.updatedAt - a.updatedAt);
-                        return {
-                            ...storedComment,
-                            comments: sortedComments,
-                            position: highlight.position,
-                            paragraphOffset: highlight.paragraphOffset,
-                            fileName: file.basename,
-                            filePath: file.path,
-                            fileIcon: 'file-text'
-                        };
-                    }
-
-                    return {
-                        id: this.generateHighlightId(highlight),
-                        ...highlight,
-                        comments: [],
-                        createdAt: Date.now(),
-                        updatedAt: Date.now(),
-                        fileName: file.basename,
-                        filePath: file.path,
-                        fileIcon: 'file-text'
-                    };
-                });
-
-                batchHighlights.push(...fileHighlights);
-            }
-
-            // 添加到现有高亮中
-            this.highlights.push(...batchHighlights);
-            
-            // 渲染新的高亮
-            await this.renderHighlights(batchHighlights, true);
-            this.currentBatch++;
-            
-        } catch (error) {
-
-            new Notice("加载高亮内容时出错");
-        } finally {
-            this.isLoading = false;
-            this.loadingIndicator.addClass('highlight-display-none');
+        if (batch.length === 0) {
+            this.loadingIndicator.remove();
+            return;
         }
+
+        // 渲染新的高亮
+        await this.renderHighlights(batch, true);
+        this.currentBatch++;
+    } catch (error) {
+        new Notice("加载高亮内容时出错");
+    } finally {
+        this.isLoading = false;
+        this.loadingIndicator.addClass('highlight-display-none');
     }
+}
+
 
     // 添加新方法来获取文件的高亮数量
     private async getFileHighlightsCount(file: TFile): Promise<number> {
         const content = await this.app.vault.read(file);
-        return this.highlightService.extractHighlights(content).length;
+        return this.highlightService.extractHighlights(content, file).length;
     }
 
     // 添加新方法：获取所有文件的高亮总数
@@ -1192,7 +1161,7 @@ export class CommentView extends ItemView {
         }
 
         const content = await this.app.vault.read(this.currentFile);
-        const highlights = this.highlightService.extractHighlights(content);
+        const highlights = this.highlightService.extractHighlights(content, this.currentFile!);
         
         // 获取已存储的评论
         const storedComments = this.commentStore.getFileComments(this.currentFile);
