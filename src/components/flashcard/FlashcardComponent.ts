@@ -103,24 +103,24 @@ export class FlashcardComponent extends Component {
 
         // 为每个高亮创建或更新闪卡
         for (const highlight of highlights) {
-            // 多个挖空支持
-            const clozeMatches = [...highlight.text.matchAll(/\{\{([^{}]+)\}\}/g)];
-            let isCloze = clozeMatches.length > 0;
+            let isCloze = false;
             let clozeText = highlight.text;
-            let clozeAnswers: string[] = clozeMatches.map(m => m[1]);
-            if (isCloze) {
-                // 替换所有挖空为对应长度的下划线
+            let clozeAnswer = '';
+            // 检查是否为挖空格式：{{内容}}
+            const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
+            if (clozeMatch) {
+                isCloze = true;
+                clozeAnswer = clozeMatch[1];
+                // 正面隐藏内容，动态下划线长度
                 clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
             }
-            // 合并所有挖空答案
-            let clozeAnswer = clozeAnswers.join('<hr>');
 
             // 修正逻辑：只要有批注 或 有挖空格式（即使 comments 为空数组），都识别为闪卡
             if ((highlight.comments && highlight.comments.length > 0) || isCloze) {
                 // 合并所有评论作为答案
                 let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('<hr>') : '';
-                // 挖空格式优先，若有则拼接所有挖空答案
-                if (isCloze && clozeAnswer) {
+                // 挖空格式优先，若有则拼接答案
+                if (isCloze) {
                     answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
                 }
                 // 检查是否已存在相同内容的卡片
