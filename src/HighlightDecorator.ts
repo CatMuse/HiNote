@@ -220,7 +220,7 @@ export class HighlightDecorator {
                 }
 
                 // 使用 HighlightService 提取高亮
-                const highlights = this.highlightService.extractHighlights(text);
+                const highlights = this.highlightService.extractHighlights(text, activeView.file);
 
                 // 为每个高亮文本添加 CommentWidget
                 for (const highlight of highlights) {
