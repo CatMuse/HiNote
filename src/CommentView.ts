@@ -770,9 +770,9 @@ export class CommentView extends ItemView {
 
         // 更新卡片数量的函数
         const updateFlashcardCount = async () => {
-            // 使用 getLatestCards() 获取最新版本的卡片数量
-            const latestCards = this.plugin.fsrsManager.getLatestCards();
-            flashcardCount.textContent = `${latestCards.length}`;
+            // 使用 getTotalCardsCount() 获取所有卡片的总数
+            const totalCards = this.plugin.fsrsManager.getTotalCardsCount();
+            flashcardCount.textContent = `${totalCards}`;
         };
 
         // 初始化卡片数量

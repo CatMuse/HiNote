@@ -324,6 +324,14 @@ export class FSRSManager {
         
         return Object.values(cardsByText);
     }
+    
+    /**
+     * 获取所有卡片的总数
+     * @returns 卡片总数
+     */
+    public getTotalCardsCount(): number {
+        return Object.keys(this.storage.cards).length;
+    }
 
     public getProgress(): FlashcardProgress {
         const cards = this.getLatestCards();
@@ -421,58 +429,70 @@ export class FSRSManager {
     }
 
     public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
-
         if (!this.storage.cardGroups) {
-
             this.storage.cardGroups = [];
         }
 
-        // 获取全局设置作为默认值
-        const params = this.fsrsService.getParameters();
+        // 检查是否已存在同名分组
+        const existingGroup = this.storage.cardGroups.find(g => g.name === group.name);
+        if (existingGroup) {
+            throw new Error(`Group with name '${group.name}' already exists`);
+        }
 
-        // 保留传入的设置，如果没有提供则使用默认值
+        // 生成唯一ID
+        const id = this.generateUUID();
+
+        // 创建新分组
         const newGroup: CardGroup = {
-            ...group,
-            id: this.generateUUID(),
+            id,
+            name: group.name,
+            filter: group.filter || '',
+            createdTime: Date.now(),
+            sortOrder: this.storage.cardGroups.length,
+            isReversed: group.isReversed || false,
             settings: group.settings || {
-                useGlobalSettings: true,  // 默认使用全局设置
-                newCardsPerDay: params.newCardsPerDay,
-                reviewsPerDay: params.reviewsPerDay
+                useGlobalSettings: true
             }
         };
 
+        // 添加到存储
         this.storage.cardGroups.push(newGroup);
+        await this.saveStorage();
+        
+        // 为新分组生成闪卡
+        await this.generateCardsForGroup(newGroup.id);
 
-        try {
-            await this.saveStorage(); // 等待保存完成
-
-            return newGroup;
-        } catch (error) {
-            // 如果保存失败，回滚更改
-            this.storage.cardGroups.pop();
-            throw error;
-        }
+        return newGroup;
     }
 
     public async updateCardGroup(groupId: string, updates: Partial<Omit<CardGroup, 'id'>>): Promise<boolean> {
         if (!this.storage.cardGroups) return false;
-        
-        const index = this.storage.cardGroups.findIndex(g => g.id === groupId);
-        if (index === -1) return false;
 
-        this.storage.cardGroups[index] = {
-            ...this.storage.cardGroups[index],
-            ...updates,
-            id: groupId // 确保 id 不被更新
-        };
-        
-        try {
-            await this.saveStorage();
-            return true;
-        } catch (error) {
+        const group = this.storage.cardGroups.find(g => g.id === groupId);
+        if (!group) return false;
 
-            return false;
+        // 检查是否更改了名称，如果是，确保新名称不与其他分组冲突
+        if (updates.name && updates.name !== group.name) {
+            const existingGroup = this.storage.cardGroups.find(g => g.name === updates.name && g.id !== groupId);
+            if (existingGroup) {
+                throw new Error(`Group with name '${updates.name}' already exists`);
+            }
         }
+        
+        // 记录更新前的过滤条件
+        const oldFilter = group.filter;
+
+        // 更新分组
+        Object.assign(group, updates);
+
+        await this.saveStorage();
+        
+        // 如果过滤条件发生变化，重新生成闪卡
+        if (updates.filter && updates.filter !== oldFilter) {
+            await this.generateCardsForGroup(groupId);
+        }
+        
+        return true;
     }
 
     public async deleteCardGroup(groupId: string): Promise<boolean> {
@@ -482,15 +502,26 @@ export class FSRSManager {
         if (index === -1) return false;
 
         const deletedGroup = this.storage.cardGroups[index];
+        
+        // 获取该分组内的所有卡片
+        const cardsInGroup = this.getCardsInGroup(deletedGroup);
+        
+        // 删除分组内的所有卡片
+        for (const card of cardsInGroup) {
+            this.deleteCard(card.id);
+        }
+        
+        // 删除分组
         this.storage.cardGroups.splice(index, 1);
         
         try {
             await this.saveStorage();
+            // 触发闪卡变化事件
+            this.plugin.eventManager.emitFlashcardChanged();
             return true;
         } catch (error) {
-            // 如果删除失败，恢复组
+            // 如果删除失败，恢复组（但卡片已被删除，无法恢复）
             this.storage.cardGroups.splice(index, 0, deletedGroup);
-
             return false;
         }
     }
@@ -727,5 +758,114 @@ export class FSRSManager {
         
         // 使用全局设置
         return Math.max(0, params.reviewsPerDay - todayStats.cardsReviewed);
+    }
+
+    /**
+     * 根据分组条件生成闪卡
+     * @param groupId 分组ID
+     * @returns 新创建的卡片数量
+     */
+    public async generateCardsForGroup(groupId: string): Promise<number> {
+        const group = this.storage.cardGroups.find(g => g.id === groupId);
+        if (!group) return 0;
+        
+        // 获取所有文件
+        const allFiles = this.plugin.app.vault.getMarkdownFiles();
+        const highlightService = this.plugin.highlightService;
+        const commentStore = this.plugin.commentStore;
+        
+        // 根据分组过滤条件筛选文件
+        const filteredFiles: any[] = [];
+        
+        // 文件路径筛选
+        if (group.filter.includes('path:')) {
+            const pathFilter = group.filter.match(/path:([^\s]+)/)?.[1];
+            if (pathFilter) {
+                for (const file of allFiles) {
+                    if (file.path.includes(pathFilter) && highlightService.shouldProcessFile(file)) {
+                        filteredFiles.push(file);
+                    }
+                }
+            } else {
+                // 如果没有路径过滤器，使用所有文件
+                filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
+            }
+        } else {
+            // 如果没有路径过滤器，使用所有文件
+            filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
+        }
+        
+        // 计数新创建的卡片
+        let newCardsCount = 0;
+        
+        // 遍历所有文件，获取高亮/评论
+        for (const file of filteredFiles) {
+            const fileHighlights = commentStore.getFileComments(file as any);
+            
+            // 标签筛选
+            let filteredHighlights = fileHighlights;
+            if (group.filter.includes('tag:')) {
+                const tagFilters = [...group.filter.matchAll(/tag:([^\s]+)/g)].map(m => m[1]);
+                if (tagFilters.length > 0) {
+                    filteredHighlights = fileHighlights.filter((highlight: any) => {
+                        const highlightTags = this.extractTagsFromText(highlight.text);
+                        const commentTags = highlight.comments?.flatMap((c: any) => 
+                            this.extractTagsFromText(c.content)
+                        ) || [];
+                        const allTags = [...highlightTags, ...commentTags];
+                        
+                        // 检查是否包含任一标签
+                        return tagFilters.some(tag => allTags.includes(tag));
+                    });
+                }
+            }
+            
+            // 只处理有评论的高亮或挖空格式的高亮
+            const validHighlights = filteredHighlights.filter((h: any) => 
+                !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/.test(h.text))
+            );
+            
+            // 为每个符合条件的高亮/评论创建闪卡（如果尚未创建）
+            for (const highlight of validHighlights) {
+                let isCloze = false;
+                let clozeText = highlight.text;
+                let clozeAnswer = '';
+                
+                // 检查是否为挖空格式：{{内容}}
+                const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
+                if (clozeMatch) {
+                    isCloze = true;
+                    clozeAnswer = clozeMatch[1];
+                    // 正面隐藏内容，动态下划线长度
+                    clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match: any, p1: any) => '＿'.repeat(p1.length));
+                }
+                
+                // 合并所有评论作为答案
+                let answer = highlight.comments?.length ? highlight.comments.map((c: any) => c.content).join('<hr>') : '';
+                // 挖空格式优先，若有则拼接答案
+                if (isCloze) {
+                    answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
+                }
+                
+                // 检查是否已存在相同内容的卡片
+                if (highlight.filePath) {
+                    const existingCards = this.getCardsByFile(highlight.filePath)
+                        .filter(card => card.text === clozeText);
+                    if (existingCards.length === 0) {
+                        // 创建新卡片
+                        this.addCard(clozeText, answer, highlight.filePath);
+                        newCardsCount++;
+                    } else {
+                        // 更新现有卡片
+                        this.updateCardContent(clozeText, answer, highlight.filePath);
+                    }
+                }
+            }
+        }
+        
+        await this.saveStorage();
+        // 触发闪卡变化事件
+        this.plugin.eventManager.emitFlashcardChanged();
+        return newCardsCount;
     }
 }
