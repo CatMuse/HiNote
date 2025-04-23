@@ -688,26 +688,41 @@ export class FlashcardComponent extends Component {
         const allCards = this.fsrsManager.getLatestCards();
         const now = Date.now();
         
+        // 获取所有自定义分组的卡片
+        const allCustomGroups = this.fsrsManager.getCardGroups() || [];
+        let customGroupCards: FlashcardState[] = [];
+        
+        // 合并所有自定义分组的卡片
+        allCustomGroups.forEach(group => {
+            const groupCards = this.fsrsManager.getCardsInGroup(group);
+            customGroupCards = [...customGroupCards, ...groupCards];
+        });
+        
+        // 去重（如果一张卡片在多个分组中出现）
+        const uniqueCustomCards = Array.from(new Map(customGroupCards.map(card => 
+            [card.id, card]
+        )).values());
+        
         const defaultGroupItems = [
             { 
                 name: t('All Cards'), 
                 icon: 'gallery-thumbnails',
-                getCards: () => allCards
+                getCards: () => uniqueCustomCards
             },
             { 
                 name: t('Due Today'), 
                 icon: 'calendar-clock',
-                getCards: () => allCards.filter(c => c.nextReview <= now)
+                getCards: () => uniqueCustomCards.filter(c => c.nextReview <= now)
             },
             { 
                 name: t('New Cards'), 
                 icon: 'sparkle',
-                getCards: () => allCards.filter(c => c.lastReview === 0)
+                getCards: () => uniqueCustomCards.filter(c => c.lastReview === 0)
             },
             { 
                 name: t('Learned'), 
                 icon: 'check-small',
-                getCards: () => allCards.filter(c => c.lastReview > 0)
+                getCards: () => uniqueCustomCards.filter(c => c.lastReview > 0)
             }
         ];
 
