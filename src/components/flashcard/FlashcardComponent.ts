@@ -75,7 +75,7 @@ export class FlashcardComponent extends Component {
     }
 
     setCards(highlights: HiNote[]) {
-        // --- 保留：同步删除已被移除的高亮/批注对应的闪卡 ---
+        // --- 新增：自动同步删除已被移除的高亮/批注对应的闪卡 ---
         // 1. 按文件分组 highlights
         const highlightsByFile: Record<string, HiNote[]> = {};
         for (const h of highlights) {
@@ -95,13 +95,49 @@ export class FlashcardComponent extends Component {
             for (const card of allCards) {
                 const key = card.text + '||' + card.answer;
                 if (!validPairs.has(key)) {
-                    this.fsrsManager.deleteCardsByContent(filePath, card.text, card.answer);
+                    // 如果卡片内容不在当前高亮/批注中，删除它
+                    this.fsrsManager.deleteCard(card.id);
                 }
             }
         }
-        // --- 同步删除逻辑结束 ---
+        // --- 新增结束 ---
 
-        // 注意：已移除自动创建闪卡的逻辑，现在只有在创建分组时才会生成闪卡
+        // 为每个高亮创建或更新闪卡
+        for (const highlight of highlights) {
+            let isCloze = false;
+            let clozeText = highlight.text;
+            let clozeAnswer = '';
+            // 检查是否为挖空格式：{{内容}}
+            const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
+            if (clozeMatch) {
+                isCloze = true;
+                clozeAnswer = clozeMatch[1];
+                // 正面隐藏内容，动态下划线长度
+                clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
+            }
+
+            // 修正逻辑：只要有批注 或 有挖空格式（即使 comments 为空数组），都识别为闪卡
+            if ((highlight.comments && highlight.comments.length > 0) || isCloze) {
+                // 合并所有评论作为答案
+                let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('<hr>') : '';
+                // 挖空格式优先，若有则拼接答案
+                if (isCloze) {
+                    answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
+                }
+                // 检查是否已存在相同内容的卡片
+                if (highlight.filePath) {
+                    const existingCards = this.fsrsManager.getCardsByFile(highlight.filePath)
+                        .filter(card => card.text === clozeText);
+                    if (existingCards.length === 0) {
+                        // 创建新卡片
+                        this.fsrsManager.addCard(clozeText, answer, highlight.filePath);
+                    } else {
+                        // 更新现有卡片
+                        // 注意：这里不更新卡片内容，因为可能会影响学习进度
+                    }
+                }
+            }
+        }
 
         // 获取当前分组的卡片
         if (this.currentGroupName === 'All Cards') {
