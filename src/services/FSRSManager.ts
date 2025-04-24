@@ -168,30 +168,7 @@ export class FSRSManager {
         return card;
     }
 
-    /**
-     * 更新卡片内容，保持学习进度不变
-     * @param text 新的高亮文本
-     * @param answer 新的评论内容
-     * @param filePath 文件路径
-     */
-    public updateCardContent(text: string, answer: string, filePath: string): void {
-        // 找到对应文件的所有卡片
-        const cards = this.getCardsByFile(filePath);
-        
-        // 遍历卡片，找到匹配的旧文本并更新
-        for (const card of cards) {
-            if (card.text === text || card.answer === answer) {
-                // 更新卡片内容，保持其他属性（如学习进度）不变
-                this.storage.cards[card.id] = {
-                    ...card,
-                    text,
-                    answer
-                };
-                this.saveStorageDebounced();
-                this.plugin.eventManager.emitFlashcardChanged();
-            }
-        }
-    }
+    // updateCardContent 方法已被删除，因为不再需要更新卡片内容的逻辑
 
     /**
      * 删除指定文件路径下的卡片
@@ -1052,27 +1029,14 @@ export class FSRSManager {
                     answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
                 }
                 
-                // 检查是否已存在相同内容的卡片
+                // 直接创建新卡片，不检查是否已存在相同内容的卡片
                 if (highlight.filePath) {
-                    const existingCards = this.getCardsByFile(highlight.filePath)
-                        .filter(card => card.text === clozeText);
-                    if (existingCards.length === 0) {
-                        // 创建新卡片
-                        const newCard = this.addCard(clozeText, answer, highlight.filePath);
-                        if (newCard && newCard.id) {
-                            // 将新卡片添加到分组
-                            this.addCardToGroup(newCard.id, groupId);
-                            newCardsCount++;
-                        }
-                    } else {
-                        // 更新现有卡片
-                        this.updateCardContent(clozeText, answer, highlight.filePath);
-                        // 确保卡片与分组关联
-                        for (const existingCard of existingCards) {
-                            if (existingCard && existingCard.id) {
-                                this.addCardToGroup(existingCard.id, groupId);
-                            }
-                        }
+                    // 创建新卡片
+                    const newCard = this.addCard(clozeText, answer, highlight.filePath);
+                    if (newCard && newCard.id) {
+                        // 将新卡片添加到分组
+                        this.addCardToGroup(newCard.id, groupId);
+                        newCardsCount++;
                     }
                 }
             }
