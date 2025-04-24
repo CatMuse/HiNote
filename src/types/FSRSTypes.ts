@@ -18,6 +18,7 @@ export interface FlashcardState {
     createdAt: number;    // 卡片创建时间戳
     reviews: number;      // 总复习次数
     lapses: number;       // 遗忘次数
+    groupIds?: string[];  // 卡片所属的分组ID列表
 }
 
 export interface FlashcardProgress {
@@ -46,6 +47,8 @@ export interface CardGroup {
         reviewsPerDay?: number;      // 每日复习数量限制
         useGlobalSettings?: boolean; // 是否使用全局设置
     };
+    cardIds?: string[];    // 该分组包含的卡片ID列表
+    lastUpdated?: number;  // 上次更新时间戳
 }
 
 export interface HiCardState {
