@@ -9,6 +9,7 @@ import { ChatView } from './src/components/ChatView';
 import { t } from './src/i18n';
 import { FSRSManager } from './src/services/FSRSManager';
 import { HighlightMatchingService } from './src/services/HighlightMatchingService';
+import { HighlightService } from './src/services/HighlightService';
 
 import { EventManager } from './src/services/EventManager';
 
@@ -29,6 +30,7 @@ export default class CommentPlugin extends Plugin {
 	public fsrsManager: FSRSManager;
 	public eventManager: EventManager;
 	public highlightMatchingService: HighlightMatchingService;
+	public highlightService: HighlightService;
 
 	async onload() {
 
@@ -53,9 +55,15 @@ export default class CommentPlugin extends Plugin {
 		// 初始化高亮匹配服务
 		this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
 
+		// 初始化高亮服务
+		this.highlightService = new HighlightService(this.app);
+
 		// 初始化高亮装饰器
 		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
 		this.highlightDecorator.enable();
+
+		// 注册事件处理程序
+		this.registerEventHandlers();
 
 		// 注册视图
 		this.registerView(
@@ -232,6 +240,32 @@ export default class CommentPlugin extends Plugin {
 					}, 100);
 				}
 			}
+		});
+	}
+
+	private registerEventHandlers() {
+		// 监听高亮更新事件
+		this.eventManager.on('highlight:update', (filePath: string, oldText: string, newText: string) => {
+			// 更新闪卡内容
+			this.fsrsManager.updateCardContent(newText, '', filePath);
+		});
+
+		// 监听评论更新事件
+		this.eventManager.on('comment:update', (filePath: string, oldComment: string, newComment: string) => {
+			// 更新闪卡内容
+			this.fsrsManager.updateCardContent('', newComment, filePath);
+		});
+
+		// 监听高亮删除事件
+		this.eventManager.on('highlight:delete', (filePath: string, text: string) => {
+			// 删除对应的闪卡
+			this.fsrsManager.deleteCardsByContent(filePath, text);
+		});
+
+		// 监听评论删除事件
+		this.eventManager.on('comment:delete', (filePath: string, comment: string) => {
+			// 删除对应的闪卡
+			this.fsrsManager.deleteCardsByContent(filePath, undefined, comment);
 		});
 	}
 

@@ -162,7 +162,7 @@ export class CommentStore {
                 const content = await this.plugin.app.vault.read(file);
                 
                 // 提取文件中的高亮
-                const extractedHighlights = this.highlightService.extractHighlights(content);
+                const extractedHighlights = this.highlightService.extractHighlights(content, file);
                 const extractedTexts = new Set(extractedHighlights.map(h => h.text));
                 
                 // 获取存储的高亮
@@ -223,7 +223,7 @@ export class CommentStore {
                 const content = await this.plugin.app.vault.read(file);
                 
                 // 提取文件中的高亮
-                const extractedHighlights = this.highlightService.extractHighlights(content);
+                const extractedHighlights = this.highlightService.extractHighlights(content, file);
                 const extractedTexts = new Set(extractedHighlights.map(h => h.text));
                 
                 // 获取存储的高亮
