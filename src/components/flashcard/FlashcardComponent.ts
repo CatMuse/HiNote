@@ -75,7 +75,7 @@ export class FlashcardComponent extends Component {
     }
 
     setCards(highlights: HiNote[]) {
-        // --- 新增：自动同步删除已被移除的高亮/批注对应的闪卡 ---
+        // --- 保留：同步删除已被移除的高亮/批注对应的闪卡 ---
         // 1. 按文件分组 highlights
         const highlightsByFile: Record<string, HiNote[]> = {};
         for (const h of highlights) {
@@ -99,44 +99,9 @@ export class FlashcardComponent extends Component {
                 }
             }
         }
-        // --- 新增结束 ---
+        // --- 同步删除逻辑结束 ---
 
-        // 为每个高亮创建或更新闪卡
-        for (const highlight of highlights) {
-            let isCloze = false;
-            let clozeText = highlight.text;
-            let clozeAnswer = '';
-            // 检查是否为挖空格式：{{内容}}
-            const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
-            if (clozeMatch) {
-                isCloze = true;
-                clozeAnswer = clozeMatch[1];
-                // 正面隐藏内容，动态下划线长度
-                clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
-            }
-
-            // 修正逻辑：只要有批注 或 有挖空格式（即使 comments 为空数组），都识别为闪卡
-            if ((highlight.comments && highlight.comments.length > 0) || isCloze) {
-                // 合并所有评论作为答案
-                let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('<hr>') : '';
-                // 挖空格式优先，若有则拼接答案
-                if (isCloze) {
-                    answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
-                }
-                // 检查是否已存在相同内容的卡片
-                if (highlight.filePath) {
-                    const existingCards = this.fsrsManager.getCardsByFile(highlight.filePath)
-                        .filter(card => card.text === clozeText);
-                    if (existingCards.length === 0) {
-                        // 创建新卡片
-                        this.fsrsManager.addCard(clozeText, answer, highlight.filePath);
-                    } else {
-                        // 更新现有卡片
-                        this.fsrsManager.updateCardContent(clozeText, answer, highlight.filePath);
-                    }
-                }
-            }
-        }
+        // 注意：已移除自动创建闪卡的逻辑，现在只有在创建分组时才会生成闪卡
 
         // 获取当前分组的卡片
         if (this.currentGroupName === 'All Cards') {
@@ -151,7 +116,6 @@ export class FlashcardComponent extends Component {
             // 自定义分组
             const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
             if (group) {
-                
                 this.cards = this.fsrsManager.getCardsInGroup(group);
             } else {
                 this.cards = this.fsrsManager.getLatestCards();
@@ -649,28 +613,6 @@ export class FlashcardComponent extends Component {
                 );
             }
         });
-        
-        // // 添加每日学习限制信息，先隐藏
-        // progressText.createSpan({
-        //     text: "|",
-        //     cls: "separator"
-        // });
-        
-        // const limitsEl = progressText.createEl("div", { cls: "stat" });
-        // limitsEl.createEl("span", { text: t('Limits:') });
-        
-        // // 获取当前分组ID（如果是自定义分组）
-        // const currentGroup = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
-        // const currentGroupId = currentGroup?.id;
-        
-        // // 根据当前分组获取剩余学习限制
-        // const newRemaining = this.fsrsManager.getRemainingNewCardsToday(currentGroupId);
-        // const reviewRemaining = this.fsrsManager.getRemainingReviewsToday(currentGroupId);
-        
-        // limitsEl.createEl("span", { 
-        //     text: `${newRemaining} ${t('New')}, ${reviewRemaining} ${t('Review')}`,
-        //     cls: "stat-value"
-        // });
         
         // 更新进度条
         this.updateProgress();
