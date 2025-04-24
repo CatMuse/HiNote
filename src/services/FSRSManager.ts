@@ -511,6 +511,27 @@ export class FSRSManager {
             this.deleteCard(card.id);
         }
         
+        // 清理 UI 状态
+        const uiState = this.storage.uiState;
+        
+        // 1. 清理分组完成消息
+        if (uiState.groupCompletionMessages && deletedGroup.name in uiState.groupCompletionMessages) {
+            delete uiState.groupCompletionMessages[deletedGroup.name];
+        }
+        
+        // 2. 清理分组学习进度
+        if (uiState.groupProgress && deletedGroup.name in uiState.groupProgress) {
+            delete uiState.groupProgress[deletedGroup.name];
+        }
+        
+        // 3. 如果当前活动分组是被删除的分组，切换到默认分组
+        if (uiState.currentGroupName === deletedGroup.name) {
+            uiState.currentGroupName = 'All Cards';
+            uiState.currentIndex = 0;
+            uiState.isFlipped = false;
+            uiState.completionMessage = null;
+        }
+        
         // 删除分组
         this.storage.cardGroups.splice(index, 1);
         
@@ -520,7 +541,7 @@ export class FSRSManager {
             this.plugin.eventManager.emitFlashcardChanged();
             return true;
         } catch (error) {
-            // 如果删除失败，恢复组（但卡片已被删除，无法恢复）
+            // 如果删除失败，恢复组（但卡片和 UI 状态已被删除，无法完全恢复）
             this.storage.cardGroups.splice(index, 0, deletedGroup);
             return false;
         }
@@ -776,22 +797,70 @@ export class FSRSManager {
         
         // 根据分组过滤条件筛选文件
         const filteredFiles: any[] = [];
+        const filterText = group.filter.toLowerCase();
         
-        // 文件路径筛选
-        if (group.filter.includes('path:')) {
-            const pathFilter = group.filter.match(/path:([^\s]+)/)?.[1];
-            if (pathFilter) {
-                for (const file of allFiles) {
-                    if (file.path.includes(pathFilter) && highlightService.shouldProcessFile(file)) {
-                        filteredFiles.push(file);
+        // 检查是否有文件相关的过滤条件
+        const hasFileFilter = (
+            filterText.includes('path:') || 
+            filterText.includes('[[') || 
+            filterText.includes('.md') ||
+            // 检查是否包含文件夹路径格式
+            /[\\\/]/.test(filterText)
+        );
+        
+        if (hasFileFilter) {
+            // 文件路径筛选 - path: 前缀
+            if (filterText.includes('path:')) {
+                const pathMatches = [...filterText.matchAll(/path:([^\s]+)/g)];
+                if (pathMatches.length > 0) {
+                    for (const match of pathMatches) {
+                        const pathFilter = match[1];
+                        for (const file of allFiles) {
+                            if (file.path.toLowerCase().includes(pathFilter) && 
+                                highlightService.shouldProcessFile(file) &&
+                                !filteredFiles.includes(file)) {
+                                filteredFiles.push(file);
+                            }
+                        }
                     }
                 }
-            } else {
-                // 如果没有路径过滤器，使用所有文件
-                filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
+            }
+            
+            // Wiki 链接格式 [[文件名]]
+            if (filterText.includes('[[')) {
+                const wikiMatches = [...filterText.matchAll(/\[\[([^\]]+)\]\]/g)];
+                if (wikiMatches.length > 0) {
+                    for (const match of wikiMatches) {
+                        const fileName = match[1].toLowerCase();
+                        for (const file of allFiles) {
+                            // 检查文件名（不含扩展名）或完整路径
+                            const fileNameWithoutExt = file.basename.toLowerCase();
+                            if ((fileNameWithoutExt === fileName || 
+                                 file.path.toLowerCase().includes(fileName)) && 
+                                highlightService.shouldProcessFile(file) &&
+                                !filteredFiles.includes(file)) {
+                                filteredFiles.push(file);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 如果以上条件都没有匹配到文件，尝试直接用过滤文本匹配文件路径
+            if (filteredFiles.length === 0) {
+                const filterParts = filterText.split(/\s+/);
+                for (const file of allFiles) {
+                    if (highlightService.shouldProcessFile(file)) {
+                        // 检查文件路径是否包含任何过滤部分
+                        const filePath = file.path.toLowerCase();
+                        if (filterParts.some(part => filePath.includes(part))) {
+                            filteredFiles.push(file);
+                        }
+                    }
+                }
             }
         } else {
-            // 如果没有路径过滤器，使用所有文件
+            // 如果没有文件相关的过滤条件，使用所有文件
             filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
         }
         
@@ -802,12 +871,16 @@ export class FSRSManager {
         for (const file of filteredFiles) {
             const fileHighlights = commentStore.getFileComments(file as any);
             
+            // 初始筛选：只处理有评论的高亮或挖空格式的高亮
+            let validHighlights = fileHighlights.filter((h: any) => 
+                !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/.test(h.text))
+            );
+            
             // 标签筛选
-            let filteredHighlights = fileHighlights;
             if (group.filter.includes('tag:')) {
                 const tagFilters = [...group.filter.matchAll(/tag:([^\s]+)/g)].map(m => m[1]);
                 if (tagFilters.length > 0) {
-                    filteredHighlights = fileHighlights.filter((highlight: any) => {
+                    validHighlights = validHighlights.filter((highlight: any) => {
                         const highlightTags = this.extractTagsFromText(highlight.text);
                         const commentTags = highlight.comments?.flatMap((c: any) => 
                             this.extractTagsFromText(c.content)
@@ -820,10 +893,20 @@ export class FSRSManager {
                 }
             }
             
-            // 只处理有评论的高亮或挖空格式的高亮
-            const validHighlights = filteredHighlights.filter((h: any) => 
-                !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/.test(h.text))
-            );
+            // 关键词筛选（如果没有特定的文件或标签筛选器）
+            if (!group.filter.includes('tag:') && !hasFileFilter) {
+                const keywords = group.filter.toLowerCase().split(/\s+/).filter(k => k.length > 0);
+                if (keywords.length > 0) {
+                    validHighlights = validHighlights.filter((highlight: any) => {
+                        const text = highlight.text.toLowerCase();
+                        const comments = highlight.comments?.map((c: any) => c.content.toLowerCase()).join(' ') || '';
+                        const content = text + ' ' + comments;
+                        
+                        // 检查是否包含所有关键词
+                        return keywords.every(keyword => content.includes(keyword));
+                    });
+                }
+            }
             
             // 为每个符合条件的高亮/评论创建闪卡（如果尚未创建）
             for (const highlight of validHighlights) {
