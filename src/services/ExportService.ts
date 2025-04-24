@@ -65,7 +65,7 @@ export class ExportService {
      */
     private async getFileHighlights(file: TFile): Promise<HighlightInfo[]> {
         const content = await this.app.vault.read(file);
-        const highlights = this.highlightService.extractHighlights(content);
+        const highlights = this.highlightService.extractHighlights(content, file);
         
         // 获取已存储的评论
         const storedComments = this.commentStore.getFileComments(file);
