@@ -23,6 +23,9 @@ export class HighlightService {
     // 默认的文本提取正则（可以被用户自定义替换）
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
         /==\s*(.*?)\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>/g;
+    
+    // 挖空格式的正则表达式 - 仅用于检测
+    private static readonly CLOZE_PATTERN = /\{\{([^{}]+)\}\}/;
 
 
     private settings: PluginSettings;
@@ -114,8 +117,12 @@ export class HighlightService {
                                 }
                             }
                         }
-                            
-                        highlights.push({
+                        
+                        // 检查是否包含挖空格式 {{}}
+                        const isCloze = HighlightService.CLOZE_PATTERN.test(text);
+                        
+                        // 创建高亮对象
+                        const highlight = {
                             text,
                             position: safeMatch.index,
                             paragraphOffset: this.getParagraphOffset(content, safeMatch.index),
@@ -125,9 +132,42 @@ export class HighlightService {
                             createdAt: Date.now(),
                             updatedAt: Date.now(),
                             originalLength: fullMatch.length,
-                            // 只存储纯 BlockID，不存储完整路径
-                            blockId: blockId
-                        });
+                            blockId: blockId,
+                            isCloze: isCloze // 如果包含挖空格式，标记为 true
+                        };
+                        
+                        highlights.push(highlight);
+                        
+                        // 如果是挖空格式，确保即使没有评论也能被保存
+                        if (isCloze) {
+                            try {
+                                // 获取插件实例
+                                const plugins = (this.app as any).plugins;
+                                const plugin = plugins && plugins.plugins ? 
+                                    plugins.plugins['hi-note'] : undefined;
+                                    
+                                if (plugin?.commentStore) {
+                                    // 转换为 HiNote 格式并添加到 CommentStore
+                                    const hiNote = {
+                                        id: highlight.id,
+                                        text: highlight.text,
+                                        position: highlight.position,
+                                        blockId: highlight.blockId,
+                                        comments: [],
+                                        createdAt: highlight.createdAt,
+                                        updatedAt: highlight.updatedAt,
+                                        paragraphOffset: highlight.paragraphOffset,
+                                        backgroundColor: highlight.backgroundColor,
+                                        isCloze: true
+                                    };
+                                    
+                                    // 添加到 CommentStore
+                                    plugin.commentStore.addHighlightWithCloze(file, hiNote);
+                                }
+                            } catch (error) {
+                                console.error('[HighlightService] Error adding cloze highlight:', error);
+                            }
+                        }
                     }
                 }
             }
@@ -136,6 +176,8 @@ export class HighlightService {
         // 按位置排序
         return highlights.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     }
+    
+
 
     /**
      * 获取段落偏移量

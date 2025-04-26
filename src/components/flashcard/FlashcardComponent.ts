@@ -38,6 +38,53 @@ export class FlashcardComponent extends Component {
         { label: t('Easy'), rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy', stability: 4 }
     ];
 
+    /**
+     * 从高亮中提取文件路径
+     * @param highlight 高亮数据
+     * @returns 文件路径或空字符串
+     */
+    private extractFilePathFromHighlight(highlight: HiNote): string {
+        // 如果高亮已经有 filePath，直接返回
+        if (highlight.filePath) {
+            return highlight.filePath;
+        }
+        
+        // 尝试从数据中查找包含该高亮的文件
+        try {
+            // 获取当前所有数据
+            const data = this.fsrsManager.getPlugin().commentStore.data;
+            
+            // 遍历所有文件
+            for (const filePath in data) {
+                const fileHighlights = data[filePath];
+                
+                // 检查每个高亮
+                for (const id in fileHighlights) {
+                    const h = fileHighlights[id];
+                    
+                    // 如果找到相同 ID 或相同内容和位置的高亮
+                    if (h.id === highlight.id || 
+                        (h.text === highlight.text && 
+                         Math.abs(h.position - highlight.position) < 10)) {
+                        console.log('从数据中找到高亮的文件路径:', filePath);
+                        return filePath;
+                    }
+                }
+            }
+            
+            // 如果没有找到匹配的高亮，尝试使用当前活动文件
+            const activeFile = this.fsrsManager.getPlugin().app.workspace.getActiveFile();
+            if (activeFile) {
+                console.log('使用当前活动文件作为高亮的文件路径:', activeFile.path);
+                return activeFile.path;
+            }
+        } catch (error) {
+            console.error('提取文件路径时出错:', error);
+        }
+        
+        return '';
+    }
+    
     private formatInterval(days: number): string {
         if (days < 1) {
             const hours = Math.round(days * 24);
@@ -87,8 +134,39 @@ export class FlashcardComponent extends Component {
         for (const filePath in highlightsByFile) {
             const fileHighlights = highlightsByFile[filePath];
             const validPairs = new Set(
-                fileHighlights.filter(h=>h.comments?.length)
-                    .map(h => h.text + '||' + h.comments.map(c => c.content).join('<hr>'))
+                fileHighlights.filter(h => 
+                    // 处理普通高亮+批注或挖空格式
+                    h.comments?.length || (h.text && /\{\{([^{}]+)\}\}/.test(h.text)) || h.isCloze === true
+                )
+                .map(h => {
+                    // 检查是否为挖空格式
+                    if (h.text && /\{\{([^{}]+)\}\}/.test(h.text)) {
+                        // 处理挖空格式 - 支持多个挖空
+                        const clozeMatches = [...h.text.matchAll(/\{\{([^{}]+)\}\}/g)];
+                        
+                        // 提取所有挖空答案
+                        const clozeAnswers = clozeMatches.map(match => match[1]);
+                        
+                        // 正面隐藏内容，动态下划线长度
+                        let clozeText = h.text;
+                        clozeMatches.forEach(match => {
+                            const fullMatch = match[0];  // {{内容}}
+                            const content = match[1];    // 内容
+                            clozeText = clozeText.replace(fullMatch, '＿'.repeat(content.length));
+                        });
+                        
+                        // 如果有批注，将批注内容与挖空答案合并
+                        let answer = clozeAnswers.join('<hr>');
+                        if (h.comments?.length) {
+                            answer = h.comments.map(c => c.content).join('<hr>') + '<hr>' + answer;
+                        }
+                        
+                        return clozeText + '||' + answer;
+                    } else {
+                        // 处理普通高亮+批注
+                        return h.text + '||' + h.comments.map(c => c.content).join('<hr>');
+                    }
+                })
             );
             // 3. 获取当前文件所有闪卡
             const allCards = this.fsrsManager.getCardsByFile(filePath);
@@ -107,13 +185,36 @@ export class FlashcardComponent extends Component {
             let isCloze = false;
             let clozeText = highlight.text;
             let clozeAnswer = '';
+            
             // 检查是否为挖空格式：{{内容}}
+            // 1. 通过文本内容检查
             const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
-            if (clozeMatch) {
+            // 2. 或者通过 isCloze 属性检查
+            if (clozeMatch || highlight.isCloze) {
                 isCloze = true;
-                clozeAnswer = clozeMatch[1];
-                // 正面隐藏内容，动态下划线长度
-                clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
+                
+                // 如果有匹配的挖空内容，提取答案
+                if (clozeMatch) {
+                    clozeAnswer = clozeMatch[1];
+                    // 正面隐藏内容，动态下划线长度
+                    clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
+                } else if (highlight.isCloze) {
+                    // 如果只有 isCloze 标记但没有匹配到挖空内容，重新尝试匹配多个挖空
+                    const clozeMatches = [...highlight.text.matchAll(/\{\{([^{}]+)\}\}/g)];
+                    if (clozeMatches.length > 0) {
+                        // 提取所有挖空答案
+                        const clozeAnswers = clozeMatches.map(match => match[1]);
+                        clozeAnswer = clozeAnswers.join('<hr>');
+                        
+                        // 替换所有挖空为下划线
+                        clozeText = highlight.text;
+                        clozeMatches.forEach(match => {
+                            const fullMatch = match[0];  // {{内容}}
+                            const content = match[1];    // 内容
+                            clozeText = clozeText.replace(fullMatch, '＿'.repeat(content.length));
+                        });
+                    }
+                }
             }
 
             // 修正逻辑：只要有批注 或 有挖空格式（即使 comments 为空数组），都识别为闪卡
@@ -125,16 +226,42 @@ export class FlashcardComponent extends Component {
                     answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
                 }
                 // 检查是否已存在相同内容的卡片
-                if (highlight.filePath) {
-                    const existingCards = this.fsrsManager.getCardsByFile(highlight.filePath)
-                        .filter(card => card.text === clozeText);
-                    if (existingCards.length === 0) {
+                // 确保高亮数据包含 filePath 属性
+                const filePath = highlight.filePath || this.extractFilePathFromHighlight(highlight);
+                
+                if (filePath) {
+                    // 使用卡片的文本和答案组合作为唯一标识
+                    const cardKey = clozeText + '||' + answer;
+                    
+                    // 获取当前文件的所有卡片
+                    const existingCards = this.fsrsManager.getCardsByFile(filePath);
+                    
+                    // 检查是否已存在相同内容的卡片（使用组合键进行比对）
+                    const existingCard = existingCards.find(card => {
+                        const existingKey = card.text + '||' + card.answer;
+                        return existingKey === cardKey;
+                    });
+                    
+                    if (!existingCard) {
                         // 创建新卡片
-                        this.fsrsManager.addCard(clozeText, answer, highlight.filePath);
+                        console.log('创建挖空闪卡:', clozeText, answer, filePath);
+                        
+                        // 直接使用 FSRSManager 创建卡片，然后立即保存
+                        const newCard = this.fsrsManager.addCard(clozeText, answer, filePath);
+                        console.log('新卡片创建成功:', newCard.id);
+                        
+                        // 强制刷新卡片列表
+                        setTimeout(() => {
+                            this.fsrsManager.saveStoragePublic();
+                            console.log('强制保存完成');
+                        }, 100);
                     } else {
                         // 更新现有卡片
                         // 注意：这里不更新卡片内容，因为可能会影响学习进度
+                        console.log('已存在挖空闪卡:', existingCard.id);
                     }
+                } else {
+                    console.error('无法为高亮创建闪卡，缺少 filePath:', highlight);
                 }
             }
         }

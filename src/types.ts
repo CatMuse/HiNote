@@ -24,6 +24,7 @@ export interface HighlightInfo {
     timestamp?: number;   // 添加时间戳
     fileType?: string;    // 文件类型
     originalLength?: number;  // 原始匹配文本的长度，包括标签
+    isCloze?: boolean;    // 标记是否为挖空格式
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';
