@@ -1310,10 +1310,23 @@ export class FlashcardComponent extends Component {
             retention: 0
         };
 
-        // 如果是默认分组，直接返回总体进度
-        if (this.currentGroupName === 'All Cards') {
-            return this.fsrsManager.getProgress() || defaultProgress;
-        }
+        // 获取所有自定义分组的卡片（去重）
+        const getCustomGroupCards = (): FlashcardState[] => {
+            // 获取所有自定义分组
+            const allCustomGroups = this.fsrsManager.getCardGroups() || [];
+            let customGroupCards: FlashcardState[] = [];
+            
+            // 合并所有自定义分组的卡片
+            allCustomGroups.forEach(group => {
+                const groupCards = this.fsrsManager.getCardsInGroup(group);
+                customGroupCards = [...customGroupCards, ...groupCards];
+            });
+            
+            // 去重（如果一张卡片在多个分组中出现）
+            return Array.from(new Map(customGroupCards.map(card => 
+                [card.id, card]
+            )).values());
+        };
 
         // 如果是自定义分组，获取分组 ID 并返回分组进度
         const group = this.fsrsManager.getCardGroups().find(g => g.name === this.currentGroupName);
@@ -1321,12 +1334,20 @@ export class FlashcardComponent extends Component {
             return this.fsrsManager.getGroupProgress(group.id) || defaultProgress;
         }
 
-        // 如果是内置分组，根据分组名称计算进度
-        const allCards = this.fsrsManager.getLatestCards();
+        // 对于默认分组，使用自定义分组的卡片进行统计
+        const customCards = getCustomGroupCards();
         const now = Date.now();
 
-        if (this.currentGroupName === 'Due Today') {
-            const dueCards = allCards.filter(c => c.nextReview <= now);
+        if (this.currentGroupName === 'All Cards') {
+            // 统计所有自定义分组卡片的进度
+            return {
+                due: customCards.filter(c => c.nextReview <= now).length,
+                newCards: customCards.filter(c => c.lastReview === 0).length,
+                learned: customCards.filter(c => c.lastReview > 0).length,
+                retention: this.calculateRetention(customCards)
+            };
+        } else if (this.currentGroupName === 'Due Today') {
+            const dueCards = customCards.filter(c => c.nextReview <= now);
             return {
                 due: dueCards.length,
                 newCards: dueCards.filter(c => c.lastReview === 0).length,
@@ -1334,7 +1355,7 @@ export class FlashcardComponent extends Component {
                 retention: this.calculateRetention(dueCards)
             };
         } else if (this.currentGroupName === 'New Cards') {
-            const newCards = allCards.filter(c => c.lastReview === 0);
+            const newCards = customCards.filter(c => c.lastReview === 0);
             return {
                 due: newCards.filter(c => c.nextReview <= now).length,
                 newCards: newCards.length,
@@ -1342,7 +1363,7 @@ export class FlashcardComponent extends Component {
                 retention: 0
             };
         } else if (this.currentGroupName === 'Learned') {
-            const learnedCards = allCards.filter(c => c.lastReview > 0);
+            const learnedCards = customCards.filter(c => c.lastReview > 0);
             return {
                 due: learnedCards.filter(c => c.nextReview <= now).length,
                 newCards: 0,
@@ -1351,8 +1372,13 @@ export class FlashcardComponent extends Component {
             };
         }
 
-        // 默认返回总体进度
-        return this.fsrsManager.getProgress() || defaultProgress;
+        // 默认返回自定义分组的汇总进度
+        return {
+            due: customCards.filter(c => c.nextReview <= now).length,
+            newCards: customCards.filter(c => c.lastReview === 0).length,
+            learned: customCards.filter(c => c.lastReview > 0).length,
+            retention: this.calculateRetention(customCards)
+        };
     }
 
     private calculateRetention(cards: FlashcardState[]) {

@@ -303,11 +303,29 @@ export class FSRSManager {
     }
     
     /**
-     * 获取所有卡片的总数
+     * 获取所有卡片的总数（只统计自定义分组中的卡片）
      * @returns 卡片总数
      */
     public getTotalCardsCount(): number {
-        return Object.keys(this.storage.cards).length;
+        // 获取所有自定义分组
+        const allGroups = this.getCardGroups() || [];
+        if (allGroups.length === 0) {
+            return 0; // 如果没有自定义分组，返回0
+        }
+        
+        // 收集所有自定义分组中的卡片ID
+        const customGroupCards = new Set<string>();
+        
+        // 遍历所有自定义分组，收集卡片ID
+        allGroups.forEach(group => {
+            const groupCards = this.getCardsInGroup(group);
+            groupCards.forEach(card => {
+                customGroupCards.add(card.id);
+            });
+        });
+        
+        // 返回去重后的卡片数量
+        return customGroupCards.size;
     }
 
     public getProgress(): FlashcardProgress {
