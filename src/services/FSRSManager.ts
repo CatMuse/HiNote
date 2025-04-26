@@ -330,30 +330,8 @@ export class FSRSManager {
             this.storage.globalStats.lastReviewDate = todayTimestamp;
             this.storage.globalStats.streakDays = 1;
         }
-        
-        // 保存更改
-        this.saveStorageDebounced();
     }
-
-    public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
-        const card = this.storage.cards[cardId];
-        if (!card) return null;
-
-        const updatedCard = this.fsrsService.reviewCard(card, rating);
-        this.storage.cards[cardId] = updatedCard;
-        
-        // 更新全局统计
-        this.updateGlobalStats(rating, updatedCard.retrievability);
-        
-        this.saveStorageDebounced();
-        this.plugin.eventManager.emitFlashcardChanged();
-        return updatedCard;
-    }
-
-    /**
-     * 获取今天到期需要复习的卡片
-     * @returns 今天需要复习的卡片列表
-     */
+    
     public getDueCards(): FlashcardState[] {
         const dueCards = this.fsrsService.getReviewableCards(Object.values(this.storage.cards));
         
@@ -381,6 +359,18 @@ export class FSRSManager {
         }
         
         return newCards.slice(0, remainingNew);
+    }
+
+    /**
+     * reviewCard 方法 - 作为 rateCard 的别名，用于兼容性
+     * @param cardId 卡片ID
+     * @param rating 评分 (0-3: Again, Hard, Good, Easy)
+     * @returns 更新后的卡片状态
+     */
+    public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
+        // 调用 rateCard 方法并返回更新后的卡片
+        this.rateCard(cardId, rating);
+        return this.storage.cards[cardId] || null;
     }
 
     public getLatestCards(): FlashcardState[] {
