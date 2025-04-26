@@ -140,7 +140,7 @@ export class FlashcardComponent extends Component {
                 )
                 .map(h => {
                     // 检查是否为挖空格式
-                    if (h.text && /\{\{([^{}]+)\}\}/.test(h.text)) {
+                    if ((h.text && /\{\{([^{}]+)\}\}/.test(h.text)) || h.isCloze === true) {
                         // 处理挖空格式 - 支持多个挖空
                         const clozeMatches = [...h.text.matchAll(/\{\{([^{}]+)\}\}/g)];
                         
@@ -148,12 +148,15 @@ export class FlashcardComponent extends Component {
                         const clozeAnswers = clozeMatches.map(match => match[1]);
                         
                         // 正面隐藏内容，动态下划线长度
-                        let clozeText = h.text;
+                        let processedText = h.text;
                         clozeMatches.forEach(match => {
                             const fullMatch = match[0];  // {{内容}}
                             const content = match[1];    // 内容
-                            clozeText = clozeText.replace(fullMatch, '＿'.repeat(content.length));
+                            processedText = processedText.replace(fullMatch, '＿'.repeat(content.length));
                         });
+                        
+                        // 更新最终的文本
+                        const clozeText = processedText;
                         
                         // 如果有批注，将批注内容与挖空答案合并
                         let answer = clozeAnswers.join('<hr>');
@@ -193,27 +196,45 @@ export class FlashcardComponent extends Component {
             if (clozeMatch || highlight.isCloze) {
                 isCloze = true;
                 
-                // 如果有匹配的挖空内容，提取答案
-                if (clozeMatch) {
-                    clozeAnswer = clozeMatch[1];
-                    // 正面隐藏内容，动态下划线长度
-                    clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
-                } else if (highlight.isCloze) {
-                    // 如果只有 isCloze 标记但没有匹配到挖空内容，重新尝试匹配多个挖空
-                    const clozeMatches = [...highlight.text.matchAll(/\{\{([^{}]+)\}\}/g)];
-                    if (clozeMatches.length > 0) {
-                        // 提取所有挖空答案
-                        const clozeAnswers = clozeMatches.map(match => match[1]);
-                        clozeAnswer = clozeAnswers.join('<hr>');
+                // 始终使用 matchAll 来处理多挖空情况
+                const clozeMatches = [...highlight.text.matchAll(/\{\{([^{}]+)\}\}/g)];
+                
+                if (clozeMatches.length > 0) {
+                    // 提取所有挖空答案
+                    const clozeAnswers = clozeMatches.map(match => match[1]);
+                    
+                    // 将所有挖空答案用 <hr> 分隔合并
+                    clozeAnswer = clozeAnswers.join('<hr>');
+                    
+                    // 替换所有挖空为等长下划线
+                    clozeText = highlight.text;
+                    
+                    // 使用循环替换每个挖空，确保正确处理多个挖空
+                    let processedText = highlight.text;
+                    clozeMatches.forEach(match => {
+                        const fullMatch = match[0];  // {{内容}}
+                        const content = match[1];    // 内容
+                        const underline = '＿'.repeat(content.length); // 使用全角下划线替换
                         
-                        // 替换所有挖空为下划线
-                        clozeText = highlight.text;
-                        clozeMatches.forEach(match => {
-                            const fullMatch = match[0];  // {{内容}}
-                            const content = match[1];    // 内容
-                            clozeText = clozeText.replace(fullMatch, '＿'.repeat(content.length));
-                        });
-                    }
+                        // 替换当前挖空
+                        processedText = processedText.replace(fullMatch, underline);
+                    });
+                    
+                    // 更新最终的文本
+                    clozeText = processedText;
+                    
+                    // 添加调试日志
+                    console.log('多挖空处理:', { 
+                        原文: highlight.text,
+                        挖空数量: clozeMatches.length,
+                        答案: clozeAnswer,
+                        处理后文本: clozeText
+                    });
+                } else if (highlight.isCloze) {
+                    // 如果没有匹配到挖空内容但有 isCloze 标记，使用原文本
+                    clozeText = highlight.text;
+                    clozeAnswer = highlight.text; // 如果没有匹配到挖空内容，使用原文本作为答案
+                    console.log('标记为挖空但没有匹配到挖空内容:', highlight.text);
                 }
             }
 
@@ -223,6 +244,7 @@ export class FlashcardComponent extends Component {
                 let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('<hr>') : '';
                 // 挖空格式优先，若有则拼接答案
                 if (isCloze) {
+                    // 如果有批注和挖空答案，将它们用 <hr> 分隔合并
                     answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
                 }
                 // 检查是否已存在相同内容的卡片
