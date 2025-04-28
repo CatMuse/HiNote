@@ -1,14 +1,14 @@
 import { Notice, setIcon, TFile, MarkdownRenderer, Component } from "obsidian";
 import { HiNote } from "../../CommentStore";
 import { LicenseManager } from "../../services/LicenseManager";
-import { FSRSManager } from "../../services/FSRSManager";
+import { FSRSManager } from "../services/FSRSManager";
 import { 
     FlashcardState, 
     FSRS_RATING, 
     FSRSRating, 
     CardGroup,
     FlashcardProgress
-} from "../../types/FSRSTypes";
+} from "../types/FSRSTypes";
 import { t } from "../../i18n";
 
 export class FlashcardComponent extends Component {

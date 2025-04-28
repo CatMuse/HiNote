@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon, debounce } from "obsidian";
-import { FlashcardComponent } from './components/flashcard/FlashcardComponent';
+import { FlashcardComponent } from './flashcard/components/FlashcardComponent';
 import { CommentStore, HiNote, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';

@@ -2,7 +2,7 @@ import { App, PluginSettingTab } from 'obsidian';
 import { PluginSettings } from '../types';
 import { GeneralSettingsTab } from './GeneralSettingsTab';
 import { AIServiceTab } from './AIServiceTab';
-import { FlashcardSettingsTab } from './FlashcardSettingsTab';
+import { FlashcardSettingsTab } from '../flashcard/settings/FlashcardSettingsTab';
 import { t } from '../i18n';
 import { LicenseManager } from '../services/LicenseManager';
 

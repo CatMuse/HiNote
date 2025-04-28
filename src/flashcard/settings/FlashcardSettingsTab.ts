@@ -1,5 +1,5 @@
 import { Setting, Notice } from 'obsidian';
-import { t } from '../i18n';
+import { t } from '../../i18n';
 import { FSRSService } from '../services/FSRSService';
 import { DailyStats } from '../types/FSRSTypes';
 

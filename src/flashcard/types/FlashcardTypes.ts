@@ -5,7 +5,7 @@ export interface Flashcard {
     sourceFile?: string;  // 原文件来源
 }
 
-export interface FlashcardState {
+export interface FlashcardUIState {
     currentIndex: number;
     isFlipped: boolean;
     cards: Flashcard[];

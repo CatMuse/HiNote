@@ -7,7 +7,7 @@ import { PluginSettings, DEFAULT_SETTINGS, HighlightSettings } from './src/types
 import html2canvas from 'html2canvas';
 import { ChatView } from './src/components/ChatView';
 import { t } from './src/i18n';
-import { FSRSManager } from './src/services/FSRSManager';
+import { FSRSManager } from './src/flashcard/services/FSRSManager';
 import { HighlightMatchingService } from './src/services/HighlightMatchingService';
 import { HighlightService } from './src/services/HighlightService';
 
