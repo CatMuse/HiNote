@@ -39,7 +39,6 @@ export class FlashcardUtils {
                     if (h.id === highlight.id || 
                         (h.text === highlight.text && 
                          Math.abs(h.position - highlight.position) < 10)) {
-                        console.log('从数据中找到高亮的文件路径:', filePath);
                         return filePath;
                     }
                 }
@@ -48,7 +47,6 @@ export class FlashcardUtils {
             // 如果没有找到匹配的高亮，尝试使用当前活动文件
             const activeFile = this.component.getFsrsManager().getPlugin().app.workspace.getActiveFile();
             if (activeFile) {
-                console.log('使用当前活动文件作为高亮的文件路径:', activeFile.path);
                 return activeFile.path;
             }
         } catch (error) {

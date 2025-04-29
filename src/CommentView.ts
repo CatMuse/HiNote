@@ -1224,7 +1224,6 @@ export class CommentView extends ItemView {
                     
                     // 确保找到的匹配高亮的ID未被使用过
                     if (matchingHighlight && !usedCommentIds.has(matchingHighlight.id)) {
-                        console.log(`[CommentView] 使用模糊匹配找到高亮: "${matchingHighlight.text}"`);
                         storedComment = matchingHighlight;
                     }
                 }

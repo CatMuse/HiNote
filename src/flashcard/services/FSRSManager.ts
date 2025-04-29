@@ -101,29 +101,16 @@ export class FSRSManager {
 
     private async saveStorage() {
         try {
-            // 记录当前存储状态
-            console.log('保存前的 storage 状态:', { 
-                cardsCount: Object.keys(this.storage.cards || {}).length,
-                cardGroupsCount: (this.storage.cardGroups || []).length
-            });
-
             // 加载当前数据
             const currentData = await this.plugin.loadData() || {};
-            console.log('当前数据:', { 
-                hasComments: !!currentData.comments,
-                hasFsrs: !!currentData.fsrs,
-                fsrsCardsCount: currentData.fsrs?.cards ? Object.keys(currentData.fsrs.cards).length : 0
-            });
             
             // 确保 cardGroups 在保存前正确初始化
             if (!Array.isArray(this.storage.cardGroups)) {
-                console.log('初始化 cardGroups 数组');
                 this.storage.cardGroups = [];
             }
 
             // 确保 cards 对象存在
             if (!this.storage.cards) {
-                console.log('初始化 cards 对象');
                 this.storage.cards = {};
             }
 
@@ -133,18 +120,7 @@ export class FSRSManager {
                 fsrs: this.storage
             };
 
-            console.log('准备保存的数据:', { 
-                fsrsCardsCount: dataToSave.fsrs?.cards ? Object.keys(dataToSave.fsrs.cards).length : 0 
-            });
-
             await this.plugin.saveData(dataToSave);
-            console.log('数据保存完成');
-
-            // 验证保存
-            const verifyData = await this.plugin.loadData();
-            console.log('验证保存的数据:', { 
-                fsrsCardsCount: verifyData.fsrs?.cards ? Object.keys(verifyData.fsrs.cards).length : 0 
-            });
 
         } catch (error) {
             console.error('保存数据时出错:', error);
@@ -182,22 +158,17 @@ export class FSRSManager {
     }
 
     public addCard(text: string, answer: string, filePath?: string): FlashcardState {
-        console.log('FSRSManager.addCard 被调用:', { text, answer, filePath });
         const card = this.fsrsService.initializeCard(text, answer, filePath);
-        console.log('创建的新卡片:', card);
         
         // 确保 storage.cards 存在
         if (!this.storage.cards) {
-            console.log('初始化 storage.cards 对象');
             this.storage.cards = {};
         }
         
         this.storage.cards[card.id] = card;
-        console.log('添加卡片后的 storage.cards:', Object.keys(this.storage.cards).length);
         
         // 立即保存，而不是使用防抖
         this.saveStorage().then(() => {
-            console.log('卡片保存成功');
             this.plugin.eventManager.emitFlashcardChanged();
         }).catch(err => {
             console.error('保存卡片时出错:', err);
@@ -213,21 +184,16 @@ export class FSRSManager {
      * @param filePath 文件路径
      */
     public updateCardContent(text: string, answer: string, filePath?: string): void {
-        console.log('FSRSManager.updateCardContent 被调用:', { text, answer, filePath });
-        
         if (!filePath) {
-            console.log('未提供文件路径，无法更新卡片');
             return;
         }
         
         // 获取指定文件的所有卡片
         const cardsInFile = this.getCardsByFile(filePath);
-        console.log(`找到 ${cardsInFile.length} 张卡片在文件 ${filePath} 中`);
         
         // 如果提供了文本，更新匹配文本的卡片
         if (text) {
             const cardsWithText = cardsInFile.filter(card => card.text.includes(text));
-            console.log(`找到 ${cardsWithText.length} 张包含文本的卡片`);
             
             cardsWithText.forEach(card => {
                 // 更新卡片文本，保留其他属性不变
@@ -241,7 +207,6 @@ export class FSRSManager {
         // 如果提供了答案，更新匹配答案的卡片
         if (answer) {
             const cardsWithAnswer = cardsInFile.filter(card => card.answer.includes(answer));
-            console.log(`找到 ${cardsWithAnswer.length} 张包含答案的卡片`);
             
             cardsWithAnswer.forEach(card => {
                 // 更新卡片答案，保留其他属性不变
@@ -254,7 +219,6 @@ export class FSRSManager {
         
         // 保存更改
         this.saveStorage().then(() => {
-            console.log('卡片内容更新成功');
             this.plugin.eventManager.emitFlashcardChanged();
         }).catch(err => {
             console.error('更新卡片内容时出错:', err);

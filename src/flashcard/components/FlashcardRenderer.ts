@@ -219,7 +219,6 @@ export class FlashcardRenderer {
                 };
                 
                 // 使用分组名称作为标识符
-                console.log(`点击分组: ${group.name}`);
                 this.component.setCurrentGroupName(group.name);
                 
                 // 移除其他组的激活状态
