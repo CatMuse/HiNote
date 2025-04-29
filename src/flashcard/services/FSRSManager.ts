@@ -294,26 +294,33 @@ export class FSRSManager {
      * @param rating 评分 (0-3: Again, Hard, Good, Easy)
      */
     public rateCard(cardId: string, rating: FSRSRating): void {
+        // 查找卡片
         const card = this.storage.cards[cardId];
         if (!card) return;
-        
-        const isNewCard = card.reviews === 0;
-        
-        // 使用FSRS算法更新卡片状态
+
+        // 使用 FSRS 服务进行评分
         const updatedCard = this.fsrsService.reviewCard(card, rating);
+        
+        // 更新卡片状态
         this.storage.cards[cardId] = updatedCard;
         
         // 更新全局统计数据
-        this.storage.globalStats.totalReviews++;
+        this.updateGlobalStats(rating, updatedCard.retrievability);
         
-        // 更新今天的学习统计数据
-        this.updateTodayStats(isNewCard);
+        // 更新每日统计数据
+        this.updateDailyStats(rating);
         
-        // 更新最后复习日期和连续学习天数
+        // 保存更改
+        this.saveStorageDebounced();
+    }
+    
+    // 更新每日统计数据
+    private updateDailyStats(rating: FSRSRating): void {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayTimestamp = today.getTime();
         
+        // 更新最后复习日期和连续学习天数
         if (this.storage.globalStats.lastReviewDate === 0) {
             // 第一次复习
             this.storage.globalStats.lastReviewDate = todayTimestamp;
@@ -329,6 +336,40 @@ export class FSRSManager {
             // 之前复习过，但不是昨天，重置连续学习天数
             this.storage.globalStats.lastReviewDate = todayTimestamp;
             this.storage.globalStats.streakDays = 1;
+        }
+        
+        // 更新每日统计数据
+        let todayStats = this.storage.dailyStats.find(stats => stats.date === todayTimestamp);
+        
+        if (!todayStats) {
+            todayStats = {
+                date: todayTimestamp,
+                newCardsLearned: 0,
+                cardsReviewed: 0,
+                reviewCount: 0,
+                newCount: 0,
+                againCount: 0,
+                hardCount: 0,
+                goodCount: 0,
+                easyCount: 0
+            };
+            this.storage.dailyStats.push(todayStats);
+        }
+        
+        // 更新评分统计
+        if (todayStats) {
+            todayStats.reviewCount++;
+            todayStats.cardsReviewed++;
+            
+            if (rating === FSRS_RATING.AGAIN) {
+                todayStats.againCount++;
+            } else if (rating === FSRS_RATING.HARD) {
+                todayStats.hardCount++;
+            } else if (rating === FSRS_RATING.GOOD) {
+                todayStats.goodCount++;
+            } else if (rating === FSRS_RATING.EASY) {
+                todayStats.easyCount++;
+            }
         }
     }
     
@@ -368,9 +409,22 @@ export class FSRSManager {
      * @returns 更新后的卡片状态
      */
     public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
-        // 调用 rateCard 方法并返回更新后的卡片
+        // 调用 rateCard 方法
         this.rateCard(cardId, rating);
+        
+        // 返回更新后的卡片
         return this.storage.cards[cardId] || null;
+    }
+    
+    // 获取卡片在不同评分下的预测结果
+    // @param cardId 卡片ID
+    // @returns 不同评分下的预测结果，如果卡片不存在则返回 null
+    public getCardPredictions(cardId: string): Record<FSRSRating, FlashcardState> | null {
+        const card = this.storage.cards[cardId];
+        if (!card) return null;
+        
+        // 使用 FSRS 服务获取预测结果
+        return this.fsrsService.getSchedulingCards(card);
     }
 
     public getLatestCards(): FlashcardState[] {
@@ -887,7 +941,13 @@ export class FSRSManager {
             todayStats = {
                 date: todayTimestamp,
                 newCardsLearned: 0,
-                cardsReviewed: 0
+                cardsReviewed: 0,
+                reviewCount: 0,
+                newCount: 0,
+                againCount: 0,
+                hardCount: 0,
+                goodCount: 0,
+                easyCount: 0
             };
             this.storage.dailyStats.push(todayStats);
             

@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"html2canvas": "^1.4.1",
-		"minimatch": "^10.0.1"
+		"minimatch": "^10.0.1",
+		"ts-fsrs": "^4.7.1"
 	}
 }

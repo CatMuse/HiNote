@@ -218,6 +218,8 @@ export class FlashcardRenderer {
                     isFlipped: this.component.isCardFlipped()
                 };
                 
+                // 使用分组名称作为标识符
+                console.log(`点击分组: ${group.name}`);
                 this.component.setCurrentGroupName(group.name);
                 
                 // 移除其他组的激活状态
@@ -499,6 +501,9 @@ export class FlashcardRenderer {
             // 创建评分按钮容器（无论是否翻转都创建）
             const ratingContainer = cardContainer.createEl("div", { cls: "flashcard-rating" });
             
+            // 获取卡片预测信息
+            const predictions = currentCard ? this.component.getFsrsManager().getCardPredictions(currentCard.id) : null;
+            
             this.component.getRatingButtons().forEach((btn: any) => {
                 const button = ratingContainer.createEl("button", {
                     cls: 'flashcard-rating-button',
@@ -508,14 +513,42 @@ export class FlashcardRenderer {
                     }
                 });
                 
-                // 添加标签和预测的下次复习时间
+                // 添加标签
                 button.createSpan({ text: btn.label });
-                const interval = currentCard?.lastReview === 0 ? btn.stability :
-                    this.component.getFsrsManager().fsrsService.calculateNextInterval(0.9, btn.stability);
-                button.createSpan({ 
-                    text: this.component.getUtils().formatInterval(interval),
-                    cls: 'days' 
-                });
+                
+                // 添加预测的下次复习时间
+                if (predictions && predictions[btn.rating]) {
+                    // 使用 ts-fsrs 预测的下次复习时间
+                    const nextReview = new Date(predictions[btn.rating].nextReview);
+                    const now = new Date();
+                    const diffDays = Math.round((nextReview.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    // 添加预测信息
+                    const predictionSpan = button.createSpan({ 
+                        cls: 'prediction-info'
+                    });
+                    
+                    // 显示天数
+                    predictionSpan.createSpan({ 
+                        text: this.component.getUtils().formatInterval(diffDays),
+                        cls: 'days' 
+                    });
+                    
+                    // 显示具体日期
+                    predictionSpan.createSpan({ 
+                        text: ` (${nextReview.toLocaleDateString()})`,
+                        cls: 'date' 
+                    });
+                } else {
+                    // 如果没有预测信息，使用旧的计算方式
+                    const interval = currentCard?.lastReview === 0 ? btn.stability :
+                        this.component.getFsrsManager().fsrsService.calculateNextInterval(0.9, btn.stability);
+                    button.createSpan({ 
+                        text: this.component.getUtils().formatInterval(interval),
+                        cls: 'days' 
+                    });
+                }
+                
                 button.addEventListener("click", (e: MouseEvent) => {
                     e.stopPropagation(); // 防止点击评分按钮时触发卡片翻转
                     this.component.rateCard(btn.rating);

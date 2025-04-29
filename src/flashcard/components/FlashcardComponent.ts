@@ -169,7 +169,7 @@ export class FlashcardComponent extends Component {
     }
     
     public getApp(): any {
-        return this.app;
+        return { app: this.app };
     }
     
     public getFsrsManager(): FSRSManager {

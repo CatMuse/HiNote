@@ -64,6 +64,12 @@ export interface DailyStats {
     date: number;             // 日期时间戳 (当天的0点)
     newCardsLearned: number;  // 当天学习的新卡片数量
     cardsReviewed: number;    // 当天复习的卡片数量
+    reviewCount: number;      // 当天评分总数
+    newCount: number;         // 当天新卡片数
+    againCount: number;       // Again 评分数量
+    hardCount: number;        // Hard 评分数量
+    goodCount: number;        // Good 评分数量
+    easyCount: number;        // Easy 评分数量
 }
 
 export interface FSRSStorage {
