@@ -64,25 +64,68 @@ export class HighlightService {
     /**
      * 从文本中提取所有高亮
      * @param content 文本内容
+     * @param file 文件对象
      * @returns 高亮信息数组
      */
     extractHighlights(content: string, file: TFile): HighlightInfo[] {
         const highlights: HighlightInfo[] = [];
-        const pattern = this.settings.useCustomPattern 
-            ? new RegExp(this.settings.highlightPattern, 'g')
-            : HighlightService.DEFAULT_HIGHLIGHT_PATTERN;
-
+        
+        // 如果使用自定义规则且有规则配置
+        if (this.settings.useCustomPattern && this.settings.regexRules?.length > 0) {
+            // 遍历所有启用的规则
+            for (const rule of this.settings.regexRules.filter(r => r.enabled)) {
+                try {
+                    const pattern = new RegExp(rule.pattern, 'g');
+                    this.processRegexMatches(content, pattern, highlights, file, rule.color);
+                } catch (error) {
+                    console.error(`[HighlightService] 正则规则 "${rule.name}" 错误:`, error);
+                }
+            }
+        } else {
+            // 使用默认规则
+            this.processRegexMatches(
+                content, 
+                HighlightService.DEFAULT_HIGHLIGHT_PATTERN, 
+                highlights, 
+                file, 
+                '#ffeb3b' // 使用固定的默认黄色
+            );
+        }
+        
+        // 按位置排序
+        return highlights.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    }
+    
+    /**
+     * 处理正则表达式匹配
+     * @param content 文本内容
+     * @param pattern 正则表达式
+     * @param highlights 高亮数组
+     * @param file 文件对象
+     * @param backgroundColor 背景颜色
+     */
+    private processRegexMatches(
+        content: string, 
+        pattern: RegExp, 
+        highlights: HighlightInfo[], 
+        file: TFile, 
+        backgroundColor: string
+    ): void {
         let match: RegExpExecArray | null;
         while ((match = pattern.exec(content)) !== null) {
             const safeMatch = match as RegExpExecArray; // 类型断言，因为在循环中 match 一定不为 null
             const fullMatch = safeMatch[0];
             // 找到第一个非空的捕获组作为文本内容
-            const text = safeMatch.slice(1).find(group => group !== undefined);
+            // 如果没有捕获组，则使用全部匹配内容
+            let text = safeMatch.slice(1).find(group => group !== undefined);
+            if (!text) {
+                text = fullMatch; // 如果没有捕获组，则使用全部匹配内容
+            }
             
-            // 尝试提取颜色
-            let backgroundColor = null;
+            // 尝试提取颜色（如果HTML元素中包含样式）
+            let extractedColor = null;
             if (fullMatch.includes('style=')) {
-                backgroundColor = this.colorExtractor.extractColorFromElement(fullMatch);
+                extractedColor = this.colorExtractor.extractColorFromElement(fullMatch);
             }
 
             // 检查是否已存在相同位置的高亮
@@ -126,7 +169,7 @@ export class HighlightService {
                             text,
                             position: safeMatch.index,
                             paragraphOffset: this.getParagraphOffset(content, safeMatch.index),
-                            backgroundColor: backgroundColor || this.settings.defaultHighlightColor,
+                            backgroundColor: extractedColor || backgroundColor,
                             id: `highlight-${Date.now()}-${safeMatch.index}`,
                             comments: [],
                             createdAt: Date.now(),
@@ -172,9 +215,6 @@ export class HighlightService {
                 }
             }
         }
-
-        // 按位置排序
-        return highlights.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     }
     
 

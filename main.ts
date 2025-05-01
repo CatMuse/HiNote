@@ -298,8 +298,7 @@ export default class CommentPlugin extends Plugin {
             this.settings = {
                 excludePatterns: DEFAULT_SETTINGS.excludePatterns,
                 useCustomPattern: DEFAULT_SETTINGS.useCustomPattern,
-                highlightPattern: DEFAULT_SETTINGS.highlightPattern,
-                defaultHighlightColor: DEFAULT_SETTINGS.defaultHighlightColor,
+                regexRules: [...DEFAULT_SETTINGS.regexRules],
                 ai: {
                     provider: DEFAULT_SETTINGS.ai.provider,
                     openai: DEFAULT_SETTINGS.ai.openai ? { ...DEFAULT_SETTINGS.ai.openai } : undefined,
@@ -404,8 +403,10 @@ export default class CommentPlugin extends Plugin {
         // 确保高亮相关设置存在并有默认值
         this.settings.excludePatterns = this.settings.excludePatterns ?? DEFAULT_SETTINGS.excludePatterns;
         this.settings.useCustomPattern = this.settings.useCustomPattern ?? DEFAULT_SETTINGS.useCustomPattern;
-        this.settings.highlightPattern = this.settings.highlightPattern || DEFAULT_SETTINGS.highlightPattern;
-        this.settings.defaultHighlightColor = this.settings.defaultHighlightColor || DEFAULT_SETTINGS.defaultHighlightColor;
+        // 确保 regexRules 存在
+        if (!this.settings.regexRules || !Array.isArray(this.settings.regexRules)) {
+            this.settings.regexRules = [...DEFAULT_SETTINGS.regexRules];
+        }
 
         // 确保 AI 设置存在
         if (!this.settings.ai) {
@@ -469,7 +470,6 @@ export default class CommentPlugin extends Plugin {
                 exportPath: DEFAULT_SETTINGS.export.exportPath
             };
         }
-        
         await this.saveData(this.settings);
     }
 }

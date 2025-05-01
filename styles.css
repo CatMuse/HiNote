@@ -2965,3 +2965,69 @@ textarea.flashcard-modal-input {
 .flashcard-rating-button .days {
     color: white;
 }
+
+/* 设置页面样式 */
+.modal-button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.orphaned-data-count {
+    color: var(--text-error);
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.no-orphaned-data {
+    color: var(--text-success);
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+/* 正则表达式规则编辑器样式 */
+.regex-rules-container {
+    margin-top: 10px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.regex-rule-item {
+    display: grid;
+    grid-template-columns: 1fr 2fr 80px 30px 30px;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+/* 开关样式调整 */
+.regex-rule-toggle {
+    justify-self: center;
+}
+
+.regex-rule-delete {
+    cursor: pointer;
+    color: var(--text-error);
+    font-size: 16px;
+    text-align: center;
+}
+
+.regex-rule-add {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.regex-rule-warning {
+    color: var(--text-warning);
+    font-size: 0.8em;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+/* 颜色输入框样式 */
+.regex-rule-item .color-input {
+    width: 80px;
+}

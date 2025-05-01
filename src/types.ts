@@ -143,8 +143,29 @@ export const DEFAULT_SILICONFLOW_MODELS: AIModel[] = [
 export const DEFAULT_SETTINGS: PluginSettings = {
     excludePatterns: '',  // 默认不排除任何文件
     useCustomPattern: false,
-    highlightPattern: '==\\s*([\\s\\S]*?)\\s*==|<mark[^>]*>([\\s\\S]*?)</mark>|<span[^>]*>([\\s\\S]*?)</span>',
-    defaultHighlightColor: '#ffeb3b',
+    regexRules: [
+        {
+            id: 'default-md',
+            name: '默认Markdown高亮',
+            pattern: '==\s*([\s\S]*?)\s*==',
+            color: '#ffeb3b',
+            enabled: true
+        },
+        {
+            id: 'default-mark',
+            name: 'HTML Mark标签',
+            pattern: '<mark[^>]*>([\s\S]*?)</mark>',
+            color: '#ffeb3b',
+            enabled: true
+        },
+        {
+            id: 'default-span',
+            name: 'HTML Span标签',
+            pattern: '<span[^>]*>([\s\S]*?)</span>',
+            color: '#ffeb3b',
+            enabled: true
+        }
+    ],
     ai: {
         provider: 'ollama',
         ollama: {
@@ -216,13 +237,21 @@ declare global {
     }
 }
 
+// 正则表达式规则
+export interface RegexRule {
+  id: string;         // 唯一标识符
+  name: string;       // 规则名称
+  pattern: string;    // 正则表达式
+  color: string;      // 高亮颜色
+  enabled: boolean;   // 是否启用
+}
+
 export interface HighlightSettings {
-    export: {
-        exportPath: string;
-        exportTemplate?: string;
-    };
-    excludePatterns: string;
-    useCustomPattern: boolean;
-    highlightPattern: string;
-    defaultHighlightColor: string;
+  export: {
+    exportPath: string;
+    exportTemplate?: string;
+  };
+  excludePatterns: string;
+  useCustomPattern: boolean;
+  regexRules: RegexRule[];   // 正则表达式规则数组
 }

@@ -1,6 +1,7 @@
 import { Setting, Notice, Modal } from 'obsidian';
 import { t } from '../i18n';
 import { DEFAULT_SETTINGS } from '../types';
+import { RegexRuleEditor } from './RegexRuleEditor';
 
 export class GeneralSettingsTab {
     private plugin: any;
@@ -14,39 +15,7 @@ export class GeneralSettingsTab {
     /**
      * 添加样式
      */
-    private addStyles() {
-        // 添加模态框按钮样式
-        const styleEl = document.createElement('style');
-        styleEl.id = 'hinote-settings-styles';
-        styleEl.textContent = `
-            .modal-button-container {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-                margin-top: 20px;
-            }
-            
-            .orphaned-data-count {
-                color: var(--text-error);
-                font-weight: bold;
-                margin-top: 8px;
-            }
-            
-            .no-orphaned-data {
-                color: var(--text-success);
-                font-weight: bold;
-                margin-top: 8px;
-            }
-        `;
-        
-        // 如果已存在，先移除
-        const existingStyle = document.getElementById('hinote-settings-styles');
-        if (existingStyle) {
-            existingStyle.remove();
-        }
-        
-        document.head.appendChild(styleEl);
-    }
+    // 样式已移动到全局 styles.css 文件中
     
     /**
      * 更新孤立数据计数
@@ -85,8 +54,7 @@ export class GeneralSettingsTab {
             cls: 'general-settings-container'
         });
         
-        // 添加样式
-        this.addStyles();
+        // 样式已移动到全局 styles.css 文件中
 
 
         // 导出路径设置
@@ -161,13 +129,13 @@ export class GeneralSettingsTab {
 
         // 高亮提取设置组
         new Setting(container)
-            .setName(t('Custom text extraction'))
+            .setName(t('自定义文本提取'))
             .setHeading();
 
         // 启用自定义正则表达式的开关
         new Setting(container)
-            .setName(t('Use Custom Pattern'))
-            .setDesc(t('Enable to use a custom regular expression for extracting text.'))
+            .setName(t('使用自定义规则'))
+            .setDesc(t('启用后将使用自定义正则表达式规则提取高亮文本。'))
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.useCustomPattern)
                 .onChange(async (value) => {
@@ -175,39 +143,13 @@ export class GeneralSettingsTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // 自定义正则表达式输入框
-        new Setting(container)
-            .setName(t('Custom Pattern'))
-            .setDesc(t('Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.'))
-            .addTextArea(text => {
-                text
-                    .setPlaceholder('==\\s*([\\s\\S]*?)\\s*==|<mark[^>]*>([\\s\\S]*?)</mark>|<span[^>]*>([\\s\\S]*?)</span>')
-                    .setValue(this.plugin.settings.highlightPattern === DEFAULT_SETTINGS.highlightPattern ? '' : this.plugin.settings.highlightPattern)
-                    .onChange(async (value) => {
-                        this.plugin.settings.highlightPattern = value || DEFAULT_SETTINGS.highlightPattern;
-                        await this.plugin.saveSettings();
-                    });
-                text.inputEl.rows = 4;
-                text.inputEl.cols = 40;
-            });
-
-        // 默认提取颜色选择器
-        new Setting(container)
-            .setName(t('Default Color'))
-            .setDesc(t('Set the default color for decorators when no color is specified. Leave empty to use system default.'))
-            .addText(text => text
-                .setPlaceholder('#ffeb3b')
-                .setValue(this.plugin.settings.defaultHighlightColor === DEFAULT_SETTINGS.defaultHighlightColor ? '' : this.plugin.settings.defaultHighlightColor)
-                .onChange(async (value) => {
-                    if (value === '' || /^#[0-9A-Fa-f]{6}$/.test(value)) {
-                        this.plugin.settings.defaultHighlightColor = value || DEFAULT_SETTINGS.defaultHighlightColor;
-                        await this.plugin.saveSettings();
-                    }
-                }));
+        // 添加正则表达式规则编辑器
+        const regexEditorContainer = container.createDiv({ cls: 'regex-editor-container' });
+        new RegexRuleEditor(regexEditorContainer, this.plugin);
                 
         // 数据管理设置组
         new Setting(container)
-            .setName(t('Data management'))
+            .setName(t('数据管理'))
             .setHeading();
             
         // 检查/清理孤立数据按钮
