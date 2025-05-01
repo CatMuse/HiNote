@@ -181,7 +181,7 @@ export class GeneralSettingsTab {
             .setDesc(t('Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.'))
             .addTextArea(text => {
                 text
-                    .setPlaceholder('==\\s*(.*?)\\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>')
+                    .setPlaceholder('==\\s*([\\s\\S]*?)\\s*==|<mark[^>]*>([\\s\\S]*?)</mark>|<span[^>]*>([\\s\\S]*?)</span>')
                     .setValue(this.plugin.settings.highlightPattern === DEFAULT_SETTINGS.highlightPattern ? '' : this.plugin.settings.highlightPattern)
                     .onChange(async (value) => {
                         this.plugin.settings.highlightPattern = value || DEFAULT_SETTINGS.highlightPattern;

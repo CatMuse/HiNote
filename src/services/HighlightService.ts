@@ -22,7 +22,7 @@ export class HighlightService {
 
     // 默认的文本提取正则（可以被用户自定义替换）
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
-        /==\s*(.*?)\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>/g;
+        /==\s*([\s\S]*?)\s*==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
     
     // 挖空格式的正则表达式 - 仅用于检测
     private static readonly CLOZE_PATTERN = /\{\{([^{}]+)\}\}/;

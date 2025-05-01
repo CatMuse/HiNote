@@ -143,7 +143,7 @@ export const DEFAULT_SILICONFLOW_MODELS: AIModel[] = [
 export const DEFAULT_SETTINGS: PluginSettings = {
     excludePatterns: '',  // 默认不排除任何文件
     useCustomPattern: false,
-    highlightPattern: '==\\s*(.*?)\\s*==|<mark[^>]*>(.*?)<\/mark>|<span[^>]*>(.*?)<\/span>',
+    highlightPattern: '==\\s*([\\s\\S]*?)\\s*==|<mark[^>]*>([\\s\\S]*?)</mark>|<span[^>]*>([\\s\\S]*?)</span>',
     defaultHighlightColor: '#ffeb3b',
     ai: {
         provider: 'ollama',
