@@ -1,9 +1,9 @@
 import { App, Modal, Notice } from 'obsidian';
-import { HighlightInfo } from './types';
-import { getTemplate, templates } from './templates';
-import { CommentItem } from './CommentStore';
-import { t } from "src/i18n";
-import { exportStyles } from './styles/exportStyles';
+import { HighlightInfo } from '../types';
+import { getTemplate, templates } from './index';
+import { CommentItem } from '../CommentStore';
+import { t } from "../i18n";
+import { exportStyles } from './exportStyles';
 
 interface Html2CanvasOptions {
     backgroundColor: string;
