@@ -129,7 +129,7 @@ export class GeneralSettingsTab {
 
         // 高亮提取设置组
         new Setting(container)
-            .setName(t('自定义文本提取'))
+            .setName(t('Custom text extraction'))
             .setHeading();
 
         // 启用自定义正则表达式的开关

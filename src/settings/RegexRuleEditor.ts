@@ -1,4 +1,4 @@
-import { Setting, ButtonComponent, TextComponent, ToggleComponent } from 'obsidian';
+import { Setting, ButtonComponent, TextComponent, ToggleComponent, setIcon } from 'obsidian';
 import { RegexRule } from '../types';
 import { t } from '../i18n';
 
@@ -32,10 +32,7 @@ export class RegexRuleEditor {
     
     // 添加警告提示和示例
     const warningEl = this.rulesContainer.createDiv({ cls: 'regex-rule-warning' });
-    warningEl.innerHTML = t('使用正则表达式时请谨慎。如果有捕获组()，将使用第一个捕获组作为高亮文本；如果没有捕获组，将使用整个匹配内容。') + '<br/>' +
-      t('示例：') + '<br/>' +
-      '- Markdown高亮： <code>==\\s*([\\s\\S]*?)\\s*==</code><br/>' +
-      '- HTML标签： <code>&lt;mark[^&gt;]*&gt;([\\s\\S]*?)&lt;\/mark&gt;</code>';
+    warningEl.innerHTML = t('使用正则表达式时请谨慎。如果有捕获组()，将使用第一个捕获组作为高亮文本；如果没有捕获组，将使用整个匹配内容。')
     
     // 显示现有规则
     if (this.rules.length === 0) {
@@ -48,11 +45,14 @@ export class RegexRuleEditor {
     }
     
     // 添加新规则按钮
-    const addButtonContainer = this.rulesContainer.createDiv({ cls: 'regex-rule-add' });
-    const addButton = new ButtonComponent(addButtonContainer);
-    addButton.setIcon('plus');
-    addButton.setTooltip(t('添加新规则'));
-    addButton.onClick(() => {
+    const addButton = this.rulesContainer.createDiv({ cls: 'regex-rule-add' });
+    
+    // 添加加号图标和文本
+    const textSpan = addButton.createSpan({ cls: 'regex-rule-add-text' });
+    textSpan.setText(t('添加新规则'));
+    
+    // 添加点击事件
+    addButton.addEventListener('click', () => {
       const newRule: RegexRule = {
         id: `rule-${Date.now()}`,
         name: '',
@@ -110,7 +110,7 @@ export class RegexRuleEditor {
     
     // 删除图标
     const deleteContainer = ruleContainer.createDiv({ cls: 'regex-rule-delete' });
-    deleteContainer.setText('✕'); // 使用✕符号作为删除图标
+    setIcon(deleteContainer, 'trash-2'); // 使用 Obsidian 的 trash-2 图标
     deleteContainer.setAttr('aria-label', t('删除规则'));
     deleteContainer.addEventListener('click', () => {
       this.rules.splice(index, 1);
