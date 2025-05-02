@@ -74,16 +74,16 @@ export class FlashcardOperations {
                 completionMessage = t('You have completed all new cards for today!');
             } else if (groupName === 'Recent Cards') {
                 completionMessage = t('You have completed all recently added cards!');
-            } else if (groupName !== 'All Cards') {
+            } else if (groupName !== 'All cards') {
                 // 自定义分组
                 const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.id === groupName);
                 if (group) {
-                    completionMessage = t('You have completed all cards in group: ') + group.name;
+                    completionMessage = t('You have completed All cards in group: ') + group.name;
                 }
             }
             
             // 保存完成消息
-            if (groupName === 'All Cards') {
+            if (groupName === 'All cards') {
                 this.component.setCompletionMessage(completionMessage);
             } else {
                 this.component.setGroupCompletionMessage(groupName, completionMessage);
@@ -121,6 +121,7 @@ export class FlashcardOperations {
     
     /**
      * 刷新当前卡片列表，考虑每日学习限制
+     * 注意：此方法只从已有的卡片中获取数据，不会自动创建新卡片
      */
     public refreshCardList() {
         // 获取当前分组
@@ -129,7 +130,7 @@ export class FlashcardOperations {
         // 根据分组获取卡片
         let cards = [];
         
-        if (groupName === 'All Cards') {
+        if (groupName === 'All cards') {
             // 获取所有卡片
             const allCards = Object.values(this.component.getFsrsManager().exportData().cards);
             
@@ -150,7 +151,7 @@ export class FlashcardOperations {
         }
         
         // 应用每日学习限制
-        if (groupName === 'All Cards' || groupName === 'Due Cards') {
+        if (groupName === 'All cards' || groupName === 'Due Cards') {
             // 获取 FSRS 参数
             const params = this.component.getFsrsManager().fsrsService.getParameters();
             
@@ -184,7 +185,7 @@ export class FlashcardOperations {
         
         // 检查是否有完成消息
         if (cards.length === 0) {
-            if (groupName === 'All Cards') {
+            if (groupName === 'All cards') {
                 if (!this.component.getCompletionMessage()) {
                     this.component.setCompletionMessage(t('You have completed all flashcards for today!'));
                 }

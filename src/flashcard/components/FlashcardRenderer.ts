@@ -164,7 +164,7 @@ export class FlashcardRenderer {
         
         const defaultGroupItems = [
             { 
-                name: t('All Cards'), 
+                name: t('All cards'), 
                 icon: 'gallery-thumbnails',
                 getCards: () => uniqueCustomCards
             },
@@ -295,9 +295,9 @@ export class FlashcardRenderer {
                     try {
                         const deleted = await this.component.getFsrsManager().deleteCardGroup(group.id);
                         if (deleted) {
-                            // 如果删除的是当前分组，切换到 All Cards
+                            // 如果删除的是当前分组，切换到 All cards
                             if (this.component.getCurrentGroupName() === group.name) {
-                                this.component.setCurrentGroupName('All Cards');
+                                this.component.setCurrentGroupName('All cards');
                             }
                             new Notice(t('分组删除成功'));
                             this.render();

@@ -22,7 +22,7 @@ export class FlashcardProgressManager {
         // 获取卡片
         let cards: FlashcardState[] = [];
         
-        if (groupName === 'All Cards') {
+        if (groupName === 'All cards') {
             // 获取所有卡片
             cards = Object.values(this.component.getFsrsManager().exportData().cards);
         } else if (groupName === 'Due Cards') {
@@ -41,7 +41,7 @@ export class FlashcardProgressManager {
         
         // 如果是自定义分组，可能需要获取所有自定义分组的卡片
         let allCustomGroupCards: FlashcardState[] = [];
-        if (groupName !== 'All Cards' && groupName !== 'Due Cards' && 
+        if (groupName !== 'All cards' && groupName !== 'Due Cards' && 
             groupName !== 'New Cards' && groupName !== 'Recent Cards') {
             
             // 获取所有自定义分组的卡片（去重）
@@ -165,7 +165,7 @@ export class FlashcardProgressManager {
         });
         
         // 如果是特定分组，添加分组信息
-        if (this.component.getCurrentGroupName() !== 'All Cards' && 
+        if (this.component.getCurrentGroupName() !== 'All cards' && 
             this.component.getCurrentGroupName() !== 'Due Cards' && 
             this.component.getCurrentGroupName() !== 'New Cards' && 
             this.component.getCurrentGroupName() !== 'Recent Cards') {

@@ -107,7 +107,7 @@ export class FlashcardGroupManager {
                         
                         // 如果当前选中的是这个分组，切换到"所有卡片"
                         if (this.component.getCurrentGroupName() === g.id) {
-                            this.component.setCurrentGroupName('All Cards');
+                            this.component.setCurrentGroupName('All cards');
                             this.component.refreshCardList();
                             this.component.getRenderer().render();
                         }

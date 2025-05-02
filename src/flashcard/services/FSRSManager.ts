@@ -31,7 +31,7 @@ export class FSRSManager {
             },
             cardGroups: [],
             uiState: {
-                currentGroupName: 'All Cards',
+                currentGroupName: 'All cards',
                 currentIndex: 0,
                 isFlipped: false,
                 completionMessage: null,
@@ -65,7 +65,7 @@ export class FSRSManager {
             },
             cardGroups: [],
             uiState: {
-                currentGroupName: 'All Cards',
+                currentGroupName: 'All cards',
                 currentIndex: 0,
                 isFlipped: false,
                 completionMessage: null,
@@ -404,6 +404,34 @@ export class FSRSManager {
     }
     
     /**
+     * 根据内容查找卡片
+     * @param text 卡片正面文本
+     * @param answer 卡片背面答案
+     * @param filePath 可选的文件路径
+     * @returns 找到的卡片或 null
+     */
+    public findCardByContent(text: string, answer: string, filePath?: string): FlashcardState | null {
+        // 获取所有卡片
+        const allCards = Object.values(this.storage.cards);
+        
+        // 查找匹配的卡片
+        const matchingCard = allCards.find(card => {
+            // 检查文本内容是否匹配
+            const textMatch = card.text === text;
+            
+            // 检查答案内容是否匹配
+            const answerMatch = card.answer === answer;
+            
+            // 检查文件路径是否匹配（如果提供了文件路径）
+            const pathMatch = !filePath || card.filePath === filePath;
+            
+            return textMatch && answerMatch && pathMatch;
+        });
+        
+        return matchingCard || null;
+    }
+
+    /**
      * 获取所有卡片的总数（只统计自定义分组中的卡片）
      * @returns 卡片总数
      */
@@ -670,7 +698,8 @@ export class FSRSManager {
             isReversed: group.isReversed || false,
             settings: group.settings || {
                 useGlobalSettings: true
-            }
+            },
+            cardIds: [] // 初始化空卡片列表
         };
 
         // 添加到存储
@@ -678,7 +707,8 @@ export class FSRSManager {
         await this.saveStorage();
         
         // 为新分组生成闪卡
-        await this.generateCardsForGroup(newGroup.id);
+        const newCardsCount = await this.generateCardsForGroup(newGroup.id);
+        console.log(`为分组 ${newGroup.name} 创建了 ${newCardsCount} 张闪卡`);
 
         return newGroup;
     }
@@ -707,7 +737,20 @@ export class FSRSManager {
         
         // 如果过滤条件发生变化，重新生成闪卡
         if (updates.filter && updates.filter !== oldFilter) {
-            await this.generateCardsForGroup(groupId);
+            // 先删除该分组下的所有卡片
+            if (group.cardIds && group.cardIds.length > 0) {
+                console.log(`分组过滤条件已更改，删除旧卡片: ${group.cardIds.length} 张`);
+                for (const cardId of [...group.cardIds]) { // 创建副本以避免在遍历过程中修改数组
+                    this.deleteCard(cardId);
+                }
+                // 清空卡片ID列表
+                group.cardIds = [];
+                await this.saveStorage();
+            }
+            
+            // 重新生成闪卡
+            const newCardsCount = await this.generateCardsForGroup(groupId);
+            console.log(`为分组 ${group.name} 重新创建了 ${newCardsCount} 张闪卡`);
         }
         
         return true;
@@ -742,7 +785,7 @@ export class FSRSManager {
         
         // 3. 如果当前活动分组是被删除的分组，切换到默认分组
         if (uiState.currentGroupName === deletedGroup.name) {
-            uiState.currentGroupName = 'All Cards';
+            uiState.currentGroupName = 'All cards';
             uiState.currentIndex = 0;
             uiState.isFlipped = false;
             uiState.completionMessage = null;

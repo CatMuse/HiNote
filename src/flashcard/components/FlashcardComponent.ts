@@ -31,7 +31,7 @@ export class FlashcardComponent extends Component {
     private licenseManager: LicenseManager;
     private fsrsManager: FSRSManager;
     private currentCard: FlashcardState | null = null;
-    private currentGroupName: string = 'All Cards';
+    private currentGroupName: string = 'All cards';
     private app: any;
     private boundHandleKeyDown: (e: KeyboardEvent) => void;
     private completionMessage: string | null = null;
@@ -72,7 +72,7 @@ export class FlashcardComponent extends Component {
         
         // 加载 UI 状态
         const uiState = this.fsrsManager.getUIState();
-        this.currentGroupName = uiState.currentGroupName || 'All Cards';
+        this.currentGroupName = uiState.currentGroupName || 'All cards';
         this.currentIndex = uiState.currentIndex || 0;
         this.isFlipped = uiState.isFlipped || false;
         this.completionMessage = uiState.completionMessage || null;
@@ -95,25 +95,9 @@ export class FlashcardComponent extends Component {
      * 设置卡片列表
      * @param highlights 高亮列表
      */
-    public setCards(highlights: HiNote[] | FlashcardState[]) {
-        // 如果是 HiNote 数组，转换为 FlashcardState 数组
-        if (highlights.length > 0 && 'text' in highlights[0] && !('difficulty' in highlights[0])) {
-            // 转换 HiNote 为 FlashcardState
-            this.cards = (highlights as HiNote[]).map(highlight => {
-                // 提取文件路径
-                const filePath = this.utils.extractFilePathFromHighlight(highlight);
-                
-                // 创建新卡片
-                return this.fsrsManager.addCard(
-                    highlight.text,
-                    highlight.comments?.map(c => c.content).join('<hr>') || '',
-                    filePath
-                );
-            });
-        } else {
-            // 直接设置卡片列表
-            this.cards = highlights as FlashcardState[];
-        }
+    public setCards(cards: FlashcardState[]) {
+        // 直接设置卡片列表，不再自动创建闪卡
+        this.cards = cards;
     }
     
     /**
