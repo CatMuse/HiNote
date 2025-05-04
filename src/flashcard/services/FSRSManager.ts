@@ -272,20 +272,24 @@ export class FSRSManager {
         this.updateGlobalStats(rating, updatedCard.retrievability);
         
         // 更新每日统计数据
-        this.updateDailyStats(rating);
+        this.updateDailyStats(true, rating);
         
         // 保存更改
         this.saveStorageDebounced();
     }
     
-    // 更新每日统计数据
-    private updateDailyStats(rating: FSRSRating): void {
+    /**
+     * 更新每日学习统计
+     * @param isNewCard 是否是新卡片
+     * @param rating 评分
+     */
+    private updateDailyStats(isNewCard: boolean, rating: FSRSRating) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayTimestamp = today.getTime();
         
-        // 更新最后复习日期和连续学习天数
-        if (this.storage.globalStats.lastReviewDate === 0) {
+        // 更新全局统计
+        if (!this.storage.globalStats.lastReviewDate) {
             // 第一次复习
             this.storage.globalStats.lastReviewDate = todayTimestamp;
             this.storage.globalStats.streakDays = 1;
@@ -302,9 +306,14 @@ export class FSRSManager {
             this.storage.globalStats.streakDays = 1;
         }
         
-        // 更新每日统计数据
-        let todayStats = this.storage.dailyStats.find(stats => stats.date === todayTimestamp);
+        // 使用日期字符串比较而不是时间戳
+        const todayDateStr = today.toDateString();
+        let todayStats = this.storage.dailyStats.find(stats => {
+            const statsDate = new Date(stats.date);
+            return statsDate.toDateString() === todayDateStr;
+        });
         
+        // 如果不存在，创建新的统计数据
         if (!todayStats) {
             todayStats = {
                 date: todayTimestamp,
@@ -320,23 +329,36 @@ export class FSRSManager {
             this.storage.dailyStats.push(todayStats);
         }
         
-        // 更新评分统计
-        if (todayStats) {
-            todayStats.reviewCount++;
+        // 更新统计数据
+        todayStats.reviewCount++;
+        
+        if (isNewCard) {
+            todayStats.newCount++;
+            todayStats.newCardsLearned++;
+        } else {
             todayStats.cardsReviewed++;
-            
-            if (rating === FSRS_RATING.AGAIN) {
-                todayStats.againCount++;
-            } else if (rating === FSRS_RATING.HARD) {
-                todayStats.hardCount++;
-            } else if (rating === FSRS_RATING.GOOD) {
-                todayStats.goodCount++;
-            } else if (rating === FSRS_RATING.EASY) {
-                todayStats.easyCount++;
-            }
         }
+        
+        // 更新评分统计
+        switch (rating) {
+            case FSRS_RATING.AGAIN:
+                todayStats.againCount++;
+                break;
+            case FSRS_RATING.HARD:
+                todayStats.hardCount++;
+                break;
+            case FSRS_RATING.GOOD:
+                todayStats.goodCount++;
+                break;
+            case FSRS_RATING.EASY:
+                todayStats.easyCount++;
+                break;
+        }
+        
+        // 保存到存储
+        this.saveStorage();
     }
-    
+
     public getDueCards(): FlashcardState[] {
         const dueCards = this.fsrsService.getReviewableCards(Object.values(this.storage.cards));
         

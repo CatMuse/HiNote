@@ -430,21 +430,39 @@ export class FlashcardRenderer {
                 text: this.component.getCompletionMessage() 
             });
             
-            // 添加按钮返回第一张卡片
-            const returnButton = completionContainer.createEl("button", {
+            // 添加按钮继续学习
+            const continueButton = completionContainer.createEl("button", {
                 cls: "flashcard-return-button",
-                text: t("返回第一张卡片")
+                text: t("继续学习")
             });
             
-            returnButton.addEventListener("click", () => {
+            continueButton.addEventListener("click", () => {
+                // 清除完成消息
                 this.component.setCompletionMessage(null);
+                
                 // 清除当前分组的完成状态
                 this.component.setGroupCompletionMessage(this.component.getCurrentGroupName(), null);
-                // 清除当前分组的学习进度
-                const currentProgress = {
-                    currentIndex: 0,
-                    isFlipped: false
-                };
+                
+                // 重置当前分组的每日学习统计
+                const fsrsManager = this.component.getFsrsManager();
+                const dailyStats = fsrsManager.exportData().dailyStats;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayDateStr = today.toDateString();
+                
+                const todayStatsIndex = dailyStats.findIndex((stats: any) => {
+                    const statsDate = new Date(stats.date);
+                    return statsDate.toDateString() === todayDateStr;
+                });
+                
+                if (todayStatsIndex !== -1) {
+                    // 重置今日学习统计
+                    dailyStats[todayStatsIndex].newCardsLearned = 0;
+                    dailyStats[todayStatsIndex].cardsReviewed = 0;
+                    fsrsManager.saveStorage();
+                }
+                
+                // 重新开始学习
                 this.component.setCurrentIndex(0);
                 this.component.setCardFlipped(false);
                 this.component.saveState();
@@ -456,7 +474,13 @@ export class FlashcardRenderer {
 
         // 创建卡片
         if (currentCard) {
-            const card = cardContainer.createEl("div", { cls: "flashcard" });
+            // 根据卡片翻转状态添加相应的类
+            const cardClasses = ["flashcard"];
+            if (this.component.isCardFlipped()) {
+                cardClasses.push("is-flipped");
+            }
+            
+            const card = cardContainer.createEl("div", { cls: cardClasses.join(" ") });
             
             // 检查卡片是否属于任何反转的分组
             const allGroups = this.component.getFsrsManager().getCardGroups();
@@ -527,21 +551,15 @@ export class FlashcardRenderer {
                         cls: 'prediction-info'
                     });
                     
-                    // 显示天数
+                    // 只显示天数
                     predictionSpan.createSpan({ 
                         text: this.component.getUtils().formatInterval(diffDays),
                         cls: 'days' 
                     });
-                    
-                    // 显示具体日期
-                    predictionSpan.createSpan({ 
-                        text: ` (${nextReview.toLocaleDateString()})`,
-                        cls: 'date' 
-                    });
                 } else {
-                    // 如果没有预测信息，使用旧的计算方式
+                    // 如果没有预测信息，使用简单的计算方式
                     const interval = currentCard?.lastReview === 0 ? btn.stability :
-                        this.component.getFsrsManager().fsrsService.calculateNextInterval(0.9, btn.stability);
+                        Math.round(btn.stability * 1.5); // 简单的下次复习间隔计算
                     button.createSpan({ 
                         text: this.component.getUtils().formatInterval(interval),
                         cls: 'days' 
@@ -607,11 +625,18 @@ export class FlashcardRenderer {
             containerEl.removeChild(containerEl.firstChild);
         }
         
+        // 检查content是否为空
+        if (!content) {
+            console.warn('renderMarkdownContent: content is empty or undefined');
+            containerEl.textContent = '';
+            return;
+        }
+        
         // 处理 HTML 内容，将其转换为 Markdown
         let markdownContent = content;
         
         // 如果内容包含 HTML 标签，将其转换为 Markdown
-        if (content.includes('<') && content.includes('>')) {
+        if (typeof content === 'string' && content.includes('<') && content.includes('>')) {
             markdownContent = content
                 .replace(/<\/?b>/g, '**')  // Convert <b> tags to markdown bold
                 .replace(/<\/?i>/g, '_')   // Convert <i> tags to markdown italic

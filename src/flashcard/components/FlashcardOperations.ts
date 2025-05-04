@@ -1,5 +1,5 @@
 import { Notice } from "obsidian";
-import { FSRSRating, FlashcardState } from "../types/FSRSTypes";
+import { FSRSRating, FlashcardState, DailyStats } from "../types/FSRSTypes";
 import { t } from "../../i18n";
 
 /**
@@ -159,14 +159,55 @@ export class FlashcardOperations {
             const dailyStats = this.component.getFsrsManager().exportData().dailyStats;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+            const todayTimestamp = today.getTime();
             
-            const todayStats = dailyStats.find((stats: any) => stats.date === today.getTime());
-            const newCardsLearned = todayStats ? todayStats.newCardsLearned : 0;
-            const cardsReviewed = todayStats ? todayStats.cardsReviewed : 0;
+            // 调试日期比较问题
+            console.log("当前日期时间戳:", todayTimestamp);
+            console.log("学习设置:", params.newCardsPerDay, params.reviewsPerDay);
+            console.log("所有日期统计:", dailyStats.map((s: DailyStats) => ({ date: s.date, newCards: s.newCardsLearned, reviewed: s.cardsReviewed })));
+            
+            // 使用日期字符串比较而不是时间戳，避免毫秒级别的差异
+            const todayDateStr = today.toDateString();
+            let todayStats = dailyStats.find((stats: any) => {
+                const statsDate = new Date(stats.date);
+                return statsDate.toDateString() === todayDateStr;
+            });
+            
+            // 如果今日统计不存在，创建一个新的统计记录
+            if (!todayStats) {
+                todayStats = {
+                    date: today.getTime(),
+                    newCardsLearned: 0,
+                    cardsReviewed: 0,
+                    reviewCount: 0,
+                    newCount: 0,
+                    againCount: 0,
+                    hardCount: 0,
+                    goodCount: 0,
+                    easyCount: 0
+                };
+                
+                // 将新的统计数据添加到数组中
+                this.component.getFsrsManager().exportData().dailyStats.push(todayStats);
+                
+                // 保存更新
+                this.component.getFsrsManager().saveStorage();
+            }
+            
+            console.log("今日统计:", todayStats);
+            
+            const newCardsLearned = todayStats.newCardsLearned;
+            const cardsReviewed = todayStats.cardsReviewed;
+            
+            console.log("今日已学习新卡片:", newCardsLearned, "/", params.newCardsPerDay);
+            console.log("今日已复习卡片:", cardsReviewed, "/", params.reviewsPerDay);
             
             // 分离新卡片和复习卡片
             const newCards = cards.filter((card: any) => card.reviews === 0);
             const reviewCards = cards.filter((card: any) => card.reviews > 0);
+            
+            console.log("可用新卡片数量:", newCards.length);
+            console.log("可用复习卡片数量:", reviewCards.length);
             
             // 应用每日新卡片限制
             const remainingNewCards = Math.max(0, params.newCardsPerDay - newCardsLearned);
@@ -175,6 +216,11 @@ export class FlashcardOperations {
             // 应用每日复习卡片限制
             const remainingReviews = Math.max(0, params.reviewsPerDay - cardsReviewed);
             const limitedReviewCards = reviewCards.slice(0, remainingReviews);
+            
+            console.log("剩余新卡片额度:", remainingNewCards);
+            console.log("剩余复习额度:", remainingReviews);
+            console.log("将显示新卡片数量:", limitedNewCards.length);
+            console.log("将显示复习卡片数量:", limitedReviewCards.length);
             
             // 合并卡片，优先显示复习卡片
             cards = [...limitedReviewCards, ...limitedNewCards];
