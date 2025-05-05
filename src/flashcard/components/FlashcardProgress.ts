@@ -218,10 +218,8 @@ export class FlashcardProgressManager {
         uiState.currentIndex = this.component.getCurrentIndex();
         uiState.isFlipped = this.component.isCardFlipped();
         
-        // 更新分组完成消息
-        if (this.component.getCompletionMessage()) {
-            uiState.completionMessage = this.component.getCompletionMessage();
-        }
+        // 更新分组完成消息，无论是设置还是清除
+        uiState.completionMessage = this.component.getCompletionMessage();
         
         // 更新分组进度
         if (!uiState.groupProgress) {
@@ -233,14 +231,13 @@ export class FlashcardProgressManager {
             isFlipped: this.component.isCardFlipped()
         };
         
-        // 更新分组完成消息
+        // 更新分组完成消息，无论是设置还是清除
         if (!uiState.groupCompletionMessages) {
             uiState.groupCompletionMessages = {};
         }
         
-        if (this.component.getGroupCompletionMessage(groupName)) {
-            uiState.groupCompletionMessages[groupName] = this.component.getGroupCompletionMessage(groupName);
-        }
+        // 始终更新完成消息，即使是 null
+        uiState.groupCompletionMessages[groupName] = this.component.getGroupCompletionMessage(groupName);
         
         // 保存 UI 状态
         this.component.getFsrsManager().updateUIState(uiState);

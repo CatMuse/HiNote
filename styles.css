@@ -733,6 +733,41 @@ settings:
     flex-wrap: wrap;
 }
 
+/* 自定义分组标题区域 */
+.flashcard-custom-groups-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.flashcard-custom-groups-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.flashcard-custom-groups-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* 分组操作按钮 */
+.flashcard-group-action {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.flashcard-group-action:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+}
+
 .flashcard-stat-item {
     display: flex;
     flex-direction: row;
@@ -1257,12 +1292,17 @@ textarea.flashcard-modal-input {
     height: 400px;
     perspective: 2000px;
     cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.1s;
 }
 
 .flashcard-side {
     position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 12px;
@@ -1273,6 +1313,7 @@ textarea.flashcard-modal-input {
     display: flex;
     align-items: center;
     justify-content: center;
+    transform-style: preserve-3d;
 }
 
 .flashcard-content {
@@ -1294,32 +1335,36 @@ textarea.flashcard-modal-input {
     background-color: var(--background-modifier-border);
 }
 
-.flashcard-front {
-    transform: rotateY(0);
+/* 卡片正面初始状态 */
+.flashcard-side.flashcard-front {
+    transform: rotateY(0deg);
+    z-index: 2;
 }
 
-.flashcard-back {
-    transform: rotateY(-180deg);
-}
-
-.flashcard.is-flipped .flashcard-front {
+/* 卡片背面初始状态，旋转180度隐藏 */
+.flashcard-side.flashcard-back {
     transform: rotateY(180deg);
+    z-index: 1;
 }
 
-.flashcard.is-flipped .flashcard-back {
-    transform: rotateY(0);
+/* 卡片翻转后，正面旋转180度隐藏 */
+.flashcard.is-flipped .flashcard-side.flashcard-front {
+    transform: rotateY(-180deg);
+    z-index: 1;
+}
+
+/* 卡片翻转后，背面旋转回0度显示 */
+.flashcard.is-flipped .flashcard-side.flashcard-back {
+    transform: rotateY(0deg);
+    z-index: 2;
 }
 
 .flashcard-rating {
     display: flex;
-    gap: 16px;
     justify-content: center;
-    margin-top: 0;
-    padding: 0 20px;
-    max-height: 0;
+    margin-top: 20px;
     opacity: 0;
-    overflow: hidden;
-    transition: all 0.4s ease-in-out;
+    transition: opacity 0.3s ease;
 }
 
 .flashcard-rating-button {

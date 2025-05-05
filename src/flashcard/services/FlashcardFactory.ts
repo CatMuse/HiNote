@@ -60,14 +60,24 @@ export class FlashcardFactory {
 
         let isCloze = false;
         let clozeText = highlight.text;
-        let clozeAnswer = '';
+        let clozeAnswers: string[] = [];
         
         // 检查是否为挖空格式：{{内容}}
-        const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
-        if (clozeMatch) {
-            console.log(`检测到挖空格式，挖空内容: ${clozeMatch[1]}`);
+        const clozeRegex = /\{\{([^{}]+)\}\}/g;
+        let match;
+        let matchCount = 0;
+        
+        // 使用循环查找所有挖空
+        while ((match = clozeRegex.exec(highlight.text)) !== null) {
+            matchCount++;
+            console.log(`检测到挖空 #${matchCount}，内容: ${match[1]}`);
+            clozeAnswers.push(match[1]);
+        }
+        
+        if (matchCount > 0) {
+            console.log(`共找到 ${matchCount} 个挖空`);
             isCloze = true;
-            clozeAnswer = clozeMatch[1];
+            
             // 正面隐藏内容，动态下划线长度
             clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
         } else {
@@ -79,8 +89,10 @@ export class FlashcardFactory {
         console.log(`评论答案: ${answer ? answer.substring(0, 50) + '...' : '(无)'}`);
         
         // 挖空格式优先，若有则拼接答案
-        if (isCloze) {
-            answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
+        if (isCloze && clozeAnswers.length > 0) {
+            // 将所有挖空答案合并
+            const combinedClozeAnswer = clozeAnswers.join('\n');
+            answer = answer ? (answer + '<hr>' + combinedClozeAnswer) : combinedClozeAnswer;
             console.log(`最终答案(挖空): ${answer.substring(0, 50)}...`);
         }
         
@@ -91,8 +103,9 @@ export class FlashcardFactory {
         }
         
         // 强制创建闪卡，即使没有答案
-        if (!answer && isCloze) {
-            answer = clozeAnswer || '无答案';
+        if (!answer && isCloze && clozeAnswers.length > 0) {
+            // 将所有挖空答案合并
+            answer = clozeAnswers.join('\n') || '无答案';
             console.log(`没有评论但是挖空格式，使用挖空内容作为答案: ${answer}`);
         }
         

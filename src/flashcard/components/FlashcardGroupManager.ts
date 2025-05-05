@@ -13,151 +13,6 @@ export class FlashcardGroupManager {
     }
     
     /**
-     * 显示分组管理模态框
-     * @param group 可选的分组，如果提供则进入编辑模式
-     */
-    public showGroupModal(group?: CardGroup) {
-        const { app } = this.component.getApp();
-        
-        // 创建模态框
-        const modal = new Modal(app);
-        modal.titleEl.setText(t('Manage Card Groups'));
-        modal.containerEl.addClass('flashcard-group-modal');
-        
-        // 创建分组列表容器
-        const groupListContainer = modal.contentEl.createEl('div', { cls: 'flashcard-group-list' });
-        
-        // 获取所有分组
-        const groups = this.component.getFsrsManager().getCardGroups();
-        
-        // 如果没有分组，显示空状态
-        if (groups.length === 0) {
-            const emptyState = groupListContainer.createEl('div', { cls: 'flashcard-empty-state' });
-            emptyState.createEl('p', { text: t('No card groups created yet.') });
-            emptyState.createEl('p', { text: t('Create a group to organize your flashcards.') });
-        } else {
-            // 创建分组列表
-            const groupList = groupListContainer.createEl('ul', { cls: 'flashcard-group-list-items' });
-            
-            // 添加分组项
-            groups.forEach((g: any) => {
-                const groupItem = groupList.createEl('li', { cls: 'flashcard-group-item' });
-                
-                // 添加分组名称
-                const groupName = groupItem.createEl('div', { 
-                    cls: 'flashcard-group-name', 
-                    text: g.name 
-                });
-                
-                // 添加分组过滤条件
-                if (g.filter) {
-                    const groupFilter = groupItem.createEl('div', { 
-                        cls: 'flashcard-group-filter', 
-                        text: g.filter 
-                    });
-                }
-                
-                // 添加分组操作按钮
-                const groupActions = groupItem.createEl('div', { cls: 'flashcard-group-actions' });
-                
-                // 添加编辑按钮
-                const editBtn = groupActions.createEl('button', { 
-                    cls: 'flashcard-edit-group-btn',
-                    text: t('Edit')
-                });
-                
-                editBtn.addEventListener('click', () => {
-                    modal.close();
-                    this.showEditGroupModal(g);
-                });
-                
-                // 添加删除按钮
-                const deleteBtn = groupActions.createEl('button', { 
-                    cls: 'flashcard-delete-group-btn',
-                    text: t('Delete')
-                });
-                
-                deleteBtn.addEventListener('click', () => {
-                    // 确认删除
-                    const confirmModal = new Modal(app);
-                    confirmModal.titleEl.setText(t('Delete Group'));
-                    confirmModal.contentEl.createEl('p', { 
-                        text: t('Are you sure you want to delete this group?') 
-                    });
-                    confirmModal.contentEl.createEl('p', { 
-                        text: t('This will not delete the flashcards in this group.') 
-                    });
-                    
-                    // 添加确认按钮
-                    const confirmBtn = confirmModal.contentEl.createEl('button', { 
-                        cls: 'flashcard-confirm-btn',
-                        text: t('Delete')
-                    });
-                    
-                    confirmBtn.addEventListener('click', async () => {
-                        // 删除分组
-                        const fsrsManager = this.component.getFsrsManager();
-                        const storage = fsrsManager.exportData();
-                        
-                        // 从分组列表中移除
-                        storage.cardGroups = storage.cardGroups.filter((group: any) => group.id !== g.id);
-                        
-                        // 保存更改
-                        await fsrsManager.saveStoragePublic();
-                        
-                        // 如果当前选中的是这个分组，切换到"所有卡片"
-                        if (this.component.getCurrentGroupName() === g.id) {
-                            this.component.setCurrentGroupName('All cards');
-                            this.component.refreshCardList();
-                            this.component.getRenderer().render();
-                        }
-                        
-                        // 关闭确认模态框
-                        confirmModal.close();
-                        
-                        // 关闭分组管理模态框
-                        modal.close();
-                        
-                        // 重新打开分组管理模态框
-                        this.showGroupModal();
-                        
-                        // 显示通知
-                        new Notice(t('Group deleted'));
-                    });
-                    
-                    // 添加取消按钮
-                    const cancelBtn = confirmModal.contentEl.createEl('button', { 
-                        cls: 'flashcard-cancel-btn',
-                        text: t('Cancel')
-                    });
-                    
-                    cancelBtn.addEventListener('click', () => {
-                        confirmModal.close();
-                    });
-                    
-                    // 打开确认模态框
-                    confirmModal.open();
-                });
-                
-                // 添加同步按钮
-                const syncBtn = groupActions.createEl('button', { 
-                    cls: 'flashcard-sync-group-btn',
-                    text: t('Sync')
-                });
-                
-                syncBtn.addEventListener('click', async () => {
-                    // 同步分组卡片
-                    const count = await this.component.getFsrsManager().syncGroupCards(g.id);
-                    
-                    // 显示通知
-                    new Notice(t('Synced ') + count + t(' cards'));
-                    
-                    // 如果当前选中的是这个分组，刷新卡片列表
-                    if (this.component.getCurrentGroupName() === g.id) {
-                        this.component.refreshCardList();
-                        this.component.getRenderer().render();
-                    }
-                });
             });
         }
         
@@ -332,13 +187,13 @@ export class FlashcardGroupManager {
             const fsrsManager = this.component.getFsrsManager();
             
             if (group) {
-                // 更新分组
-                const storage = fsrsManager.exportData();
-                const groupIndex = storage.cardGroups.findIndex((g: any) => g.id === group.id);
+                // 保存旧名称供后续使用
+                const oldName = group.name;
+                console.log(`分组名称更新: ${oldName} -> ${groupName}`);
                 
-                if (groupIndex >= 0) {
-                    storage.cardGroups[groupIndex] = {
-                        ...group,
+                try {
+                    // 使用 FSRSManager 的 updateCardGroup 方法更新分组
+                    await fsrsManager.updateCardGroup(group.id, {
                         name: groupName,
                         filter: groupFilter,
                         isReversed,
@@ -348,19 +203,48 @@ export class FlashcardGroupManager {
                             reviewsPerDay: useGlobalSettings ? undefined : reviewsPerDay
                         },
                         lastUpdated: Date.now()
-                    };
+                    });
                     
-                    // 保存更改
-                    await fsrsManager.saveStoragePublic();
+                    // 获取存储对象
+                    const storage = fsrsManager.exportData();
                     
-                    // 如果当前选中的是这个分组，刷新卡片列表
-                    if (this.component.getCurrentGroupName() === group.id) {
-                        this.component.refreshCardList();
-                        this.component.getRenderer().render();
+                    // 更新 UI 状态中的分组完成消息和学习进度
+                    if (storage.uiState) {
+                        // 更新分组完成消息
+                        if (storage.uiState.groupCompletionMessages && storage.uiState.groupCompletionMessages[oldName] !== undefined) {
+                            storage.uiState.groupCompletionMessages[groupName] = storage.uiState.groupCompletionMessages[oldName];
+                            delete storage.uiState.groupCompletionMessages[oldName];
+                        }
+                        
+                        // 更新分组学习进度
+                        if (storage.uiState.groupProgress && storage.uiState.groupProgress[oldName]) {
+                            storage.uiState.groupProgress[groupName] = storage.uiState.groupProgress[oldName];
+                            delete storage.uiState.groupProgress[oldName];
+                        }
+                        
+                        // 如果当前选中的是这个分组，更新当前分组名称
+                        if (storage.uiState.currentGroupName === oldName) {
+                            storage.uiState.currentGroupName = groupName;
+                        }
+                        
+                        // 保存 UI 状态更改
+                        await fsrsManager.saveStoragePublic();
                     }
                     
+                    // 如果当前选中的是这个分组，更新当前分组名称
+                    if (this.component.getCurrentGroupName() === oldName) {
+                        this.component.setCurrentGroupName(groupName);
+                    }
+                    
+                    // 刷新界面
+                    this.component.refreshCardList();
+                    this.component.getRenderer().render();
+                    
                     // 显示通知
-                    new Notice(t('Group updated'));
+                    new Notice(t('分组更新成功'));
+                } catch (error) {
+                    console.error('更新分组失败:', error);
+                    new Notice(t('更新分组失败'));
                 }
             } else {
                 // 创建新分组
@@ -386,7 +270,7 @@ export class FlashcardGroupManager {
             
             // 如果是编辑模式，重新打开分组管理模态框
             if (group) {
-                this.showGroupModal();
+                this.component.getRenderer().render();
             }
         });
         
@@ -401,7 +285,7 @@ export class FlashcardGroupManager {
             
             // 如果是编辑模式，重新打开分组管理模态框
             if (group) {
-                this.showGroupModal();
+                this.component.getRenderer().render();
             }
         });
         

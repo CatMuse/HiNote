@@ -260,7 +260,16 @@ export class FlashcardRenderer {
         
         // 添加自定义分组
         const customGroups = sidebar.createEl("div", { cls: "flashcard-custom-groups" });
-        const addButton = customGroups.createEl("div", { cls: "flashcard-add-group" });
+        
+        // 添加标题和操作区
+        const customGroupHeader = customGroups.createEl("div", { cls: "flashcard-custom-groups-header" });
+        customGroupHeader.createEl("span", { text: t('自定义分组'), cls: "flashcard-custom-groups-title" });
+        
+        // 添加按钮区
+        const customGroupActions = customGroupHeader.createEl("div", { cls: "flashcard-custom-groups-actions" });
+        
+        // 添加分组按钮
+        const addButton = customGroupActions.createEl("div", { cls: "flashcard-add-group", attr: { 'aria-label': t('添加分组') } });
         setIcon(addButton, 'plus');
         addButton.addEventListener('click', () => this.component.getGroupManager().showCreateGroupModal());
         
@@ -286,14 +295,53 @@ export class FlashcardRenderer {
             
             // 操作按钮
             const actions = header.createEl("div", { cls: "flashcard-group-actions" });
-            const editButton = actions.createEl("div", { cls: "flashcard-group-action" });
+            
+            // 同步按钮
+            const syncButton = actions.createEl("div", { 
+                cls: "flashcard-group-action", 
+                attr: { 'aria-label': t('同步分组卡片') } 
+            });
+            setIcon(syncButton, 'refresh-cw');
+            syncButton.addEventListener('click', async (e: MouseEvent) => {
+                e.stopPropagation();
+                try {
+                    // 显示同步中通知
+                    const notice = new Notice(t('正在同步分组卡片...'), 0);
+                    
+                    // 执行同步
+                    const count = await this.component.getFsrsManager().syncGroupCards(group.id);
+                    
+                    // 关闭通知
+                    notice.hide();
+                    
+                    // 显示结果
+                    new Notice(t('同步完成，共有 ') + count + t(' 张卡片'));
+                    
+                    // 刷新界面
+                    this.component.refreshCardList();
+                    this.render();
+                } catch (error) {
+                    console.error('同步分组卡片失败:', error);
+                    new Notice(t('同步分组卡片失败'));
+                }
+            });
+            
+            // 编辑按钮
+            const editButton = actions.createEl("div", { 
+                cls: "flashcard-group-action", 
+                attr: { 'aria-label': t('编辑分组') } 
+            });
             setIcon(editButton, 'edit');
             editButton.addEventListener('click', (e: MouseEvent) => {
                 e.stopPropagation();
                 this.component.getGroupManager().showEditGroupModal(group);
             });
 
-            const deleteButton = actions.createEl("div", { cls: "flashcard-group-action" });
+            // 删除按钮
+            const deleteButton = actions.createEl("div", { 
+                cls: "flashcard-group-action", 
+                attr: { 'aria-label': t('删除分组') } 
+            });
             setIcon(deleteButton, 'trash');
             deleteButton.addEventListener('click', async (e: MouseEvent) => {
                 e.stopPropagation();
@@ -408,14 +456,17 @@ export class FlashcardRenderer {
         const currentIndex = this.component.getCurrentIndex();
         const currentCard = cards.length > 0 && currentIndex < cards.length ? cards[currentIndex] : null;
         
-        if (cards.length === 0) {
-            cardContainer.createEl("div", {
-                cls: "flashcard-empty", 
-                text: t("No cards due for review") 
-            });
-            return;
-        }
-
+        // 输出调试信息
+        console.log('在 render 方法中，当前状态:', {
+            groupName: this.component.getCurrentGroupName(),
+            cardsLength: cards.length,
+            currentIndex: currentIndex,
+            currentCard: currentCard ? currentCard.id : null,
+            completionMessage: this.component.getCompletionMessage(),
+            groupCompletionMessage: this.component.getGroupCompletionMessage(this.component.getCurrentGroupName())
+        });
+        
+        // 先检查是否有完成消息，再检查卡片数组
         // 显示完成消息（如果有）
         if (this.component.getCompletionMessage()) {
             const completionContainer = cardContainer.createEl("div", { 
@@ -475,6 +526,15 @@ export class FlashcardRenderer {
                 this.render();
             });
             
+            return;
+        }
+
+        // 在完成消息处理后再检查卡片数组是否为空
+        if (cards.length === 0) {
+            cardContainer.createEl("div", {
+                cls: "flashcard-empty", 
+                text: t("No cards due for review") 
+            });
             return;
         }
 

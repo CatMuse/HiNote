@@ -146,37 +146,63 @@ export class FlashcardOperations {
             // 获取最近添加的卡片
             cards = this.component.getFsrsManager().getLatestCards();
         } else {
-            // 获取自定义分组的卡片
-            cards = this.component.getFsrsManager().getCardsByGroupId(groupName);
-            console.log(`自定义分组 ${groupName} 中的卡片数量: ${cards.length}`);
-            if (cards.length > 0) {
-                console.log('分组中的卡片ID:', cards.map((c: FlashcardState) => c.id));
+            // 处理自定义分组
+            console.log(`开始获取自定义分组 ${groupName} 的卡片`);
+            
+            // 直接从存储中获取卡片，而不经过任何过滤
+            const fsrsManager = this.component.getFsrsManager();
+            const cardGroups = fsrsManager.getCardGroups();
+            const group = cardGroups.find((g: any) => g.id === groupName || g.name === groupName);
+            
+            if (group) {
+                console.log(`找到分组 ${group.name}(${group.id})，卡片ID数量: ${group.cardIds ? group.cardIds.length : 0}`);
                 
-                // 对于自定义分组，不应用任何过滤条件，显示所有卡片
-                console.log('自定义分组不应用复习状态过滤，显示所有卡片');
-                
-                // 直接设置卡片列表，不应用任何过滤
-                this.component.setCards(cards);
-                
-                // 更新完成后直接返回，不执行后面的代码
-                return;
-            } else {
-                console.log('分组中没有卡片，检查 cardIds 是否正确关联');
-                
-                // 检查分组是否存在
-                const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.id === groupName);
-                if (group) {
-                    console.log(`分组 ${group.name} 的 cardIds:`, group.cardIds);
-                    
-                    // 检查每个 cardId 是否有对应的卡片
-                    if (group.cardIds && group.cardIds.length > 0) {
-                        group.cardIds.forEach((cardId: string) => {
-                            const card = this.component.getFsrsManager().exportData().cards[cardId];
-                            console.log(`卡片 ${cardId} 存在: ${card ? '是' : '否'}`);
-                        });
-                    }
+                // 直接从存储中获取卡片
+                if (group.cardIds && group.cardIds.length > 0) {
+                    const allCards = fsrsManager.exportData().cards;
+                    cards = group.cardIds
+                        .map((id: string) => {
+                            const card = allCards[id];
+                            if (card) {
+                                console.log(`找到卡片 ${id}，内容: ${card.text.substring(0, 20)}...`);
+                            } else {
+                                console.log(`卡片 ${id} 不存在`);
+                            }
+                            return card;
+                        })
+                        .filter((card: any) => card !== undefined);
                 }
+            } else {
+                console.log(`分组 ${groupName} 不存在，检查所有分组:`, 
+                    cardGroups.map((g: any) => ({ id: g.id, name: g.name })));
             }
+            
+            console.log(`自定义分组 ${groupName} 中的卡片数量: ${cards.length}`);
+            
+            // 对于自定义分组，始终清除完成消息并设置卡片列表，无论卡片数量是否为0
+            console.log('自定义分组不应用复习状态过滤，显示所有卡片');
+            
+            // 清除完成消息，确保显示卡片
+            this.component.setCompletionMessage(null);
+            this.component.setGroupCompletionMessage(groupName, null);
+            
+            // 直接设置卡片列表，不应用任何过滤
+            this.component.setCards(cards);
+            this.component.setCurrentIndex(0);
+            this.component.setCardFlipped(false);
+            this.component.saveState();
+            
+            // 输出调试信息
+            console.log('设置卡片列表后的状态:', {
+                cards: this.component.getCards().length,
+                currentIndex: this.component.getCurrentIndex(),
+                isFlipped: this.component.isCardFlipped(),
+                completionMessage: this.component.getCompletionMessage(),
+                groupCompletionMessage: this.component.getGroupCompletionMessage(groupName)
+            });
+            
+            // 自定义分组处理完成，直接返回
+            return;
         }
         
         // 应用每日学习限制

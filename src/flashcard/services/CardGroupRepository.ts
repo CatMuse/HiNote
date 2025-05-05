@@ -239,11 +239,18 @@ export class CardGroupRepository {
         console.log(`开始获取分组 ${groupId} 中的卡片`);
         
         // 检查分组是否存在
-        const group = this.storage.cardGroups.find((g: CardGroup) => g.id === groupId);
+        const group = this.storage.cardGroups.find((g: CardGroup) => g.id === groupId || g.name === groupId);
         if (!group) {
-            console.log(`分组 ${groupId} 不存在`);
+            console.log(`分组 ${groupId} 不存在，检查所有分组:`, this.storage.cardGroups.map((g: CardGroup) => ({ id: g.id, name: g.name })));
             return [];
         }
+        
+        console.log(`分组找到，详细信息:`, {
+            id: group.id,
+            name: group.name,
+            cardIds: group.cardIds,
+            filter: group.filter
+        });
         
         // 确保 cardIds 数组存在
         if (!Array.isArray(group.cardIds)) {
@@ -252,7 +259,11 @@ export class CardGroupRepository {
             return [];
         }
         
-        console.log(`分组 ${group.name} 中有 ${group.cardIds.length} 个卡片ID`);
+        console.log(`分组 ${group.name} 中有 ${group.cardIds.length} 个卡片ID:`, group.cardIds);
+        
+        // 检查存储中的卡片总数
+        const allCardIds = Object.keys(this.storage.cards);
+        console.log(`存储中共有 ${allCardIds.length} 张卡片`);
         
         // 获取分组中的卡片
         const cards = group.cardIds
@@ -260,6 +271,12 @@ export class CardGroupRepository {
                 const card = this.storage.cards[id];
                 if (!card) {
                     console.log(`卡片 ${id} 不存在于存储中`);
+                } else {
+                    console.log(`卡片 ${id} 存在，数据:`, {
+                        text: card.text.substring(0, 20) + '...',
+                        answer: card.answer,
+                        nextReview: new Date(card.nextReview).toLocaleString()
+                    });
                 }
                 return card;
             })
@@ -269,6 +286,7 @@ export class CardGroupRepository {
         
         return cards;
     }
+    
     /**
      * 获取分组的学习进度
      * @param groupId 分组ID
