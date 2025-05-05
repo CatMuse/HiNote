@@ -10,16 +10,23 @@ import {
     DailyStats
 } from '../types/FSRSTypes';
 import { FSRSService } from './FSRSService';
+import { FlashcardFactory } from './FlashcardFactory';
+import { CardGroupRepository } from './CardGroupRepository';
+import { FlashcardDataService } from './FlashcardDataService';
 import { debounce } from 'obsidian';
 
 export class FSRSManager {
     public fsrsService: FSRSService;
+    private cardFactory: FlashcardFactory;
+    private groupRepository: CardGroupRepository;
+    private dataService: FlashcardDataService;
     private storage: FSRSStorage;
     private plugin: any; // CommentPlugin type
 
     constructor(plugin: any) {
         this.plugin = plugin;
         this.fsrsService = new FSRSService();
+        this.cardFactory = new FlashcardFactory(plugin, this.fsrsService);
         this.storage = {
             version: '1.0',
             cards: {},
@@ -40,6 +47,12 @@ export class FSRSManager {
             },
             dailyStats: [] // 初始化每日学习统计数据
         };
+        
+        // 初始化分组仓库
+        this.groupRepository = new CardGroupRepository(plugin, this.storage);
+        
+        // 初始化数据服务
+        this.dataService = new FlashcardDataService(plugin, this.storage);
         
         // 自动保存更改
         this.saveStorageDebounced = debounce(this.saveStorage.bind(this), 1000, true);
@@ -158,7 +171,8 @@ export class FSRSManager {
     }
 
     public addCard(text: string, answer: string, filePath?: string): FlashcardState {
-        const card = this.fsrsService.initializeCard(text, answer, filePath);
+        // 使用 FlashcardFactory 创建卡片
+        const card = this.cardFactory.createCard(text, answer, filePath);
         
         // 确保 storage.cards 存在
         if (!this.storage.cards) {
@@ -389,6 +403,22 @@ export class FSRSManager {
     }
 
     /**
+     * 获取所有卡片
+     * @returns 所有卡片列表
+     */
+    public getLatestCards(): FlashcardState[] {
+        return Object.values(this.storage.cards);
+    }
+    
+    /**
+     * 获取所有分组
+     * @returns 所有分组列表
+     */
+    public getCardGroups(): CardGroup[] {
+        return this.groupRepository.getCardGroups();
+    }
+
+    /**
      * reviewCard 方法 - 作为 rateCard 的别名，用于兼容性
      * @param cardId 卡片ID
      * @param rating 评分 (0-3: Again, Hard, Good, Easy)
@@ -413,18 +443,28 @@ export class FSRSManager {
         return this.fsrsService.getSchedulingCards(card);
     }
 
-    public getLatestCards(): FlashcardState[] {
-        // 按文本内容分组，每组只保留最新的卡片
-        const cardsByText = Object.values(this.storage.cards).reduce((acc, card) => {
-            if (!acc[card.text] || acc[card.text].id < card.id) {
-                acc[card.text] = card;
-            }
-            return acc;
-        }, {} as Record<string, FlashcardState>);
+    /**
+     * 为分组生成卡片
+     * @param groupId 分组ID
+     * @returns 生成的卡片数量
+     */
+    public async generateCardsForGroup(groupId: string): Promise<number> {
+        const group = this.groupRepository.getGroupById(groupId);
+        if (!group) return 0;
         
-        return Object.values(cardsByText);
+        // 获取所有符合条件的卡片
+        const newCards = await this.cardFactory.generateCardsForGroup(group, (card: FlashcardState, groupId: string) => {
+            this.storage.cards[card.id] = card;
+            this.addCardToGroup(card.id, groupId);
+        });
+        
+        // 保存更改
+        await this.saveStorage();
+        this.plugin.eventManager.emitFlashcardChanged();
+        
+        return newCards;
     }
-    
+
     /**
      * 根据内容查找卡片
      * @param text 卡片正面文本
@@ -561,393 +601,17 @@ export class FSRSManager {
     }
     
     /**
-     * 将卡片添加到分组
-     * @param cardId 卡片ID
-     * @param groupId 分组ID
-     * @returns 是否添加成功
+     * 从标签文本中提取标签 (委托给 FlashcardFactory)
+     * @param text 包含标签的文本
+     * @returns 提取的标签数组
      */
-    public addCardToGroup(cardId: string, groupId: string): boolean {
-        const card = this.storage.cards[cardId];
-        const group = this.storage.cardGroups.find(g => g.id === groupId);
-        
-        if (!card || !group) return false;
-        
-        // 初始化卡片的分组ID列表
-        if (!card.groupIds) {
-            card.groupIds = [];
-        }
-        
-        // 初始化分组的卡片ID列表
-        if (!group.cardIds) {
-            group.cardIds = [];
-        }
-        
-        // 如果卡片已经在分组中，直接返回成功
-        if (card.groupIds.includes(groupId) && group.cardIds.includes(cardId)) {
-            return true;
-        }
-        
-        // 添加关联
-        if (!card.groupIds.includes(groupId)) {
-            card.groupIds.push(groupId);
-        }
-        
-        if (!group.cardIds.includes(cardId)) {
-            group.cardIds.push(cardId);
-        }
-        
-        // 更新分组的最后更新时间
-        group.lastUpdated = Date.now();
-        
-        this.saveStorageDebounced();
-        return true;
-    }
-    
     /**
-     * 从分组中移除卡片
-     * @param cardId 卡片ID
-     * @param groupId 分组ID
-     * @returns 是否移除成功
+     * 从标签文本中提取标签（委托给 CardGroupRepository）
+     * @param text 包含标签的文本
+     * @returns 提取的标签数组
      */
-    public removeCardFromGroup(cardId: string, groupId: string): boolean {
-        const card = this.storage.cards[cardId];
-        const group = this.storage.cardGroups.find(g => g.id === groupId);
-        
-        if (!card || !group) return false;
-        
-        // 移除关联
-        if (card.groupIds) {
-            card.groupIds = card.groupIds.filter(id => id !== groupId);
-        }
-        
-        if (group.cardIds) {
-            group.cardIds = group.cardIds.filter(id => id !== cardId);
-        }
-        
-        // 更新分组的最后更新时间
-        group.lastUpdated = Date.now();
-        
-        this.saveStorageDebounced();
-        return true;
-    }
-    
-    /**
-     * 获取分组中的所有卡片（通过关联ID）
-     * @param groupId 分组ID
-     * @returns 分组中的卡片列表
-     */
-    public getCardsByGroupId(groupId: string): FlashcardState[] {
-        const group = this.storage.cardGroups.find(g => g.id === groupId);
-        if (!group || !group.cardIds || group.cardIds.length === 0) {
-            // 如果分组不存在或没有关联卡片，使用过滤条件获取卡片
-            return group ? this.getCardsInGroup(group) : [];
-        }
-        
-        // 通过ID直接获取卡片
-        return group.cardIds
-            .map(id => this.storage.cards[id])
-            .filter(card => card !== undefined);
-    }
-
-    public exportData(): FSRSStorage {
-        return JSON.parse(JSON.stringify(this.storage));
-    }
-
-    public importData(data: FSRSStorage): boolean {
-        try {
-            // 验证数据结构
-            if (typeof data.version !== 'string' || !data.cards || !data.globalStats) {
-                throw new Error('Invalid FSRS data structure');
-            }
-            
-            this.storage = data;
-            this.saveStorage();
-            return true;
-        } catch (error) {
-
-            return false;
-        }
-    }
-
-    public async reset(): Promise<void> {
-        try {
-            this.storage = await this.loadStorage();
-            await this.saveStorage();
-
-        } catch (error) {
-
-            throw error;
-        }
-    }
-
-    // 卡片分组管理
-    public getCardGroups(): CardGroup[] {
-        if (!Array.isArray(this.storage.cardGroups)) {
-
-            this.storage.cardGroups = [];
-            this.saveStorageDebounced();
-        }
-        return this.storage.cardGroups;
-    }
-
-    private generateUUID(): string {
-        const timestamp = Date.now().toString(36);
-        const randomStr = Math.random().toString(36).substring(2, 15);
-        return `${timestamp}-${randomStr}`;
-    }
-
-    public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
-        if (!this.storage.cardGroups) {
-            this.storage.cardGroups = [];
-        }
-
-        // 检查是否已存在同名分组
-        const existingGroup = this.storage.cardGroups.find(g => g.name === group.name);
-        if (existingGroup) {
-            throw new Error(`Group with name '${group.name}' already exists`);
-        }
-
-        // 生成唯一ID
-        const id = this.generateUUID();
-
-        // 创建新分组
-        const newGroup: CardGroup = {
-            id,
-            name: group.name,
-            filter: group.filter || '',
-            createdTime: Date.now(),
-            sortOrder: this.storage.cardGroups.length,
-            isReversed: group.isReversed || false,
-            settings: group.settings || {
-                useGlobalSettings: true
-            },
-            cardIds: [] // 初始化空卡片列表
-        };
-
-        // 添加到存储
-        this.storage.cardGroups.push(newGroup);
-        await this.saveStorage();
-        
-        // 为新分组生成闪卡
-        const newCardsCount = await this.generateCardsForGroup(newGroup.id);
-        console.log(`为分组 ${newGroup.name} 创建了 ${newCardsCount} 张闪卡`);
-
-        return newGroup;
-    }
-
-    public async updateCardGroup(groupId: string, updates: Partial<Omit<CardGroup, 'id'>>): Promise<boolean> {
-        if (!this.storage.cardGroups) return false;
-
-        const group = this.storage.cardGroups.find(g => g.id === groupId);
-        if (!group) return false;
-
-        // 检查是否更改了名称，如果是，确保新名称不与其他分组冲突
-        if (updates.name && updates.name !== group.name) {
-            const existingGroup = this.storage.cardGroups.find(g => g.name === updates.name && g.id !== groupId);
-            if (existingGroup) {
-                throw new Error(`Group with name '${updates.name}' already exists`);
-            }
-        }
-        
-        // 记录更新前的过滤条件
-        const oldFilter = group.filter;
-
-        // 更新分组
-        Object.assign(group, updates);
-
-        await this.saveStorage();
-        
-        // 如果过滤条件发生变化，重新生成闪卡
-        if (updates.filter && updates.filter !== oldFilter) {
-            // 先删除该分组下的所有卡片
-            if (group.cardIds && group.cardIds.length > 0) {
-                console.log(`分组过滤条件已更改，删除旧卡片: ${group.cardIds.length} 张`);
-                for (const cardId of [...group.cardIds]) { // 创建副本以避免在遍历过程中修改数组
-                    this.deleteCard(cardId);
-                }
-                // 清空卡片ID列表
-                group.cardIds = [];
-                await this.saveStorage();
-            }
-            
-            // 重新生成闪卡
-            const newCardsCount = await this.generateCardsForGroup(groupId);
-            console.log(`为分组 ${group.name} 重新创建了 ${newCardsCount} 张闪卡`);
-        }
-        
-        return true;
-    }
-
-    /**
-     * 删除分组
-     * @param groupId 分组ID
-     * @param deleteCards 是否同时删除分组内的卡片，默认为 true
-     * @returns 是否删除成功
-     */
-    public async deleteCardGroup(groupId: string, deleteCards = true): Promise<boolean> {
-        if (!this.storage.cardGroups) return false;
-        
-        const index = this.storage.cardGroups.findIndex(g => g.id === groupId);
-        if (index === -1) return false;
-
-        const deletedGroup = this.storage.cardGroups[index];
-        
-        // 清理 UI 状态
-        const uiState = this.storage.uiState;
-        
-        // 1. 清理分组完成消息
-        if (uiState.groupCompletionMessages && deletedGroup.name in uiState.groupCompletionMessages) {
-            delete uiState.groupCompletionMessages[deletedGroup.name];
-        }
-        
-        // 2. 清理分组学习进度
-        if (uiState.groupProgress && deletedGroup.name in uiState.groupProgress) {
-            delete uiState.groupProgress[deletedGroup.name];
-        }
-        
-        // 3. 如果当前活动分组是被删除的分组，切换到默认分组
-        if (uiState.currentGroupName === deletedGroup.name) {
-            uiState.currentGroupName = 'All cards';
-            uiState.currentIndex = 0;
-            uiState.isFlipped = false;
-            uiState.completionMessage = null;
-        }
-        
-        // 获取该分组内的所有卡片
-        const cardsInGroup = deletedGroup.cardIds || [];
-        
-        if (deleteCards) {
-            // 删除分组内的所有卡片
-            for (const cardId of cardsInGroup) {
-                this.deleteCard(cardId);
-            }
-        } else {
-            // 仅解除卡片与分组的关联
-            for (const cardId of cardsInGroup) {
-                const card = this.storage.cards[cardId];
-                if (card && card.groupIds) {
-                    card.groupIds = card.groupIds.filter(id => id !== groupId);
-                }
-            }
-        }
-        
-        // 删除分组
-        this.storage.cardGroups.splice(index, 1);
-        
-        try {
-            await this.saveStorage();
-            // 触发闪卡变化事件
-            this.plugin.eventManager.emitFlashcardChanged();
-            return true;
-        } catch (error) {
-            // 如果删除失败，恢复组（但卡片和 UI 状态已被删除，无法完全恢复）
-            this.storage.cardGroups.splice(index, 0, deletedGroup);
-            return false;
-        }
-    }
-
-    public getGroupProgress(groupId: string): FlashcardProgress | null {
-        const group = this.storage.cardGroups.find(g => g.id === groupId);
-        if (!group) return null;
-        
-        const cards = this.getCardsInGroup(group);
-        const now = Date.now();
-        
-        return {
-            due: cards.filter(c => c.nextReview <= now).length,
-            newCards: cards.filter(c => c.lastReview === 0).length,
-            learned: cards.filter(c => c.lastReview > 0).length,
-            retention: this.calculateGroupRetention(cards)
-        };
-    }
-
-    private calculateGroupRetention(cards: FlashcardState[]): number {
-        const reviewedCards = cards.filter(c => c.lastReview > 0);
-        if (reviewedCards.length === 0) return 1;
-        
-        const totalRetention = reviewedCards.reduce((sum, card) => sum + card.retrievability, 0);
-        return totalRetention / reviewedCards.length;
-    }
-
-    public getCardsInGroup(group: CardGroup): FlashcardState[] {
-
-        const latestCards = this.getLatestCards();
-
-        const result = latestCards.filter(card => {
-            const filters = group.filter.split(',').map(f => f.trim().toLowerCase());
-            const cardText = card.text.toLowerCase();
-            const cardAnswer = card.answer.toLowerCase();
-            const filePath = (card.filePath || '').toLowerCase();
-            
-            
-            
-            const matches = filters.some(filter => {
-                // 检查标签
-                if (filter.startsWith('#')) {
-                    const tagToFind = filter.substring(1);
-                    // 从卡片文本中提取标签
-                    const tagsInText = this.extractTagsFromText(cardText);
-                    // 从卡片答案中提取标签
-                    const tagsInAnswer = this.extractTagsFromText(cardAnswer);
-                    // 合并所有标签
-                    const allTags = [...tagsInText, ...tagsInAnswer];
-                    
-                    // 检查卡片文本中是否直接包含完整的标签字符串（包括#符号）
-                    const directTagMatch = cardText.includes(filter) || cardAnswer.includes(filter);
-                    
-                    // 检查提取的标签是否匹配
-                    const extractedTagMatch = allTags.some(tag => 
-                        tag.toLowerCase() === tagToFind || 
-                        tag.toLowerCase().includes(tagToFind)
-                    );
-                    
-                    const matches = directTagMatch || extractedTagMatch;
-                    
-                    return matches;
-                }
-                
-                // 检查笔记链接
-                if (filter.startsWith('[[') && filter.endsWith(']]')) {
-                    const noteName = filter.slice(2, -2);
-                    const matches = filePath.includes(noteName);
-
-                    return matches;
-                }
-                
-                // 检查通配符
-                if (filter.includes('*')) {
-                    const pattern = filter
-                        .replace(/\./g, '\\.')
-                        .replace(/\*/g, '.*');
-                    const regex = new RegExp(pattern, 'i');
-                    const matches = regex.test(filePath);
-
-                    return matches;
-                }
-                
-                // 检查文件路径
-                const pathMatches = filePath.includes(filter);
-
-                if (pathMatches) return true;
-                
-                // 检查卡片内容
-                const contentMatches = cardText.includes(filter) || cardAnswer.includes(filter);
-
-                return contentMatches;
-            });
-
-            return matches;
-        });
-
-        return result;
-    }
-
     private extractTagsFromText(text: string): string[] {
-        // 修改正则表达式以支持更广泛的标签格式，包括中文和其他特殊字符
-        const tagRegex = /#([^\s#]+)/g;
-        const matches = text.match(tagRegex);
-
-        return matches ? matches.map(tag => tag.substring(1)) : [];
+        return this.groupRepository.extractTagsFromText(text);
     }
 
     /**
@@ -1085,172 +749,236 @@ export class FSRSManager {
         // 使用全局设置
         return Math.max(0, params.reviewsPerDay - todayStats.cardsReviewed);
     }
+    /**
+     * 创建新分组
+     * @param group 分组数据（不含ID）
+     * @returns 创建的分组
+     */
+    public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
+        // 创建新分组
+        const newGroup = await this.groupRepository.createCardGroup(group);
+        
+        // 生成卡片
+        const newCardsCount = await this.generateCardsForGroup(newGroup.id);
+        
+        // 保存更改
+        await this.saveStorage();
+        
+        return newGroup;
+    }
+    
+    /**
+     * 更新分组
+     * @param groupId 分组ID
+     * @param updates 要更新的字段
+     * @returns 是否更新成功
+     */
+    public async updateCardGroup(groupId: string, updates: Partial<Omit<CardGroup, 'id'>>): Promise<boolean> {
+        // 获取更新前的过滤条件
+        const oldGroup = this.groupRepository.getGroupById(groupId);
+        const oldFilter = oldGroup?.filter;
+        
+        // 更新分组
+        const result = await this.groupRepository.updateCardGroup(groupId, updates);
+        if (!result) return false;
+        
+        // 如果更新了过滤条件，重新生成卡片
+        if (updates.filter !== undefined && updates.filter !== oldFilter) {
+            // 清空现有卡片
+            const group = this.groupRepository.getGroupById(groupId);
+            if (group && group.cardIds) {
+                for (const cardId of [...group.cardIds]) {
+                    this.removeCardFromGroup(cardId, groupId);
+                }
+            }
+            
+            // 重新生成卡片
+            const newCardsCount = await this.generateCardsForGroup(groupId);
+        }
+        
+        // 保存更改
+        await this.saveStorage();
+        
+        return true;
+    }
+    
+    /**
+     * 删除分组
+     * @param groupId 分组ID
+     * @param deleteCards 是否同时删除分组内的卡片
+     * @returns 是否删除成功
+     */
+    public async deleteCardGroup(groupId: string, deleteCards = true): Promise<boolean> {
+        // 如果要删除卡片，先获取分组内的所有卡片ID
+        let cardsToDelete: string[] = [];
+        if (deleteCards) {
+            const group = this.groupRepository.getGroupById(groupId);
+            cardsToDelete = group?.cardIds || [];
+        }
+        
+        // 删除分组
+        const result = await this.groupRepository.deleteCardGroup(groupId, false); // 先不删除卡片
+        if (!result) return false;
+        
+        // 如果需要删除卡片，单独处理
+        if (deleteCards && cardsToDelete.length > 0) {
+            for (const cardId of cardsToDelete) {
+                this.deleteCard(cardId);
+            }
+        }
+        
+        // 保存更改
+        try {
+            await this.saveStorage();
+            return true;
+        } catch (error) {
+            // 删除失败，但无法恢复（分组已被删除）
+            return false;
+        }
+    }
+    
+    /**
+     * 获取分组中的所有卡片（根据过滤条件）
+     * @param group 分组对象
+     * @returns 符合条件的卡片列表
+     */
+    /**
+     * 获取分组中的所有卡片（根据过滤条件）
+     * @param group 分组对象
+     * @returns 符合条件的卡片列表
+     */
+    public getCardsInGroup(group: CardGroup): FlashcardState[] {
+        // 如果分组有cardIds，直接返回这些卡片
+        if (group.cardIds && group.cardIds.length > 0) {
+            return this.getCardsByGroupId(group.id);
+        }
+        
+        // 否则，根据过滤条件筛选卡片
+        const latestCards = this.getLatestCards();
+
+        return latestCards.filter((card: FlashcardState) => {
+            const filters = group.filter.split(',').map(f => f.trim().toLowerCase());
+            const cardText = card.text.toLowerCase();
+            const cardAnswer = card.answer.toLowerCase();
+            const filePath = (card.filePath || '').toLowerCase();
+            
+            const matches = filters.some((filter: string) => {
+                // 检查标签
+                if (filter.startsWith('#')) {
+                    const tagToFind = filter.substring(1);
+                    // 从卡片文本中提取标签
+                    const tagsInText = this.groupRepository.extractTagsFromText(cardText);
+                    // 从卡片答案中提取标签
+                    const tagsInAnswer = this.groupRepository.extractTagsFromText(cardAnswer);
+                    // 合并所有标签
+                    const allTags = [...tagsInText, ...tagsInAnswer];
+                    
+                    // 检查卡片文本中是否直接包含完整的标签字符串（包括#符号）
+                    const directTagMatch = cardText.includes(filter) || cardAnswer.includes(filter);
+                    
+                    // 检查提取的标签是否匹配
+                    const extractedTagMatch = allTags.some((tag: string) => 
+                        tag.toLowerCase() === tagToFind || 
+                        tag.toLowerCase().includes(tagToFind)
+                    );
+                    
+                    return directTagMatch || extractedTagMatch;
+                }
+                
+                // 检查文件路径
+                if (filter.startsWith('path:')) {
+                    const pathToFind = filter.substring(5);
+                    return filePath.includes(pathToFind);
+                }
+                
+                // 检查文本内容
+                return cardText.includes(filter) || cardAnswer.includes(filter);
+            });
+            
+            return matches;
+        });
+    }
+    
+    /**
+     * 将卡片添加到分组
+     * @param cardId 卡片ID
+     * @param groupId 分组ID
+     * @returns 是否添加成功
+     */
+    public addCardToGroup(cardId: string, groupId: string): boolean {
+        const result = this.groupRepository.addCardToGroup(cardId, groupId);
+        if (result) {
+            // 保存更改
+            this.saveStorageDebounced();
+        }
+        return result;
+    }
+    
+    /**
+     * 从分组中移除卡片
+     * @param cardId 卡片ID
+     * @param groupId 分组ID
+     * @returns 是否移除成功
+     */
+    public removeCardFromGroup(cardId: string, groupId: string): boolean {
+        const result = this.groupRepository.removeCardFromGroup(cardId, groupId);
+        if (result) {
+            // 保存更改
+            this.saveStorageDebounced();
+        }
+        return result;
+    }
+    
+    /**
+     * 获取分组中的所有卡片
+     * @param groupId 分组ID
+     * @returns 分组中的卡片列表
+     */
+    public getCardsByGroupId(groupId: string): FlashcardState[] {
+        return this.groupRepository.getCardsByGroupId(groupId);
+    }
+    
+    /**
+     * 导出数据
+     * @returns 导出的存储数据
+     */
+    public exportData(): FSRSStorage {
+        return this.dataService.exportData();
+    }
 
     /**
-     * 根据分组条件生成闪卡
-     * @param groupId 分组ID
-     * @returns 新创建的卡片数量
+     * 导入数据
+     * @param data 要导入的数据
+     * @returns 是否导入成功
      */
-    public async generateCardsForGroup(groupId: string): Promise<number> {
-        const group = this.storage.cardGroups.find(g => g.id === groupId);
-        if (!group) return 0;
-        
-        // 获取所有文件
-        const allFiles = this.plugin.app.vault.getMarkdownFiles();
-        const highlightService = this.plugin.highlightService;
-        const commentStore = this.plugin.commentStore;
-        
-        // 根据分组过滤条件筛选文件
-        const filteredFiles: any[] = [];
-        const filterText = group.filter.toLowerCase();
-        
-        // 检查是否有文件相关的过滤条件
-        const hasFileFilter = (
-            filterText.includes('path:') || 
-            filterText.includes('[[') || 
-            filterText.includes('.md') ||
-            // 检查是否包含文件夹路径格式
-            /[\\\/]/.test(filterText)
-        );
-        
-        if (hasFileFilter) {
-            // 文件路径筛选 - path: 前缀
-            if (filterText.includes('path:')) {
-                const pathMatches = [...filterText.matchAll(/path:([^\s]+)/g)];
-                if (pathMatches.length > 0) {
-                    for (const match of pathMatches) {
-                        const pathFilter = match[1];
-                        for (const file of allFiles) {
-                            if (file.path.toLowerCase().includes(pathFilter) && 
-                                highlightService.shouldProcessFile(file) &&
-                                !filteredFiles.includes(file)) {
-                                filteredFiles.push(file);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Wiki 链接格式 [[文件名]]
-            if (filterText.includes('[[')) {
-                const wikiMatches = [...filterText.matchAll(/\[\[([^\]]+)\]\]/g)];
-                if (wikiMatches.length > 0) {
-                    for (const match of wikiMatches) {
-                        const fileName = match[1].toLowerCase();
-                        for (const file of allFiles) {
-                            // 检查文件名（不含扩展名）或完整路径
-                            const fileNameWithoutExt = file.basename.toLowerCase();
-                            if ((fileNameWithoutExt === fileName || 
-                                 file.path.toLowerCase().includes(fileName)) && 
-                                highlightService.shouldProcessFile(file) &&
-                                !filteredFiles.includes(file)) {
-                                filteredFiles.push(file);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // 如果以上条件都没有匹配到文件，尝试直接用过滤文本匹配文件路径
-            if (filteredFiles.length === 0) {
-                const filterParts = filterText.split(/\s+/);
-                for (const file of allFiles) {
-                    if (highlightService.shouldProcessFile(file)) {
-                        // 检查文件路径是否包含任何过滤部分
-                        const filePath = file.path.toLowerCase();
-                        if (filterParts.some(part => filePath.includes(part))) {
-                            filteredFiles.push(file);
-                        }
-                    }
-                }
-            }
-        } else {
-            // 如果没有文件相关的过滤条件，使用所有文件
-            filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
+    public importData(data: FSRSStorage): boolean {
+        const result = this.dataService.importData(data);
+        if (result) {
+            this.saveStorage();
         }
-        
-        // 计数新创建的卡片
-        let newCardsCount = 0;
-        
-        // 遍历所有文件，获取高亮/评论
-        for (const file of filteredFiles) {
-            const fileHighlights = commentStore.getFileComments(file as any);
-            
-            // 初始筛选：只处理有评论的高亮或挖空格式的高亮
-            let validHighlights = fileHighlights.filter((h: any) => 
-                !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/.test(h.text))
-            );
-            
-            // 标签筛选
-            if (group.filter.includes('tag:')) {
-                const tagFilters = [...group.filter.matchAll(/tag:([^\s]+)/g)].map(m => m[1]);
-                if (tagFilters.length > 0) {
-                    validHighlights = validHighlights.filter((highlight: any) => {
-                        const highlightTags = this.extractTagsFromText(highlight.text);
-                        const commentTags = highlight.comments?.flatMap((c: any) => 
-                            this.extractTagsFromText(c.content)
-                        ) || [];
-                        const allTags = [...highlightTags, ...commentTags];
-                        
-                        // 检查是否包含任一标签
-                        return tagFilters.some(tag => allTags.includes(tag));
-                    });
-                }
-            }
-            
-            // 关键词筛选（如果没有特定的文件或标签筛选器）
-            if (!group.filter.includes('tag:') && !hasFileFilter) {
-                const keywords = group.filter.toLowerCase().split(/\s+/).filter(k => k.length > 0);
-                if (keywords.length > 0) {
-                    validHighlights = validHighlights.filter((highlight: any) => {
-                        const text = highlight.text.toLowerCase();
-                        const comments = highlight.comments?.map((c: any) => c.content.toLowerCase()).join(' ') || '';
-                        const content = text + ' ' + comments;
-                        
-                        // 检查是否包含所有关键词
-                        return keywords.every(keyword => content.includes(keyword));
-                    });
-                }
-            }
-            
-            // 为每个符合条件的高亮/评论创建闪卡（如果尚未创建）
-            for (const highlight of validHighlights) {
-                let isCloze = false;
-                let clozeText = highlight.text;
-                let clozeAnswer = '';
-                
-                // 检查是否为挖空格式：{{内容}}
-                const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
-                if (clozeMatch) {
-                    isCloze = true;
-                    clozeAnswer = clozeMatch[1];
-                    // 正面隐藏内容，动态下划线长度
-                    clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match: any, p1: any) => '＿'.repeat(p1.length));
-                }
-                
-                // 合并所有评论作为答案
-                let answer = highlight.comments?.length ? highlight.comments.map((c: any) => c.content).join('<hr>') : '';
-                // 挖空格式优先，若有则拼接答案
-                if (isCloze) {
-                    answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
-                }
-                
-                // 直接创建新卡片，不检查是否已存在相同内容的卡片
-                if (highlight.filePath) {
-                    // 创建新卡片
-                    const newCard = this.addCard(clozeText, answer, highlight.filePath);
-                    if (newCard && newCard.id) {
-                        // 将新卡片添加到分组
-                        this.addCardToGroup(newCard.id, groupId);
-                        newCardsCount++;
-                    }
-                }
-            }
+        return result;
+    }
+    
+    /**
+     * 导出卡片为 Anki 格式
+     * @param cardIds 要导出的卡片 ID 数组，如果为空则导出所有卡片
+     * @returns Anki 格式的导出数据（CSV 字符串）
+     */
+    public exportToAnki(cardIds?: string[]): string {
+        return this.dataService.exportToAnki(cardIds);
+    }
+    
+    /**
+     * 从 Anki 格式导入卡片
+     * @param ankiData Anki 格式的导入数据（CSV 字符串）
+     * @param groupId 要将卡片添加到的分组 ID，如果为空则不添加到任何分组
+     * @returns 导入的卡片数量
+     */
+    public importFromAnki(ankiData: string, groupId?: string): number {
+        const importedCount = this.dataService.importFromAnki(ankiData, groupId);
+        if (importedCount > 0) {
+            this.saveStorage();
         }
-        
-        await this.saveStorage();
-        // 触发闪卡变化事件
-        this.plugin.eventManager.emitFlashcardChanged();
-        return newCardsCount;
+        return importedCount;
     }
 }
