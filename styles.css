@@ -721,6 +721,35 @@ settings:
 }
 
 /* Flashcard styles */
+
+/* 统计信息容器水平布局 */
+.flashcard-stats-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    flex-wrap: wrap;
+}
+
+.flashcard-stat-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+    min-width: 60px;
+    gap: 6px;
+    padding: 0px 8px;
+    border-radius: 4px;
+    background-color: var(--background-secondary);
+}
+
+.flashcard-stat-label .flashcard-stat-value{
+    font-size: 12px;
+    color: var(--text-faint);
+}
+
 .flashcard-progress-container::before {
     content: '';
     position: absolute;
@@ -1199,10 +1228,9 @@ textarea.flashcard-modal-input {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: 0px 12px;
     background: var(--background-secondary);
     border-radius: 8px;
-    border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .flashcard-stats {

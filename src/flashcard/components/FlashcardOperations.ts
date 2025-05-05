@@ -148,10 +148,41 @@ export class FlashcardOperations {
         } else {
             // 获取自定义分组的卡片
             cards = this.component.getFsrsManager().getCardsByGroupId(groupName);
+            console.log(`自定义分组 ${groupName} 中的卡片数量: ${cards.length}`);
+            if (cards.length > 0) {
+                console.log('分组中的卡片ID:', cards.map((c: FlashcardState) => c.id));
+                
+                // 对于自定义分组，不应用任何过滤条件，显示所有卡片
+                console.log('自定义分组不应用复习状态过滤，显示所有卡片');
+                
+                // 直接设置卡片列表，不应用任何过滤
+                this.component.setCards(cards);
+                
+                // 更新完成后直接返回，不执行后面的代码
+                return;
+            } else {
+                console.log('分组中没有卡片，检查 cardIds 是否正确关联');
+                
+                // 检查分组是否存在
+                const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.id === groupName);
+                if (group) {
+                    console.log(`分组 ${group.name} 的 cardIds:`, group.cardIds);
+                    
+                    // 检查每个 cardId 是否有对应的卡片
+                    if (group.cardIds && group.cardIds.length > 0) {
+                        group.cardIds.forEach((cardId: string) => {
+                            const card = this.component.getFsrsManager().exportData().cards[cardId];
+                            console.log(`卡片 ${cardId} 存在: ${card ? '是' : '否'}`);
+                        });
+                    }
+                }
+            }
         }
         
         // 应用每日学习限制
-        if (groupName === 'All cards' || groupName === 'Due Cards') {
+        // 只对系统预定义的分组应用限制，自定义分组显示所有卡片
+        // 如果是自定义分组，前面已经处理过了，这里不需要再处理
+        if ((groupName === 'All cards' || groupName === 'Due Cards') && cards.length > 0) {
             // 获取 FSRS 参数
             const params = this.component.getFsrsManager().fsrsService.getParameters();
             

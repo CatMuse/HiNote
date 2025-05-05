@@ -176,7 +176,8 @@ export class HighlightService {
                             updatedAt: Date.now(),
                             originalLength: fullMatch.length,
                             blockId: blockId,
-                            isCloze: isCloze // 如果包含挖空格式，标记为 true
+                            isCloze: isCloze, // 如果包含挖空格式，标记为 true
+                            filePath: file.path // 添加文件路径
                         };
                         
                         highlights.push(highlight);
@@ -201,7 +202,8 @@ export class HighlightService {
                                         updatedAt: highlight.updatedAt,
                                         paragraphOffset: highlight.paragraphOffset,
                                         backgroundColor: highlight.backgroundColor,
-                                        isCloze: true
+                                        isCloze: true,
+                                        filePath: file.path // 添加文件路径
                                     };
                                     
                                     // 添加到 CommentStore

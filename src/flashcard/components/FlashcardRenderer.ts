@@ -149,11 +149,15 @@ export class FlashcardRenderer {
         
         // 获取所有自定义分组的卡片
         const allCustomGroups = this.component.getFsrsManager().getCardGroups() || [];
+        console.log('所有自定义分组:', allCustomGroups.map((g: any) => g.name));
+        
         let customGroupCards: any[] = [];
         
         // 合并所有自定义分组的卡片
         allCustomGroups.forEach((group: any) => {
-            const groupCards = this.component.getFsrsManager().getCardsInGroup(group);
+            console.log(`处理分组 ${group.name}，ID: ${group.id}，cardIds:`, group.cardIds);
+            const groupCards = this.component.getFsrsManager().getCardsByGroupId(group.id);
+            console.log(`分组 ${group.name} 中的卡片数量:`, groupCards.length);
             customGroupCards = [...customGroupCards, ...groupCards];
         });
         
@@ -161,6 +165,8 @@ export class FlashcardRenderer {
         const uniqueCustomCards = Array.from(new Map(customGroupCards.map((card: any) => 
             [card.id, card]
         )).values());
+        
+        console.log('所有自定义分组卡片数量（去重后）:', uniqueCustomCards.length);
         
         const defaultGroupItems = [
             { 

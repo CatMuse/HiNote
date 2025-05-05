@@ -35,8 +35,20 @@ export class CardGroupRepository {
      * @returns 创建的分组
      */
     public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
+        console.log(`开始创建新分组: ${group.name}, 过滤条件: ${group.filter}`);
+        
+        // 检查存储对象
+        console.log('存储对象结构:', Object.keys(this.storage));
+        
+        // 确保 cardGroups 数组已初始化
+        if (!Array.isArray(this.storage.cardGroups)) {
+            console.log('初始化 cardGroups 数组');
+            this.storage.cardGroups = [];
+        }
+        
         // 生成唯一ID
         const id = `group-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        console.log(`生成分组ID: ${id}`);
         
         // 创建新分组
         const newGroup: CardGroup = {
@@ -54,9 +66,20 @@ export class CardGroupRepository {
         
         // 添加到存储
         this.storage.cardGroups.push(newGroup);
+        console.log(`分组已添加到存储，当前分组数量: ${this.storage.cardGroups.length}`);
+        console.log('存储中的分组:', this.storage.cardGroups.map((g: CardGroup) => g.name));
+        
+        // 直接保存一次，确保分组数据被保存
+        try {
+            await this.plugin.fsrsManager.saveStoragePublic();
+            console.log('分组数据已直接保存');
+        } catch (error) {
+            console.error('保存分组数据时出错:', error);
+        }
         
         // 触发事件
         this.plugin.eventManager.emitFlashcardChanged();
+        console.log('分组创建完成，已触发事件');
         
         return newGroup;
     }
@@ -68,18 +91,28 @@ export class CardGroupRepository {
      * @returns 是否更新成功
      */
     public async updateCardGroup(groupId: string, updates: Partial<CardGroup>): Promise<boolean> {
+        console.log(`开始更新分组: ${groupId}`);
+        
         const index = this.storage.cardGroups.findIndex((g: CardGroup) => g.id === groupId);
-        if (index === -1) return false;
+        if (index === -1) {
+            console.log(`未找到分组: ${groupId}`);
+            return false;
+        }
         
         // 更新分组
         this.storage.cardGroups[index] = {
             ...this.storage.cardGroups[index],
-            ...updates,
-            lastUpdated: Date.now()
+            ...updates
+            // 移除 lastUpdated 字段，因为 FlashcardState 类型中没有这个字段
         };
+        
+        console.log(`分组已更新: ${this.storage.cardGroups[index].name}`);
+        
+        // 注意: 移除了重复的保存逻辑，由调用方统一处理保存
         
         // 触发事件
         this.plugin.eventManager.emitFlashcardChanged();
+        console.log('分组更新完成，已触发事件');
         
         return true;
     }
@@ -203,14 +236,39 @@ export class CardGroupRepository {
      * @returns 分组中的卡片列表
      */
     public getCardsByGroupId(groupId: string): FlashcardState[] {
-        const group = this.storage.cardGroups.find((g: CardGroup) => g.id === groupId);
-        if (!group || !group.cardIds) return [];
+        console.log(`开始获取分组 ${groupId} 中的卡片`);
         
-        return group.cardIds
-            .map((id: string) => this.storage.cards[id])
+        // 检查分组是否存在
+        const group = this.storage.cardGroups.find((g: CardGroup) => g.id === groupId);
+        if (!group) {
+            console.log(`分组 ${groupId} 不存在`);
+            return [];
+        }
+        
+        // 确保 cardIds 数组存在
+        if (!Array.isArray(group.cardIds)) {
+            console.log(`分组 ${group.name} 的 cardIds 不是数组，初始化为空数组`);
+            group.cardIds = [];
+            return [];
+        }
+        
+        console.log(`分组 ${group.name} 中有 ${group.cardIds.length} 个卡片ID`);
+        
+        // 获取分组中的卡片
+        const cards = group.cardIds
+            .map((id: string) => {
+                const card = this.storage.cards[id];
+                if (!card) {
+                    console.log(`卡片 ${id} 不存在于存储中`);
+                }
+                return card;
+            })
             .filter((card: FlashcardState | undefined) => card !== undefined);
+        
+        console.log(`分组 ${group.name} 中实际找到 ${cards.length} 张卡片`);
+        
+        return cards;
     }
-    
     /**
      * 获取分组的学习进度
      * @param groupId 分组ID
@@ -224,9 +282,9 @@ export class CardGroupRepository {
         const now = Date.now();
         
         return {
-            due: cards.filter(c => c.nextReview <= now).length,
-            newCards: cards.filter(c => c.lastReview === 0).length,
-            learned: cards.filter(c => c.lastReview > 0).length,
+            due: cards.filter((c: FlashcardState) => c.nextReview <= now).length,
+            newCards: cards.filter((c: FlashcardState) => c.lastReview === 0).length,
+            learned: cards.filter((c: FlashcardState) => c.lastReview > 0).length,
             retention: this.calculateGroupRetention(cards)
         };
     }
@@ -236,10 +294,10 @@ export class CardGroupRepository {
      * @private
      */
     private calculateGroupRetention(cards: FlashcardState[]): number {
-        const reviewedCards = cards.filter(c => c.lastReview > 0);
+        const reviewedCards = cards.filter((c: FlashcardState) => c.lastReview > 0);
         if (reviewedCards.length === 0) return 1;
         
-        const totalRetention = reviewedCards.reduce((sum, card) => sum + card.retrievability, 0);
+        const totalRetention = reviewedCards.reduce((sum: number, card: FlashcardState) => sum + card.retrievability, 0);
         return totalRetention / reviewedCards.length;
     }
     

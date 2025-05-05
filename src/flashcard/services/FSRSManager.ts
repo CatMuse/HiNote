@@ -27,6 +27,8 @@ export class FSRSManager {
         this.plugin = plugin;
         this.fsrsService = new FSRSService();
         this.cardFactory = new FlashcardFactory(plugin, this.fsrsService);
+        
+        // 初始化为空对象，稍后会被加载的数据替换
         this.storage = {
             version: '1.0',
             cards: {},
@@ -48,25 +50,30 @@ export class FSRSManager {
             dailyStats: [] // 初始化每日学习统计数据
         };
         
-        // 初始化分组仓库
-        this.groupRepository = new CardGroupRepository(plugin, this.storage);
-        
-        // 初始化数据服务
-        this.dataService = new FlashcardDataService(plugin, this.storage);
-        
         // 自动保存更改
         this.saveStorageDebounced = debounce(this.saveStorage.bind(this), 1000, true);
         
         // 异步加载存储数据
         this.loadStorage().then(storage => {
-
+            console.log('存储数据加载完成，卡片组数量:', storage.cardGroups.length);
             this.storage = storage;
+            
+            // 在加载完成后初始化分组仓库和数据服务
+            this.groupRepository = new CardGroupRepository(plugin, this.storage);
+            this.dataService = new FlashcardDataService(plugin, this.storage);
+            
+            console.log('分组仓库初始化完成，卡片组数量:', this.groupRepository.getCardGroups().length);
         }).catch(error => {
-
+            console.error('加载存储数据时出错:', error);
+            
+            // 即使出错也初始化分组仓库和数据服务
+            this.groupRepository = new CardGroupRepository(plugin, this.storage);
+            this.dataService = new FlashcardDataService(plugin, this.storage);
         });
     }
 
     private async loadStorage(): Promise<FSRSStorage> {
+        console.log('开始加载存储数据...');
         const defaultStorage: FSRSStorage = {
             version: '1.0',
             cards: {},
@@ -90,24 +97,47 @@ export class FSRSManager {
 
         try {
             const data = await this.plugin.loadData();
+            console.log('已加载数据文件:', Object.keys(data || {}));
 
             if (!data?.fsrs) {
-
+                console.log('数据文件中没有 fsrs 字段，使用默认存储');
                 return defaultStorage;
             }
 
-            // Ensure cardGroups is properly initialized
+            console.log('fsrs 数据结构:', Object.keys(data.fsrs));
+
+            // 检查 cardGroups 是否存在并且是数组
+            if (data.fsrs.cardGroups) {
+                console.log('cardGroups 存在，类型:', Array.isArray(data.fsrs.cardGroups) ? '数组' : typeof data.fsrs.cardGroups);
+                if (Array.isArray(data.fsrs.cardGroups)) {
+                    console.log('cardGroups 数量:', data.fsrs.cardGroups.length);
+                    if (data.fsrs.cardGroups.length > 0) {
+                        console.log('第一个分组:', data.fsrs.cardGroups[0]);
+                    }
+                }
+            } else {
+                console.log('cardGroups 不存在');
+            }
+
+            // 确保 cardGroups 正确初始化
             const cardGroups = Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [];
 
-            const storage = {
-                ...defaultStorage,
-                ...data.fsrs,
-                cardGroups
+            // 创建新的存储对象，确保 cardGroups 不会被覆盖
+            const storage: FSRSStorage = {
+                version: data.fsrs.version || defaultStorage.version,
+                cards: data.fsrs.cards || {},
+                globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
+                cardGroups: cardGroups, // 确保使用我们检查过的 cardGroups
+                uiState: data.fsrs.uiState || defaultStorage.uiState,
+                dailyStats: data.fsrs.dailyStats || []
             };
+
+            console.log('已创建存储对象，cardGroups 数量:', storage.cardGroups.length);
+            console.log('卡片数量:', Object.keys(storage.cards).length);
 
             return storage;
         } catch (error) {
-
+            console.error('加载存储数据时出错:', error);
             return defaultStorage;
         }
     }
@@ -449,17 +479,73 @@ export class FSRSManager {
      * @returns 生成的卡片数量
      */
     public async generateCardsForGroup(groupId: string): Promise<number> {
+        console.log(`开始为分组生成卡片: ${groupId}`);
+        
         const group = this.groupRepository.getGroupById(groupId);
-        if (!group) return 0;
+        if (!group) {
+            console.log(`未找到分组: ${groupId}`);
+            return 0;
+        }
+        
+        console.log(`分组信息: 名称=${group.name}, 过滤条件=${group.filter}`);
+        
+        // 确保分组有 cardIds 数组
+        if (!Array.isArray(group.cardIds)) {
+            console.log(`初始化分组 ${group.name} 的 cardIds 数组`);
+            group.cardIds = [];
+        }
+        
+        // 获取当前存储中的卡片数量
+        const existingCardCount = Object.keys(this.storage.cards || {}).length;
+        console.log(`当前存储中有 ${existingCardCount} 张卡片`);
         
         // 获取所有符合条件的卡片
+        console.log('调用 FlashcardFactory.generateCardsForGroup 生成卡片...');
         const newCards = await this.cardFactory.generateCardsForGroup(group, (card: FlashcardState, groupId: string) => {
+            console.log(`添加新卡片到存储: ${card.id}`);
             this.storage.cards[card.id] = card;
-            this.addCardToGroup(card.id, groupId);
+            
+            // 添加卡片到分组
+            const addResult = this.addCardToGroup(card.id, groupId);
+            console.log(`将卡片 ${card.id} 添加到分组 ${groupId} 结果: ${addResult ? '成功' : '失败'}`);
+            
+            // 手动检查并添加卡片到分组
+            const updatedGroup = this.groupRepository.getGroupById(groupId);
+            if (updatedGroup) {
+                // 确保 cardIds 数组存在
+                if (!Array.isArray(updatedGroup.cardIds)) {
+                    updatedGroup.cardIds = [];
+                }
+                
+                if (!updatedGroup.cardIds.includes(card.id)) {
+                    console.log(`手动添加卡片 ${card.id} 到分组 ${groupId}`);
+                    updatedGroup.cardIds.push(card.id);
+                }
+            }
         });
         
+        console.log(`生成了 ${newCards} 张新卡片`);
+        
+        // 再次检查分组中的卡片数量
+        const updatedGroup = this.groupRepository.getGroupById(groupId);
+        if (updatedGroup) {
+            // 确保 cardIds 数组存在
+            if (!Array.isArray(updatedGroup.cardIds)) {
+                updatedGroup.cardIds = [];
+            }
+            
+            console.log(`分组 ${updatedGroup.name} 中现有 ${updatedGroup.cardIds.length} 张卡片`);
+            if (updatedGroup.cardIds.length > 0) {
+                console.log(`卡片ID列表: ${updatedGroup.cardIds.join(', ')}`);
+            } else {
+                console.log('分组中没有卡片');
+            }
+        }
+        
         // 保存更改
+        console.log('保存存储...');
         await this.saveStorage();
+        console.log('触发闪卡变更事件...');
         this.plugin.eventManager.emitFlashcardChanged();
         
         return newCards;
@@ -755,14 +841,33 @@ export class FSRSManager {
      * @returns 创建的分组
      */
     public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
+        console.log(`FSRSManager.createCardGroup: 开始创建分组 ${group.name}`);
+        console.log(`存储对象结构: ${Object.keys(this.storage).join(', ')}`);
+        
+        // 确保 cardGroups 数组已初始化
+        if (!Array.isArray(this.storage.cardGroups)) {
+            console.log('FSRSManager: 初始化 cardGroups 数组');
+            this.storage.cardGroups = [];
+        }
+        
         // 创建新分组
         const newGroup = await this.groupRepository.createCardGroup(group);
+        console.log(`分组创建完成: ${newGroup.id}, ${newGroup.name}`);
+        console.log(`当前分组数量: ${this.storage.cardGroups.length}`);
         
         // 生成卡片
         const newCardsCount = await this.generateCardsForGroup(newGroup.id);
+        console.log(`为分组 ${newGroup.name} 生成了 ${newCardsCount} 张卡片`);
+        
+        // 确保分组已添加到存储中
+        if (!this.storage.cardGroups.some(g => g.id === newGroup.id)) {
+            console.log(`分组 ${newGroup.id} 不在存储中，手动添加`);
+            this.storage.cardGroups.push(newGroup);
+        }
         
         // 保存更改
         await this.saveStorage();
+        console.log(`存储已保存，当前分组数量: ${this.storage.cardGroups.length}`);
         
         return newGroup;
     }
@@ -927,6 +1032,17 @@ export class FSRSManager {
             this.saveStorageDebounced();
         }
         return result;
+    }
+    
+    /**
+     * 获取分组的学习进度
+     * @param groupId 分组ID
+     * @returns 分组的学习进度
+     */
+    public getGroupProgress(groupId: string): FlashcardProgress | null {
+        console.log(`FSRSManager.getGroupProgress 被调用，分组ID: ${groupId}`);
+        // 将调用转发到 CardGroupRepository
+        return this.groupRepository.getGroupProgress(groupId);
     }
     
     /**

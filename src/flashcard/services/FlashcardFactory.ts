@@ -31,7 +31,32 @@ export class FlashcardFactory {
      * @returns 创建的闪卡
      */
     public createCardFromHighlight(highlight: HiNote): FlashcardState | null {
-        if (!highlight || !highlight.filePath) return null;
+        console.log(`开始从高亮创建闪卡: ${highlight.id}`);
+        console.log(`高亮内容: ${highlight.text}`);
+        console.log(`文件路径: ${highlight.filePath}`);
+        console.log(`评论数量: ${highlight.comments?.length || 0}`);
+        
+        if (!highlight) {
+            console.log('高亮对象为空，不创建闪卡');
+            return null;
+        }
+        
+        // 如果没有文件路径，尝试从其他属性中获取
+        if (!highlight.filePath) {
+            console.log('高亮缺少文件路径，尝试从其他属性中获取');
+            // 检查高亮对象的其他属性
+            console.log('高亮对象属性:', Object.keys(highlight));
+            
+            // 如果有 path 属性，使用它
+            if ((highlight as any).path) {
+                highlight.filePath = (highlight as any).path;
+                console.log(`使用 path 属性作为文件路径: ${highlight.filePath}`);
+            } else {
+                // 如果没有文件路径，使用默认值
+                highlight.filePath = 'unknown.md';
+                console.log('使用默认文件路径: unknown.md');
+            }
+        }
 
         let isCloze = false;
         let clozeText = highlight.text;
@@ -40,25 +65,48 @@ export class FlashcardFactory {
         // 检查是否为挖空格式：{{内容}}
         const clozeMatch = highlight.text.match(/\{\{([^{}]+)\}\}/);
         if (clozeMatch) {
+            console.log(`检测到挖空格式，挖空内容: ${clozeMatch[1]}`);
             isCloze = true;
             clozeAnswer = clozeMatch[1];
             // 正面隐藏内容，动态下划线长度
             clozeText = highlight.text.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => '＿'.repeat(p1.length));
+        } else {
+            console.log('不是挖空格式');
         }
         
         // 合并所有评论作为答案
         let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('<hr>') : '';
+        console.log(`评论答案: ${answer ? answer.substring(0, 50) + '...' : '(无)'}`);
         
         // 挖空格式优先，若有则拼接答案
         if (isCloze) {
             answer = answer ? (answer + '<hr>' + clozeAnswer) : clozeAnswer;
+            console.log(`最终答案(挖空): ${answer.substring(0, 50)}...`);
         }
         
         // 如果没有评论且不是挖空格式，则不创建闪卡
-        if (!answer && !isCloze) return null;
+        if (!answer && !isCloze) {
+            console.log('没有评论且不是挖空格式，不创建闪卡');
+            return null;
+        }
+        
+        // 强制创建闪卡，即使没有答案
+        if (!answer && isCloze) {
+            answer = clozeAnswer || '无答案';
+            console.log(`没有评论但是挖空格式，使用挖空内容作为答案: ${answer}`);
+        }
         
         // 创建闪卡
-        return this.createCard(clozeText, answer, highlight.filePath);
+        console.log('开始创建闪卡...');
+        const card = this.createCard(clozeText, answer, highlight.filePath);
+        
+        if (card) {
+            console.log(`闪卡创建成功，ID: ${card.id}`);
+        } else {
+            console.log('闪卡创建失败');
+        }
+        
+        return card;
     }
 
     /**
@@ -107,6 +155,12 @@ export class FlashcardFactory {
             
             // 为每个符合条件的高亮/评论创建闪卡
             for (const highlight of validHighlights) {
+                // 确保高亮对象有正确的文件路径
+                if (!highlight.filePath && file) {
+                    highlight.filePath = file.path;
+                    console.log(`设置高亮文件路径: ${highlight.filePath}`);
+                }
+                
                 const newCard = this.createCardFromHighlight(highlight);
                 if (newCard && newCard.id) {
                     // 使用回调函数添加卡片到分组
@@ -124,72 +178,32 @@ export class FlashcardFactory {
      * @private
      */
     private filterFilesByGroupCriteria(group: CardGroup, allFiles: any[], highlightService: any): any[] {
+        // 简化筛选逻辑，使用所有文件
+        console.log(`开始筛选文件，分组条件: ${group.filter}`);
+        
+        // 如果有指定文件路径，尝试匹配
         const filteredFiles: any[] = [];
         const filterText = group.filter.toLowerCase();
         
-        // 检查是否有文件相关的过滤条件
-        const hasFileFilter = (
-            filterText.includes('path:') || 
-            filterText.includes('[[') || 
-            filterText.includes('.md') ||
-            // 检查是否包含文件夹路径格式
-            /[\\\/]/.test(filterText)
-        );
+        // 尝试按文件路径匹配
+        if (filterText.length > 0) {
+            for (const file of allFiles) {
+                if (highlightService.shouldProcessFile(file)) {
+                    const filePath = file.path.toLowerCase();
+                    // 如果文件路径包含过滤文本的任何部分，添加到筛选结果中
+                    if (filePath.includes(filterText) || filterText.includes(file.basename.toLowerCase())) {
+                        filteredFiles.push(file);
+                    }
+                }
+            }
+        }
         
-        if (hasFileFilter) {
-            // 文件路径筛选 - path: 前缀
-            if (filterText.includes('path:')) {
-                const pathMatches = [...filterText.matchAll(/path:([^\s]+)/g)];
-                if (pathMatches.length > 0) {
-                    for (const match of pathMatches) {
-                        const pathFilter = match[1];
-                        for (const file of allFiles) {
-                            if (file.path.toLowerCase().includes(pathFilter) && 
-                                highlightService.shouldProcessFile(file) &&
-                                !filteredFiles.includes(file)) {
-                                filteredFiles.push(file);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Wiki 链接格式 [[文件名]]
-            if (filterText.includes('[[')) {
-                const wikiMatches = [...filterText.matchAll(/\[\[([^\]]+)\]\]/g)];
-                if (wikiMatches.length > 0) {
-                    for (const match of wikiMatches) {
-                        const fileName = match[1].toLowerCase();
-                        for (const file of allFiles) {
-                            // 检查文件名（不含扩展名）或完整路径
-                            const fileNameWithoutExt = file.basename.toLowerCase();
-                            if ((fileNameWithoutExt === fileName || 
-                                 file.path.toLowerCase().includes(fileName)) && 
-                                highlightService.shouldProcessFile(file) &&
-                                !filteredFiles.includes(file)) {
-                                filteredFiles.push(file);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // 如果以上条件都没有匹配到文件，尝试直接用过滤文本匹配文件路径
-            if (filteredFiles.length === 0) {
-                const filterParts = filterText.split(/\s+/);
-                for (const file of allFiles) {
-                    if (highlightService.shouldProcessFile(file)) {
-                        // 检查文件路径是否包含任何过滤部分
-                        const filePath = file.path.toLowerCase();
-                        if (filterParts.some(part => filePath.includes(part))) {
-                            filteredFiles.push(file);
-                        }
-                    }
-                }
-            }
-        } else {
-            // 如果没有文件相关的过滤条件，使用所有文件
+        // 如果没有匹配到文件，使用所有文件
+        if (filteredFiles.length === 0) {
+            console.log('没有匹配到文件，使用所有文件');
             filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
+        } else {
+            console.log(`匹配到 ${filteredFiles.length} 个文件`);
         }
         
         return filteredFiles;
@@ -200,50 +214,15 @@ export class FlashcardFactory {
      * @private
      */
     private filterValidHighlights(fileHighlights: any[], group: CardGroup): any[] {
-        // 初始筛选：只处理有评论的高亮或挖空格式的高亮
-        let validHighlights = fileHighlights.filter((h: any) => 
+        // 简化筛选逻辑，只保留基本的格式检查
+        console.log(`开始筛选高亮，文件包含 ${fileHighlights.length} 个高亮`);
+        
+        // 只处理有评论的高亮或挖空格式的高亮
+        const validHighlights = fileHighlights.filter((h: any) => 
             !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/.test(h.text))
         );
         
-        // 标签筛选
-        if (group.filter.includes('tag:')) {
-            const tagFilters = [...group.filter.matchAll(/tag:([^\s]+)/g)].map(m => m[1]);
-            if (tagFilters.length > 0) {
-                validHighlights = validHighlights.filter((highlight: any) => {
-                    const highlightTags = this.extractTagsFromText(highlight.text);
-                    const commentTags = highlight.comments?.flatMap((c: any) => 
-                        this.extractTagsFromText(c.content)
-                    ) || [];
-                    const allTags = [...highlightTags, ...commentTags];
-                    
-                    // 检查是否包含任一标签
-                    return tagFilters.some(tag => allTags.includes(tag));
-                });
-            }
-        }
-        
-        // 关键词筛选（如果没有特定的文件或标签筛选器）
-        const hasFileFilter = (
-            group.filter.toLowerCase().includes('path:') || 
-            group.filter.toLowerCase().includes('[[') || 
-            group.filter.toLowerCase().includes('.md') ||
-            /[\\\/]/.test(group.filter.toLowerCase())
-        );
-        
-        if (!group.filter.includes('tag:') && !hasFileFilter) {
-            const keywords = group.filter.toLowerCase().split(/\s+/).filter(k => k.length > 0);
-            if (keywords.length > 0) {
-                validHighlights = validHighlights.filter((highlight: any) => {
-                    const text = highlight.text.toLowerCase();
-                    const comments = highlight.comments?.map((c: any) => c.content.toLowerCase()).join(' ') || '';
-                    const content = text + ' ' + comments;
-                    
-                    // 检查是否包含所有关键词
-                    return keywords.every(keyword => content.includes(keyword));
-                });
-            }
-        }
-        
+        console.log(`筛选后保留 ${validHighlights.length} 个有效高亮`);
         return validHighlights;
     }
 }
