@@ -218,27 +218,36 @@ settings:
 }
 
 /* 搜索区域样式 */
+/* 合并后的搜索容器样式 */
 .highlight-search-container {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
+    padding: 12px; /* 使用第二个样式的padding */
     border-bottom: 1px solid var(--background-modifier-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--background-primary);
+    backdrop-filter: blur(10px);
 }
 
+/* 合并后的搜索输入框样式 */
 .highlight-search-input {
     flex: 1;
+    width: 100%;
     padding: 6px 12px;
-    border-radius: 4px;
+    border-radius: 6px; /* 使用第二个样式的圆角 */
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
+    color: var(--text-normal);
     font-size: 13px;
 }
 
 .highlight-search-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 1px var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--background-modifier-border-hover); /* 使用第二个样式的阴影 */
 }
 
 .highlight-search-icons {
@@ -562,31 +571,7 @@ settings:
     gap: 2px;
 }
 
-.highlight-search-container {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    padding: 12px;
-    background-color: var(--background-primary);
-    border-bottom: 1px solid var(--background-modifier-border);
-    backdrop-filter: blur(10px);
-}
-
-.highlight-search-input {
-    width: 100%;
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: 13px;
-}
-
-.highlight-search-input:focus {
-    outline: none;
-    border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
-}
+/* 已合并到上面的样式定义中 */
 
 .highlight-container {
     height: calc(100% - 60px);
@@ -710,16 +695,6 @@ settings:
     display: none !important;
 }
 
-/* 隐藏空格样式 */
-.hi-note-spacer {
-    display: inline-block;
-    width: 2px;
-    margin-right: 4px;
-    opacity: 0;
-    pointer-events: none;
-    user-select: none;
-}
-
 /* Flashcard styles */
 
 /* 统计信息容器水平布局 */
@@ -754,10 +729,10 @@ settings:
     gap: 8px;
 }
 
-/* 分组操作按钮 */
+/* 分组操作按钮 - 已合并 */
 .flashcard-group-action {
     cursor: pointer;
-    padding: 4px;
+    padding: 4px; /* 使用第一个样式的padding */
     border-radius: 4px;
     color: var(--text-muted);
     transition: all 0.2s ease;
@@ -836,61 +811,7 @@ settings:
     color: var(--text-normal);
 }
 
-
-.flashcard-modal-input {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 16px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: 14px;
-    line-height: 1.5;
-    resize: vertical;
-}
-
-textarea.flashcard-modal-input {
-    min-height: 80px;
-    font-family: var(--font-text);
-}
-
-.flashcard-modal-input.small {
-    width: 80px;
-    margin-bottom: 0;
-    margin-left: 8px;
-    padding: 4px 8px;
-}
-
-.flashcard-modal-settings {
-    margin-top: 16px;
-    padding: 16px;
-    background-color: var(--background-secondary);
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.flashcard-modal-settings h4 {
-    font-size: 16px;
-    color: var(--text-normal);
-}
-
-.flashcard-modal-option {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.flashcard-modal-checkbox {
-    margin-right: 8px;
-}
-
-.flashcard-modal-label {
-    font-size: 14px;
-    color: var(--text-normal);
-}
-
-/* Rating buttons */
+/* Rating buttons - 基本外观和尺寸 */
 .flashcard-rating-button {
     display: flex;
     flex-direction: column;
@@ -1000,75 +921,6 @@ textarea.flashcard-modal-input {
 
 .regex-rule-add-text:hover {
     color: var(--text-accent);
-}
-
-/* 模态框样式 */
-.flashcard-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.flashcard-modal-content {
-    background-color: var(--background-primary);
-    padding: 20px;
-    border-radius: 8px;
-    width: 400px;
-    max-width: 90%;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.flashcard-modal h3 {
-    margin: 0 0 20px 0;
-    color: var(--text-normal);
-}
-
-.flashcard-modal-input,
-.flashcard-modal-select {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 15px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-}
-
-.flashcard-modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.flashcard-modal-button {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background-color: var(--background-modifier-border);
-    color: var(--text-normal);
-    transition: background-color 0.2s;
-}
-
-.flashcard-modal-button:hover {
-    background-color: var(--background-modifier-border-hover);
-}
-
-.flashcard-modal-button.primary {
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-}
-
-.flashcard-modal-button.primary:hover {
-    background-color: var(--interactive-accent-hover);
 }
 
 .flashcard-default-groups,
@@ -1222,17 +1074,7 @@ textarea.flashcard-modal-input {
     opacity: 1;
 }
 
-.flashcard-group-action {
-    padding: 2px;
-    border-radius: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-.flashcard-group-action:hover {
-    color: var(--text-normal);
-    background-color: var(--background-modifier-hover);
-}
+/* 已合并到上面的样式定义中 */
 
 .flashcard-group-item:hover {
     background-color: var(--background-modifier-hover);
@@ -1367,6 +1209,7 @@ textarea.flashcard-modal-input {
     transition: opacity 0.3s ease;
 }
 
+/* Rating buttons - 初始隐藏状态和动画效果 */
 .flashcard-rating-button {
     transform: translateY(20px);
     opacity: 0;
@@ -2978,14 +2821,6 @@ textarea.flashcard-modal-input {
     color: var(--interactive-normal);
 }
 
-/* 学习设置样式 */
-.flashcard-modal-settings-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
 .settings-title {
     margin: 0;
     font-size: 16px;
@@ -3007,44 +2842,6 @@ textarea.flashcard-modal-input {
     gap: 12px;
 }
 
-.flashcard-modal-slider {
-    flex: 1;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: var(--background-modifier-border);
-    outline: none;
-    border-radius: 3px;
-}
-
-.flashcard-modal-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--interactive-accent);
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.flashcard-modal-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--interactive-accent);
-    cursor: pointer;
-    transition: background 0.2s ease;
-    border: none;
-}
-
-.flashcard-modal-slider:hover::-webkit-slider-thumb {
-    background: var(--interactive-accent-hover);
-}
-
-.flashcard-modal-slider:hover::-moz-range-thumb {
-    background: var(--interactive-accent-hover);
-}
 
 .slider-value {
     min-width: 30px;
@@ -3052,10 +2849,6 @@ textarea.flashcard-modal-input {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-normal);
-}
-
-.slider-option.disabled .flashcard-modal-slider {
-    opacity: 0.5;
 }
 
 .slider-option.disabled .slider-value {
