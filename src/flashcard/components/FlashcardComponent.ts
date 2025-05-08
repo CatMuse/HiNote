@@ -31,7 +31,7 @@ export class FlashcardComponent extends Component {
     private licenseManager: LicenseManager;
     private fsrsManager: FSRSManager;
     private currentCard: FlashcardState | null = null;
-    private currentGroupName: string = 'All cards';
+    private currentGroupName: string = '';
     private app: any;
     private boundHandleKeyDown: (e: KeyboardEvent) => void;
     private completionMessage: string | null = null;
@@ -72,7 +72,7 @@ export class FlashcardComponent extends Component {
         
         // 加载 UI 状态
         const uiState = this.fsrsManager.getUIState();
-        this.currentGroupName = uiState.currentGroupName || 'All cards';
+        this.currentGroupName = uiState.currentGroupName || '';
         this.currentIndex = uiState.currentIndex || 0;
         this.isFlipped = uiState.isFlipped || false;
         this.completionMessage = uiState.completionMessage || null;

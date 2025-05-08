@@ -709,7 +709,7 @@ settings:
 }
 
 /* 自定义分组标题区域 */
-.flashcard-custom-groups-header {
+.flashcard-groups-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -718,13 +718,13 @@ settings:
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.flashcard-custom-groups-title {
+.flashcard-groups-title {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-normal);
 }
 
-.flashcard-custom-groups-actions {
+.flashcard-groups-actions {
     display: flex;
     gap: 8px;
 }
@@ -924,7 +924,7 @@ settings:
 }
 
 .flashcard-default-groups,
-.flashcard-custom-groups {
+.flashcard-groups {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -937,7 +937,7 @@ settings:
 }
 
 /* 自定义分组卡片样式 */
-.flashcard-custom-groups .flashcard-group-item {
+.flashcard-groups .flashcard-group-item {
     display: flex;
     flex-direction: column;
     padding: 12px;
@@ -951,23 +951,23 @@ settings:
     border: 1px solid var(--background-modifier-border);
 }
 
-.flashcard-custom-groups .flashcard-group-item:hover {
+.flashcard-groups .flashcard-group-item:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.flashcard-custom-groups .flashcard-group-item.active {
+.flashcard-groups .flashcard-group-item.active {
     border: 1px solid var(--interactive-accent);
 }
 
 /* 分组标题和操作按钮行 */
-.flashcard-custom-groups .flashcard-group-item-header {
+.flashcard-groups .flashcard-group-item-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
 }
 
-.flashcard-custom-groups .flashcard-group-title {
+.flashcard-groups .flashcard-group-title {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -975,17 +975,17 @@ settings:
     font-weight: 500;
 }
 
-.flashcard-custom-groups .flashcard-group-icon svg {
+.flashcard-groups .flashcard-group-icon svg {
     width: 16px;
     height: 16px;
 }
 
-.flashcard-custom-groups .flashcard-group-actions {
+.flashcard-groups .flashcard-group-actions {
     display: flex;
     gap: 8px;
 }
 
-.flashcard-custom-groups .flashcard-group-action {
+.flashcard-groups .flashcard-group-action {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -996,13 +996,13 @@ settings:
     transition: all 0.2s ease;
 }
 
-.flashcard-custom-groups .flashcard-group-action:hover {
+.flashcard-groups .flashcard-group-action:hover {
     color: var(--text-accent);
     background: var(--background-modifier-hover);
 }
 
 /* 统计数据行 */
-.flashcard-custom-groups .flashcard-group-stats {
+.flashcard-groups .flashcard-group-stats {
     display: flex;
     justify-content: space-around;
     padding: 8px;
@@ -1011,7 +1011,7 @@ settings:
     margin-top: auto;
 }
 
-.flashcard-custom-groups .flashcard-group-stat {
+.flashcard-groups .flashcard-group-stat {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1019,13 +1019,13 @@ settings:
     color: var(--text-muted);
 }
 
-.flashcard-custom-groups .flashcard-stat-icon {
+.flashcard-groups .flashcard-stat-icon {
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.flashcard-custom-groups .flashcard-stat-icon svg {
+.flashcard-groups .flashcard-stat-icon svg {
     width: 16px;
     height: 16px;
 }
@@ -1105,9 +1105,9 @@ settings:
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0px 12px;
+    padding: 4px 12px;
     background: var(--background-secondary);
-    border-radius: 8px;
+    border-radius: 4px;
 }
 
 .flashcard-stats {

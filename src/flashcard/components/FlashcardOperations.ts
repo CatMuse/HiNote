@@ -76,29 +76,20 @@ export class FlashcardOperations {
             // 检查当前分组
             const groupName = this.component.getCurrentGroupName();
             
-            // 设置完成消息
-            let completionMessage = t('You have completed all flashcards for today!');
+            // 显示完成消息
+            let message = t('No cards due for review');
             
-            if (groupName === 'Due Cards') {
-                completionMessage = t('You have completed all due cards for today!');
-            } else if (groupName === 'New Cards') {
-                completionMessage = t('You have completed all new cards for today!');
-            } else if (groupName === 'Recent Cards') {
-                completionMessage = t('You have completed all recently added cards!');
-            } else if (groupName !== 'All cards') {
-                // 自定义分组
+            // 自定义分组
+            if (groupName) {
                 const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.id === groupName);
                 if (group) {
-                    completionMessage = t('You have completed All cards in group: ') + group.name;
+                    message = t('No cards due for review in group: ') + group.name;
                 }
+            } else {
+                message = t('You have completed all flashcards for today!');
             }
             
-            // 保存完成消息
-            if (groupName === 'All cards') {
-                this.component.setCompletionMessage(completionMessage);
-            } else {
-                this.component.setGroupCompletionMessage(groupName, completionMessage);
-            }
+            this.component.setGroupCompletionMessage(groupName, message);
             
             // 更新进度
             this.component.updateProgress();
@@ -106,8 +97,7 @@ export class FlashcardOperations {
             // 重新渲染
             this.component.getRenderer().render();
             
-            // 显示通知
-            new Notice(completionMessage);
+            // 不再显示通知，因为已经在界面上显示了完成消息
             
             return;
         }
@@ -212,117 +202,33 @@ export class FlashcardOperations {
                 groupCompletionMessage: this.component.getGroupCompletionMessage(groupName)
             });
             
-            // 自定义分组处理完成，直接返回
+                // 自定义分组处理完成，直接返回
             return;
         }
         
-        // 应用每日学习限制
-        // 只对系统预定义的分组应用限制，自定义分组显示所有卡片
-        // 如果是自定义分组，前面已经处理过了，这里不需要再处理
-        if ((groupName === 'All cards' || groupName === 'Due Cards') && cards.length > 0) {
-            // 获取 FSRS 参数
-            const params = this.component.getFsrsManager().fsrsService.getParameters();
+        // 如果有分组名称，直接从存储中获取卡片
+        if (groupName) {
+            const fsrsManager = this.component.getFsrsManager();
+            const cardGroups = fsrsManager.getCardGroups();
+            const group = cardGroups.find((g: any) => g.id === groupName || g.name === groupName);
             
-            // 获取今天已学习的新卡片数量和已复习的卡片数量
-            const dailyStats = this.component.getFsrsManager().exportData().dailyStats;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayTimestamp = today.getTime();
-            
-            // 调试日期比较问题
-            console.log("当前日期时间戳:", todayTimestamp);
-            console.log("学习设置:", params.newCardsPerDay, params.reviewsPerDay);
-            console.log("所有日期统计:", dailyStats.map((s: DailyStats) => ({ date: s.date, newCards: s.newCardsLearned, reviewed: s.cardsReviewed })));
-            
-            // 使用日期字符串比较而不是时间戳，避免毫秒级别的差异
-            const todayDateStr = today.toDateString();
-            let todayStats = dailyStats.find((stats: any) => {
-                const statsDate = new Date(stats.date);
-                return statsDate.toDateString() === todayDateStr;
-            });
-            
-            // 如果今日统计不存在，创建一个新的统计记录
-            if (!todayStats) {
-                todayStats = {
-                    date: today.getTime(),
-                    newCardsLearned: 0,
-                    cardsReviewed: 0,
-                    reviewCount: 0,
-                    newCount: 0,
-                    againCount: 0,
-                    hardCount: 0,
-                    goodCount: 0,
-                    easyCount: 0
-                };
+            if (group) {
+                console.log(`找到分组 ${group.name}(${group.id})，卡片ID数量: ${group.cardIds ? group.cardIds.length : 0}`);
                 
-                // 将新的统计数据添加到数组中
-                this.component.getFsrsManager().exportData().dailyStats.push(todayStats);
-                
-                // 保存更新
-                this.component.getFsrsManager().saveStorage();
-            }
-            
-            console.log("今日统计:", todayStats);
-            
-            const newCardsLearned = todayStats.newCardsLearned;
-            const cardsReviewed = todayStats.cardsReviewed;
-            
-            console.log("今日已学习新卡片:", newCardsLearned, "/", params.newCardsPerDay);
-            console.log("今日已复习卡片:", cardsReviewed, "/", params.reviewsPerDay);
-            
-            // 分离新卡片和复习卡片
-            const newCards = cards.filter((card: any) => card.reviews === 0);
-            const reviewCards = cards.filter((card: any) => card.reviews > 0);
-            
-            console.log("可用新卡片数量:", newCards.length);
-            console.log("可用复习卡片数量:", reviewCards.length);
-            
-            // 应用每日新卡片限制
-            const remainingNewCards = Math.max(0, params.newCardsPerDay - newCardsLearned);
-            const limitedNewCards = newCards.slice(0, remainingNewCards);
-            
-            // 应用每日复习卡片限制
-            const remainingReviews = Math.max(0, params.reviewsPerDay - cardsReviewed);
-            const limitedReviewCards = reviewCards.slice(0, remainingReviews);
-            
-            console.log("剩余新卡片额度:", remainingNewCards);
-            console.log("剩余复习额度:", remainingReviews);
-            console.log("将显示新卡片数量:", limitedNewCards.length);
-            console.log("将显示复习卡片数量:", limitedReviewCards.length);
-            
-            // 合并卡片，优先显示复习卡片
-            cards = [...limitedReviewCards, ...limitedNewCards];
-        }
-        
-        // 更新卡片列表
-        this.component.setCards(cards);
-        
-        // 检查是否有完成消息
-        if (cards.length === 0) {
-            if (groupName === 'All cards') {
-                if (!this.component.getCompletionMessage()) {
-                    this.component.setCompletionMessage(t('You have completed all flashcards for today!'));
-                }
-            } else {
-                const groupCompletionMessage = this.component.getGroupCompletionMessage(groupName);
-                if (!groupCompletionMessage) {
-                    let message = t('No flashcards available in this group.');
-                    
-                    if (groupName === 'Due Cards') {
-                        message = t('You have completed all due cards for today!');
-                    } else if (groupName === 'New Cards') {
-                        message = t('You have completed all new cards for today!');
-                    } else if (groupName === 'Recent Cards') {
-                        message = t('You have completed all recently added cards!');
-                    } else {
-                        // 自定义分组
-                        const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.id === groupName);
-                        if (group) {
-                            message = t('No flashcards available in group: ') + group.name;
-                        }
-                    }
-                    
-                    this.component.setGroupCompletionMessage(groupName, message);
+                // 直接从存储中获取卡片
+                if (group.cardIds && group.cardIds.length > 0) {
+                    const allCards = fsrsManager.exportData().cards;
+                    cards = group.cardIds
+                        .map((id: string) => {
+                            const card = allCards[id];
+                            if (card) {
+                                console.log(`找到卡片 ${id}，内容: ${card.text.substring(0, 20)}...`);
+                            } else {
+                                console.log(`卡片 ${id} 不存在`);
+                            }
+                            return card;
+                        })
+                        .filter((card: any) => card !== undefined);
                 }
             }
         }

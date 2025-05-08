@@ -1,5 +1,6 @@
 import { FlashcardProgress, FlashcardState } from "../types/FSRSTypes";
 import { t } from "../../i18n";
+import { setIcon } from "obsidian";
 
 /**
  * 闪卡进度管理器，负责处理进度统计和显示
@@ -22,51 +23,35 @@ export class FlashcardProgressManager {
         // 获取卡片
         let cards: FlashcardState[] = [];
         
-        if (groupName === 'All cards') {
-            // 获取所有卡片
-            cards = Object.values(this.component.getFsrsManager().exportData().cards);
-        } else if (groupName === 'Due Cards') {
-            // 获取待复习卡片
-            cards = this.component.getFsrsManager().getDueCards();
-        } else if (groupName === 'New Cards') {
-            // 获取新卡片
-            cards = this.component.getFsrsManager().getNewCards();
-        } else if (groupName === 'Recent Cards') {
-            // 获取最近添加的卡片
-            cards = this.component.getFsrsManager().getLatestCards();
-        } else {
+        // 获取分组卡片
+        if (groupName) {
             // 获取自定义分组的卡片
             cards = this.component.getFsrsManager().getCardsByGroupId(groupName);
+        } else {
+            // 如果没有选择分组，返回空数组
+            cards = [];
         }
         
-        // 如果是自定义分组，可能需要获取所有自定义分组的卡片
-        let allCustomGroupCards: FlashcardState[] = [];
-        if (groupName !== 'All cards' && groupName !== 'Due Cards' && 
-            groupName !== 'New Cards' && groupName !== 'Recent Cards') {
+        // 获取所有分组的卡片用于统计
+        const getAllGroupCards = (): FlashcardState[] => {
+            const fsrsManager = this.component.getFsrsManager();
+            const cardGroups = fsrsManager.getCardGroups();
             
-            // 获取所有自定义分组的卡片（去重）
-            const getCustomGroupCards = (): FlashcardState[] => {
-                const fsrsManager = this.component.getFsrsManager();
-                const cardGroups = fsrsManager.getCardGroups();
-                
-                let customGroupCards: FlashcardState[] = [];
-                const cardIds = new Set<string>();
-                
-                cardGroups.forEach((group: any) => {
-                    const groupCards = fsrsManager.getCardsByGroupId(group.id);
-                    groupCards.forEach((card: any) => {
-                        if (!cardIds.has(card.id)) {
-                            cardIds.add(card.id);
-                            customGroupCards.push(card);
-                        }
-                    });
+            let allGroupCards: FlashcardState[] = [];
+            const cardIds = new Set<string>();
+            
+            cardGroups.forEach((group: any) => {
+                const groupCards = fsrsManager.getCardsByGroupId(group.id);
+                groupCards.forEach((card: any) => {
+                    if (!cardIds.has(card.id)) {
+                        cardIds.add(card.id);
+                        allGroupCards.push(card);
+                    }
                 });
-                
-                return customGroupCards;
-            };
+            });
             
-            allCustomGroupCards = getCustomGroupCards();
-        }
+            return allGroupCards;
+        };
         
         // 计算进度
         const due = cards.filter(card => this.component.getFsrsManager().fsrsService.isDue(card)).length;
@@ -111,14 +96,66 @@ export class FlashcardProgressManager {
         
         progressContainer.empty();
         
-        // 获取分组进度
+        // 获取进度数据
         const progress = this.getGroupProgress();
+        
+        // 创建进度文本容器
+        const progressText = progressContainer.createEl("div", { cls: "flashcard-progress-text" });
+        
+        // 添加分组名称
+        progressText.createSpan({
+            text: this.component.getCurrentGroupName() || t('所有卡片'),
+            cls: "group-name"
+        });
+
+        // 添加分隔符
+        progressText.createSpan({
+            text: "|",
+            cls: "separator"
+        });
+        
+        // 添加统计信息
+        const stats = [
+            { label: t('Due'), value: progress.due },
+            { label: t('New'), value: progress.newCards },
+            { label: t('Learned'), value: progress.learned },
+            { label: t('Retention'), value: `${(progress.retention * 100).toFixed(1)}%` }
+        ];
+
+        stats.forEach((stat, index) => {
+            // 添加分隔符
+            if (index > 0) {
+                progressText.createSpan({
+                    text: "|",
+                    cls: "separator"
+                });
+            }
+
+            const statEl = progressText.createEl("div", { cls: "stat" });
+            statEl.createSpan({ text: stat.label + ": " });
+            statEl.createSpan({ 
+                text: stat.value.toString(),
+                cls: "stat-value"
+            });
+            
+            // 为 Retention 添加问号图标和提示
+            if (stat.label === t('Retention')) {
+                const helpIcon = statEl.createSpan({ cls: "help-icon" });
+                setIcon(helpIcon, "help-circle");
+                helpIcon.setAttribute("aria-label", 
+                    t('记忆保持率 = (总复习次数 - 遗忘次数) / 总复习次数\n' +
+                    '该指标反映了你的学习效果，越高说明记忆效果越好')
+                );
+            }
+        });
         
         // 创建进度条容器
         const progressBarContainer = progressContainer.createEl('div', { cls: 'flashcard-progress-bar-container' });
         
         // 创建进度条
         const progressBar = progressBarContainer.createEl('div', { cls: 'flashcard-progress-bar' });
+        
+        // 获取当前卡片列表
         
         // 计算进度百分比
         const total = progress.due + progress.newCards;
@@ -128,47 +165,8 @@ export class FlashcardProgressManager {
         // 设置进度条宽度
         progressBar.style.width = `${percent}%`;
         
-        // 创建进度文本
-        const progressText = progressBarContainer.createEl('div', { cls: 'flashcard-progress-text' });
-        
-        // 设置进度文本
-        if (total > 0) {
-            progressText.textContent = `${total - current}/${total} (${percent}%)`;
-        } else {
-            progressText.textContent = t('No cards to review');
-        }
-        
-        // 创建统计信息容器
-        const statsContainer = progressContainer.createEl('div', { cls: 'flashcard-stats-container' });
-        
-        // 添加待复习数量
-        const dueContainer = statsContainer.createEl('div', { cls: 'flashcard-stat-item' });
-        dueContainer.createEl('div', { cls: 'flashcard-stat-label', text: t('Due') });
-        dueContainer.createEl('div', { cls: 'flashcard-stat-value', text: progress.due.toString() });
-        
-        // 添加新卡片数量
-        const newContainer = statsContainer.createEl('div', { cls: 'flashcard-stat-item' });
-        newContainer.createEl('div', { cls: 'flashcard-stat-label', text: t('New') });
-        newContainer.createEl('div', { cls: 'flashcard-stat-value', text: progress.newCards.toString() });
-        
-        // 添加已学习数量
-        const learnedContainer = statsContainer.createEl('div', { cls: 'flashcard-stat-item' });
-        learnedContainer.createEl('div', { cls: 'flashcard-stat-label', text: t('Learned') });
-        learnedContainer.createEl('div', { cls: 'flashcard-stat-value', text: progress.learned.toString() });
-        
-        // 添加记忆保持率
-        const retentionContainer = statsContainer.createEl('div', { cls: 'flashcard-stat-item' });
-        retentionContainer.createEl('div', { cls: 'flashcard-stat-label', text: t('Retention') });
-        retentionContainer.createEl('div', { 
-            cls: 'flashcard-stat-value', 
-            text: `${Math.round(progress.retention * 100)}%` 
-        });
-        
-        // 如果是特定分组，添加分组信息
-        if (this.component.getCurrentGroupName() !== 'All cards' && 
-            this.component.getCurrentGroupName() !== 'Due Cards' && 
-            this.component.getCurrentGroupName() !== 'New Cards' && 
-            this.component.getCurrentGroupName() !== 'Recent Cards') {
+        // 如果有选择分组，添加分组信息
+        if (this.component.getCurrentGroupName()) {
             
             // 获取分组信息
             const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.id === this.component.getCurrentGroupName());

@@ -78,60 +78,7 @@ export class FlashcardRenderer {
         const progressContainer = container.createEl("div", { cls: "flashcard-progress-container" });
         this.component.setProgressContainer(progressContainer);
         
-        // 创建进度文本容器
-        const progressText = progressContainer.createEl("div", { cls: "flashcard-progress-text" });
-        
-        // 添加分组名称
-        progressText.createSpan({
-            text: this.component.getCurrentGroupName(),
-            cls: "group-name"
-        });
-
-        // 添加分隔符
-        progressText.createSpan({
-            text: "|",
-            cls: "separator"
-        });
-
-        // 获取统计数据
-        const progress = this.component.getProgressManager().getGroupProgress();
-        
-        // 添加统计信息
-        const stats = [
-            { label: t('Due'), value: progress.due },
-            { label: t('New'), value: progress.newCards },
-            { label: t('Learned'), value: progress.learned },
-            { label: t('Retention'), value: `${(progress.retention * 100).toFixed(1)}%` }
-        ];
-
-        stats.forEach((stat, index) => {
-            // 添加分隔符
-            if (index > 0) {
-                progressText.createSpan({
-                    text: "|",
-                    cls: "separator"
-                });
-            }
-
-            const statEl = progressText.createEl("div", { cls: "stat" });
-            statEl.createSpan({ text: stat.label + ": " });
-            statEl.createSpan({ 
-                text: stat.value.toString(),
-                cls: "stat-value"
-            });
-            
-            // 为 Retention 添加问号图标和提示
-            if (stat.label === t('Retention')) {
-                const helpIcon = statEl.createSpan({ cls: "help-icon" });
-                setIcon(helpIcon, "help-circle");
-                helpIcon.setAttribute("aria-label", 
-                    t('记忆保持率 = (总复习次数 - 遗忘次数) / 总复习次数\n' +
-                    '该指标反映了你的学习效果，越高说明记忆效果越好')
-                );
-            }
-        });
-        
-        // 更新进度条
+        // 更新进度显示（这将由 FlashcardProgress.ts 中的 updateProgress 方法处理）
         this.component.updateProgress();
 
         // 创建主容器
@@ -140,133 +87,14 @@ export class FlashcardRenderer {
         // 创建左侧边栏
         const sidebar = mainContainer.createEl("div", { cls: "flashcard-sidebar" });
         
-        // 添加默认分组
-        const defaultGroups = sidebar.createEl("div", { cls: "flashcard-default-groups" });
-        
-        const defaultGroupList = defaultGroups.createEl("div", { cls: "flashcard-group-list" });
-        const allCards = this.component.getFsrsManager().getLatestCards();
-        const now = Date.now();
-        
-        // 获取所有自定义分组的卡片
-        const allCustomGroups = this.component.getFsrsManager().getCardGroups() || [];
-        console.log('所有自定义分组:', allCustomGroups.map((g: any) => g.name));
-        
-        let customGroupCards: any[] = [];
-        
-        // 合并所有自定义分组的卡片
-        allCustomGroups.forEach((group: any) => {
-            console.log(`处理分组 ${group.name}，ID: ${group.id}，cardIds:`, group.cardIds);
-            const groupCards = this.component.getFsrsManager().getCardsByGroupId(group.id);
-            console.log(`分组 ${group.name} 中的卡片数量:`, groupCards.length);
-            customGroupCards = [...customGroupCards, ...groupCards];
-        });
-        
-        // 去重（如果一张卡片在多个分组中出现）
-        const uniqueCustomCards = Array.from(new Map(customGroupCards.map((card: any) => 
-            [card.id, card]
-        )).values());
-        
-        console.log('所有自定义分组卡片数量（去重后）:', uniqueCustomCards.length);
-        
-        const defaultGroupItems = [
-            { 
-                name: t('All cards'), 
-                icon: 'gallery-thumbnails',
-                getCards: () => uniqueCustomCards
-            },
-            { 
-                name: t('Due Today'), 
-                icon: 'calendar-clock',
-                getCards: () => uniqueCustomCards.filter((c: any) => c.nextReview <= now)
-            },
-            { 
-                name: t('New Cards'), 
-                icon: 'sparkle',
-                getCards: () => uniqueCustomCards.filter((c: any) => c.lastReview === 0)
-            },
-            { 
-                name: t('Learned'), 
-                icon: 'check-small',
-                getCards: () => uniqueCustomCards.filter((c: any) => c.lastReview > 0)
-            }
-        ];
-
-        defaultGroupItems.forEach((group, index) => {
-            const cards = group.getCards();
-            const groupItem = defaultGroupList.createEl("div", { 
-                cls: `flashcard-group-item ${group.name === this.component.getCurrentGroupName() ? 'active' : ''}` 
-            });
-            
-            const leftSection = groupItem.createEl("div", { cls: "flashcard-group-item-left" });
-            const iconSpan = leftSection.createEl("div", { cls: "flashcard-group-icon" });
-            setIcon(iconSpan, group.icon);
-            leftSection.createEl("span", { 
-                cls: "flashcard-group-name",
-                text: group.name 
-            });
-            
-            groupItem.createEl("span", { 
-                cls: "flashcard-group-count",
-                text: cards.length.toString()
-            });
-            
-            // 添加点击事件
-            groupItem.addEventListener('click', () => {
-                // 保存当前分组的完成状态
-                this.component.setGroupCompletionMessage(
-                    this.component.getCurrentGroupName(), 
-                    this.component.getCompletionMessage()
-                );
-                
-                // 保存当前分组的学习进度
-                const currentProgress = {
-                    currentIndex: this.component.getCurrentIndex(),
-                    isFlipped: this.component.isCardFlipped()
-                };
-                
-                // 使用分组名称作为标识符
-                this.component.setCurrentGroupName(group.name);
-                
-                // 移除其他组的激活状态
-                const allGroups = container.querySelectorAll('.flashcard-group-item');
-                allGroups.forEach((g: Element) => g.classList.remove('active'));
-                
-                // 激活当前组
-                groupItem.classList.add('active');
-                
-                // 恢复当前分组的完成状态
-                this.component.setCompletionMessage(
-                    this.component.getGroupCompletionMessage(group.name) || null
-                );
-                
-                // 更新当前卡片列表
-                this.component.refreshCardList();
-                
-                // 恢复当前分组的学习进度
-                const savedProgress = this.component.getGroupProgress(group.name);
-                if (savedProgress && !this.component.getCompletionMessage()) {
-                    this.component.setCurrentIndex(savedProgress.currentIndex);
-                    this.component.setCardFlipped(savedProgress.isFlipped);
-                } else {
-                    // 如果没有保存的进度或有完成消息，从头开始
-                    this.component.setCurrentIndex(0);
-                    this.component.setCardFlipped(false);
-                }
-                
-                this.component.saveState();
-                this.render();
-            });
-        });
-        
-        // 添加自定义分组
-        const customGroups = sidebar.createEl("div", { cls: "flashcard-custom-groups" });
+        // 添加自定义分组（现在是唯一的分组类型）
+        const customGroups = sidebar.createEl("div", { cls: "flashcard-groups" });
         
         // 添加标题和操作区
-        const customGroupHeader = customGroups.createEl("div", { cls: "flashcard-custom-groups-header" });
-        customGroupHeader.createEl("span", { text: t('自定义分组'), cls: "flashcard-custom-groups-title" });
+        const customGroupHeader = customGroups.createEl("div", { cls: "flashcard-groups-header" });
         
         // 添加按钮区
-        const customGroupActions = customGroupHeader.createEl("div", { cls: "flashcard-custom-groups-actions" });
+        const customGroupActions = customGroupHeader.createEl("div", { cls: "flashcard-groups-actions" });
         
         // 添加分组按钮
         const addButton = customGroupActions.createEl("div", { cls: "flashcard-add-group", attr: { 'aria-label': t('添加分组') } });
@@ -274,9 +102,9 @@ export class FlashcardRenderer {
         addButton.addEventListener('click', () => this.component.getGroupManager().showCreateGroupModal());
         
         const customGroupList = customGroups.createEl("div", { cls: "flashcard-group-list" });
-        const customGroupItems = this.component.getFsrsManager().getCardGroups() || [];
+        const groupItems = this.component.getFsrsManager().getCardGroups() || [];
         
-        customGroupItems.forEach((group: any) => {
+        groupItems.forEach((group: any) => {
             const groupItem = customGroupList.createEl("div", { 
                 cls: `flashcard-group-item ${group.name === this.component.getCurrentGroupName() ? 'active' : ''}`
             });
@@ -349,9 +177,16 @@ export class FlashcardRenderer {
                     try {
                         const deleted = await this.component.getFsrsManager().deleteCardGroup(group.id);
                         if (deleted) {
-                            // 如果删除的是当前分组，切换到 All cards
+                            // 如果删除的是当前分组，切换到另一个分组（如果有）
                             if (this.component.getCurrentGroupName() === group.name) {
-                                this.component.setCurrentGroupName('All cards');
+                                const remainingGroups = this.component.getFsrsManager().getCardGroups() || [];
+                                if (remainingGroups.length > 0) {
+                                    // 切换到第一个可用的分组
+                                    this.component.setCurrentGroupName(remainingGroups[0].name);
+                                } else {
+                                    // 如果没有分组了，设置一个空名称
+                                    this.component.setCurrentGroupName('');
+                                }
                             }
                             new Notice(t('分组删除成功'));
                             this.render();
@@ -529,7 +364,48 @@ export class FlashcardRenderer {
             return;
         }
 
-        // 在完成消息处理后再检查卡片数组是否为空
+        // 先检查是否有组完成消息
+        const groupName = this.component.getCurrentGroupName();
+        const groupCompletionMessage = this.component.getGroupCompletionMessage(groupName);
+        
+        // 如果有分组完成消息，显示完成消息界面
+        if (groupCompletionMessage && cards.length === 0) {
+            const completionContainer = cardContainer.createEl("div", { 
+                cls: "flashcard-completion-message" 
+            });
+            
+            // 添加一个图标
+            const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
+            setIcon(iconEl, "check-circle");
+            
+            // 添加标题
+            completionContainer.createEl("h3", { 
+                text: t("学习完成！") 
+            });
+            
+            // 添加消息
+            completionContainer.createEl("p", { 
+                text: groupCompletionMessage 
+            });
+            
+            // 添加按钮继续学习
+            const continueButton = completionContainer.createEl("button", {
+                cls: "flashcard-return-button",
+                text: t("继续学习")
+            });
+            
+            continueButton.addEventListener("click", () => {
+                // 清除分组完成消息
+                this.component.setGroupCompletionMessage(groupName, null);
+                
+                // 重新渲染
+                this.render();
+            });
+            
+            return;
+        }
+        
+        // 在没有完成消息的情况下，如果卡片数组为空，显示“没有需要复习的卡片”
         if (cards.length === 0) {
             cardContainer.createEl("div", {
                 cls: "flashcard-empty", 
