@@ -104,7 +104,14 @@ export class FlashcardRenderer {
         
         // 添加分组按钮
         const addButton = customGroupActions.createEl("div", { cls: "flashcard-add-group", attr: { 'aria-label': t('添加分组') } });
-        setIcon(addButton, 'plus');
+        
+        // 创建图标和文本容器
+        const buttonContent = addButton.createEl("div", { cls: "flashcard-add-group-content" });
+        setIcon(buttonContent, 'plus');
+        
+        // 添加文本
+        const buttonText = buttonContent.createEl("span", { text: t('添加分组') });
+        
         addButton.addEventListener('click', () => this.component.getGroupManager().showCreateGroupModal());
         
         const customGroupList = customGroups.createEl("div", { cls: "flashcard-group-list" });
@@ -130,35 +137,7 @@ export class FlashcardRenderer {
             // 操作按钮
             const actions = header.createEl("div", { cls: "flashcard-group-actions" });
             
-            // 同步按钮
-            const syncButton = actions.createEl("div", { 
-                cls: "flashcard-group-action", 
-                attr: { 'aria-label': t('同步分组卡片') } 
-            });
-            setIcon(syncButton, 'refresh-cw');
-            syncButton.addEventListener('click', async (e: MouseEvent) => {
-                e.stopPropagation();
-                try {
-                    // 显示同步中通知
-                    const notice = new Notice(t('正在同步分组卡片...'), 0);
-                    
-                    // 执行同步
-                    const count = await this.component.getFsrsManager().syncGroupCards(group.id);
-                    
-                    // 关闭通知
-                    notice.hide();
-                    
-                    // 显示结果
-                    new Notice(t('同步完成，共有 ') + count + t(' 张卡片'));
-                    
-                    // 刷新界面
-                    this.component.refreshCardList();
-                    this.render();
-                } catch (error) {
-                    console.error('同步分组卡片失败:', error);
-                    new Notice(t('同步分组卡片失败'));
-                }
-            });
+            // 同步功能已移除
             
             // 编辑按钮
             const editButton = actions.createEl("div", { 

@@ -699,7 +699,6 @@ settings:
 
 /* 闪卡统计面板样式 */
 .flashcard-stats-panel {
-    margin-bottom: 20px;
     border-radius: 8px;
     background-color: var(--background-secondary);
     padding: 15px;
@@ -708,7 +707,7 @@ settings:
 .flashcard-stats-area {
     display: flex;
     justify-content: space-around;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .flashcard-stat-item {
@@ -734,7 +733,6 @@ settings:
 .flashcard-heatmap-area {
     position: relative;
     overflow: hidden;
-    height: 120px;
 }
 
 .flashcard-heatmap-container {
@@ -747,8 +745,8 @@ settings:
 }
 
 .flashcard-heatmap-cell {
-    width: 10px;
-    height: 10px;
+    width: 14px;
+    height: 14px;
     border-radius: 2px;
     background-color: var(--background-primary);
     transition: all 0.2s ease;
@@ -788,10 +786,9 @@ settings:
 .flashcard-stats-container {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: space-around;
     align-items: center;
-    gap: 10px;
-    margin: 8px 0;
+    gap: 4px;
     flex-wrap: wrap;
 }
 
@@ -800,7 +797,6 @@ settings:
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 8px;
     margin-bottom: 8px;
     border-bottom: 1px solid var(--background-modifier-border);
 }
@@ -813,7 +809,7 @@ settings:
 
 .flashcard-groups-actions {
     display: flex;
-    gap: 8px;
+    width: 100%;
 }
 
 /* 分组操作按钮 - 已合并 */
@@ -830,17 +826,33 @@ settings:
     background-color: var(--background-modifier-hover);
 }
 
-.flashcard-stat-item {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    flex: 1;
-    min-width: 60px;
-    gap: 6px;
-    padding: 0px 8px;
-    border-radius: 4px;
+/* 添加分组按钮样式 */
+.flashcard-add-group {
+    width: 100%;
+    padding: 6px 8px;
     background-color: var(--background-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
+
+.flashcard-add-group:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.flashcard-add-group-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.flashcard-add-group-content svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+}
+
 
 .flashcard-stat-label .flashcard-stat-value{
     font-size: 12px;
@@ -956,7 +968,7 @@ settings:
 }
 
 .flashcard-sidebar {
-    width: 280px;
+    width: 240px;
     border-right: 1px solid var(--background-modifier-border);
     padding-right: 20px;
     display: flex;
