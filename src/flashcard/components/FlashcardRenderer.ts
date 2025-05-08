@@ -1,6 +1,7 @@
 import { MarkdownRenderer, Component, setIcon, Notice, TFile } from "obsidian";
 import { CardGroup, FlashcardProgress } from "../types/FSRSTypes";
 import { t } from "../../i18n";
+import { FlashcardStatsPanel } from "./FlashcardStatsPanel";
 
 /**
  * 闪卡渲染器，负责所有UI渲染相关的功能
@@ -86,6 +87,11 @@ export class FlashcardRenderer {
 
         // 创建左侧边栏
         const sidebar = mainContainer.createEl("div", { cls: "flashcard-sidebar" });
+        
+        // 添加统计面板
+        const statsContainer = sidebar.createEl("div", { cls: "flashcard-stats-container" });
+        const statsPanel = new FlashcardStatsPanel(statsContainer, this.component.getFsrsManager());
+        statsPanel.render();
         
         // 添加自定义分组（现在是唯一的分组类型）
         const customGroups = sidebar.createEl("div", { cls: "flashcard-groups" });

@@ -697,6 +697,93 @@ settings:
 
 /* Flashcard styles */
 
+/* 闪卡统计面板样式 */
+.flashcard-stats-panel {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background-color: var(--background-secondary);
+    padding: 15px;
+}
+
+.flashcard-stats-area {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+}
+
+.flashcard-stat-item {
+    text-align: center;
+    padding: 5px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+}
+
+.flashcard-stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-accent);
+}
+
+.flashcard-stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.flashcard-heatmap-area {
+    position: relative;
+    overflow: hidden;
+    height: 120px;
+}
+
+.flashcard-heatmap-container {
+    transform-origin: left top;
+}
+
+.flashcard-heatmap-grid {
+    display: grid;
+    grid-gap: 2px;
+}
+
+.flashcard-heatmap-cell {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background-color: var(--background-primary);
+    transition: all 0.2s ease;
+}
+
+.flashcard-heatmap-cell:hover {
+    transform: scale(1.2);
+}
+
+.flashcard-heatmap-level-0 {
+    background-color: var(--background-primary);
+}
+
+.flashcard-heatmap-level-1 {
+    background-color: rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.flashcard-heatmap-level-2 {
+    background-color: rgba(var(--interactive-accent-rgb), 0.4);
+}
+
+.flashcard-heatmap-level-3 {
+    background-color: rgba(var(--interactive-accent-rgb), 0.6);
+}
+
+.flashcard-heatmap-level-4 {
+    background-color: rgba(var(--interactive-accent-rgb), 0.8);
+}
+
+.flashcard-heatmap-level-5 {
+    background-color: rgba(var(--interactive-accent-rgb), 1);
+}
+
+/* 已删除热力图缩放相关样式 */
+
 /* 统计信息容器水平布局 */
 .flashcard-stats-container {
     display: flex;
