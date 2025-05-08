@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon, debounce } from "obsidian";
 import { FlashcardComponent } from './flashcard/components/FlashcardComponent';
+import { FlashcardState } from './flashcard/types/FSRSTypes';
 import { CommentStore, HiNote, CommentItem, FileComment } from './CommentStore';
 import { ExportPreviewModal } from './templates/ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
@@ -16,6 +17,29 @@ import {t} from "./i18n";
 import { LicenseManager } from './services/LicenseManager';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
+
+/**
+ * 将高亮笔记转换为闪卡状态
+ * @param highlights 高亮笔记数组
+ * @returns 闪卡状态数组
+ */
+function convertToFlashcardState(highlights: HiNote[]): FlashcardState[] {
+    return highlights.map(highlight => ({
+        id: highlight.id,
+        difficulty: 0.3,  // 默认难度
+        stability: 0.5,   // 默认稳定性
+        retrievability: 0.9, // 默认可提取性
+        lastReview: Date.now(), // 当前时间作为上次复习时间
+        nextReview: Date.now() + 86400000, // 默认一天后复习
+        reviewHistory: [],
+        text: highlight.text,
+        answer: highlight.comments?.map(c => c.content).join("\n") || "", // 使用评论作为答案
+        filePath: highlight.filePath,
+        createdAt: highlight.createdAt,
+        reviews: 0,
+        lapses: 0
+    }));
+}
 
 export class CommentView extends ItemView {
     private highlightContainer: HTMLElement;
@@ -745,7 +769,7 @@ export class CommentView extends ItemView {
             
             // 激活闪卡组件并设置数据
             await this.flashcardComponent.activate();
-            this.flashcardComponent.setCards(allHighlights);
+            this.flashcardComponent.setCards(convertToFlashcardState(allHighlights));
         });
 
         const flashcardLeft = flashcardItem.createEl("div", {
@@ -819,7 +843,7 @@ export class CommentView extends ItemView {
             
             // 设置闪卡数据
             await this.flashcardComponent.activate();
-            this.flashcardComponent.setCards(allHighlights);
+            this.flashcardComponent.setCards(convertToFlashcardState(allHighlights));
 
             // 更新文件列表选中状态
             this.updateFileListSelection();

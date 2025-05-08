@@ -1,4 +1,4 @@
-import { Modal, Setting, Notice } from "obsidian";
+import { Modal, Setting, Notice, setIcon } from "obsidian";
 import { CardGroup, FlashcardState } from "../types/FSRSTypes";
 import { t } from "../../i18n";
 
@@ -45,116 +45,216 @@ export class FlashcardGroupManager {
     public showEditGroupModal(group?: CardGroup) {
         const { app } = this.component.getApp();
         
+        // 创建模态框容器
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'flashcard-modal-overlay';
+        document.body.appendChild(modalOverlay);
+        
         // 创建模态框
-        const modal = new Modal(app);
-        modal.titleEl.setText(group ? t('Edit Group') : t('Create Group'));
-        modal.containerEl.addClass('flashcard-group-edit-modal');
+        const modalContainer = document.createElement('div');
+        modalContainer.className = 'flashcard-modal-container';
+        modalOverlay.appendChild(modalContainer);
+        
+        // 创建模态框内容
+        const modalContent = document.createElement('div');
+        modalContent.className = 'flashcard-modal-content';
+        modalContainer.appendChild(modalContent);
+        
+        // 添加标题
+        const modalHeader = document.createElement('div');
+        modalHeader.className = 'flashcard-modal-header';
+        modalContent.appendChild(modalHeader);
+        
+        const modalTitle = document.createElement('h3');
+        modalTitle.textContent = group ? t('Edit Group') : t('Create Group');
+        modalHeader.appendChild(modalTitle);
         
         // 创建表单容器
-        const formContainer = modal.contentEl.createEl('div', { cls: 'flashcard-group-form' });
+        const formContainer = document.createElement('div');
+        formContainer.className = 'flashcard-group-form';
+        modalContent.appendChild(formContainer);
         
         // 分组名称
         let groupName = group ? group.name : '';
-        new Setting(formContainer)
-            .setName(t('Group Name'))
-            .setDesc(t('Enter a name for this group'))
-            .addText(text => {
-                text.setValue(groupName)
-                    .onChange(value => {
-                        groupName = value;
-                    });
-            });
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'flashcard-modal-input';
+        nameInput.placeholder = t('输入名称');
+        nameInput.value = groupName;
+        formContainer.appendChild(nameInput);
+        nameInput.addEventListener('input', (e) => {
+            groupName = (e.target as HTMLInputElement).value;
+        });
+
         
         // 分组过滤条件
         let groupFilter = group ? group.filter : '';
-        new Setting(formContainer)
-            .setName(t('Filter'))
-            .setDesc(t('Enter a filter for this group. Use file:path to filter by file path, tag:tagname to filter by tag.'))
-            .addText(text => {
-                text.setValue(groupFilter)
-                    .setPlaceholder('file:daily-notes or tag:important')
-                    .onChange(value => {
-                        groupFilter = value;
-                    });
-            });
+        const filterTextarea = document.createElement('textarea');
+        filterTextarea.className = 'flashcard-modal-input';
+        filterTextarea.placeholder = t('支持以下格式：\n文件夹：folder1, folder1/folder2\n笔记：[[note1]], [[note2]]');
+        filterTextarea.value = groupFilter;
+        formContainer.appendChild(filterTextarea);
+        filterTextarea.addEventListener('input', (e) => {
+            groupFilter = (e.target as HTMLTextAreaElement).value;
+        });
         
         // 是否反转卡片正反面
         let isReversed = group ? group.isReversed || false : false;
-        new Setting(formContainer)
-            .setName(t('Reverse Cards'))
-            .setDesc(t('Show comments as questions and highlights as answers'))
-            .addToggle(toggle => {
-                toggle.setValue(isReversed)
-                    .onChange(value => {
-                        isReversed = value;
-                    });
-            });
+        const reverseContainer = document.createElement('div');
+        reverseContainer.className = 'flashcard-modal-option';
+        formContainer.appendChild(reverseContainer);
+        
+        const reverseCheckbox = document.createElement('input');
+        reverseCheckbox.type = 'checkbox';
+        reverseCheckbox.className = 'flashcard-modal-checkbox';
+        reverseCheckbox.checked = isReversed;
+        reverseContainer.appendChild(reverseCheckbox);
+        
+        const reverseLabel = document.createElement('label');
+        reverseLabel.textContent = t('反转卡片（使用评论作为问题）');
+        reverseLabel.className = 'flashcard-modal-label';
+        reverseContainer.appendChild(reverseLabel);
+        
+        reverseCheckbox.addEventListener('change', (e) => {
+            isReversed = (e.target as HTMLInputElement).checked;
+        });
+        
+        // 学习设置部分
+        const settingsContainer = document.createElement('div');
+        settingsContainer.className = 'flashcard-modal-settings';
+        formContainer.appendChild(settingsContainer);
+        
+        // 添加标题和全局设置选项在同一行
+        const settingsHeader = document.createElement('div');
+        settingsHeader.className = 'flashcard-modal-settings-header';
+        settingsContainer.appendChild(settingsHeader);
+        
+        // 添加标题和全局设置选项在同一行
+        const settingsTitle = document.createElement('h4');
+        settingsTitle.textContent = t('学习设置');
+        settingsTitle.className = 'settings-title';
+        settingsHeader.appendChild(settingsTitle);
         
         // 使用全局设置
         let useGlobalSettings = group ? (group.settings?.useGlobalSettings !== false) : true;
-        new Setting(formContainer)
-            .setName(t('Use Global Settings'))
-            .setDesc(t('Use global settings for new cards per day and reviews per day'))
-            .addToggle(toggle => {
-                toggle.setValue(useGlobalSettings)
-                    .onChange(value => {
-                        useGlobalSettings = value;
-                        // 更新设置状态
-                        updateSettingsState();
-                    });
-            });
+        const globalSettingsContainer = document.createElement('div');
+        globalSettingsContainer.className = 'flashcard-modal-option use-global-option';
+        settingsHeader.appendChild(globalSettingsContainer);
+        
+        const globalCheckbox = document.createElement('input');
+        globalCheckbox.type = 'checkbox';
+        globalCheckbox.className = 'flashcard-modal-checkbox';
+        globalCheckbox.id = 'use-global-settings';
+        globalCheckbox.checked = useGlobalSettings;
+        globalSettingsContainer.appendChild(globalCheckbox);
+        
+        const globalLabel = document.createElement('label');
+        globalLabel.textContent = t('使用全局设置');
+        globalLabel.className = 'flashcard-modal-label';
+        globalLabel.htmlFor = 'use-global-settings';
+        globalSettingsContainer.appendChild(globalLabel);
+        
+        globalCheckbox.addEventListener('change', (e) => {
+            useGlobalSettings = (e.target as HTMLInputElement).checked;
+            // 更新设置状态
+            updateSettingsState();
+        });
         
         // 每日新卡片数量
         let newCardsPerDay = group ? (group.settings?.newCardsPerDay || 20) : 20;
-        const newCardsPerDaySetting = new Setting(formContainer)
-            .setName(t('New Cards Per Day'))
-            .setDesc(t('Maximum number of new cards to learn each day'))
-            .addSlider(slider => {
-                slider.setLimits(1, 100, 1)
-                    .setValue(newCardsPerDay)
-                    .setDynamicTooltip()
-                    .onChange(value => {
-                        newCardsPerDay = value;
-                    });
-                
-                // 添加数值显示
-                const valueDisplay = formContainer.createEl('span', {
-                    cls: 'slider-value',
-                    text: String(newCardsPerDay)
-                });
-                
-                slider.sliderEl.parentElement?.appendChild(valueDisplay);
-                
-                slider.sliderEl.addEventListener('input', () => {
-                    valueDisplay.textContent = String(slider.getValue());
-                });
-            });
+        
+        const newCardsContainer = document.createElement('div');
+        newCardsContainer.className = 'flashcard-modal-option slider-option';
+        settingsContainer.appendChild(newCardsContainer);
+        
+        const newCardsLabel = document.createElement('label');
+        newCardsLabel.textContent = t('每日新卡数量：');
+        newCardsLabel.className = 'flashcard-modal-label';
+        newCardsContainer.appendChild(newCardsLabel);
+        
+        const newCardsSliderContainer = document.createElement('div');
+        newCardsSliderContainer.className = 'slider-with-value';
+        newCardsContainer.appendChild(newCardsSliderContainer);
+        
+        const newCardsSlider = document.createElement('input');
+        newCardsSlider.className = 'flashcard-modal-slider';
+        newCardsSlider.type = 'range';
+        newCardsSlider.min = '5';
+        newCardsSlider.max = '100';
+        newCardsSlider.step = '5';
+        newCardsSlider.value = String(newCardsPerDay);
+        // 确保值是5的倍数
+        const newCardsValue = parseInt(newCardsSlider.value);
+        if (newCardsValue < 5) {
+            newCardsSlider.value = '5';
+        } else if (newCardsValue % 5 !== 0) {
+            newCardsSlider.value = (Math.round(newCardsValue / 5) * 5).toString();
+        }
+        newCardsSliderContainer.appendChild(newCardsSlider);
+        
+        const newCardsValueDisplay = document.createElement('span');
+        newCardsValueDisplay.className = 'slider-value';
+        newCardsValueDisplay.textContent = newCardsSlider.value;
+        newCardsSliderContainer.appendChild(newCardsValueDisplay);
+        
+        // 更新滑块值显示
+        newCardsSlider.addEventListener('input', () => {
+            newCardsPerDay = parseInt(newCardsSlider.value);
+            newCardsValueDisplay.textContent = newCardsSlider.value;
+        });
+        
+        const newCardsPerDaySetting = { setDisabled: (disabled: boolean) => {
+            newCardsSlider.disabled = disabled;
+            newCardsContainer.classList.toggle('disabled', disabled);
+        }};
         
         // 每日复习数量
         let reviewsPerDay = group ? (group.settings?.reviewsPerDay || 100) : 100;
-        const reviewsPerDaySetting = new Setting(formContainer)
-            .setName(t('Reviews Per Day'))
-            .setDesc(t('Maximum number of reviews per day'))
-            .addSlider(slider => {
-                slider.setLimits(10, 500, 10)
-                    .setValue(reviewsPerDay)
-                    .setDynamicTooltip()
-                    .onChange(value => {
-                        reviewsPerDay = value;
-                    });
-                
-                // 添加数值显示
-                const valueDisplay = formContainer.createEl('span', {
-                    cls: 'slider-value',
-                    text: String(reviewsPerDay)
-                });
-                
-                slider.sliderEl.parentElement?.appendChild(valueDisplay);
-                
-                slider.sliderEl.addEventListener('input', () => {
-                    valueDisplay.textContent = String(slider.getValue());
-                });
-            });
+        
+        const reviewsContainer = document.createElement('div');
+        reviewsContainer.className = 'flashcard-modal-option slider-option';
+        settingsContainer.appendChild(reviewsContainer);
+        
+        const reviewsLabel = document.createElement('label');
+        reviewsLabel.textContent = t('每日复习数量：');
+        reviewsLabel.className = 'flashcard-modal-label';
+        reviewsContainer.appendChild(reviewsLabel);
+        
+        const reviewsSliderContainer = document.createElement('div');
+        reviewsSliderContainer.className = 'slider-with-value';
+        reviewsContainer.appendChild(reviewsSliderContainer);
+        
+        const reviewsSlider = document.createElement('input');
+        reviewsSlider.className = 'flashcard-modal-slider';
+        reviewsSlider.type = 'range';
+        reviewsSlider.min = '10';
+        reviewsSlider.max = '500';
+        reviewsSlider.step = '10';
+        reviewsSlider.value = String(reviewsPerDay);
+        // 确保值是10的倍数
+        const reviewsValue = parseInt(reviewsSlider.value);
+        if (reviewsValue < 10) {
+            reviewsSlider.value = '10';
+        } else if (reviewsValue % 10 !== 0) {
+            reviewsSlider.value = (Math.round(reviewsValue / 10) * 10).toString();
+        }
+        reviewsSliderContainer.appendChild(reviewsSlider);
+        
+        const reviewsValueDisplay = document.createElement('span');
+        reviewsValueDisplay.className = 'slider-value';
+        reviewsValueDisplay.textContent = reviewsSlider.value;
+        reviewsSliderContainer.appendChild(reviewsValueDisplay);
+        
+        // 更新滑块值显示
+        reviewsSlider.addEventListener('input', () => {
+            reviewsPerDay = parseInt(reviewsSlider.value);
+            reviewsValueDisplay.textContent = reviewsSlider.value;
+        });
+        
+        const reviewsPerDaySetting = { setDisabled: (disabled: boolean) => {
+            reviewsSlider.disabled = disabled;
+            reviewsContainer.classList.toggle('disabled', disabled);
+        }};
         
         // 根据是否使用全局设置启用/禁用自定义设置
         const updateSettingsState = () => {
@@ -170,12 +270,24 @@ export class FlashcardGroupManager {
         // 初始化设置状态
         updateSettingsState();
         
-        // 添加保存按钮
-        const saveBtn = modal.contentEl.createEl('button', { 
-            cls: 'flashcard-save-group-btn',
-            text: group ? t('Save') : t('Create')
-        });
+        // 按钮容器
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container';
+        modalContent.appendChild(buttonContainer);
         
+        // 添加取消按钮
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'flashcard-cancel-btn';
+        cancelBtn.textContent = t('取消');
+        buttonContainer.appendChild(cancelBtn);
+        
+        // 添加保存按钮
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'flashcard-save-group-btn';
+        saveBtn.textContent = group ? t('保存') : t('创建');
+        buttonContainer.appendChild(saveBtn);
+        
+        // 添加保存按钮事件
         saveBtn.addEventListener('click', async () => {
             // 验证输入
             if (!groupName) {
@@ -266,7 +378,7 @@ export class FlashcardGroupManager {
             }
             
             // 关闭模态框
-            modal.close();
+            document.body.removeChild(modalOverlay);
             
             // 如果是编辑模式，重新打开分组管理模态框
             if (group) {
@@ -274,22 +386,24 @@ export class FlashcardGroupManager {
             }
         });
         
-        // 添加取消按钮
-        const cancelBtn = modal.contentEl.createEl('button', { 
-            cls: 'flashcard-cancel-btn',
-            text: t('Cancel')
-        });
+        // 添加ESC键关闭模态框
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                document.body.removeChild(modalOverlay);
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
         
+        // 添加取消按钮事件
         cancelBtn.addEventListener('click', () => {
-            modal.close();
+            // 关闭模态框
+            document.body.removeChild(modalOverlay);
             
             // 如果是编辑模式，重新打开分组管理模态框
             if (group) {
                 this.component.getRenderer().render();
             }
         });
-        
-        // 打开模态框
-        modal.open();
     }
 }

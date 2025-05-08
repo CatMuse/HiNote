@@ -2955,3 +2955,281 @@ settings:
 .regex-rule-item .color-input {
     width: 80px;
 }
+
+/* 模态框样式 */
+.flashcard-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flashcard-modal-container {
+    background-color: var(--background-primary);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    width: 400px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modal-appear 0.2s ease;
+}
+
+@keyframes modal-appear {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.flashcard-modal-content {
+    padding: 0;
+}
+
+.flashcard-modal-header {
+    padding: 16px 16px 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flashcard-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-normal);
+}
+
+/* 表单输入样式 */
+.flashcard-modal-input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 16px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+textarea.flashcard-modal-input {
+    min-height: 80px;
+    font-family: var(--font-text);
+}
+
+.flashcard-modal-input.small {
+    width: 80px;
+    margin-bottom: 0;
+    margin-left: 8px;
+    padding: 4px 8px;
+}
+
+.flashcard-modal-settings {
+    margin-top: 16px;
+    padding: 16px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+}
+
+.flashcard-modal-settings h4 {
+    font-size: 14px;
+    color: var(--text-normal);
+    margin: 0;
+}
+
+.flashcard-modal-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.use-global-option {
+    margin-bottom: 0 !important;
+}
+
+.flashcard-modal-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.flashcard-modal-checkbox {
+    margin-right: 8px;
+}
+
+.flashcard-modal-label {
+    font-size: 14px;
+    color: var(--text-normal);
+}
+
+.flashcard-group-edit-modal .modal-content {
+    padding: 0;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+}
+
+.flashcard-group-form {
+    padding: 16px;
+    background-color: var(--background-primary);
+    border-radius: 8px;
+}
+
+/* 分组名称输入框 */
+.flashcard-group-form input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+/* 过滤条件文本域 */
+.flashcard-group-form textarea {
+    width: 100%;
+    height: 80px;
+    padding: 8px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: 14px;
+    resize: vertical;
+    margin-bottom: 16px;
+}
+
+/* 反转卡片复选框容器 */
+.reverse-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.reverse-checkbox {
+    margin-right: 8px;
+}
+
+.reverse-label {
+    font-size: 14px;
+    color: var(--text-normal);
+}
+
+/* 学习设置标题 */
+.settings-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-normal);
+    margin: 16px 0 12px 0;
+}
+
+/* 全局设置复选框容器 */
+.global-settings-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.global-checkbox {
+    margin-right: 8px;
+}
+
+.checkmark {
+    color: var(--text-accent);
+    margin-right: 8px;
+}
+
+.global-label {
+    font-size: 14px;
+    color: var(--text-normal);
+}
+
+/* 卡片设置容器 */
+.cards-setting-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 8px 0;
+}
+
+.cards-setting-container.disabled {
+    opacity: 0.5;
+}
+
+.setting-label {
+    flex: 0 0 120px;
+    font-size: 14px;
+    color: var(--text-normal);
+}
+
+.slider-container {
+    flex: 1;
+    margin-right: 16px;
+}
+
+.cards-slider {
+    width: 100%;
+    height: 6px;
+}
+
+.slider-value {
+    flex: 0 0 30px;
+    text-align: right;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-accent);
+}
+
+/* 按钮容器 */
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin: 0px 16px 16px 16px;
+}
+
+/* 取消按钮 */
+.flashcard-cancel-btn {
+    padding: 8px 16px;
+    background-color: var(--background-secondary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.flashcard-cancel-btn:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* 创建/保存按钮 */
+.flashcard-save-group-btn {
+    padding: 8px 16px;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.flashcard-save-group-btn:hover {
+    background-color: var(--interactive-accent-hover);
+    color: var(--text-on-accent);
+}
