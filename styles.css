@@ -1209,11 +1209,39 @@ settings:
     transition: opacity 0.3s ease;
 }
 
+/* 当卡片翻转时显示评分按钮 */
+.flashcard.is-flipped ~ .flashcard-rating {
+    opacity: 1;
+}
+
 /* Rating buttons - 初始隐藏状态和动画效果 */
 .flashcard-rating-button {
     transform: translateY(20px);
     opacity: 0;
     transition: all 0.3s ease;
+}
+
+/* 当卡片翻转时，评分按钮显示动画 */
+.flashcard.is-flipped ~ .flashcard-rating .flashcard-rating-button {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 为评分按钮添加依次出现的延迟 */
+.flashcard.is-flipped ~ .flashcard-rating .flashcard-rating-button:nth-child(1) {
+    transition-delay: 0.1s;
+}
+
+.flashcard.is-flipped ~ .flashcard-rating .flashcard-rating-button:nth-child(2) {
+    transition-delay: 0.15s;
+}
+
+.flashcard.is-flipped ~ .flashcard-rating .flashcard-rating-button:nth-child(3) {
+    transition-delay: 0.2s;
+}
+
+.flashcard.is-flipped ~ .flashcard-rating .flashcard-rating-button:nth-child(4) {
+    transition-delay: 0.25s;
 }
 
 .flashcard.is-flipped + .flashcard-rating {

@@ -16,9 +16,20 @@ export class FlashcardOperations {
      * 翻转卡片
      */
     public flipCard() {
-        this.component.setCardFlipped(!this.component.isCardFlipped());
+        const flipped = !this.component.isCardFlipped();
+        this.component.setCardFlipped(flipped);
+        
+        // 只需要切换卡片的 CSS 类，所有的样式和动画效果都由 CSS 处理
+        const cardElement = document.querySelector('.flashcard');
+        if (cardElement) {
+            if (flipped) {
+                cardElement.classList.add('is-flipped');
+            } else {
+                cardElement.classList.remove('is-flipped');
+            }
+        }
+        
         this.component.saveState();
-        this.component.getRenderer().render();
     }
     
     /**
