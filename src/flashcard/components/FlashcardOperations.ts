@@ -15,7 +15,7 @@ export class FlashcardOperations {
     /**
      * 翻转卡片
      */
-    public flipCard() {
+    public flipCard(): void {
         const flipped = !this.component.isCardFlipped();
         this.component.setCardFlipped(flipped);
         
@@ -35,7 +35,7 @@ export class FlashcardOperations {
     /**
      * 下一张卡片
      */
-    public nextCard() {
+    public nextCard(): void {
         const cards = this.component.getCards();
         if (cards.length === 0) return;
         
@@ -54,7 +54,7 @@ export class FlashcardOperations {
      * 对卡片进行评分
      * @param rating 评分
      */
-    public rateCard(rating: FSRSRating) {
+    public rateCard(rating: FSRSRating): void {
         const cards = this.component.getCards();
         const currentIndex = this.component.getCurrentIndex();
         
@@ -65,8 +65,8 @@ export class FlashcardOperations {
         const currentCard = cards[currentIndex];
         if (!currentCard) return;
         
-        // 调用 FSRS 管理器进行评分
-        this.component.getFsrsManager().rateCard(currentCard.id, rating);
+        // 调用 FSRS 管理器进行评分，使用统一的学习进度跟踪方法
+        this.component.getFsrsManager().trackStudyProgress(currentCard.id, rating);
         
         // 移除当前卡片
         cards.splice(currentIndex, 1);
@@ -124,133 +124,46 @@ export class FlashcardOperations {
      * 刷新当前卡片列表，考虑每日学习限制
      * 注意：此方法只从已有的卡片中获取数据，不会自动创建新卡片
      */
-    public refreshCardList() {
+    public refreshCardList(): void {
         // 获取当前分组
         const groupName = this.component.getCurrentGroupName();
+        const fsrsManager = this.component.getFsrsManager();
         
-        // 根据分组获取卡片
-        let cards = [];
+        // 使用统一的卡片获取方法
+        let cards: FlashcardState[] = [];
         
-        if (groupName === 'All cards') {
-            // 获取所有卡片
-            const allCards = Object.values(this.component.getFsrsManager().exportData().cards);
-            
-            // 按照下次复习时间排序
-            cards = allCards.sort((a: any, b: any) => a.nextReview - b.nextReview);
-        } else if (groupName === 'Due Cards') {
-            // 获取待复习卡片
-            cards = this.component.getFsrsManager().getDueCards();
-        } else if (groupName === 'New Cards') {
-            // 获取新卡片
-            cards = this.component.getFsrsManager().getNewCards();
-        } else if (groupName === 'Recent Cards') {
-            // 获取最近添加的卡片
-            cards = this.component.getFsrsManager().getLatestCards();
-        } else {
-            // 处理自定义分组
-            console.log(`开始获取自定义分组 ${groupName} 的卡片`);
-            
-            // 直接从存储中获取卡片，而不经过任何过滤
-            const fsrsManager = this.component.getFsrsManager();
-            const cardGroups = fsrsManager.getCardGroups();
-            const group = cardGroups.find((g: any) => g.id === groupName || g.name === groupName);
-            
-            if (group) {
-                console.log(`找到分组 ${group.name}(${group.id})，卡片ID数量: ${group.cardIds ? group.cardIds.length : 0}`);
-                
-                // 直接从存储中获取卡片
-                if (group.cardIds && group.cardIds.length > 0) {
-                    const allCards = fsrsManager.exportData().cards;
-                    cards = group.cardIds
-                        .map((id: string) => {
-                            const card = allCards[id];
-                            if (card) {
-                                console.log(`找到卡片 ${id}，内容: ${card.text.substring(0, 20)}...`);
-                            } else {
-                                console.log(`卡片 ${id} 不存在`);
-                            }
-                            return card;
-                        })
-                        .filter((card: any) => card !== undefined);
-                }
-            } else {
-                console.log(`分组 ${groupName} 不存在，检查所有分组:`, 
-                    cardGroups.map((g: any) => ({ id: g.id, name: g.name })));
-            }
-            
-            console.log(`自定义分组 ${groupName} 中的卡片数量: ${cards.length}`);
-            
-            // 对于自定义分组，始终清除完成消息并设置卡片列表，无论卡片数量是否为0
-            console.log('自定义分组不应用复习状态过滤，显示所有卡片');
-            
-            // 清除完成消息，确保显示卡片
-            this.component.setCompletionMessage(null);
-            this.component.setGroupCompletionMessage(groupName, null);
-            
-            // 直接设置卡片列表，不应用任何过滤
-            this.component.setCards(cards);
-            this.component.setCurrentIndex(0);
-            this.component.setCardFlipped(false);
-            this.component.saveState();
-            
-            // 输出调试信息
-            console.log('设置卡片列表后的状态:', {
-                cards: this.component.getCards().length,
-                currentIndex: this.component.getCurrentIndex(),
-                isFlipped: this.component.isCardFlipped(),
-                completionMessage: this.component.getCompletionMessage(),
-                groupCompletionMessage: this.component.getGroupCompletionMessage(groupName)
-            });
-            
-                // 自定义分组处理完成，直接返回
-            return;
-        }
+        // 使用统一的卡片获取方法，传入分组ID
+        console.log(`使用统一的方法获取分组 ${groupName} 的卡片`);
+        cards = fsrsManager.getCardsForStudy(groupName);
+        console.log(`获取到 ${cards.length} 张卡片`);
         
-        // 如果有分组名称，直接从存储中获取卡片
-        if (groupName) {
-            const fsrsManager = this.component.getFsrsManager();
-            const cardGroups = fsrsManager.getCardGroups();
-            const group = cardGroups.find((g: any) => g.id === groupName || g.name === groupName);
-            
-            if (group) {
-                console.log(`找到分组 ${group.name}(${group.id})，卡片ID数量: ${group.cardIds ? group.cardIds.length : 0}`);
-                
-                // 直接从存储中获取卡片
-                if (group.cardIds && group.cardIds.length > 0) {
-                    const allCards = fsrsManager.exportData().cards;
-                    cards = group.cardIds
-                        .map((id: string) => {
-                            const card = allCards[id];
-                            if (card) {
-                                console.log(`找到卡片 ${id}，内容: ${card.text.substring(0, 20)}...`);
-                            } else {
-                                console.log(`卡片 ${id} 不存在`);
-                            }
-                            return card;
-                        })
-                        .filter((card: any) => card !== undefined);
-                }
-            }
-        }
+        // 清除完成消息并设置卡片列表
+        this.component.setCompletionMessage(null);
+        this.component.setGroupCompletionMessage(groupName, null);
         
-        // 恢复进度
-        const progress = this.component.getGroupProgress(groupName);
-        if (progress) {
-            this.component.setCurrentIndex(progress.currentIndex);
-            this.component.setCardFlipped(progress.isFlipped);
-        } else {
-            this.component.setCurrentIndex(0);
-            this.component.setCardFlipped(false);
-        }
-        
-        // 保存状态
+        // 设置卡片列表
+        this.component.setCards(cards);
+        this.component.setCurrentIndex(0);
+        this.component.setCardFlipped(false);
         this.component.saveState();
+        
+        // 输出调试信息
+        console.log('设置卡片列表后的状态:', {
+            cards: this.component.getCards().length,
+            currentIndex: this.component.getCurrentIndex(),
+            isFlipped: this.component.isCardFlipped(),
+            completionMessage: this.component.getCompletionMessage(),
+            groupCompletionMessage: this.component.getGroupCompletionMessage(groupName)
+        });
+        
+        // 处理完成，返回
+        return;
     }
     
     /**
      * 设置键盘快捷键
      */
-    public setupKeyboardShortcuts() {
+    public setupKeyboardShortcuts(): void {
         // 移除之前的事件监听器
         if (this.component.getBoundHandleKeyDown()) {
             document.removeEventListener('keydown', this.component.getBoundHandleKeyDown());
@@ -267,7 +180,7 @@ export class FlashcardOperations {
      * 处理键盘事件
      * @param e 键盘事件
      */
-    public handleKeyDown(e: KeyboardEvent) {
+    public handleKeyDown(e: KeyboardEvent): void {
         // 如果不是激活状态，不处理键盘事件
         if (!this.component.isComponentActive()) {
             return;

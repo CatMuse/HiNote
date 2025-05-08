@@ -456,6 +456,25 @@ export class CommentView extends ItemView {
                     comments: highlight.comments
                 }
             }));
+            
+            // 自动更新闪卡
+            try {
+                if (this.plugin.fsrsManager) {
+                    // 获取所有评论内容作为闪卡背面
+                    const allComments = highlight.comments.map(c => c.content).join("\n");
+                    
+                    // 使用高亮文本作为正面，更新后的评论内容作为背面
+                    this.plugin.fsrsManager.updateCardContent(
+                        highlight.text,
+                        allComments,
+                        file.path
+                    );
+                    
+                    console.log(`自动更新闪卡成功，文本: ${highlight.text.substring(0, 20)}...`);
+                }
+            } catch (error) {
+                console.error('自动更新闪卡失败:', error);
+            }
 
             // 使用新的刷新方法
             await this.refreshView();

@@ -109,9 +109,6 @@ export class FlashcardRenderer {
         const buttonContent = addButton.createEl("div", { cls: "flashcard-add-group-content" });
         setIcon(buttonContent, 'plus');
         
-        // 添加文本
-        const buttonText = buttonContent.createEl("span", { text: t('添加分组') });
-        
         addButton.addEventListener('click', () => this.component.getGroupManager().showCreateGroupModal());
         
         const customGroupList = customGroups.createEl("div", { cls: "flashcard-group-list" });

@@ -375,6 +375,10 @@ export class FlashcardGroupManager {
                 
                 // 显示通知
                 new Notice(t('Group created'));
+                
+                // 创建新分组后刷新界面
+                this.component.refreshCardList();
+                this.component.getRenderer().render();
             }
             
             // 关闭模态框

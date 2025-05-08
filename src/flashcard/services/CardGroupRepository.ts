@@ -133,7 +133,7 @@ export class CardGroupRepository {
         // 如果当前UI状态使用了这个分组，重置UI状态
         const uiState = this.storage.uiState;
         if (uiState.currentGroupName === groupId) {
-            uiState.currentGroupName = 'All cards';
+            uiState.currentGroupName = '';
             uiState.currentIndex = 0;
             uiState.isFlipped = false;
             uiState.completionMessage = null;

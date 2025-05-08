@@ -834,6 +834,7 @@ settings:
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin-bottom: 8px;
 }
 
 .flashcard-add-group:hover {
@@ -976,23 +977,7 @@ settings:
     gap: 8px;
 }
 
-.flashcard-add-group {
-    padding: 4px;
-    margin: 8px 0px;
-    border-radius: 4px;
-    color: var(--text-normal);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--background-modifier-border);
-}
-
-.flashcard-add-group:hover {
-    color: var(--text-accent);
-    background-color: var(--background-modifier-hover);
-}
+/* 这里的样式已合并到上面的 .flashcard-add-group 定义中 */
 
 /* 正则规则添加按钮样式 */
 .regex-rule-add {

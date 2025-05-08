@@ -40,7 +40,7 @@ export class FSRSManager {
             },
             cardGroups: [],
             uiState: {
-                currentGroupName: 'All cards',
+                currentGroupName: '',
                 currentIndex: 0,
                 isFlipped: false,
                 completionMessage: null,
@@ -85,7 +85,7 @@ export class FSRSManager {
             },
             cardGroups: [],
             uiState: {
-                currentGroupName: 'All cards',
+                currentGroupName: '',
                 currentIndex: 0,
                 isFlipped: false,
                 completionMessage: null,
@@ -268,6 +268,40 @@ export class FSRSManager {
             console.error('更新卡片内容时出错:', err);
         });
     }
+    
+    /**
+     * 统一的卡片创建或更新方法
+     * @param text 卡片正面文本
+     * @param answer 卡片背面答案
+     * @param filePath 文件路径
+     * @returns 创建或更新后的卡片
+     */
+    public createOrUpdateCard(text: string, answer: string, filePath?: string): FlashcardState {
+        // 先查找是否存在匹配的卡片
+        const existingCard = this.findCardByContent(text, answer, filePath);
+        
+        if (existingCard) {
+            // 如果存在匹配的卡片，更新它
+            this.storage.cards[existingCard.id] = {
+                ...existingCard,
+                text: text,
+                answer: answer,
+                lastReview: existingCard.lastReview // 保留原来的复习时间
+            };
+            
+            // 保存更改
+            this.saveStorage().then(() => {
+                this.plugin.eventManager.emitFlashcardChanged();
+            }).catch(err => {
+                console.error('更新卡片内容时出错:', err);
+            });
+            
+            return this.storage.cards[existingCard.id];
+        } else {
+            // 如果不存在匹配的卡片，创建新卡片
+            return this.addCard(text, answer, filePath);
+        }
+    }
 
     // updateCardContent 方法已被删除，因为不再需要更新卡片内容的逻辑
 
@@ -300,13 +334,12 @@ export class FSRSManager {
      * 对卡片进行评分
      * @param cardId 卡片ID
      * @param rating 评分 (0-3: Again, Hard, Good, Easy)
-     */
-    public rateCard(cardId: string, rating: FSRSRating): void {
-        // 查找卡片
-        const card = this.storage.cards[cardId];
-        if (!card) return;
-
-        // 使用 FSRS 服务进行评分
+            console.error(`跟踪学习进度失败: 卡片 ${cardId} 不存在`);
+            return undefined;
+        }
+        
+        // 调用 FSRS 算法进行评分
+        const isNewCard = card.lastReview === 0;
         const updatedCard = this.fsrsService.reviewCard(card, rating);
         
         // 更新卡片状态
@@ -316,16 +349,22 @@ export class FSRSManager {
         this.updateGlobalStats(rating, updatedCard.retrievability);
         
         // 更新每日统计数据
-        this.updateDailyStats(true, rating);
+        this.updateDailyStats(isNewCard, rating);
         
         // 保存更改
         this.saveStorageDebounced();
+        
+        // 触发事件
+        this.plugin.eventManager.emitFlashcardChanged();
+        
+        return this.storage.cards[cardId];
     }
     
     /**
      * 更新每日学习统计
      * @param isNewCard 是否是新卡片
      * @param rating 评分
+     * @private 私有方法，只应由 trackStudyProgress 调用
      */
     private updateDailyStats(isNewCard: boolean, rating: FSRSRating) {
         const today = new Date();
@@ -403,7 +442,13 @@ export class FSRSManager {
         this.saveStorage();
     }
 
+    /**
+     * 获取到期需要复习的卡片
+     * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
+     * @returns 到期卡片列表
+     */
     public getDueCards(): FlashcardState[] {
+        console.warn('调用过时的 getDueCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
         const dueCards = this.fsrsService.getReviewableCards(Object.values(this.storage.cards));
         
         // 如果设置了每日复习限制，则限制返回的卡片数量
@@ -414,12 +459,14 @@ export class FSRSManager {
         
         return dueCards.slice(0, remainingReviews);
     }
-
+    
     /**
      * 获取新卡片（从未学习过的卡片）
+     * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
      * @returns 新卡片列表
      */
     public getNewCards(): FlashcardState[] {
+        console.warn('调用过时的 getNewCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
         const newCards = Object.values(this.storage.cards)
             .filter(card => card.reviews === 0);
         
@@ -434,9 +481,11 @@ export class FSRSManager {
 
     /**
      * 获取所有卡片
+     * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
      * @returns 所有卡片列表
      */
     public getLatestCards(): FlashcardState[] {
+        console.warn('调用过时的 getLatestCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
         return Object.values(this.storage.cards);
     }
     
@@ -447,6 +496,22 @@ export class FSRSManager {
     public getCardGroups(): CardGroup[] {
         return this.groupRepository.getCardGroups();
     }
+    
+    /**
+     * 统一的卡片学习入口，获取指定分组的卡片
+     * @param groupId 分组ID
+     * @returns 分组中的卡片列表
+     */
+    public getCardsForStudy(groupId: string): FlashcardState[] {
+        // 如果没有指定分组ID，返回空数组
+        if (!groupId) {
+            console.warn('没有指定分组ID，返回空卡片列表');
+            return [];
+        }
+        
+        // 获取指定分组的卡片
+        return this.getCardsByGroupId(groupId);
+    }
 
     /**
      * reviewCard 方法 - 作为 rateCard 的别名，用于兼容性
@@ -455,11 +520,57 @@ export class FSRSManager {
      * @returns 更新后的卡片状态
      */
     public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
-        // 调用 rateCard 方法
-        this.rateCard(cardId, rating);
+        // 调用统一的学习进度跟踪方法
+        return this.trackStudyProgress(cardId, rating);
+    }
+    
+    /**
+     * 统一的学习进度跟踪方法
+     * 这是记录学习进度的唯一入口点
+     * @param cardId 卡片ID
+     * @param rating 评分
+     * @returns 更新后的卡片状态
+     */
+    public trackStudyProgress(cardId: string, rating: FSRSRating): FlashcardState | null {
+        // 获取卡片
+        const card = this.storage.cards[cardId];
+        if (!card) {
+            console.error(`跟踪学习进度失败: 卡片 ${cardId} 不存在`);
+            return null;
+        }
+        
+        // 调用 FSRS 算法进行评分
+        const isNewCard = card.lastReview === 0;
+        const updatedCard = this.fsrsService.reviewCard(card, rating);
+        
+        // 更新卡片状态
+        this.storage.cards[cardId] = updatedCard;
+        
+        // 更新全局统计数据
+        this.updateGlobalStats(rating, updatedCard.retrievability);
+        
+        // 更新每日统计数据
+        this.updateDailyStats(isNewCard, rating);
+        
+        // 同步更新所有相关分组的进度
+        if (card.groupIds && card.groupIds.length > 0) {
+            card.groupIds.forEach(groupId => {
+                // 更新分组的学习进度
+                const group = this.groupRepository.getGroupById(groupId);
+                if (group) {
+                    // 如果需要，可以在这里添加分组特定的进度跟踪逻辑
+                }
+            });
+        }
+        
+        // 保存更改
+        this.saveStorageDebounced();
+        
+        // 触发卡片变化事件
+        this.plugin.eventManager.emitFlashcardChanged();
         
         // 返回更新后的卡片
-        return this.storage.cards[cardId] || null;
+        return this.storage.cards[cardId];
     }
     
     // 获取卡片在不同评分下的预测结果
