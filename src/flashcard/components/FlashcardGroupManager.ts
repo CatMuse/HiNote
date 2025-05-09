@@ -87,7 +87,7 @@ export class FlashcardGroupManager {
         });
 
         
-        // 分组过滤条件
+        // 分组过滤条件 - 支持文件路径和笔记链接
         let groupFilter = group ? group.filter : '';
         const filterTextarea = document.createElement('textarea');
         filterTextarea.className = 'flashcard-modal-input';

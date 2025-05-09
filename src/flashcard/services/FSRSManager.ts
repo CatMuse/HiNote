@@ -200,25 +200,16 @@ export class FSRSManager {
         stats.lastReviewDate = now;
     }
 
+    /**
+     * 添加卡片
+     * @param text 卡片正面文本
+     * @param answer 卡片背面文本
+     * @param filePath 关联的文件路径
+     * @returns 添加的卡片
+     */
     public addCard(text: string, answer: string, filePath?: string): FlashcardState {
-        // 使用 FlashcardFactory 创建卡片
-        const card = this.cardFactory.createCard(text, answer, filePath);
-        
-        // 确保 storage.cards 存在
-        if (!this.storage.cards) {
-            this.storage.cards = {};
-        }
-        
-        this.storage.cards[card.id] = card;
-        
-        // 立即保存，而不是使用防抖
-        this.saveStorage().then(() => {
-            this.plugin.eventManager.emitFlashcardChanged();
-        }).catch(err => {
-            console.error('保存卡片时出错:', err);
-        });
-        
-        return card;
+        // 调用 FlashcardFactory 的方法
+        return this.cardFactory.addCard(text, answer, filePath);
     }
     
     /**
@@ -228,45 +219,8 @@ export class FSRSManager {
      * @param filePath 文件路径
      */
     public updateCardContent(text: string, answer: string, filePath?: string): void {
-        if (!filePath) {
-            return;
-        }
-        
-        // 获取指定文件的所有卡片
-        const cardsInFile = this.getCardsByFile(filePath);
-        
-        // 如果提供了文本，更新匹配文本的卡片
-        if (text) {
-            const cardsWithText = cardsInFile.filter(card => card.text.includes(text));
-            
-            cardsWithText.forEach(card => {
-                // 更新卡片文本，保留其他属性不变
-                this.storage.cards[card.id] = {
-                    ...card,
-                    text: text // 使用新文本替换
-                };
-            });
-        }
-        
-        // 如果提供了答案，更新匹配答案的卡片
-        if (answer) {
-            const cardsWithAnswer = cardsInFile.filter(card => card.answer.includes(answer));
-            
-            cardsWithAnswer.forEach(card => {
-                // 更新卡片答案，保留其他属性不变
-                this.storage.cards[card.id] = {
-                    ...card,
-                    answer: answer // 使用新答案替换
-                };
-            });
-        }
-        
-        // 保存更改
-        this.saveStorage().then(() => {
-            this.plugin.eventManager.emitFlashcardChanged();
-        }).catch(err => {
-            console.error('更新卡片内容时出错:', err);
-        });
+        // 调用 FlashcardFactory 的方法
+        this.cardFactory.updateCardContent(text, answer, filePath);
     }
     
     /**
@@ -277,30 +231,8 @@ export class FSRSManager {
      * @returns 创建或更新后的卡片
      */
     public createOrUpdateCard(text: string, answer: string, filePath?: string): FlashcardState {
-        // 先查找是否存在匹配的卡片
-        const existingCard = this.findCardByContent(text, answer, filePath);
-        
-        if (existingCard) {
-            // 如果存在匹配的卡片，更新它
-            this.storage.cards[existingCard.id] = {
-                ...existingCard,
-                text: text,
-                answer: answer,
-                lastReview: existingCard.lastReview // 保留原来的复习时间
-            };
-            
-            // 保存更改
-            this.saveStorage().then(() => {
-                this.plugin.eventManager.emitFlashcardChanged();
-            }).catch(err => {
-                console.error('更新卡片内容时出错:', err);
-            });
-            
-            return this.storage.cards[existingCard.id];
-        } else {
-            // 如果不存在匹配的卡片，创建新卡片
-            return this.addCard(text, answer, filePath);
-        }
+        // 调用 FlashcardFactory 的方法
+        return this.cardFactory.createOrUpdateCard(text, answer, filePath);
     }
 
     /**
@@ -308,24 +240,12 @@ export class FSRSManager {
      * @param filePath 文件路径
      * @param text 可选，特定的高亮文本
      * @param answer 可选，特定的评论内容
+     * @returns 是否有卡片被删除
      */
-    public deleteCardsByContent(filePath: string, text?: string, answer?: string): void {
-        const cards = this.getCardsByFile(filePath);
-        let deleted = false;
-        
-        for (const card of cards) {
-            if (!text && !answer || // 如果没有指定text和answer，删除该文件的所有卡片
-                (text && card.text === text) || // 如果指定了text，匹配text
-                (answer && card.answer === answer)) { // 如果指定了answer，匹配answer
-                delete this.storage.cards[card.id];
-                deleted = true;
-            }
-        }
-        
-        if (deleted) {
-            this.saveStorageDebounced();
-            this.plugin.eventManager.emitFlashcardChanged();
-        }
+    public deleteCardsByContent(filePath: string, text?: string, answer?: string): boolean {
+        // 调用 FlashcardFactory 的方法
+        const deletedCount = this.cardFactory.deleteCardsByContent(filePath, text, answer);
+        return deletedCount > 0;
     }
     
     /**
@@ -414,8 +334,9 @@ export class FSRSManager {
      * 获取到期需要复习的卡片
      * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
      * @returns 到期卡片列表
+     * @private 私有方法，仅内部使用
      */
-    public getDueCards(): FlashcardState[] {
+    private getDueCards(): FlashcardState[] {
         console.warn('调用过时的 getDueCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
         const dueCards = this.fsrsService.getReviewableCards(Object.values(this.storage.cards));
         
@@ -432,8 +353,9 @@ export class FSRSManager {
      * 获取新卡片（从未学习过的卡片）
      * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
      * @returns 新卡片列表
+     * @private 私有方法，仅内部使用
      */
-    public getNewCards(): FlashcardState[] {
+    private getNewCards(): FlashcardState[] {
         console.warn('调用过时的 getNewCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
         const newCards = Object.values(this.storage.cards)
             .filter(card => card.reviews === 0);
@@ -451,8 +373,9 @@ export class FSRSManager {
      * 获取所有卡片
      * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
      * @returns 所有卡片列表
+     * @private 私有方法，仅内部使用
      */
-    public getLatestCards(): FlashcardState[] {
+    private getLatestCards(): FlashcardState[] {
         console.warn('调用过时的 getLatestCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
         return Object.values(this.storage.cards);
     }
@@ -487,8 +410,9 @@ export class FSRSManager {
      * @param cardId 卡片ID
      * @param rating 评分 (0-3: Again, Hard, Good, Easy)
      * @returns 更新后的卡片状态
+     * @private 私有方法，仅内部使用
      */
-    public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
+    private reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
         // 调用统一的学习进度跟踪方法
         console.warn('FSRSManager.reviewCard 已弃用，请使用 trackStudyProgress 方法代替');
         return this.trackStudyProgress(cardId, rating);
@@ -643,24 +567,8 @@ export class FSRSManager {
      * @returns 找到的卡片或 null
      */
     public findCardByContent(text: string, answer: string, filePath?: string): FlashcardState | null {
-        // 获取所有卡片
-        const allCards = Object.values(this.storage.cards);
-        
-        // 查找匹配的卡片
-        const matchingCard = allCards.find(card => {
-            // 检查文本内容是否匹配
-            const textMatch = card.text === text;
-            
-            // 检查答案内容是否匹配
-            const answerMatch = card.answer === answer;
-            
-            // 检查文件路径是否匹配（如果提供了文件路径）
-            const pathMatch = !filePath || card.filePath === filePath;
-            
-            return textMatch && answerMatch && pathMatch;
-        });
-        
-        return matchingCard || null;
+        // 调用 FlashcardFactory 的方法
+        return this.cardFactory.findCardByContent(text, answer, filePath);
     }
 
     /**
@@ -755,13 +663,16 @@ export class FSRSManager {
         return true;
     }
 
+    /**
+     * 根据文件路径获取卡片
+     * @param filePath 文件路径
+     * @returns 该文件下的卡片列表
+     */
     public getCardsByFile(filePath: string): FlashcardState[] {
-        const cards = Object.values(this.storage.cards)
-            .filter(card => card.filePath === filePath);
-        
-        return cards;
+        // 调用 FlashcardFactory 的方法
+        return this.cardFactory.getCardsByFile(filePath);
     }
-    
+
     /**
      * 获取插件实例（公共方法，供外部访问）
      * @returns 插件实例
@@ -1051,7 +962,8 @@ export class FSRSManager {
         }
         
         // 否则，根据过滤条件筛选卡片
-        const latestCards = this.getLatestCards();
+        // 使用 Object.values 直接获取所有卡片，避免使用过时的 getLatestCards 方法
+        const latestCards = Object.values(this.storage.cards);
 
         return latestCards.filter((card: FlashcardState) => {
             const filters = group.filter.split(',').map(f => f.trim().toLowerCase());
@@ -1060,26 +972,9 @@ export class FSRSManager {
             const filePath = (card.filePath || '').toLowerCase();
             
             const matches = filters.some((filter: string) => {
-                // 检查标签
+                // 不再支持标签筛选，如果输入了标签，将其视为普通文本匹配
                 if (filter.startsWith('#')) {
-                    const tagToFind = filter.substring(1);
-                    // 从卡片文本中提取标签
-                    const tagsInText = this.groupRepository.extractTagsFromText(cardText);
-                    // 从卡片答案中提取标签
-                    const tagsInAnswer = this.groupRepository.extractTagsFromText(cardAnswer);
-                    // 合并所有标签
-                    const allTags = [...tagsInText, ...tagsInAnswer];
-                    
-                    // 检查卡片文本中是否直接包含完整的标签字符串（包括#符号）
-                    const directTagMatch = cardText.includes(filter) || cardAnswer.includes(filter);
-                    
-                    // 检查提取的标签是否匹配
-                    const extractedTagMatch = allTags.some((tag: string) => 
-                        tag.toLowerCase() === tagToFind || 
-                        tag.toLowerCase().includes(tagToFind)
-                    );
-                    
-                    return directTagMatch || extractedTagMatch;
+                    return cardText.includes(filter) || cardAnswer.includes(filter);
                 }
                 
                 // 检查文件路径

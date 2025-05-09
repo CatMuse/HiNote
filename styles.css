@@ -756,28 +756,43 @@ settings:
     transform: scale(1.2);
 }
 
+/* 闪卡挖空样式 */
+.flashcard-cloze {
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 2px;
+    display: inline-block;
+    min-width: 1em; /* 确保即使挖空内容很短也有一定的宽度 */
+}
+
+/* 热力图颜色级别 - 使用固定颜色而不是变量 */
 .flashcard-heatmap-level-0 {
-    background-color: var(--background-primary);
+    background-color: var(--background-primary, #f0f0f0);
+    border: 1px solid var(--background-modifier-border, #ddd);
 }
 
 .flashcard-heatmap-level-1 {
-    background-color: rgba(var(--interactive-accent-rgb), 0.2);
+    background-color: rgba(76, 175, 80, 0.2);
+    border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .flashcard-heatmap-level-2 {
-    background-color: rgba(var(--interactive-accent-rgb), 0.4);
+    background-color: rgba(76, 175, 80, 0.4);
+    border: 1px solid rgba(76, 175, 80, 0.5);
 }
 
 .flashcard-heatmap-level-3 {
-    background-color: rgba(var(--interactive-accent-rgb), 0.6);
+    background-color: rgba(76, 175, 80, 0.6);
+    border: 1px solid rgba(76, 175, 80, 0.7);
 }
 
 .flashcard-heatmap-level-4 {
-    background-color: rgba(var(--interactive-accent-rgb), 0.8);
+    background-color: rgba(76, 175, 80, 0.8);
+    border: 1px solid rgba(76, 175, 80, 0.9);
 }
 
 .flashcard-heatmap-level-5 {
-    background-color: rgba(var(--interactive-accent-rgb), 1);
+    background-color: rgba(76, 175, 80, 1);
+    border: 1px solid rgba(76, 175, 80, 1);
 }
 
 /* 已删除热力图缩放相关样式 */

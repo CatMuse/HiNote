@@ -614,13 +614,36 @@ export class FlashcardRenderer {
         // 检查content是否为空
         if (!content) {
             console.warn('renderMarkdownContent: content is empty or undefined');
-            containerEl.textContent = '';
+            
+            // 如果内容为空，添加提示文本
+            containerEl.textContent = '请添加答案';
             return;
         }
         
-        // 直接使用内容，不进行HTML标签转换
-        // 这样可以确保挖空闪卡的答案正确显示
+        // 检查内容是否包含挖空格式，并进行处理
         let markdownContent = content;
+        
+        // 检查是否是挖空格式，如果是，确保挖空内容被正确处理
+        const clozeRegex = /\{\{([^{}]+)\}\}/g;
+        if (clozeRegex.test(content)) {
+            // 重置正则表达式的lastIndex
+            clozeRegex.lastIndex = 0;
+            
+            // 提取挖空内容
+            let match;
+            let clozeAnswers = [];
+            while ((match = clozeRegex.exec(content)) !== null) {
+                clozeAnswers.push(match[1]);
+            }
+            
+            // 如果内容只有挖空标记而没有其他文本，则格式化显示
+            if (clozeAnswers.length > 0) {
+                // 如果内容不包含"挖空答案:"，则添加格式化的答案
+                if (!content.includes('挖空答案:')) {
+                    markdownContent = clozeAnswers.join('\n');
+                }
+            }
+        }
         
         try {
             // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown

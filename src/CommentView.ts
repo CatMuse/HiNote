@@ -829,8 +829,10 @@ export class CommentView extends ItemView {
         );
 
         flashcardLeft.addEventListener("click", async () => {
-            // 获取最新版本的卡片
-            const latestCards = this.plugin.fsrsManager.getLatestCards();
+            // 获取最新版本的卡片（使用推荐的方法替代过时的getLatestCards）
+            // 使用默认分组ID或全局分组ID获取所有卡片
+            const defaultGroupId = this.plugin.fsrsManager.getCardGroups()?.[0]?.id || 'default';
+            const latestCards = this.plugin.fsrsManager.getCardsForStudy(defaultGroupId);
             
             // 将 FlashcardState 转换为 HiNote
             const allHighlights: HiNote[] = latestCards.map(card => ({
