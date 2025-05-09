@@ -85,14 +85,16 @@ export class FlashcardFactory {
         }
         
         // 合并所有评论作为答案
-        let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('<hr>') : '';
+        let answer = highlight.comments?.length ? highlight.comments.map(c => c.content).join('\n\n') : '';
         console.log(`评论答案: ${answer ? answer.substring(0, 50) + '...' : '(无)'}`);
         
-        // 挖空格式优先，若有则拼接答案
+        // 挖空格式优先，若有则设置答案
         if (isCloze && clozeAnswers.length > 0) {
             // 将所有挖空答案合并
             const combinedClozeAnswer = clozeAnswers.join('\n');
-            answer = answer ? (answer + '<hr>' + combinedClozeAnswer) : combinedClozeAnswer;
+            
+            // 如果有评论答案，添加挖空答案；否则直接使用挖空答案
+            answer = answer ? `${answer}\n\n挖空答案:\n${combinedClozeAnswer}` : `挖空答案:\n${combinedClozeAnswer}`;
             console.log(`最终答案(挖空): ${answer.substring(0, 50)}...`);
         }
         
@@ -100,6 +102,11 @@ export class FlashcardFactory {
         if (!answer && !isCloze) {
             console.log('没有评论且不是挖空格式，不创建闪卡');
             return null;
+        }
+        
+        // 确保挖空闪卡有答案
+        if (isCloze && !answer && clozeAnswers.length > 0) {
+            answer = `挖空答案:\n${clozeAnswers.join('\n')}`;
         }
         
         // 强制创建闪卡，即使没有答案

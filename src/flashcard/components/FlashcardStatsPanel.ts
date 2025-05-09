@@ -76,10 +76,10 @@ export class FlashcardStatsPanel {
         // 创建热力图容器
         const heatmapContainer = container.createDiv('flashcard-heatmap-container');
         
-        // 获取过去90天的日期
+        // 获取过去84天的日期（7行*12列）
         const today = new Date();
         const startDate = new Date();
-        startDate.setDate(today.getDate() - 90); // 固定显示90天
+        startDate.setDate(today.getDate() - 84); // 固定显示84天，对应7*12的热力图
         
         // 创建日期映射，用于快速查找特定日期的数据
         const dateMap = new Map();
@@ -91,7 +91,7 @@ export class FlashcardStatsPanel {
         
         // 创建热力图单元格
         const rows = 7; // 一周7天
-        const cols = 13; // 90天约13周
+        const cols = 12; // 84天约12周
         
         // 创建热力图网格
         const grid = heatmapContainer.createDiv('flashcard-heatmap-grid');
@@ -125,7 +125,7 @@ export class FlashcardStatsPanel {
                 
                 // 根据学习活动设置颜色深浅
                 if (stat) {
-                    const intensity = Math.min(stat.reviewCount + stat.newCardsLearned, 20);
+                    const intensity = Math.min(stat.cardsReviewed + stat.newCardsLearned, 20);
                     const level = Math.ceil(intensity / 4); // 0-5级深浅
                     cell.addClass(`flashcard-heatmap-level-${level}`);
                     

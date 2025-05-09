@@ -44,10 +44,10 @@ export class FlashcardComponent extends Component {
 
     // 评分按钮配置
     private readonly ratingButtons = [
-        { label: t('Again'), rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again', stability: 0.1 },
-        { label: t('Hard'), rating: FSRS_RATING.HARD, key: '2', ratingText: 'hard', stability: 0.5 },
-        { label: t('Good'), rating: FSRS_RATING.GOOD, key: '3', ratingText: 'good', stability: 2 },
-        { label: t('Easy'), rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy', stability: 4 }
+        { label: t('Again'), rating: FSRS_RATING.AGAIN, key: '1', ratingText: 'again' },
+        { label: t('Hard'), rating: FSRS_RATING.HARD, key: '2', ratingText: 'hard' },
+        { label: t('Good'), rating: FSRS_RATING.GOOD, key: '3', ratingText: 'good' },
+        { label: t('Easy'), rating: FSRS_RATING.EASY, key: '4', ratingText: 'easy' }
     ];
     
     // 子组件

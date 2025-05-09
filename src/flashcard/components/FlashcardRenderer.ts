@@ -1,5 +1,5 @@
 import { MarkdownRenderer, Component, setIcon, Notice, TFile } from "obsidian";
-import { CardGroup, FlashcardProgress } from "../types/FSRSTypes";
+import { CardGroup, FlashcardProgress, FlashcardState, FSRS_RATING } from "../types/FSRSTypes";
 import { t } from "../../i18n";
 import { FlashcardStatsPanel } from "./FlashcardStatsPanel";
 
@@ -451,6 +451,10 @@ export class FlashcardRenderer {
             // 获取卡片预测信息
             const predictions = currentCard ? this.component.getFsrsManager().getCardPredictions(currentCard.id) : null;
             
+            // 调试信息：输出当前卡片和预测结果
+            console.log('Current Card:', currentCard);
+            console.log('Predictions:', predictions);
+            
             this.component.getRatingButtons().forEach((btn: any) => {
                 const button = ratingContainer.createEl("button", {
                     cls: 'flashcard-rating-button',
@@ -464,28 +468,84 @@ export class FlashcardRenderer {
                 button.createSpan({ text: btn.label });
                 
                 // 添加预测的下次复习时间
+                // 确保始终使用 FSRS 算法的预测结果
                 if (predictions && predictions[btn.rating]) {
                     // 使用 ts-fsrs 预测的下次复习时间
                     const nextReview = new Date(predictions[btn.rating].nextReview);
                     const now = new Date();
-                    const diffDays = Math.round((nextReview.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    const diffMs = nextReview.getTime() - now.getTime();
                     
                     // 添加预测信息
                     const predictionSpan = button.createSpan({ 
                         cls: 'prediction-info'
                     });
                     
-                    // 只显示天数
+                    // 根据时间差显示不同的单位
+                    let formattedInterval = '';
+                    
+                    if (diffMs < 60 * 60 * 1000) { // 小于1小时
+                        // 显示分钟
+                        const diffMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
+                        formattedInterval = `${diffMinutes}m`;
+                    } else if (diffMs < 24 * 60 * 60 * 1000) { // 小于1天
+                        // 显示小时
+                        const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+                        formattedInterval = `${diffHours}h`;
+                    } else {
+                        // 显示天数
+                        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+                        formattedInterval = this.component.getUtils().formatInterval(diffDays);
+                    }
+                    
                     predictionSpan.createSpan({ 
-                        text: this.component.getUtils().formatInterval(diffDays),
+                        text: formattedInterval,
                         cls: 'days' 
                     });
                 } else {
-                    // 如果没有预测信息，使用简单的计算方式
-                    const interval = currentCard?.lastReview === 0 ? btn.stability :
-                        Math.round(btn.stability * 1.5); // 简单的下次复习间隔计算
+                    // 如果没有预测信息，生成更精确的默认间隔
+                    // 使用当前卡片的状态动态计算间隔
+                    let intervalHours = 0; // 默认间隔（小时）
+                    
+                    const isNewCard = currentCard?.reviews === 0;
+                    const hasLapses = currentCard?.lapses > 0;
+                    
+                    switch (btn.rating) {
+                        case FSRS_RATING.AGAIN:
+                            // Again 应该有更短的间隔
+                            intervalHours = isNewCard ? 0.25 : (hasLapses ? 0.5 : 1); // 新卡片15分钟，有遗忘史的30分钟，其他1小时
+                            break;
+                        case FSRS_RATING.HARD:
+                            // Hard 应该有较短的间隔
+                            intervalHours = isNewCard ? 24 : (hasLapses ? 36 : 48); // 新卡片1天，有遗忘史的1.5天，其他2天
+                            break;
+                        case FSRS_RATING.GOOD:
+                            // Good 应该有中等间隔
+                            intervalHours = isNewCard ? 24 * 3 : (hasLapses ? 24 * 5 : 24 * 7); // 新卡片3天，有遗忘史的5天，其他7天
+                            break;
+                        case FSRS_RATING.EASY:
+                            // Easy 应该有较长的间隔
+                            intervalHours = isNewCard ? 24 * 5 : (hasLapses ? 24 * 9 : 24 * 14); // 新卡片5天，有遗忘史的9天，其他14天
+                            break;
+                    }
+                    
+                    // 计算间隔时间（分钟、小时或天）
+                    const intervalDays = intervalHours / 24;
+                    let formattedInterval = '';
+                    
+                    if (intervalHours < 1) {
+                        // 小于1小时的显示分钟
+                        const intervalMinutes = Math.round(intervalHours * 60);
+                        formattedInterval = `${intervalMinutes}m`; // 分钟格式
+                    } else if (intervalHours < 24) {
+                        // 1-24小时的显示小时
+                        formattedInterval = `${Math.round(intervalHours)}h`; // 小时格式
+                    } else {
+                        // 大于等于24小时的显示天
+                        formattedInterval = this.component.getUtils().formatInterval(intervalDays); // 天数格式
+                    }
+                    
                     button.createSpan({ 
-                        text: this.component.getUtils().formatInterval(interval),
+                        text: formattedInterval,
                         cls: 'days' 
                     });
                 }
@@ -556,62 +616,30 @@ export class FlashcardRenderer {
             return;
         }
         
-        // 处理 HTML 内容，将其转换为 Markdown
+        // 直接使用内容，不进行HTML标签转换
+        // 这样可以确保挖空闪卡的答案正确显示
         let markdownContent = content;
         
-        // 如果内容包含 HTML 标签，将其转换为 Markdown
-        if (typeof content === 'string' && content.includes('<') && content.includes('>')) {
-            markdownContent = content
-                .replace(/<\/?b>/g, '**')  // Convert <b> tags to markdown bold
-                .replace(/<\/?i>/g, '_')   // Convert <i> tags to markdown italic
-                .replace(/<\/?u>/g, '')    // Remove underline tags
-                .replace(/<\/?strong>/g, '**') // Convert <strong> tags to markdown bold
-                .replace(/<\/?em>/g, '_')  // Convert <em> tags to markdown italic
-                .replace(/<br\s*\/?>/g, '\n') // Convert <br> to newlines
-                .replace(/<\/?p>/g, '\n')  // Convert <p> tags to newlines
-                .replace(/<\/?div>/g, '\n') // Convert <div> tags to newlines
-                .replace(/<span class="highlight-tag">(.*?)<\/span>/g, '$1') // Extract tag text
-                .replace(/<hr>/g, '---\n') // Convert <hr> to markdown horizontal rule
-                .replace(/<[^>]*>/g, '');  // Remove any remaining HTML tags
-        }
-        
-        // 分割内容并处理每一部分
-        const parts = markdownContent.split('---\n');
-        
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i].trim();
-            if (!part) continue;
+        try {
+            // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown
+            await MarkdownRenderer.render(
+                this.component.getApp(),
+                markdownContent,
+                containerEl,
+                filePath || '',
+                new Component()
+            );
             
-            // 创建容器来放置当前部分
-            const partContainer = containerEl.createEl('div', { cls: 'flashcard-paragraph markdown-rendered' });
+            // 添加自定义样式类以修复可能的样式问题
+            const lists = containerEl.querySelectorAll('ul, ol');
+            lists.forEach(list => {
+                list.addClass('flashcard-markdown-list');
+            });
+        } catch (error) {
+            console.error('Error rendering markdown in flashcard:', error);
             
-            try {
-                // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown
-                // 使用新的 Component 实例代替 this，避免继承复杂的样式规则
-                await MarkdownRenderer.render(
-                    this.component.getApp(),
-                    part,
-                    partContainer,
-                    filePath || '',
-                    new Component()
-                );
-                
-                // 添加自定义样式类以修复可能的样式问题
-                const lists = partContainer.querySelectorAll('ul, ol');
-                lists.forEach(list => {
-                    list.addClass('flashcard-markdown-list');
-                });
-            } catch (error) {
-                console.error('Error rendering markdown in flashcard:', error);
-                
-                // 如果渲染失败，回退到纯文本渲染
-                partContainer.textContent = part;
-            }
-            
-            // 添加水平分隔线（除了最后一部分）
-            if (i < parts.length - 1) {
-                containerEl.createEl('hr');
-            }
+            // 如果渲染失败，回退到纯文本渲染
+            containerEl.textContent = markdownContent;
         }
     }
 }

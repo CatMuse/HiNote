@@ -303,8 +303,6 @@ export class FSRSManager {
         }
     }
 
-    // updateCardContent 方法已被删除，因为不再需要更新卡片内容的逻辑
-
     /**
      * 删除指定文件路径下的卡片
      * @param filePath 文件路径
@@ -328,36 +326,6 @@ export class FSRSManager {
             this.saveStorageDebounced();
             this.plugin.eventManager.emitFlashcardChanged();
         }
-    }
-
-    /**
-     * 对卡片进行评分
-     * @param cardId 卡片ID
-     * @param rating 评分 (0-3: Again, Hard, Good, Easy)
-            console.error(`跟踪学习进度失败: 卡片 ${cardId} 不存在`);
-            return undefined;
-        }
-        
-        // 调用 FSRS 算法进行评分
-        const isNewCard = card.lastReview === 0;
-        const updatedCard = this.fsrsService.reviewCard(card, rating);
-        
-        // 更新卡片状态
-        this.storage.cards[cardId] = updatedCard;
-        
-        // 更新全局统计数据
-        this.updateGlobalStats(rating, updatedCard.retrievability);
-        
-        // 更新每日统计数据
-        this.updateDailyStats(isNewCard, rating);
-        
-        // 保存更改
-        this.saveStorageDebounced();
-        
-        // 触发事件
-        this.plugin.eventManager.emitFlashcardChanged();
-        
-        return this.storage.cards[cardId];
     }
     
     /**
@@ -514,13 +482,15 @@ export class FSRSManager {
     }
 
     /**
-     * reviewCard 方法 - 作为 rateCard 的别名，用于兼容性
+     * reviewCard 方法 - 作为历史兼容性保留
+     * @deprecated 请使用 trackStudyProgress 方法代替
      * @param cardId 卡片ID
      * @param rating 评分 (0-3: Again, Hard, Good, Easy)
      * @returns 更新后的卡片状态
      */
     public reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
         // 调用统一的学习进度跟踪方法
+        console.warn('FSRSManager.reviewCard 已弃用，请使用 trackStudyProgress 方法代替');
         return this.trackStudyProgress(cardId, rating);
     }
     
@@ -563,8 +533,11 @@ export class FSRSManager {
             });
         }
         
-        // 保存更改
-        this.saveStorageDebounced();
+        // 保存更改 - 立即保存而不是延迟保存，确保状态被正确保存
+        this.saveStorage();
+        
+        // 调试信息：输出更新后的卡片状态
+        console.log('Updated Card State:', this.storage.cards[cardId]);
         
         // 触发卡片变化事件
         this.plugin.eventManager.emitFlashcardChanged();

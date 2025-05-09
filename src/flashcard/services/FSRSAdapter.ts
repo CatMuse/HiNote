@@ -47,9 +47,11 @@ export class FSRSAdapter {
         return generatorParameters({
             request_retention,
             maximum_interval,
-            // 可以根据需要添加更多参数
+            // 启用短期记忆模式，使 Again 评分能够有分钟或小时级别的间隔
             enable_fuzz: true,
-            enable_short_term: false
+            enable_short_term: true,
+            // 使用默认的 w 参数，这是 FSRS 算法的核心参数
+            w: customParams.w || []
         });
     }
 
