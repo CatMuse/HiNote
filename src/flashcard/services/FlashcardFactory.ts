@@ -440,10 +440,18 @@ export class FlashcardFactory {
                 }
             }
             
-            // 如果没有匹配到文件，使用所有文件
+            // 如果没有匹配到文件，返回空数组，避免处理大量不相关文件
             if (filteredFiles.length === 0) {
-                console.log('没有匹配到文件，使用所有文件');
-                filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
+                // 检查过滤条件是否为空
+                if (filterText.length > 0) {
+                    console.log(`没有匹配到文件，过滤条件: "${group.filter}"，返回空数组`);
+                    // 返回空数组，不再使用所有文件作为兜底
+                    return [];
+                } else {
+                    // 如果过滤条件为空，则使用所有可处理的文件
+                    console.log('过滤条件为空，使用所有可处理的文件');
+                    filteredFiles.push(...allFiles.filter((file: any) => highlightService.shouldProcessFile(file)));
+                }
             } else {
                 console.log(`匹配到 ${filteredFiles.length} 个文件`);
             }

@@ -606,7 +606,8 @@ export class FSRSManager {
     }
 
     public getProgress(): FlashcardProgress {
-        const cards = this.getLatestCards();
+        // 使用推荐的方式获取所有卡片，而不是调用过时的 getLatestCards 方法
+        const cards = Object.values(this.storage.cards);
         const now = Date.now();
         
         return {

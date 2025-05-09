@@ -239,7 +239,7 @@ export default {
     "分组删除成功": "Group deleted successfully",
     "删除分组失败": "Failed to delete group",
     "支持以下格式：\n- 文件夹：folder1, folder1/folder2\n- 笔记：[[note1]], [[note2]]\n- 标签：#tag1, #tag2\n- 通配符：*.excalidraw.md\n- 内容：直接输入要搜索的文本": "Supports the following formats:\n- Folders: folder1, folder1/folder2\n- Notes: [[note1]], [[note2]]\n- Tags: #tag1, #tag2\n- Wildcards: *.excalidraw.md\n- Content: directly enter text to search for",
-    "反转卡片（使用评论作为问题）": "Reverse cards (use comments as questions)",
+    "Reverse cards (use comments as questions)": "Reverse cards (use comments as questions)",
     "Learning settings": "Learning settings",
     "记忆保持率 = (总复习次数 - 遗忘次数) / 总复习次数\n该指标反映了你的学习效果，越高说明记忆效果越好": "Memory retention = (total reviews - forgotten reviews) / total reviews\nThis metric reflects your learning effectiveness. Higher means better memory retention",
 

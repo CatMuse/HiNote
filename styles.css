@@ -708,6 +708,7 @@ settings:
     display: flex;
     justify-content: space-around;
     margin-bottom: 8px;
+    gap: inherit;
 }
 
 .flashcard-stat-item {
@@ -758,10 +759,8 @@ settings:
 
 /* 闪卡挖空样式 */
 .flashcard-cloze {
-    border-bottom: 1px solid currentColor;
-    padding-bottom: 2px;
-    display: inline-block;
-    min-width: 1em; /* 确保即使挖空内容很短也有一定的宽度 */
+    border-bottom: 2px solid currentColor;
+    min-width: 2em; /* 确保即使挖空内容很短也有一定的宽度 */
 }
 
 /* 热力图颜色级别 - 使用固定颜色而不是变量 */
@@ -812,7 +811,7 @@ settings:
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -986,7 +985,7 @@ settings:
 .flashcard-sidebar {
     width: 240px;
     border-right: 1px solid var(--background-modifier-border);
-    padding-right: 20px;
+    padding-right: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;

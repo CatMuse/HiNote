@@ -132,11 +132,24 @@ export class CardGroupRepository {
         
         // 如果当前UI状态使用了这个分组，重置UI状态
         const uiState = this.storage.uiState;
-        if (uiState.currentGroupName === groupId) {
+        const groupName = deletedGroup.name;
+        
+        // 清理UI状态中的分组信息
+        if (uiState.currentGroupName === groupName) {
             uiState.currentGroupName = '';
             uiState.currentIndex = 0;
             uiState.isFlipped = false;
             uiState.completionMessage = null;
+        }
+        
+        // 清理分组完成消息
+        if (uiState.groupCompletionMessages && uiState.groupCompletionMessages[groupName] !== undefined) {
+            delete uiState.groupCompletionMessages[groupName];
+        }
+        
+        // 清理分组学习进度
+        if (uiState.groupProgress && uiState.groupProgress[groupName]) {
+            delete uiState.groupProgress[groupName];
         }
         
         // 获取该分组内的所有卡片

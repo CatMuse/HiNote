@@ -13,25 +13,6 @@ export class FlashcardGroupManager {
     }
     
     /**
-            });
-        }
-        
-        // 添加创建分组按钮
-        const createBtn = modal.contentEl.createEl('button', { 
-            cls: 'flashcard-create-group-btn',
-            text: t('Create New Group')
-        });
-        
-        createBtn.addEventListener('click', () => {
-            modal.close();
-            this.showEditGroupModal();
-        });
-        
-        // 打开模态框
-        modal.open();
-    }
-    
-    /**
      * 显示创建分组模态框
      */
     public showCreateGroupModal() {
@@ -66,7 +47,7 @@ export class FlashcardGroupManager {
         modalContent.appendChild(modalHeader);
         
         const modalTitle = document.createElement('h3');
-        modalTitle.textContent = group ? t('Edit Group') : t('Create Group');
+        modalTitle.textContent = group ? t('Edit group') : t('Create group');
         modalHeader.appendChild(modalTitle);
         
         // 创建表单容器
@@ -79,7 +60,7 @@ export class FlashcardGroupManager {
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.className = 'flashcard-modal-input';
-        nameInput.placeholder = t('输入名称');
+        nameInput.placeholder = t('Enter name');
         nameInput.value = groupName;
         formContainer.appendChild(nameInput);
         nameInput.addEventListener('input', (e) => {
@@ -91,7 +72,7 @@ export class FlashcardGroupManager {
         let groupFilter = group ? group.filter : '';
         const filterTextarea = document.createElement('textarea');
         filterTextarea.className = 'flashcard-modal-input';
-        filterTextarea.placeholder = t('支持以下格式：\n文件夹：folder1, folder1/folder2\n笔记：[[note1]], [[note2]]');
+        filterTextarea.placeholder = t('Support format: \nFolder: folder1, folder1/folder2\nNote: [[note1]], [[note2]]');
         filterTextarea.value = groupFilter;
         formContainer.appendChild(filterTextarea);
         filterTextarea.addEventListener('input', (e) => {
@@ -111,7 +92,7 @@ export class FlashcardGroupManager {
         reverseContainer.appendChild(reverseCheckbox);
         
         const reverseLabel = document.createElement('label');
-        reverseLabel.textContent = t('反转卡片（使用评论作为问题）');
+        reverseLabel.textContent = t('Reverse cards (use comments as questions)');
         reverseLabel.className = 'flashcard-modal-label';
         reverseContainer.appendChild(reverseLabel);
         
@@ -131,7 +112,7 @@ export class FlashcardGroupManager {
         
         // 添加标题和全局设置选项在同一行
         const settingsTitle = document.createElement('h4');
-        settingsTitle.textContent = t('学习设置');
+        settingsTitle.textContent = t('Learning settings');
         settingsTitle.className = 'settings-title';
         settingsHeader.appendChild(settingsTitle);
         
@@ -149,7 +130,7 @@ export class FlashcardGroupManager {
         globalSettingsContainer.appendChild(globalCheckbox);
         
         const globalLabel = document.createElement('label');
-        globalLabel.textContent = t('使用全局设置');
+        globalLabel.textContent = t('Use global settings');
         globalLabel.className = 'flashcard-modal-label';
         globalLabel.htmlFor = 'use-global-settings';
         globalSettingsContainer.appendChild(globalLabel);
@@ -168,7 +149,7 @@ export class FlashcardGroupManager {
         settingsContainer.appendChild(newCardsContainer);
         
         const newCardsLabel = document.createElement('label');
-        newCardsLabel.textContent = t('每日新卡数量：');
+        newCardsLabel.textContent = t('New cards per day: ');
         newCardsLabel.className = 'flashcard-modal-label';
         newCardsContainer.appendChild(newCardsLabel);
         
@@ -216,7 +197,7 @@ export class FlashcardGroupManager {
         settingsContainer.appendChild(reviewsContainer);
         
         const reviewsLabel = document.createElement('label');
-        reviewsLabel.textContent = t('每日复习数量：');
+        reviewsLabel.textContent = t('Reviews per day: ');
         reviewsLabel.className = 'flashcard-modal-label';
         reviewsContainer.appendChild(reviewsLabel);
         
@@ -278,13 +259,13 @@ export class FlashcardGroupManager {
         // 添加取消按钮
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'flashcard-cancel-btn';
-        cancelBtn.textContent = t('取消');
+        cancelBtn.textContent = t('Cancel');
         buttonContainer.appendChild(cancelBtn);
         
         // 添加保存按钮
         const saveBtn = document.createElement('button');
         saveBtn.className = 'flashcard-save-group-btn';
-        saveBtn.textContent = group ? t('保存') : t('创建');
+        saveBtn.textContent = group ? t('Save') : t('Create');
         buttonContainer.appendChild(saveBtn);
         
         // 添加保存按钮事件
@@ -353,10 +334,10 @@ export class FlashcardGroupManager {
                     this.component.getRenderer().render();
                     
                     // 显示通知
-                    new Notice(t('分组更新成功'));
+                    new Notice(t('Group update successful'));
                 } catch (error) {
-                    console.error('更新分组失败:', error);
-                    new Notice(t('更新分组失败'));
+                    console.error('Update group failed:', error);
+                    new Notice(t('Update group failed'));
                 }
             } else {
                 // 创建新分组
