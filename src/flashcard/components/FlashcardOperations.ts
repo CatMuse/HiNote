@@ -141,10 +141,26 @@ export class FlashcardOperations {
         this.component.setCompletionMessage(null);
         this.component.setGroupCompletionMessage(groupName, null);
         
+        // 获取保存的UI状态
+        const savedProgress = this.component.getGroupProgress(groupName);
+        
         // 设置卡片列表
         this.component.setCards(cards);
-        this.component.setCurrentIndex(0);
-        this.component.setCardFlipped(false);
+        
+        // 恢复保存的UI状态
+        if (savedProgress && cards.length > 0) {
+            // 确保索引不超出范围
+            const safeIndex = Math.min(savedProgress.currentIndex, cards.length - 1);
+            this.component.setCurrentIndex(safeIndex);
+            this.component.setCardFlipped(savedProgress.isFlipped);
+            console.log(`恢复分组 ${groupName} 的UI状态:`, savedProgress);
+        } else {
+            // 如果没有保存的状态或卡片列表为空，从头开始
+            this.component.setCurrentIndex(0);
+            this.component.setCardFlipped(false);
+        }
+        
+        // 保存状态
         this.component.saveState();
         
         // 输出调试信息

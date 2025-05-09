@@ -94,7 +94,7 @@ export class FlashcardFactory {
             const combinedClozeAnswer = clozeAnswers.join('\n');
             
             // 如果有评论答案，添加挖空答案；否则直接使用挖空答案
-            answer = answer ? `${answer}\n\n挖空答案:\n${combinedClozeAnswer}` : `挖空答案:\n${combinedClozeAnswer}`;
+            answer = answer ? `${answer}\n\n${combinedClozeAnswer}` : combinedClozeAnswer;
             console.log(`最终答案(挖空): ${answer.substring(0, 50)}...`);
         }
         

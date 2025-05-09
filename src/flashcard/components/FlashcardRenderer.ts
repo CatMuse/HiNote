@@ -350,49 +350,51 @@ export class FlashcardRenderer {
         const groupName = this.component.getCurrentGroupName();
         const groupCompletionMessage = this.component.getGroupCompletionMessage(groupName);
         
-        // 如果有分组完成消息，显示完成消息界面
-        if (groupCompletionMessage && cards.length === 0) {
-            const completionContainer = cardContainer.createEl("div", { 
-                cls: "flashcard-completion-message" 
-            });
-            
-            // 添加一个图标
-            const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
-            setIcon(iconEl, "check-circle");
-            
-            // 添加标题
-            completionContainer.createEl("h3", { 
-                text: t("学习完成！") 
-            });
-            
-            // 添加消息
-            completionContainer.createEl("p", { 
-                text: groupCompletionMessage 
-            });
-            
-            // 添加按钮继续学习
-            const continueButton = completionContainer.createEl("button", {
-                cls: "flashcard-return-button",
-                text: t("继续学习")
-            });
-            
-            continueButton.addEventListener("click", () => {
-                // 清除分组完成消息
-                this.component.setGroupCompletionMessage(groupName, null);
-                
-                // 重新渲染
-                this.render();
-            });
-            
-            return;
-        }
+        // 检查是否还有分组
+        const hasGroups = this.component.getFsrsManager().getCardGroups().length > 0;
         
-        // 在没有完成消息的情况下，如果卡片数组为空，显示“没有需要复习的卡片”
-        if (cards.length === 0) {
-            cardContainer.createEl("div", {
-                cls: "flashcard-empty", 
-                text: t("No cards due for review") 
-            });
+        // 如果没有分组或者卡片数组为空，显示"没有需要复习的卡片"
+        if (!hasGroups || cards.length === 0) {
+            // 如果有分组完成消息且有分组，显示完成消息界面
+            if (groupCompletionMessage && hasGroups) {
+                const completionContainer = cardContainer.createEl("div", { 
+                    cls: "flashcard-completion-message" 
+                });
+                
+                // 添加一个图标
+                const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
+                setIcon(iconEl, "check-circle");
+                
+                // 添加标题
+                completionContainer.createEl("h3", { 
+                    text: t("学习完成！") 
+                });
+                
+                // 添加消息
+                completionContainer.createEl("p", { 
+                    text: groupCompletionMessage 
+                });
+                
+                // 添加按钮继续学习
+                const continueButton = completionContainer.createEl("button", {
+                    cls: "flashcard-return-button",
+                    text: t("继续学习")
+                });
+                
+                continueButton.addEventListener("click", () => {
+                    // 清除分组完成消息
+                    this.component.setGroupCompletionMessage(groupName, null);
+                    
+                    // 重新渲染
+                    this.render();
+                });
+            } else {
+                // 否则显示没有卡片需要复习
+                cardContainer.createEl("div", {
+                    cls: "flashcard-empty", 
+                    text: t("No cards due for review") 
+                });
+            }
             return;
         }
 

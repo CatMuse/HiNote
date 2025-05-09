@@ -674,15 +674,23 @@ export class FSRSManager {
             return 0; // 如果没有自定义分组，返回0
         }
         
+        // 如果只有一个分组，直接返回该分组的卡片数量
+        if (allGroups.length === 1 && allGroups[0].cardIds) {
+            return allGroups[0].cardIds.length;
+        }
+        
         // 收集所有自定义分组中的卡片ID
         const customGroupCards = new Set<string>();
         
         // 遍历所有自定义分组，收集卡片ID
         allGroups.forEach(group => {
-            const groupCards = this.getCardsInGroup(group);
-            groupCards.forEach(card => {
-                customGroupCards.add(card.id);
-            });
+            if (group.cardIds) {
+                group.cardIds.forEach(cardId => {
+                    if (this.storage.cards[cardId]) {
+                        customGroupCards.add(cardId);
+                    }
+                });
+            }
         });
         
         // 返回去重后的卡片数量
