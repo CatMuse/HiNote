@@ -829,10 +829,19 @@ export class CommentView extends ItemView {
         );
 
         flashcardLeft.addEventListener("click", async () => {
-            // 获取最新版本的卡片（使用推荐的方法替代过时的getLatestCards）
-            // 使用默认分组ID或全局分组ID获取所有卡片
-            const defaultGroupId = this.plugin.fsrsManager.getCardGroups()?.[0]?.id || 'default';
-            const latestCards = this.plugin.fsrsManager.getCardsForStudy(defaultGroupId);
+            // 获取最新版本的卡片
+            // 检查是否有可用的分组
+            const groups = this.plugin.fsrsManager.getCardGroups();
+            let latestCards: any[] = [];
+            
+            if (groups && groups.length > 0) {
+                // 使用第一个分组的ID获取卡片
+                const groupId = groups[0].id;
+                latestCards = this.plugin.fsrsManager.getCardsForStudy(groupId);
+            } else {
+                // 如果没有分组，显示提示信息
+                console.log('没有可用的闪卡分组');
+            }
             
             // 将 FlashcardState 转换为 HiNote
             const allHighlights: HiNote[] = latestCards.map(card => ({

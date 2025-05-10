@@ -650,8 +650,12 @@ export class CommentStore {
         this.saveComments();
         
         // 触发事件通知
-        // 使用类型断言访问 eventManager
-        (this.plugin as any).eventManager?.emitHighlightChanged();
+        // 使用正确的事件方法
+        if (this.eventManager) {
+            // 由于没有专门的 emitHighlightChanged 方法，我们使用 emitHighlightUpdate 方法
+            // 传递文件路径和高亮文本作为参数
+            this.eventManager.emitHighlightUpdate(filePath, highlight.text, highlight.text);
+        }
         
         return highlight;
     }
