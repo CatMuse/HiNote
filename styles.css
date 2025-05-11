@@ -760,7 +760,10 @@ settings:
 /* 闪卡挖空样式 */
 .flashcard-cloze {
     border-bottom: 2px solid currentColor;
-    min-width: 2em; /* 确保即使挖空内容很短也有一定的宽度 */
+    color: var(--text-accent);
+    padding: 0 2px;
+    letter-spacing: 3px;
+    margin: 0 2px;
 }
 
 /* 热力图颜色级别 - 使用固定颜色而不是变量 */

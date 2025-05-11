@@ -209,7 +209,7 @@ export class FlashcardFactory {
             text = clozeText.replace(clozeRegex, (match, content) => {
                 // 创建与挖空内容等长的空白，并用 span 标签包裹
                 // 添加 flashcard-cloze 类，样式在 styles.css 中定义
-                return `<span class="flashcard-cloze">${'\u00A0'.repeat(content.length)}</span>`;
+                return `<span class="flashcard-cloze">${'\u00A0'.repeat(content.length * 3)}</span>`;
             });
         } else {
             text = highlight.text || '';
