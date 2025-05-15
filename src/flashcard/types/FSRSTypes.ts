@@ -16,9 +16,12 @@ export interface FlashcardState {
     answer: string;       // 卡片背面内容
     filePath?: string;    // 关联的文件路径
     createdAt: number;    // 卡片创建时间戳
+    updatedAt?: number;   // 最后更新时间戳
     reviews: number;      // 总复习次数
     lapses: number;       // 遗忘次数
     groupIds?: string[];  // 卡片所属的分组ID列表
+    sourceId?: string;    // 来源ID（高亮或批注的ID）
+    sourceType?: 'highlight' | 'comment'; // 来源类型
 }
 
 export interface FlashcardProgress {
@@ -57,7 +60,7 @@ export interface HiCardState {
     isFlipped: boolean;
     completionMessage?: string | null;
     groupCompletionMessages?: Record<string, string | null>;
-    groupProgress?: Record<string, { currentIndex: number, isFlipped: boolean }>;
+    groupProgress?: Record<string, { currentIndex: number, isFlipped: boolean, currentCardId?: string }>;
 }
 
 export interface DailyStats {

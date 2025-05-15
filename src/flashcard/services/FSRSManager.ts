@@ -63,12 +63,18 @@ export class FSRSManager {
             this.dataService = new FlashcardDataService(plugin, this.storage);
             
             console.log('分组仓库初始化完成，卡片组数量:', this.groupRepository.getCardGroups().length);
+            
+            // 注册事件监听
+            this.registerEventListeners();
         }).catch(error => {
             console.error('加载存储数据时出错:', error);
             
             // 即使出错也初始化分组仓库和数据服务
             this.groupRepository = new CardGroupRepository(plugin, this.storage);
             this.dataService = new FlashcardDataService(plugin, this.storage);
+            
+            // 注册事件监听
+            this.registerEventListeners();
         });
     }
 
@@ -205,11 +211,23 @@ export class FSRSManager {
      * @param text 卡片正面文本
      * @param answer 卡片背面文本
      * @param filePath 关联的文件路径
+     * @param sourceId 来源ID（高亮或批注的ID）
+     * @param sourceType 来源类型
      * @returns 添加的卡片
      */
-    public addCard(text: string, answer: string, filePath?: string): FlashcardState {
-        // 调用 FlashcardFactory 的方法
-        return this.cardFactory.addCard(text, answer, filePath);
+    public addCard(text: string, answer: string, filePath?: string, sourceId?: string, sourceType?: 'highlight' | 'comment'): FlashcardState {
+        // 创建卡片
+        const card = this.cardFactory.createCard(text, answer, filePath);
+        
+        // 设置来源信息
+        if (sourceId && sourceType) {
+            card.sourceId = sourceId;
+            card.sourceType = sourceType;
+        }
+        
+        this.storage.cards[card.id] = card;
+        this.saveStorageDebounced();
+        return card;
     }
     
     /**
@@ -1084,5 +1102,198 @@ export class FSRSManager {
             this.saveStorage();
         }
         return importedCount;
+    }
+    
+    /**
+     * 注册事件监听器
+     * @private
+     */
+    private registerEventListeners(): void {
+        if (!this.plugin.eventManager) {
+            console.error('事件管理器不存在，无法注册事件监听器');
+            return;
+        }
+        
+        // 监听高亮更新事件
+        this.plugin.eventManager.on('highlight:update', 
+            (filePath: string, oldText: string, newText: string) => {
+                this.handleHighlightUpdate(filePath, oldText, newText);
+            }
+        );
+        
+        // 监听高亮删除事件
+        this.plugin.eventManager.on('highlight:delete',
+            (filePath: string, text: string) => {
+                this.handleHighlightDelete(filePath, text);
+            }
+        );
+        
+        // 监听批注更新事件
+        this.plugin.eventManager.on('comment:update',
+            (filePath: string, oldComment: string, newComment: string) => {
+                this.handleCommentUpdate(filePath, oldComment, newComment);
+            }
+        );
+        
+        // 监听批注删除事件
+        this.plugin.eventManager.on('comment:delete',
+            (filePath: string, comment: string) => {
+                this.handleCommentDelete(filePath, comment);
+            }
+        );
+        
+        console.log('已注册高亮和批注事件监听器');
+    }
+    
+    /**
+     * 处理高亮更新事件
+     * @param filePath 文件路径
+     * @param oldText 旧文本
+     * @param newText 新文本
+     * @private
+     */
+    private handleHighlightUpdate(filePath: string, oldText: string, newText: string): void {
+        console.log(`处理高亮更新事件: ${filePath}, ${oldText} -> ${newText}`);
+        
+        // 查找与该高亮关联的所有卡片
+        const relatedCards = Object.values(this.storage.cards).filter(card => 
+            card.sourceType === 'highlight' && 
+            card.text === oldText && 
+            (card.filePath === filePath || !card.filePath)
+        );
+        
+        if (relatedCards.length === 0) {
+            console.log('未找到与该高亮关联的卡片');
+            return;
+        }
+        
+        console.log(`找到 ${relatedCards.length} 张与该高亮关联的卡片，正在更新...`);
+        
+        // 更新卡片内容
+        for (const card of relatedCards) {
+            card.text = newText;
+            card.updatedAt = Date.now();
+        }
+        
+        // 保存变更
+        this.saveStorageDebounced();
+        console.log('卡片内容已更新并保存');
+    }
+    
+    /**
+     * 处理高亮删除事件
+     * @param filePath 文件路径
+     * @param text 高亮文本
+     * @private
+     */
+    private handleHighlightDelete(filePath: string, text: string): void {
+        console.log(`处理高亮删除事件: ${filePath}, ${text}`);
+        
+        // 查找与该高亮关联的所有卡片
+        const relatedCards = Object.values(this.storage.cards).filter(card => 
+            card.sourceType === 'highlight' && 
+            card.text === text && 
+            (card.filePath === filePath || !card.filePath)
+        );
+        
+        if (relatedCards.length === 0) {
+            console.log('未找到与该高亮关联的卡片');
+            return;
+        }
+        
+        console.log(`找到 ${relatedCards.length} 张与该高亮关联的卡片，正在删除...`);
+        
+        // 删除关联的卡片
+        for (const card of relatedCards) {
+            // 从存储中删除卡片
+            delete this.storage.cards[card.id];
+            
+            // 从所有分组中移除卡片引用
+            if (card.groupIds) {
+                for (const groupId of card.groupIds) {
+                    this.removeCardFromGroup(card.id, groupId);
+                }
+            }
+        }
+        
+        // 保存变更
+        this.saveStorageDebounced();
+        console.log('关联的卡片已删除并保存');
+    }
+    
+    /**
+     * 处理批注更新事件
+     * @param filePath 文件路径
+     * @param oldComment 旧批注
+     * @param newComment 新批注
+     * @private
+     */
+    private handleCommentUpdate(filePath: string, oldComment: string, newComment: string): void {
+        console.log(`处理批注更新事件: ${filePath}, ${oldComment} -> ${newComment}`);
+        
+        // 查找与该批注关联的所有卡片
+        const relatedCards = Object.values(this.storage.cards).filter(card => 
+            card.sourceType === 'comment' && 
+            card.answer === oldComment && 
+            (card.filePath === filePath || !card.filePath)
+        );
+        
+        if (relatedCards.length === 0) {
+            console.log('未找到与该批注关联的卡片');
+            return;
+        }
+        
+        console.log(`找到 ${relatedCards.length} 张与该批注关联的卡片，正在更新...`);
+        
+        // 更新卡片内容
+        for (const card of relatedCards) {
+            card.answer = newComment;
+            card.updatedAt = Date.now();
+        }
+        
+        // 保存变更
+        this.saveStorageDebounced();
+        console.log('卡片内容已更新并保存');
+    }
+    
+    /**
+     * 处理批注删除事件
+     * @param filePath 文件路径
+     * @param comment 批注内容
+     * @private
+     */
+    private handleCommentDelete(filePath: string, comment: string): void {
+        console.log(`处理批注删除事件: ${filePath}, ${comment}`);
+        
+        // 查找与该批注关联的所有卡片
+        const relatedCards = Object.values(this.storage.cards).filter(card => 
+            card.sourceType === 'comment' && 
+            card.answer === comment && 
+            (card.filePath === filePath || !card.filePath)
+        );
+        
+        if (relatedCards.length === 0) {
+            console.log('未找到与该批注关联的卡片');
+            return;
+        }
+        
+        console.log(`找到 ${relatedCards.length} 张与该批注关联的卡片，正在删除...`);
+        
+        // 删除关联的卡片
+        for (const card of relatedCards) {
+            // 从存储中删除卡片
+            delete this.storage.cards[card.id];
+            
+            // 从所有分组中移除卡片引用
+            if (card.groupIds) {
+                for (const groupId of card.groupIds) {
+                    this.removeCardFromGroup(card.id, groupId);
+                }
+            }
+        }
+        
+        // 保存变更
+        this.saveStorageDebounced();
+        console.log('关联的卡片已删除并保存');
     }
 }

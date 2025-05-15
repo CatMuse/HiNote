@@ -891,6 +891,10 @@ settings:
     border-radius: 8px 0 0 8px;
 }
 
+.flashcard-index-container {
+    font-size: 13px;
+}
+
 /* 当进度为 100% 时显示完整圆角 */
 .flashcard-progress-container::before[style*="width: 100%"] {
     border-radius: 8px;

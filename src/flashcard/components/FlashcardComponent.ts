@@ -40,7 +40,7 @@ export class FlashcardComponent extends Component {
     private groupCompletionMessages: Record<string, string | null> = {};
     
     // 存储每个分组的学习进度
-    private groupProgress: Record<string, { currentIndex: number, isFlipped: boolean }> = {};
+    private groupProgress: Record<string, { currentIndex: number, isFlipped: boolean, currentCardId?: string }> = {};
 
     // 评分按钮配置
     private readonly ratingButtons = [
@@ -259,8 +259,60 @@ export class FlashcardComponent extends Component {
         this.operations.setupKeyboardShortcuts();
     }
     
+    /**
+     * 保存当前状态
+     * 优化版本：直接在组件中处理状态保存，确保所有状态都被正确保存
+     */
     public saveState() {
-        this.progressManager.saveState();
+        // 获取当前分组
+        const groupName = this.getCurrentGroupName();
+        
+        // 获取 UI 状态
+        const uiState = this.fsrsManager.getUIState();
+        
+        // 更新基本 UI 状态
+        uiState.currentGroupName = groupName;
+        uiState.currentIndex = this.currentIndex;
+        uiState.isFlipped = this.isFlipped;
+        uiState.completionMessage = this.completionMessage;
+        
+        // 确保分组进度存在
+        if (!uiState.groupProgress) {
+            uiState.groupProgress = {};
+        }
+        
+        // 只有在有分组名称时才保存分组进度
+        if (groupName) {
+            // 保存当前分组的进度
+            const currentCardId = this.cards.length > 0 && this.currentIndex < this.cards.length ? 
+                this.cards[this.currentIndex].id : undefined;
+                
+            uiState.groupProgress[groupName] = {
+                currentIndex: this.currentIndex,
+                isFlipped: this.isFlipped,
+                currentCardId: currentCardId // 保存当前卡片ID
+            };
+            
+            // 确保分组完成消息存在
+            if (!uiState.groupCompletionMessages) {
+                uiState.groupCompletionMessages = {};
+            }
+            
+            // 保存分组完成消息
+            uiState.groupCompletionMessages[groupName] = this.getGroupCompletionMessage(groupName);
+        }
+        
+        // 保存 UI 状态
+        this.fsrsManager.updateUIState(uiState);
+        
+        // 输出调试信息
+        console.log('保存状态:', {
+            currentGroupName: groupName,
+            currentIndex: this.currentIndex,
+            isFlipped: this.isFlipped,
+            completionMessage: this.completionMessage,
+            groupCompletionMessage: groupName ? this.getGroupCompletionMessage(groupName) : null
+        });
     }
     
     public updateProgress() {

@@ -119,17 +119,10 @@ export interface FlashcardLicense {
 export interface PluginSettings extends HighlightSettings {
     ai: AISettings;
     comments?: Record<string, Record<string, HighlightInfo>>;
-    fileComments?: Record<string, FileComment[]>;
     'flashcard-license'?: FlashcardLicense;
 }
 
-export interface FileComment {
-    id: string;
-    content: string;
-    createdAt: number;
-    updatedAt: number;
-    filePath: string;
-}
+// FileComment 接口已移除
 
 export const DEFAULT_SILICONFLOW_MODELS: AIModel[] = [
     { id: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek V3', isCustom: false },

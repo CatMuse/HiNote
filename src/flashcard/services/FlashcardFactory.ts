@@ -479,10 +479,30 @@ export class FlashcardFactory {
                 return [];
             }
             
-            // 只处理有评论的高亮或挖空格式的高亮
-            const validHighlights = fileHighlights.filter((h: any) => 
-                !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/g.test(h.text))
-            );
+            // 使用集合来跟踪已处理的挖空文本，避免重复
+            const processedClozeTexts = new Set();
+            const validHighlights = [];
+            
+            for (const h of fileHighlights) {
+                if (h.isVirtual) continue;
+                
+                // 有评论的高亮直接添加
+                if (h.comments?.length > 0) {
+                    validHighlights.push(h);
+                    continue;
+                }
+                
+                // 只使用 isCloze 标记判断挖空闪卡
+                if (h.isCloze === true) {
+                    // 避免重复处理相同的挖空文本
+                    if (processedClozeTexts.has(h.text)) {
+                        continue;
+                    }
+                    
+                    processedClozeTexts.add(h.text);
+                    validHighlights.push(h);
+                }
+            }
             
             console.log(`筛选后保留 ${validHighlights.length} 个有效高亮`);
             return validHighlights;

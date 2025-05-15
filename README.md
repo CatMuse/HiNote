@@ -106,6 +106,8 @@ To access these premium features, you'll need to [obtain a license](https://www.
 
 ---
 
-## License
+## Say Thanks
 
-This plugin is released under the MIT License. The basic features are free and open-source, while some advanced features require a Pro license.
+If you like this plugin and are considering making a donation to support ongoing development, please use the button below!
+
+[PayPal](https://paypal.me/paykairos)
