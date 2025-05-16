@@ -1,4 +1,4 @@
-import { setIcon, MarkdownRenderer, Component, App } from "obsidian";
+import { setIcon, MarkdownRenderer, Component, App, TFile } from "obsidian";
 import { HighlightInfo } from "../../types";
 import { DragPreview } from './DragPreview';
 
@@ -74,6 +74,9 @@ export class HighlightContent extends Component {
             lists.forEach(list => {
                 list.addClass('highlight-markdown-list');
             });
+            
+            // 激活内部链接
+            await this.activateInternalLinks(textContent, this.highlight.filePath || '');
         } catch (error) {
             console.error('Error rendering markdown in highlight:', error);
             
@@ -94,9 +97,71 @@ export class HighlightContent extends Component {
 
         // 只保留点击事件
         textContent.addEventListener("mousedown", async (e) => {
+            // 如果点击的是链接，不触发高亮点击事件
+            if ((e.target as HTMLElement).closest('a')) {
+                return;
+            }
             e.preventDefault();
             e.stopPropagation();
             await this.onHighlightClick(this.highlight);
+        });
+    }
+    
+    /**
+     * 激活内部链接，添加悬停预览和点击跳转功能
+     * @param element 包含链接的元素
+     * @param sourcePath 源文件路径
+     */
+    private async activateInternalLinks(element: HTMLElement, sourcePath: string) {
+        // 查找所有内部链接元素
+        const internalLinks = element.querySelectorAll('a.internal-link');
+        
+        internalLinks.forEach(link => {
+            // 获取链接目标
+            const target = link.getAttribute('data-href') || link.getAttribute('href');
+            if (!target) return;
+            
+            // 添加点击事件
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // 打开链接
+                const targetFile = this.app.metadataCache.getFirstLinkpathDest(target, sourcePath);
+                if (targetFile) {
+                    this.app.workspace.openLinkText(target, sourcePath, false);
+                }
+            });
+            
+            // 添加悬停预览
+            link.addEventListener('mouseenter', (event) => {
+                this.app.workspace.trigger('hover-link', {
+                    event,
+                    source: 'hi-note',
+                    hoverParent: element,
+                    targetEl: link,
+                    linktext: target,
+                    sourcePath: sourcePath
+                });
+            });
+        });
+        
+        // 查找所有标签
+        const tags = element.querySelectorAll('a.tag');
+        
+        tags.forEach(tag => {
+            // 获取标签文本
+            const tagText = tag.getAttribute('href');
+            if (!tagText) return;
+            
+            // 添加点击事件
+            tag.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // 打开标签搜索
+                this.app.workspace.trigger('search:open', tagText);
+            });
         });
     }
 

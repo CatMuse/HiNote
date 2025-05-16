@@ -1,5 +1,5 @@
 import { CommentItem, HighlightInfo } from "../../types";
-import { MarkdownRenderer, Component } from "obsidian";
+import { MarkdownRenderer, Component, App } from "obsidian";
 
 // 标签格式的正则表达式
 const TAG_REGEX = /#[\w\u4e00-\u9fa5]+/g;
@@ -7,6 +7,7 @@ const PURE_TAGS_FORMAT = /^\s*(#[\w\u4e00-\u9fa5]+(\s+#[\w\u4e00-\u9fa5]+)*\s*)$
 
 export class CommentList extends Component {
     private container: HTMLElement;
+    private app: App;
 
     constructor(
         parentEl: HTMLElement,
@@ -14,6 +15,7 @@ export class CommentList extends Component {
         private onCommentEdit: (comment: CommentItem) => void
     ) {
         super();
+        this.app = (window as any).app;
         this.render(parentEl);
     }
 
@@ -119,6 +121,9 @@ export class CommentList extends Component {
                     lists.forEach(list => {
                         list.addClass('comment-markdown-list');
                     });
+                    
+                    // 激活内部链接
+                    await this.activateInternalLinks(contentEl, this.highlight.filePath || '');
                 } catch (error) {
                     console.error('Error rendering markdown in comment:', error);
                     // 如果渲染失败，回退到纯文本渲染
@@ -128,6 +133,10 @@ export class CommentList extends Component {
 
             // 添加双击事件监听
             contentEl.addEventListener("dblclick", (e) => {
+                // 如果点击的是链接，不触发编辑事件
+                if ((e.target as HTMLElement).closest('a')) {
+                    return;
+                }
                 e.stopPropagation();
                 e.preventDefault(); // 阻止默认行为
                 this.onCommentEdit(comment);
@@ -135,6 +144,10 @@ export class CommentList extends Component {
 
             // 阻止单击事件冒泡，避免与双击冲突
             contentEl.addEventListener("click", (e) => {
+                // 如果点击的是链接，允许事件传递
+                if ((e.target as HTMLElement).closest('a')) {
+                    return;
+                }
                 e.stopPropagation();
             });
 
@@ -160,5 +173,63 @@ export class CommentList extends Component {
                 cls: "hi-note-actions"
             });
         }
+    }
+    
+    /**
+     * 激活内部链接，添加悬停预览和点击跳转功能
+     * @param element 包含链接的元素
+     * @param sourcePath 源文件路径
+     */
+    private async activateInternalLinks(element: HTMLElement, sourcePath: string) {
+        // 查找所有内部链接元素
+        const internalLinks = element.querySelectorAll('a.internal-link');
+        
+        internalLinks.forEach(link => {
+            // 获取链接目标
+            const target = link.getAttribute('data-href') || link.getAttribute('href');
+            if (!target) return;
+            
+            // 添加点击事件
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // 打开链接
+                const targetFile = this.app.metadataCache.getFirstLinkpathDest(target, sourcePath);
+                if (targetFile) {
+                    this.app.workspace.openLinkText(target, sourcePath, false);
+                }
+            });
+            
+            // 添加悬停预览
+            link.addEventListener('mouseenter', (event) => {
+                this.app.workspace.trigger('hover-link', {
+                    event,
+                    source: 'hi-note',
+                    hoverParent: element,
+                    targetEl: link,
+                    linktext: target,
+                    sourcePath: sourcePath
+                });
+            });
+        });
+        
+        // 查找所有标签
+        const tags = element.querySelectorAll('a.tag');
+        
+        tags.forEach(tag => {
+            // 获取标签文本
+            const tagText = tag.getAttribute('href');
+            if (!tagText) return;
+            
+            // 添加点击事件
+            tag.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // 打开标签搜索
+                this.app.workspace.trigger('search:open', tagText);
+            });
+        });
     }
 } 
