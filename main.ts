@@ -170,7 +170,7 @@ export default class CommentPlugin extends Plugin {
 		// 监听文件重命名事件
 		this.registerEvent(
 			this.app.vault.on('rename', (file, oldPath) => {
-				this.commentStore.handleFileRename(oldPath, file.path);
+				this.commentStore.updateFilePath(oldPath, file.path);
 			})
 		);
 
@@ -381,8 +381,8 @@ export default class CommentPlugin extends Plugin {
         if (loadedData?.comments) {
             this.settings.comments = loadedData.comments;
         }
-        if (loadedData?.fileComments) {
-            this.settings.fileComments = loadedData.fileComments;
+        if (loadedData?.comments) {
+            this.settings.comments = loadedData.comments;
         }
 
         await this.saveSettings();
