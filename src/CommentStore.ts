@@ -425,6 +425,33 @@ export class CommentStore {
      * @param highlight 高亮信息
      * @returns 添加的高亮
      */
+    /**
+     * 根据 blockId 获取评论
+     * @param file 文件
+     * @param blockId 块ID
+     * @returns 与该 blockId 相关的高亮数组
+     */
+    getCommentsByBlockId(file: TFile, blockId: string): HiNote[] {
+        if (!file || !blockId) return [];
+        
+        const filePath = file.path;
+        
+        // 如果文件路径不存在于数据中，返回空数组
+        if (!this.data[filePath]) return [];
+        
+        // 获取文件中的所有高亮
+        const fileHighlights = Object.values(this.data[filePath]);
+        
+        // 过滤出与指定 blockId 相关的高亮
+        return fileHighlights.filter(highlight => highlight.blockId === blockId);
+    }
+
+    /**
+     * 添加挖空格式的高亮（无需批注）
+     * @param file 文件
+     * @param highlight 高亮信息
+     * @returns 添加的高亮
+     */
     addHighlightWithCloze(file: TFile, highlight: HiNote): HiNote | null {
         // 检查是否为挖空格式
         if (!this.CLOZE_PATTERN.test(highlight.text)) {
