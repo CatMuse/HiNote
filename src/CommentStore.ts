@@ -308,6 +308,118 @@ export class CommentStore {
     }
 
     /**
+     * 添加或更新高亮批注
+     * @param file 文件
+     * @param highlight 高亮信息
+     * @returns 添加的高亮
+     */
+    async addComment(file: TFile, highlight: HiNote): Promise<HiNote> {
+        // 确保 highlight 有一个唯一的 ID
+        if (!highlight.id) {
+            highlight.id = `highlight-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        }
+        
+        // 设置或更新时间戳
+        const now = Date.now();
+        if (!highlight.createdAt) {
+            highlight.createdAt = now;
+        }
+        highlight.updatedAt = now;
+        
+        // 确保文件路径存在于数据结构中
+        const filePath = file.path;
+        if (!this.data[filePath]) {
+            this.data[filePath] = {};
+        }
+        
+        // 添加或更新高亮到数据中
+        this.data[filePath][highlight.id] = highlight;
+        
+        // 更新内存中的评论映射
+        if (!this.comments.has(filePath)) {
+            this.comments.set(filePath, []);
+        }
+        
+        const fileHighlights = this.comments.get(filePath) || [];
+        const existingIndex = fileHighlights.findIndex(h => h.id === highlight.id);
+        
+        if (existingIndex >= 0) {
+            fileHighlights[existingIndex] = highlight;
+        } else {
+            fileHighlights.push(highlight);
+        }
+        
+        // 保存更改
+        await this.saveComments();
+        
+        // 触发事件通知
+        if (this.eventManager) {
+            // 如果有评论，触发评论更新事件
+            if (highlight.comments && highlight.comments.length > 0) {
+                const latestComment = highlight.comments[highlight.comments.length - 1];
+                this.eventManager.emitCommentUpdate(filePath, highlight.text, latestComment.content);
+            } else {
+                // 否则触发高亮更新事件
+                this.eventManager.emitHighlightUpdate(filePath, highlight.text, highlight.text);
+            }
+        }
+        
+        return highlight;
+    }
+
+    /**
+     * 移除高亮批注
+     * @param file 文件
+     * @param highlight 高亮信息
+     * @returns 是否成功移除
+     */
+    async removeComment(file: TFile, highlight: HiNote): Promise<boolean> {
+        const filePath = file.path;
+        
+        // 检查文件路径和高亮ID是否存在
+        if (!this.data[filePath] || !this.data[filePath][highlight.id]) {
+            return false;
+        }
+        
+        // 从数据中删除高亮
+        delete this.data[filePath][highlight.id];
+        
+        // 如果文件没有高亮了，删除整个文件条目
+        if (Object.keys(this.data[filePath]).length === 0) {
+            delete this.data[filePath];
+        }
+        
+        // 更新内存中的评论映射
+        if (this.comments.has(filePath)) {
+            const fileHighlights = this.comments.get(filePath) || [];
+            const updatedHighlights = fileHighlights.filter(h => h.id !== highlight.id);
+            
+            if (updatedHighlights.length > 0) {
+                this.comments.set(filePath, updatedHighlights);
+            } else {
+                this.comments.delete(filePath);
+            }
+        }
+        
+        // 保存更改
+        await this.saveComments();
+        
+        // 触发事件通知
+        if (this.eventManager) {
+            // 如果有评论，触发评论删除事件
+            if (highlight.comments && highlight.comments.length > 0) {
+                const latestComment = highlight.comments[highlight.comments.length - 1];
+                this.eventManager.emitCommentDelete(filePath, latestComment.content);
+            } else {
+                // 否则触发高亮删除事件
+                this.eventManager.emitHighlightDelete(filePath, highlight.text);
+            }
+        }
+        
+        return true;
+    }
+
+    /**
      * 添加挖空格式的高亮（无需批注）
      * @param file 文件
      * @param highlight 高亮信息
