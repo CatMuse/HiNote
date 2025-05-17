@@ -11,8 +11,22 @@ import { t } from "../../i18n";
 import { DragContentGenerator } from "./DragContentGenerator";
 
 export class HighlightCard {
+    // 静态方法：获取所有选中的卡片
+    public static getSelectedCards(): Set<HTMLElement> {
+        return HighlightCard.selectedCards;
+    }
+    
+    // 静态方法：清除所有选中状态
+    public static clearSelection(): void {
+        HighlightCard.selectedCards.forEach(card => {
+            card.removeClass('selected');
+        });
+        HighlightCard.selectedCards.clear();
+        HighlightCard.lastSelectedCard = null;
+    }
     private card: HTMLElement;
-    private static selectedCard: HTMLElement | null = null;  
+    private static selectedCards: Set<HTMLElement> = new Set<HTMLElement>();
+    private static lastSelectedCard: HTMLElement | null = null;  
     private isEditing: boolean = false;
 
     constructor(
@@ -40,13 +54,13 @@ export class HighlightCard {
             }
         });
 
-        // 添加点击事件用于切换选中状态
-        this.card.addEventListener("click", (e) => {
+        // 添加点击事件用于切换选中状态，支持多选
+        this.card.addEventListener("click", (e: MouseEvent) => {
             // 如果正在编辑，不触发选中状态切换
             if (this.isEditing) {
                 return;
             }
-            this.selectCard();
+            this.selectCard(e);
         });
 
         // 在主视图中显示文件名
@@ -231,13 +245,41 @@ export class HighlightCard {
         );
     }
 
-    // 添加选中卡片的方法
-    private selectCard() {
-        if (HighlightCard.selectedCard && HighlightCard.selectedCard !== this.card) {
-            HighlightCard.selectedCard.removeClass('selected');
+    // 添加选中卡片的方法，支持多选
+    private selectCard(event?: MouseEvent) {
+        // 如果按住 Shift 键，则进行多选
+        if (event && event.shiftKey && HighlightCard.lastSelectedCard) {
+            // 保持上一个选中的卡片状态
+            HighlightCard.selectedCards.add(HighlightCard.lastSelectedCard);
+            // 添加当前卡片到选中集合
+            HighlightCard.selectedCards.add(this.card);
+            this.card.addClass('selected');
+            
+            // 触发自定义事件，通知 CommentView 多选状态变化
+            const customEvent = new CustomEvent('highlight-multi-select', {
+                detail: {
+                    selectedCards: Array.from(HighlightCard.selectedCards),
+                    lastSelected: this.card
+                },
+                bubbles: true
+            });
+            this.card.dispatchEvent(customEvent);
+        } else {
+            // 单选模式，清除之前的所有选择
+            HighlightCard.selectedCards.forEach(card => {
+                if (card !== this.card) {
+                    card.removeClass('selected');
+                }
+            });
+            HighlightCard.selectedCards.clear();
+            
+            // 选中当前卡片
+            this.card.addClass('selected');
+            HighlightCard.selectedCards.add(this.card);
         }
-        this.card.addClass('selected');
-        HighlightCard.selectedCard = this.card;
+        
+        // 更新最后选中的卡片
+        HighlightCard.lastSelectedCard = this.card;
     }
 
     public getElement(): HTMLElement {

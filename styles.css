@@ -3338,3 +3338,51 @@ textarea.flashcard-modal-input {
     background-color: var(--interactive-accent-hover);
     color: var(--text-on-accent);
 }
+
+/* 高亮多选功能样式 */
+
+/* 当有多个高亮被选中时，隐藏单个高亮的操作按钮 */
+.multi-select-mode .highlight-card.selected .highlight-action-buttons,
+.highlight-container:has(.highlight-card.selected ~ .highlight-card.selected) .highlight-card .highlight-action-buttons {
+    display: none !important;
+}
+
+/* 多选操作按钮容器 */
+.multi-select-actions {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    display: flex;
+    gap: 8px;
+}
+
+/* 多选操作按钮 */
+.multi-select-action-button {
+    background-color: var(--interactive-normal);
+    color: var(--text-normal);
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.multi-select-action-button:hover {
+    background-color: var(--interactive-hover);
+}
+
+.multi-select-action-button.cancel {
+    background-color: var(--background-modifier-error-hover);
+    color: white;
+}
+
+.multi-select-action-button.cancel:hover {
+    background-color: var(--background-modifier-error);
+}

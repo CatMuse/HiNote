@@ -13,6 +13,124 @@ export class ExportService {
     ) {
         this.highlightService = new HighlightService(app);
     }
+    
+    /**
+     * 导出选中的多个高亮为 Markdown 文件
+     * @param highlights 要导出的高亮数组
+     * @returns 返回创建的新文件
+     */
+    async exportHighlightsAsMarkdown(highlights: HighlightInfo[]): Promise<TFile | null> {
+        if (!highlights || highlights.length === 0) {
+            return null;
+        }
+        
+        // 生成导出内容
+        const content = await this.generateContentForMultipleHighlights(highlights);
+        
+        // 获取导出路径
+        const plugins = (this.app as any).plugins;
+        const hiNotePlugin = plugins && plugins.plugins ? 
+            plugins.plugins['hi-note'] : undefined;
+        const exportPath = hiNotePlugin?.settings?.export?.exportPath || '';
+        
+        // 创建新文件
+        const fileName = `Selected Highlights ${window.moment().format("YYYYMMDDHHmm")}`;
+        
+        // 如果设置了导出路径，确保目录存在
+        let fullPath = fileName;
+        if (exportPath) {
+            // 确保目录存在
+            const folderPath = this.app.vault.getAbstractFileByPath(exportPath);
+            if (!folderPath) {
+                await this.app.vault.createFolder(exportPath);
+            }
+            fullPath = `${exportPath}/${fileName}`;
+        }
+
+        // 创建新文件
+        const newFile = await this.app.vault.create(
+            `${fullPath}.md`,
+            content
+        );
+
+        return newFile;
+    }
+    
+    /**
+     * 为多个高亮生成导出内容
+     * @param highlights 高亮数组
+     * @returns 生成的内容
+     */
+    private async generateContentForMultipleHighlights(highlights: HighlightInfo[]): Promise<string> {
+        const lines: string[] = [];
+        
+        // 添加标题
+        lines.push(`# ${t("Selected Highlights")}`);
+        lines.push("");
+        lines.push(`*${t("Exported on")} ${window.moment().format("YYYY-MM-DD HH:mm:ss")}*`);
+        lines.push("");
+        
+        // 按文件分组高亮
+        const highlightsByFile: Record<string, HighlightInfo[]> = {};
+        
+        for (const highlight of highlights) {
+            if (!highlight.filePath) continue;
+            
+            if (!highlightsByFile[highlight.filePath]) {
+                highlightsByFile[highlight.filePath] = [];
+            }
+            
+            highlightsByFile[highlight.filePath].push(highlight);
+        }
+        
+        // 为每个文件生成内容
+        for (const filePath in highlightsByFile) {
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            if (!(file instanceof TFile)) continue;
+            
+            lines.push(`## ${file.basename}`);
+            lines.push("");
+            
+            // 为文件中的每个高亮生成内容
+            const fileHighlights = highlightsByFile[filePath];
+            for (const highlight of fileHighlights) {
+                // 添加高亮文本
+                lines.push(`> ${highlight.text}`);
+                lines.push("> ");
+                
+                // 如果有评论内容，添加分割线
+                if (highlight.comments && highlight.comments.length > 0) {
+                    lines.push("> ---");
+                    lines.push("> ");
+                    
+                    // 添加评论内容
+                    for (const comment of highlight.comments) {
+                        lines.push(">> [!note] Comment");
+                        // 处理多行内容，确保每行都有正确的缩进
+                        const commentLines = comment.content
+                            .split('\n')
+                            .map(line => {
+                                line = line.trim();
+                                // 如果是空行，返回带缩进的空行
+                                if (!line) return '>>';
+                                return `>> ${line}`;
+                            })
+                            .join('\n');
+                        lines.push(commentLines);
+                        
+                        if (comment.updatedAt) {
+                            const date = window.moment(comment.updatedAt);
+                            lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
+                        }
+                        lines.push(">");
+                    }
+                }
+                lines.push("");
+            }
+        }
+        
+        return lines.join("\n");
+    }
 
     /**
      * 导出文件的高亮和评论内容为新的笔记

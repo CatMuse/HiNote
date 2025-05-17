@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, setIcon, getIcon, debounce } from "obsidian";
 import { FlashcardComponent } from './flashcard/components/FlashcardComponent';
 import { FlashcardState } from './flashcard/types/FSRSTypes';
-import { CommentStore, HiNote, CommentItem, FileComment } from './CommentStore';
+import { CommentStore, HiNote, CommentItem } from './CommentStore';
 import { ExportPreviewModal } from './templates/ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
 import { HighlightCard } from './components/highlight/HighlightCard';
@@ -42,6 +42,243 @@ function convertToFlashcardState(highlights: HiNote[]): FlashcardState[] {
 }
 
 export class CommentView extends ItemView {
+    // 处理多选事件
+    private handleMultiSelect(e: CustomEvent) {
+        const detail = e.detail;
+        if (detail && detail.selectedCards) {
+            // 更新选中的高亮列表
+            this.updateSelectedHighlights();
+        }
+    }
+    
+    // 更新选中的高亮列表
+    private updateSelectedHighlights() {
+        this.selectedHighlights.clear();
+        const selectedCards = Array.from(this.highlightContainer.querySelectorAll('.highlight-card.selected'));
+        
+        selectedCards.forEach(card => {
+            const highlightData = card.getAttribute('data-highlight');
+            if (highlightData) {
+                try {
+                    const highlight = JSON.parse(highlightData) as HighlightInfo;
+                    this.selectedHighlights.add(highlight);
+                } catch (e) {
+                    console.error('Error parsing highlight data:', e);
+                }
+            }
+        });
+        
+        // 如果有选中的高亮，显示多选操作按钮
+        if (this.selectedHighlights.size > 0) {
+            this.showMultiSelectActions();
+        } else {
+            this.hideMultiSelectActions();
+        }
+    }
+    
+    // 显示多选操作按钮
+    private showMultiSelectActions() {
+        // 如果已经存在，先移除
+        this.hideMultiSelectActions();
+        
+        // 创建多选操作按钮容器
+        const actionsContainer = this.containerEl.createEl('div', {
+            cls: 'multi-select-actions'
+        });
+        
+        // 添加操作按钮
+        const exportButton = actionsContainer.createEl('button', {
+            cls: 'multi-select-action-button',
+            text: t('export_selected')
+        });
+        exportButton.addEventListener('click', () => {
+            this.exportSelectedHighlights();
+        });
+        
+        const createFlashcardsButton = actionsContainer.createEl('button', {
+            cls: 'multi-select-action-button',
+            text: t('create_flashcards')
+        });
+        createFlashcardsButton.addEventListener('click', () => {
+            this.createFlashcardsFromSelected();
+        });
+        
+        const cancelButton = actionsContainer.createEl('button', {
+            cls: 'multi-select-action-button cancel',
+            text: t('cancel')
+        });
+        cancelButton.addEventListener('click', () => {
+            this.clearSelection();
+        });
+    }
+    
+    // 隐藏多选操作按钮
+    private hideMultiSelectActions() {
+        const existingActions = this.containerEl.querySelector('.multi-select-actions');
+        if (existingActions) {
+            existingActions.remove();
+        }
+    }
+    
+    // 清除所有选中状态
+    private clearSelection() {
+        // 使用 HighlightCard 的静态方法清除选中状态
+        const HighlightCard = (window as any).HighlightCard;
+        if (HighlightCard && typeof HighlightCard.clearSelection === 'function') {
+            HighlightCard.clearSelection();
+        } else {
+            // 备用方案：直接操作 DOM
+            const selectedCards = this.highlightContainer.querySelectorAll('.highlight-card.selected');
+            selectedCards.forEach(card => card.removeClass('selected'));
+        }
+        
+        this.selectedHighlights.clear();
+        this.hideMultiSelectActions();
+    }
+    
+    // 导出选中的高亮
+    private exportSelectedHighlights() {
+        if (this.selectedHighlights.size === 0) return;
+        
+        // TODO: 实现导出选中高亮的功能
+        console.log('导出选中的高亮', this.selectedHighlights.size);
+        
+        // 清除选中状态
+        this.clearSelection();
+    }
+    
+    // 从选中的高亮创建闪卡
+    private createFlashcardsFromSelected() {
+        if (this.selectedHighlights.size === 0) return;
+        
+        // TODO: 实现从选中高亮创建闪卡的功能
+        console.log('从选中的高亮创建闪卡', this.selectedHighlights.size);
+        
+        // 显示消息
+        new Notice(t('feature_not_implemented'));
+        
+        // 清除选中状态
+        this.clearSelection();
+    }
+    
+    // 设置框选功能
+    private setupSelectionBox() {
+        // 移除之前的事件监听器
+        this.highlightContainer.removeEventListener('mousedown', this.handleSelectionStart);
+        
+        // 添加新的事件监听器
+        this.highlightContainer.addEventListener('mousedown', this.handleSelectionStart);
+    }
+    
+    // 处理框选开始
+    private handleSelectionStart = (e: MouseEvent) => {
+        // 如果点击的是卡片内部元素，不启动框选
+        if ((e.target as HTMLElement).closest('.highlight-card')) {
+            return;
+        }
+        
+        // 记录起始位置
+        this.selectionStartX = e.clientX;
+        this.selectionStartY = e.clientY;
+        
+        // 创建选择框
+        this.selectionBox = document.createElement('div');
+        this.selectionBox.className = 'selection-box';
+        this.selectionBox.style.position = 'fixed';
+        this.selectionBox.style.left = `${this.selectionStartX}px`;
+        this.selectionBox.style.top = `${this.selectionStartY}px`;
+        this.selectionBox.style.width = '0';
+        this.selectionBox.style.height = '0';
+        this.selectionBox.style.backgroundColor = 'rgba(0, 122, 255, 0.2)';
+        this.selectionBox.style.border = '1px solid rgba(0, 122, 255, 0.5)';
+        this.selectionBox.style.zIndex = '1000';
+        document.body.appendChild(this.selectionBox);
+        
+        // 启动选择模式
+        this.isSelectionMode = true;
+        
+        // 添加移动和结束事件监听器
+        document.addEventListener('mousemove', this.handleSelectionMove);
+        document.addEventListener('mouseup', this.handleSelectionEnd);
+    }
+    
+    // 处理框选移动
+    private handleSelectionMove = (e: MouseEvent) => {
+        if (!this.isSelectionMode || !this.selectionBox) return;
+        
+        // 计算选择框尺寸和位置
+        const width = e.clientX - this.selectionStartX;
+        const height = e.clientY - this.selectionStartY;
+        
+        // 根据拖动方向设置选择框位置和大小
+        if (width < 0) {
+            this.selectionBox.style.left = `${e.clientX}px`;
+            this.selectionBox.style.width = `${-width}px`;
+        } else {
+            this.selectionBox.style.width = `${width}px`;
+        }
+        
+        if (height < 0) {
+            this.selectionBox.style.top = `${e.clientY}px`;
+            this.selectionBox.style.height = `${-height}px`;
+        } else {
+            this.selectionBox.style.height = `${height}px`;
+        }
+        
+        // 实时选中框内的卡片
+        this.selectCardsInBox();
+    }
+    
+    // 处理框选结束
+    private handleSelectionEnd = (e: MouseEvent) => {
+        if (!this.isSelectionMode) return;
+        
+        // 移除选择框
+        if (this.selectionBox) {
+            this.selectionBox.remove();
+            this.selectionBox = null;
+        }
+        
+        // 结束选择模式
+        this.isSelectionMode = false;
+        
+        // 移除事件监听器
+        document.removeEventListener('mousemove', this.handleSelectionMove);
+        document.removeEventListener('mouseup', this.handleSelectionEnd);
+        
+        // 更新选中的高亮列表
+        this.updateSelectedHighlights();
+    }
+    
+    // 选中框内的卡片
+    private selectCardsInBox() {
+        if (!this.selectionBox) return;
+        
+        // 获取选择框的位置和尺寸
+        const boxRect = this.selectionBox.getBoundingClientRect();
+        
+        // 获取所有高亮卡片
+        const cards = this.highlightContainer.querySelectorAll('.highlight-card');
+        
+        // 检查每个卡片是否在选择框内
+        cards.forEach(card => {
+            const cardRect = card.getBoundingClientRect();
+            
+            // 检查卡片是否与选择框重叠
+            const overlap = !(boxRect.right < cardRect.left || 
+                            boxRect.left > cardRect.right || 
+                            boxRect.bottom < cardRect.top || 
+                            boxRect.top > cardRect.bottom);
+            
+            // 如果重叠，选中卡片
+            if (overlap) {
+                card.addClass('selected');
+            } else if (!document.querySelector('.multi-select-mode')) {
+                // 如果没有处于多选模式，取消选中框外的卡片
+                card.removeClass('selected');
+            }
+        });
+    }
     private highlightContainer: HTMLElement;
     private searchContainer: HTMLElement;
     private fileListContainer: HTMLElement;
@@ -65,6 +302,13 @@ export class CommentView extends ItemView {
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
     private currentEditingHighlightId: string | null | undefined = null;
     private flashcardComponent: FlashcardComponent | null = null;
+    
+    // 多选相关属性
+    private selectedHighlights: Set<HighlightInfo> = new Set<HighlightInfo>();
+    private isSelectionMode: boolean = false;
+    private selectionBox: HTMLElement | null = null;
+    private selectionStartX: number = 0;
+    private selectionStartY: number = 0;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -169,7 +413,13 @@ export class CommentView extends ItemView {
     async onOpen() {
         const container = this.containerEl.children[1];
         container.empty();
+        container.addClass("comment-view-container");
         
+        // 监听多选事件
+        container.addEventListener('highlight-multi-select', (e: CustomEvent) => {
+            this.handleMultiSelect(e);
+        });
+
         // 创建主容器
         const mainContainer = container.createEl("div", {
             cls: "highlight-main-container"
@@ -290,9 +540,22 @@ export class CommentView extends ItemView {
             this.updateHighlightsList();
         }, 300));
 
-        // 创建高亮列表容器
+        // 创建高亮容器
         this.highlightContainer = this.mainContentContainer.createEl("div", {
             cls: "highlight-container"
+        });
+        
+        // 添加键盘事件监听，支持按住 Shift 键进行多选
+        this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Shift') {
+                this.highlightContainer.addClass('multi-select-mode');
+            }
+        });
+        
+        this.registerDomEvent(document, 'keyup', (e: KeyboardEvent) => {
+            if (e.key === 'Shift') {
+                this.highlightContainer.removeClass('multi-select-mode');
+            }
         });
 
         // 初始化当前文件
@@ -333,17 +596,23 @@ export class CommentView extends ItemView {
     private renderHighlights(highlightsToRender: HighlightInfo[], append = false) {
         if (!append) {
             this.highlightContainer.empty();
+            this.currentBatch = 0;
+            
+            // 清除多选状态
+            this.selectedHighlights.clear();
+            this.isSelectionMode = false;
         }
 
-        if (highlightsToRender.length === 0 && !append) {
-            this.highlightContainer.createEl("div", {
-                cls: "highlight-empty-state",
-                text: this.searchInput.value.trim() 
-                    ? t("No matching content found.") 
-                    : t("The current document has no highlighted content.")
+        if (highlightsToRender.length === 0) {
+            const emptyMessage = this.highlightContainer.createEl("div", {
+                cls: "empty-message",
+                text: t("no_highlights")
             });
             return;
         }
+        
+        // 添加框选功能
+        this.setupSelectionBox();
 
         let highlightList = this.highlightContainer.querySelector('.highlight-list') as HTMLElement;
         if (!highlightList) {
