@@ -297,10 +297,6 @@ settings:
     animation: fadeIn 0.3s ease;
 }
 
-.highlight-card:hover {
-    background-color: var(--highlight-card-hover-bg-color, var(--background-modifier-hover));
-}
-
 .highlight-card-filename svg {
     opacity: 0.7;
     transition: all 200ms ease-in-out;
@@ -314,7 +310,7 @@ settings:
 
 .highlight-card.selected {
     border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 1px var(--interactive-accent);
+    border-width: 2px;
 }
 
 .highlight-content {
@@ -1614,6 +1610,8 @@ settings:
 
 .highlight-card:hover {
     background-color: var(--background-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease-in-out;
 }
 
 .highlight-card.in-main-view .highlight-text-content {
@@ -3304,8 +3302,8 @@ textarea.flashcard-modal-input {
 }
 
 .unfocused-input-area {
-    min-height: 36px;
-    padding: 8px 12px;
+    min-height: 32px;
+    padding: 6px 12px;
     border-radius: 4px;
     border: 1px dashed var(--background-modifier-border);
     color: var(--text-muted);
