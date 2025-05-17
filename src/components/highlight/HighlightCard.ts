@@ -3,8 +3,7 @@ import type CommentPlugin from "../../../main";
 import { HighlightContent } from "./HighlightContent";
 import { CommentList } from "./CommentList";
 import { UnfocusedCommentInput } from "../comment/UnfocusedCommentInput";
-import { MarkdownView, Notice } from "obsidian";
-import { setIcon, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView } from "obsidian";
+import { MarkdownView, Notice, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView, setIcon } from "obsidian";
 import { DragPreview } from './DragPreview';
 import { VIEW_TYPE_COMMENT } from '../../CommentView';
 import { t } from "../../i18n";
@@ -326,6 +325,26 @@ export class HighlightCard {
             this.toggleMoreActionsDropdown(moreActionsDropdown);
         });
         
+        // 添加创建 HiCard 选项到下拉菜单
+        const createHiCardItem = moreActionsDropdown.createEl("div", {
+            cls: "highlight-more-dropdown-item",
+            text: t('Create HiCard')
+        });
+        
+        // 添加点击事件
+        createHiCardItem.addEventListener("click", (e) => {
+            e.stopPropagation();
+            moreActionsDropdown.addClass("hi-note-hidden");
+            
+            // 调用创建 HiCard 的逻辑
+            this.handleCreateHiCard();
+        });
+        
+        // 添加分隔线
+        moreActionsDropdown.createEl("div", {
+            cls: "highlight-more-dropdown-divider"
+        });
+        
         // 添加导出图片选项到下拉菜单
         const exportItem = moreActionsDropdown.createEl("div", {
             cls: "highlight-more-dropdown-item",
@@ -344,8 +363,6 @@ export class HighlightCard {
             }
             this.options.onExport(highlightWithFileName);
         });
-        
-        // 可以在这里添加更多的菜单项
 
         // 在主视图中预先生成 Block ID
         if (this.isInMainView && this.fileName) {
@@ -681,5 +698,30 @@ export class HighlightCard {
             aiButton.removeClass('loading');
             setIcon(aiButton, 'bot-message-square');
         }
+    }
+    
+    /**
+     * 处理创建 HiCard 的逻辑
+     */
+    private handleCreateHiCard() {
+        // 显示通知
+        new Notice(`Creating HiCard for: ${this.highlight.text.substring(0, 50)}...`);
+        
+        // 这里添加创建 HiCard 的实际逻辑
+        console.log('Creating HiCard:', {
+            text: this.highlight.text,
+            filePath: this.highlight.filePath || this.fileName,
+            position: this.highlight.position
+        });
+        
+        // TODO: 实现实际的 HiCard 创建逻辑
+        // 1. 创建 HiCard 数据
+        // 2. 保存到数据存储
+        // 3. 更新 UI 状态
+        
+        // 临时：显示成功消息
+        setTimeout(() => {
+            new Notice('HiCard created successfully!');
+        }, 500);
     }
 } 

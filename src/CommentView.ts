@@ -189,8 +189,12 @@ export class CommentView extends ItemView {
     
     // 处理框选开始
     private handleSelectionStart = (e: MouseEvent) => {
-        // 如果点击的是卡片内部元素，不启动框选
-        if ((e.target as HTMLElement).closest('.highlight-card')) {
+        // 如果点击的是卡片内部元素、HiCard页面元素或AI对话浮动按钮，不启动框选
+        if ((e.target as HTMLElement).closest('.highlight-card') ||
+            (e.target as HTMLElement).closest('.flashcard-mode') ||
+            (e.target as HTMLElement).closest('.flashcard-add-group') ||
+            (e.target as HTMLElement).closest('.flashcard-group-action') ||
+            (e.target as HTMLElement).closest('.highlight-floating-button')) {
             return;
         }
         
@@ -1397,12 +1401,24 @@ export class CommentView extends ItemView {
         this.floatingButton.appendChild(icon);
         
         // 使用 getInstance 方法
-        this.floatingButton.addEventListener('click', () => {
+        this.floatingButton.addEventListener('click', (e) => {
+            // 阻止事件冒泡和默认行为
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('点击了AI对话浮动按钮');
+            
             try {
                 const chatView = ChatView.getInstance(this.app, this.plugin);
-                chatView.show();
+                console.log('成功创建ChatView实例');
+                
+                // 确保在下一个事件循环中显示对话框
+                setTimeout(() => {
+                    chatView.show();
+                    console.log('ChatView显示完成');
+                }, 0);
             } catch (error) {
-
+                console.error('创建ChatView失败:', error);
             }
         });
         
