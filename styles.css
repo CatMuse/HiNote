@@ -353,42 +353,13 @@ settings:
     flex-shrink: 0;
 }
 
-.highlight-action-buttons {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    opacity: 0;
-    height: 0;
-    margin: 0;
-    padding: 0px 4px 2px 4px;
-}
+/* 已删除 highlight-action-buttons 相关样式 */
 
-.highlight-action-buttons-left,
-.highlight-action-buttons-right {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.highlight-card.selected .highlight-action-buttons {
-    opacity: 1;
-    height: auto;
-    margin-top: 4px;
-    visibility: visible;
-}
-
-.highlight-action-btn:hover {
-    background: var(--background-modifier-hover);
-}
-
-.highlight-action-btn:hover svg {
-    stroke: var(--text-accent);
-    transform: scale(1.1);
-}
+/* 已删除 highlight-action-btn 相关样式 */
 
 .hi-note {
     padding: 8px;
-    background-color: var(--hi-note-bg-color, var(--background-primary));
+    background-color: var(--background-secondary);
     border-radius: 4px;
     margin-bottom: 4px;
     position: relative;
@@ -559,8 +530,8 @@ settings:
 }
 
 .hi-notes-section {
-    background-color: var(--background-secondary);
-    padding: 8px;
+    background-color: var(--background-primary);
+    padding: 0px 8px 8px 8px;
     border-bottom-right-radius: 8px; /* 右下角圆角 */
     border-bottom-left-radius: 8px; /* 左下角圆角 */
 }
@@ -1641,8 +1612,8 @@ settings:
     cursor: default;
 }
 
-.highlight-card.in-main-view:hover {
-    background-color: var(--background-secondary);
+.highlight-card:hover {
+    background-color: var(--background-primary);
 }
 
 .highlight-card.in-main-view .highlight-text-content {
@@ -1654,40 +1625,7 @@ settings:
     display: none;
 }
 
-/* 文件名显示样式 */
-.highlight-card-filename {
-    padding: 8px 12px;
-    font-size: 12px;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--background-modifier-border);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: grab;
-}
-
-.highlight-card-filename.dragging {
-    cursor: grabbing;
-    opacity: 0.7;
-}
-
-.highlight-card-filename-icon {
-    display: flex;
-    align-items: center;
-    color: var(--text-muted);
-}
-
-.highlight-card-filename-icon svg {
-    width: 14px;
-    height: 14px;
-}
-
-.highlight-card-filename-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+/* 文件名显示样式已移至 highlight-card-title-bar */
 
 /* 调整提示文本样式 */
 .hi-note-hint {
@@ -1926,34 +1864,31 @@ settings:
     flex-direction: column !important;
     overflow: hidden;
     z-index: 9999 !important;
-    resize: both !important;
-    right: 30px;
-    bottom: 42px;
 }
 
 /* 聊天窗口组件样式 */
 .highlight-chat-header {
-    padding: 14px 16px;
-    background: var(--background-primary);
-    border-bottom: 1px solid var(--background-modifier-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: grab;
-    user-select: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+padding: 14px 16px;
+background: var(--background-primary);
+border-bottom: 1px solid var(--background-modifier-border);
+display: flex;
+justify-content: space-between;
+align-items: center;
+cursor: grab;
+user-select: none;
+box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* 关闭按钮样式 */
 .highlight-chat-close {
-    padding: 2px;
-    border-radius: 4px;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+padding: 2px;
+border-radius: 4px;
+color: var(--text-muted);
+cursor: pointer;
+transition: all 0.2s ease;
+display: flex;
+align-items: center;
+justify-content: center;
 }
 
 .highlight-chat-close:hover {
@@ -2372,7 +2307,6 @@ settings:
 
 .highlight-ai-btn:hover svg {
     stroke: var(--text-accent);
-    transform: scale(1.1);
 }
 
 /* 加载状态样式 */
@@ -2387,28 +2321,35 @@ settings:
     }
 }
 
-.highlight-ai-dropdown {
+/* AI 下拉菜单样式 */
+.highlight-ai-dropdown,
+.highlight-more-dropdown {
     position: absolute;
     top: 100%;
-    left: 0;
-    margin-top: 4px;
+    right: 0; /* 居右对齐 */
+    left: auto;
+    margin-top: 12px;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     padding: 4px 0;
     min-width: 160px;
+    max-height: 300px;
+    overflow-y: auto;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 9999;
 }
 
-.highlight-ai-dropdown.hidden {
+.highlight-ai-dropdown.hidden,
+.highlight-more-dropdown.hidden {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
 }
 
-.highlight-ai-dropdown-item {
+.highlight-ai-dropdown-item,
+.highlight-more-dropdown-item {
     padding: 6px 12px;
     font-size: 12px;
     color: var(--text-normal);
@@ -2416,9 +2357,21 @@ settings:
     transition: all 0.2s ease;
 }
 
-.highlight-ai-dropdown-item:hover {
+.highlight-ai-dropdown-item:hover,
+.highlight-more-dropdown-item:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-accent);
+}
+
+/* 更多操作容器样式 */
+.highlight-more-actions-container {
+    position: relative;
+    z-index: 1000;
+}
+
+/* 下拉菜单项样式 */
+.highlight-more-dropdown-item {
+    text-align: left;
 }
 
 /* AI 按钮样式 */
@@ -3341,10 +3294,36 @@ textarea.flashcard-modal-input {
 
 /* 高亮多选功能样式 */
 
-/* 当有多个高亮被选中时，隐藏单个高亮的操作按钮 */
-.multi-select-mode .highlight-card.selected .highlight-action-buttons,
-.highlight-container:has(.highlight-card.selected ~ .highlight-card.selected) .highlight-card .highlight-action-buttons {
-    display: none !important;
+/* 已删除多选模式下的 highlight-action-buttons 相关样式 */
+
+/* 不聚焦的批注输入框样式 */
+.unfocused-comment-input {
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.unfocused-input-area {
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px dashed var(--background-modifier-border);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    cursor: text;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+.unfocused-input-area:hover {
+    border-color: var(--text-accent);
+    background-color: var(--background-primary);
+}
+
+.unfocused-input-area::before {
+    content: attr(placeholder);
+    color: var(--text-faint);
 }
 
 /* 确保 CommentWidget 始终可见 */
@@ -3355,11 +3334,153 @@ textarea.flashcard-modal-input {
     pointer-events: auto !important;
 }
 
+/* 高亮卡片标题栏样式 */
+.highlight-card-title-bar {
+    display: flex;
+    align-items: center;
+    padding: 4px 12px;
+    background-color: var(--background-primary);
+    border-bottom: 1px solid var(--background-modifier-border);
+    border-radius: 6px 6px 0 0;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    gap: 6px;
+    cursor: grab;
+}
+
+.highlight-card-title-bar.dragging {
+    cursor: grabbing;
+    opacity: 0.7;
+}
+
+.highlight-card-title-left {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.highlight-card-title-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 8px;
+}
+
+.highlight-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.highlight-card-icon:hover {
+    color: var(--text-accent);
+}
+
+.highlight-card-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.highlight-card-title-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.highlight-card-blockid {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.highlight-card-blockid-value {
+    font-family: var(--font-monospace);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 标题栏按钮样式 */
+.highlight-title-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background-color: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease;
+}
+
+.highlight-title-btn:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+.highlight-title-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* AI 按钮加载状态 */
+.highlight-title-btn.loading svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* AI 下拉菜单容器 */
+.highlight-ai-container {
+    position: relative;
+}
+
+/* 隐藏类 */
+.hi-note-hidden {
+    display: none;
+}
+
+/* 当鼠标悬停在标题栏上时显示按钮 */
+.highlight-card-title-bar:not(:hover) .highlight-title-btn {
+    opacity: 0.5;
+}
+
+.highlight-card-title-bar:hover .highlight-title-btn {
+    opacity: 1;
+}
+
+/* 拖拽状态样式 */
+.highlight-card-title-left.dragging {
+    opacity: 0.7;
+}
+
 /* 多选操作按钮容器 */
 .multi-select-actions {
-    position: fixed;
+    position: absolute;
     bottom: 20px;
-    right: 20px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: fit-content;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
@@ -3370,20 +3491,40 @@ textarea.flashcard-modal-input {
     gap: 8px;
 }
 
+/* 确保 highlight-container 有相对定位，以便子元素可以相对于它定位 */
+.highlight-container {
+    position: relative;
+    height: calc(100% - 60px);
+    overflow-y: auto;
+    padding: 12px;
+}
+
 /* 多选操作按钮 */
 .multi-select-action-button {
     background-color: var(--interactive-normal);
     color: var(--text-normal);
     border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    padding: 0;
     cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .multi-select-action-button:hover {
     background-color: var(--interactive-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.multi-select-action-button svg {
+    width: 20px;
+    height: 20px;
 }
 
 .multi-select-action-button.cancel {

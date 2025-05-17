@@ -86,27 +86,44 @@ export class CommentView extends ItemView {
             cls: 'multi-select-actions'
         });
         
-        // 添加操作按钮
+        // 添加操作按钮 - 导出按钮
         const exportButton = actionsContainer.createEl('button', {
             cls: 'multi-select-action-button',
-            text: t('export_selected')
+            attr: {
+                'aria-label': t('export_selected'),
+                'title': t('export_selected')
+            }
         });
+        // 设置导出图标
+        setIcon(exportButton, 'file-export');
         exportButton.addEventListener('click', () => {
             this.exportSelectedHighlights();
         });
         
+        // 添加操作按钮 - 创建闪卡按钮
         const createFlashcardsButton = actionsContainer.createEl('button', {
             cls: 'multi-select-action-button',
-            text: t('create_flashcards')
+            attr: {
+                'aria-label': t('create_flashcards'),
+                'title': t('create_flashcards')
+            }
         });
+        // 设置闪卡图标
+        setIcon(createFlashcardsButton, 'layout-cards');
         createFlashcardsButton.addEventListener('click', () => {
             this.createFlashcardsFromSelected();
         });
         
+        // 添加操作按钮 - 取消按钮
         const cancelButton = actionsContainer.createEl('button', {
             cls: 'multi-select-action-button cancel',
-            text: t('cancel')
+            attr: {
+                'aria-label': t('cancel'),
+                'title': t('cancel')
+            }
         });
+        // 设置取消图标
+        setIcon(cancelButton, 'x');
         cancelButton.addEventListener('click', () => {
             this.clearSelection();
         });
