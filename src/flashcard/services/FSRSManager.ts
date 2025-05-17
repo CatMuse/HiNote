@@ -226,6 +226,10 @@ export class FSRSManager {
         }
         
         this.storage.cards[card.id] = card;
+        
+        // 检查并添加卡片到符合条件的分组
+        this.checkAndAddCardToGroups(card);
+        
         this.saveStorageDebounced();
         return card;
     }
@@ -399,11 +403,54 @@ export class FSRSManager {
     }
     
     /**
+     * 获取所有卡片对象
+     * @returns 卡片对象集合
+     */
+    public getAllCards(): Record<string, FlashcardState> {
+        return this.storage.cards;
+    }
+    
+    /**
      * 获取所有分组
      * @returns 所有分组列表
      */
     public getCardGroups(): CardGroup[] {
         return this.groupRepository.getCardGroups();
+    }
+    
+    /**
+     * 重置指定分组的完成消息状态
+     * @param groupId 分组ID
+     */
+    private resetGroupCompletionMessage(groupId: string): void {
+        if (!groupId) return;
+        
+        // 获取分组名称
+        const group = this.groupRepository.getGroupById(groupId);
+        if (!group) return;
+        
+        // 确保 uiState 和 groupCompletionMessages 存在
+        if (!this.storage.uiState) {
+            this.storage.uiState = {
+                currentGroupName: '',
+                currentIndex: 0,
+                isFlipped: false,
+                completionMessage: null,
+                groupCompletionMessages: {},
+                groupProgress: {}
+            };
+        }
+        
+        if (!this.storage.uiState.groupCompletionMessages) {
+            this.storage.uiState.groupCompletionMessages = {};
+        }
+        
+        // 重置完成消息
+        if (this.storage.uiState.groupCompletionMessages[group.name]) {
+            console.log(`重置分组 ${group.name} 的完成消息`);
+            this.storage.uiState.groupCompletionMessages[group.name] = null;
+            this.saveStorageDebounced();
+        }
     }
     
     /**
@@ -418,8 +465,53 @@ export class FSRSManager {
             return [];
         }
         
-        // 获取指定分组的卡片
-        return this.getCardsByGroupId(groupId);
+        // 重置分组完成消息状态
+        this.resetGroupCompletionMessage(groupId);
+        
+        // 获取指定分组的所有卡片
+        const allCards = this.groupRepository.getCardsByGroupId(groupId);
+        console.log(`分组 ${groupId} 中共有 ${allCards.length} 张卡片`);
+        
+        if (allCards.length === 0) {
+            return [];
+        }
+        
+        // 当前时间
+        const now = Date.now();
+        
+        // 筛选出今天需要学习或复习的卡片
+        const cardsForStudy = allCards.filter(card => {
+            // 新卡片（从未学习过）
+            if (card.reviews === 0 && card.lastReview === 0) {
+                console.log(`卡片 ${card.id} 是新卡片，需要学习`);
+                return true;
+            }
+            
+            // 到期需要复习的卡片
+            if (card.nextReview <= now) {
+                console.log(`卡片 ${card.id} 到期需要复习，下次复习时间: ${new Date(card.nextReview).toLocaleString()}`);
+                return true;
+            }
+            
+            // 学习中的卡片（已学习但稳定性很低）
+            if (card.stability < 1 && card.lastReview > 0) {
+                console.log(`卡片 ${card.id} 正在学习中，稳定性: ${card.stability}`);
+                return true;
+            }
+            
+            return false;
+        });
+        
+        console.log(`分组 ${groupId} 中有 ${cardsForStudy.length} 张卡片需要学习或复习`);
+        
+        // 如果没有需要学习的卡片，返回所有新卡片
+        if (cardsForStudy.length === 0) {
+            const newCards = allCards.filter(card => card.reviews === 0);
+            console.log(`没有需要学习的卡片，返回 ${newCards.length} 张新卡片`);
+            return newCards;
+        }
+        
+        return cardsForStudy;
     }
 
     /**
@@ -505,7 +597,7 @@ export class FSRSManager {
      * @returns 生成的卡片数量
      */
     public async generateCardsForGroup(groupId: string): Promise<number> {
-        console.log(`开始为分组生成卡片: ${groupId}`);
+        console.log(`开始为分组获取卡片: ${groupId}`);
         
         const group = this.groupRepository.getGroupById(groupId);
         if (!group) {
@@ -525,48 +617,32 @@ export class FSRSManager {
         const existingCardCount = Object.keys(this.storage.cards || {}).length;
         console.log(`当前存储中有 ${existingCardCount} 张卡片`);
         
-        // 获取所有符合条件的卡片
-        console.log('调用 FlashcardFactory.generateCardsForGroup 生成卡片...');
-        const newCards = await this.cardFactory.generateCardsForGroup(group, (card: FlashcardState, groupId: string) => {
-            console.log(`添加新卡片到存储: ${card.id}`);
-            this.storage.cards[card.id] = card;
-            
-            // 添加卡片到分组
-            const addResult = this.addCardToGroup(card.id, groupId);
-            console.log(`将卡片 ${card.id} 添加到分组 ${groupId} 结果: ${addResult ? '成功' : '失败'}`);
-            
-            // 手动检查并添加卡片到分组
-            const updatedGroup = this.groupRepository.getGroupById(groupId);
-            if (updatedGroup) {
-                // 确保 cardIds 数组存在
-                if (!Array.isArray(updatedGroup.cardIds)) {
-                    updatedGroup.cardIds = [];
+        // 直接使用 CardGroupRepository 的 getCardsByGroupId 方法获取符合条件的卡片
+        console.log('根据筛选条件获取卡片...');
+        const filteredCards = this.groupRepository.getCardsByGroupId(groupId);
+        
+        // 清空分组中的卡片列表，准备重新添加
+        group.cardIds = [];
+        
+        // 将符合条件的卡片添加到分组中
+        for (const card of filteredCards) {
+            if (card && card.id) {
+                // 添加卡片到分组
+                this.addCardToGroup(card.id, groupId);
+                
+                // 确保卡片有 groupIds 属性
+                if (!card.groupIds) {
+                    card.groupIds = [];
                 }
                 
-                if (!updatedGroup.cardIds.includes(card.id)) {
-                    console.log(`手动添加卡片 ${card.id} 到分组 ${groupId}`);
-                    updatedGroup.cardIds.push(card.id);
+                // 将分组添加到卡片的分组列表中
+                if (!card.groupIds.includes(groupId)) {
+                    card.groupIds.push(groupId);
                 }
             }
-        });
-        
-        console.log(`生成了 ${newCards} 张新卡片`);
-        
-        // 再次检查分组中的卡片数量
-        const updatedGroup = this.groupRepository.getGroupById(groupId);
-        if (updatedGroup) {
-            // 确保 cardIds 数组存在
-            if (!Array.isArray(updatedGroup.cardIds)) {
-                updatedGroup.cardIds = [];
-            }
-            
-            console.log(`分组 ${updatedGroup.name} 中现有 ${updatedGroup.cardIds.length} 张卡片`);
-            if (updatedGroup.cardIds.length > 0) {
-                console.log(`卡片ID列表: ${updatedGroup.cardIds.join(', ')}`);
-            } else {
-                console.log('分组中没有卡片');
-            }
         }
+        
+        console.log(`分组 ${group.name} 中共有 ${filteredCards.length} 张卡片`);
         
         // 保存更改
         console.log('保存存储...');
@@ -574,7 +650,134 @@ export class FSRSManager {
         console.log('触发闪卡变更事件...');
         this.plugin.eventManager.emitFlashcardChanged();
         
-        return newCards;
+        return filteredCards.length;
+    }
+
+    /**
+     * 检查卡片是否符合已有分组的筛选条件，并将其添加到相应的分组中
+     * @param card 要检查的卡片
+     * @returns 添加到的分组数量
+     */
+    private checkAndAddCardToGroups(card: FlashcardState): number {
+        if (!card || !card.id) return 0;
+        
+        console.log(`检查卡片 ${card.id} 是否符合已有分组的筛选条件`);
+        
+        // 获取所有分组
+        const allGroups = this.groupRepository.getCardGroups();
+        if (!allGroups || allGroups.length === 0) {
+            console.log('没有可用的分组');
+            return 0;
+        }
+        
+        console.log(`共有 ${allGroups.length} 个分组需要检查`);
+        
+        // 记录添加到的分组数量
+        let addedCount = 0;
+        
+        // 逐个检查分组
+        for (const group of allGroups) {
+            if (!group.filter || group.filter.trim().length === 0) {
+                console.log(`分组 ${group.name} 没有筛选条件，跳过`);
+                continue;
+            }
+            
+            console.log(`检查分组 ${group.name}, 筛选条件: ${group.filter}`);
+            
+            // 创建一个仅包含当前卡片的数组
+            const singleCardArray = [card];
+            
+            // 使用 CardGroupRepository 的筛选逻辑检查卡片是否符合条件
+            const isMatch = this.checkCardMatchesGroupFilter(card, group.filter);
+            
+            if (isMatch) {
+                console.log(`卡片 ${card.id} 符合分组 ${group.name} 的筛选条件`);
+                
+                // 添加卡片到分组
+                const added = this.addCardToGroup(card.id, group.id);
+                if (added) {
+                    console.log(`卡片 ${card.id} 成功添加到分组 ${group.name}`);
+                    addedCount++;
+                } else {
+                    console.log(`卡片 ${card.id} 添加到分组 ${group.name} 失败`);
+                }
+            } else {
+                console.log(`卡片 ${card.id} 不符合分组 ${group.name} 的筛选条件`);
+            }
+        }
+        
+        if (addedCount > 0) {
+            console.log(`卡片 ${card.id} 已添加到 ${addedCount} 个分组`);
+        } else {
+            console.log(`卡片 ${card.id} 未添加到任何分组`);
+        }
+        
+        return addedCount;
+    }
+    
+    /**
+     * 检查卡片是否符合分组的筛选条件
+     * @param card 要检查的卡片
+     * @param filter 分组的筛选条件
+     * @returns 是否符合条件
+     */
+    private checkCardMatchesGroupFilter(card: FlashcardState, filter: string): boolean {
+        if (!card || !card.filePath || !filter || filter.trim().length === 0) {
+            return false;
+        }
+        
+        // 按逗号分割多个筛选条件
+        const filterConditions = filter.split(',').map(f => f.trim()).filter(f => f.length > 0);
+        if (filterConditions.length === 0) {
+            return false;
+        }
+        
+        // Wiki 链接正则表达式
+        const wikiLinkRegex = /\[\[([^\]]+)\]\]/;
+        
+        // 处理卡片文件路径
+        const filePath = card.filePath.toLowerCase();
+        const fileName = filePath.split('/').pop() || ''; // 获取文件名
+        const fileNameWithoutExt = fileName.replace(/\.md$/i, ''); // 移除 .md 扩展名
+        
+        // 检查每个筛选条件
+        for (const condition of filterConditions) {
+            const conditionLower = condition.toLowerCase();
+            
+            // 检查是否是 Wiki 链接格式
+            const wikiMatch = conditionLower.match(wikiLinkRegex);
+            
+            if (wikiMatch) {
+                // 如果是 Wiki 链接格式，提取链接内容并匹配文件名
+                const linkText = wikiMatch[1].toLowerCase();
+                
+                // 检查文件名是否匹配
+                if (fileNameWithoutExt === linkText || fileName === linkText) {
+                    console.log(`Wiki 链接匹配成功: ${linkText} 匹配文件 ${fileName}`);
+                    return true;
+                }
+            } else {
+                // 如果不是 Wiki 链接格式，直接匹配文件路径
+                if (filePath.includes(conditionLower)) {
+                    console.log(`路径匹配成功: ${conditionLower} 匹配路径 ${filePath}`);
+                    return true;
+                }
+                
+                // 检查卡片内容
+                if (card.text && card.text.toLowerCase().includes(conditionLower)) {
+                    console.log(`内容匹配成功: ${conditionLower} 匹配卡片内容`);
+                    return true;
+                }
+                
+                // 检查卡片答案
+                if (card.answer && card.answer.toLowerCase().includes(conditionLower)) {
+                    console.log(`答案匹配成功: ${conditionLower} 匹配卡片答案`);
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     /**
