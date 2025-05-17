@@ -3347,6 +3347,14 @@ textarea.flashcard-modal-input {
     display: none !important;
 }
 
+/* 确保 CommentWidget 始终可见 */
+.hi-note-widget {
+    display: inline-flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
 /* 多选操作按钮容器 */
 .multi-select-actions {
     position: fixed;
