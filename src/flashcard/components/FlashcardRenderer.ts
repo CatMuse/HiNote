@@ -494,7 +494,17 @@ export class FlashcardRenderer {
                     } else {
                         // 显示天数
                         const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-                        formattedInterval = this.component.getUtils().formatInterval(diffDays);
+                        // 格式化时间间隔
+                        if (diffDays < 1) {
+                            const hours = Math.round(diffDays * 24);
+                            formattedInterval = `${hours}h`;
+                        } else if (diffDays < 30) {
+                            formattedInterval = `${Math.round(diffDays)}d`;
+                        } else if (diffDays < 365) {
+                            formattedInterval = `${Math.round(diffDays / 30)}mo`;
+                        } else {
+                            formattedInterval = `${Math.round(diffDays / 365)}y`;
+                        }
                     }
                     
                     predictionSpan.createSpan({ 
@@ -541,7 +551,17 @@ export class FlashcardRenderer {
                         formattedInterval = `${Math.round(intervalHours)}h`; // 小时格式
                     } else {
                         // 大于等于24小时的显示天
-                        formattedInterval = this.component.getUtils().formatInterval(intervalDays); // 天数格式
+                        // 格式化时间间隔
+                        if (intervalDays < 1) {
+                            const hours = Math.round(intervalDays * 24);
+                            formattedInterval = `${hours}h`;
+                        } else if (intervalDays < 30) {
+                            formattedInterval = `${Math.round(intervalDays)}d`;
+                        } else if (intervalDays < 365) {
+                            formattedInterval = `${Math.round(intervalDays / 30)}mo`;
+                        } else {
+                            formattedInterval = `${Math.round(intervalDays / 365)}y`;
+                        }
                     }
                     
                     button.createSpan({ 
@@ -618,30 +638,8 @@ export class FlashcardRenderer {
             return;
         }
         
-        // 检查内容是否包含挖空格式，并进行处理
-        let markdownContent = content;
-        
-        // 检查是否是挖空格式，如果是，确保挖空内容被正确处理
-        const clozeRegex = /\{\{([^{}]+)\}\}/g;
-        if (clozeRegex.test(content)) {
-            // 重置正则表达式的lastIndex
-            clozeRegex.lastIndex = 0;
-            
-            // 提取挖空内容
-            let match;
-            let clozeAnswers = [];
-            while ((match = clozeRegex.exec(content)) !== null) {
-                clozeAnswers.push(match[1]);
-            }
-            
-            // 如果内容只有挖空标记而没有其他文本，则格式化显示
-            if (clozeAnswers.length > 0) {
-                // 如果内容不包含"挖空答案:"，则添加格式化的答案
-                if (!content.includes('挖空答案:')) {
-                    markdownContent = clozeAnswers.join('\n');
-                }
-            }
-        }
+        // 内容直接使用传入的 content
+        const markdownContent = content;
         
         try {
             // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown

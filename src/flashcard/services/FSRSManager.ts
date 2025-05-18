@@ -12,14 +12,14 @@ import {
 import { FSRSService } from './FSRSService';
 import { FlashcardFactory } from './FlashcardFactory';
 import { CardGroupRepository } from './CardGroupRepository';
-import { FlashcardDataService } from './FlashcardDataService';
+// import { FlashcardDataService } from './FlashcardDataService';
 import { debounce } from 'obsidian';
 
 export class FSRSManager {
     public fsrsService: FSRSService;
     private cardFactory: FlashcardFactory;
     private groupRepository: CardGroupRepository;
-    private dataService: FlashcardDataService;
+    // private dataService: FlashcardDataService;
     private storage: FSRSStorage;
     private plugin: any; // CommentPlugin type
 
@@ -58,9 +58,9 @@ export class FSRSManager {
             console.log('存储数据加载完成，卡片组数量:', storage.cardGroups.length);
             this.storage = storage;
             
-            // 在加载完成后初始化分组仓库和数据服务
+            // 在加载完成后初始化分组仓库
             this.groupRepository = new CardGroupRepository(plugin, this.storage);
-            this.dataService = new FlashcardDataService(plugin, this.storage);
+            // this.dataService = new FlashcardDataService(plugin, this.storage);
             
             console.log('分组仓库初始化完成，卡片组数量:', this.groupRepository.getCardGroups().length);
             
@@ -69,9 +69,9 @@ export class FSRSManager {
         }).catch(error => {
             console.error('加载存储数据时出错:', error);
             
-            // 即使出错也初始化分组仓库和数据服务
+            // 即使出错也初始化分组仓库
             this.groupRepository = new CardGroupRepository(plugin, this.storage);
-            this.dataService = new FlashcardDataService(plugin, this.storage);
+            // this.dataService = new FlashcardDataService(plugin, this.storage);
             
             // 注册事件监听
             this.registerEventListeners();
@@ -1124,49 +1124,24 @@ export class FSRSManager {
         return this.groupRepository.getCardGroups();
     }
     
-    /**
-     * 导出数据
-     * @returns 导出的存储数据
-     */
+    // 导入导出功能暂未实现
+    /*
     public exportData(): FSRSStorage {
-        return this.dataService.exportData();
+        throw new Error('导出功能暂未实现');
     }
 
-    /**
-     * 导入数据
-     * @param data 要导入的数据
-     * @returns 是否导入成功
-     */
     public importData(data: FSRSStorage): boolean {
-        const result = this.dataService.importData(data);
-        if (result) {
-            this.saveStorage();
-        }
-        return result;
+        throw new Error('导入功能暂未实现');
     }
     
-    /**
-     * 导出卡片为 Anki 格式
-     * @param cardIds 要导出的卡片 ID 数组，如果为空则导出所有卡片
-     * @returns Anki 格式的导出数据（CSV 字符串）
-     */
     public exportToAnki(cardIds?: string[]): string {
-        return this.dataService.exportToAnki(cardIds);
+        throw new Error('导出到 Anki 功能暂未实现');
     }
     
-    /**
-     * 从 Anki 格式导入卡片
-     * @param ankiData Anki 格式的导入数据（CSV 字符串）
-     * @param groupId 要将卡片添加到的分组 ID，如果为空则不添加到任何分组
-     * @returns 导入的卡片数量
-     */
     public importFromAnki(ankiData: string, groupId?: string): number {
-        const importedCount = this.dataService.importFromAnki(ankiData, groupId);
-        if (importedCount > 0) {
-            this.saveStorage();
-        }
-        return importedCount;
+        throw new Error('从 Anki 导入功能暂未实现');
     }
+    */
     
     /**
      * 注册事件监听器

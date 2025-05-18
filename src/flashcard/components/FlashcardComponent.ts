@@ -183,7 +183,7 @@ export class FlashcardComponent extends Component {
     }
     
     public getApp(): any {
-        return { app: this.app };
+        return this.app;
     }
     
     public getFsrsManager(): FSRSManager {

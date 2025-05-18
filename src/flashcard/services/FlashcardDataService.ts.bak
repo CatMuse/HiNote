@@ -220,8 +220,6 @@ export class FlashcardDataService {
         }
     }
     
-    // 标签相关功能已移除
-    
     /**
      * 创建新卡片
      * @private
