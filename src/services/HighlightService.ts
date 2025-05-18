@@ -182,37 +182,8 @@ export class HighlightService {
                         
                         highlights.push(highlight);
                         
-                        // 如果是挖空格式，确保即使没有评论也能被保存
-                        if (isCloze) {
-                            try {
-                                // 获取插件实例
-                                const plugins = (this.app as any).plugins;
-                                const plugin = plugins && plugins.plugins ? 
-                                    plugins.plugins['hi-note'] : undefined;
-                                    
-                                if (plugin?.commentStore) {
-                                    // 转换为 HiNote 格式并添加到 CommentStore
-                                    const hiNote = {
-                                        id: highlight.id,
-                                        text: highlight.text,
-                                        position: highlight.position,
-                                        blockId: highlight.blockId,
-                                        comments: [],
-                                        createdAt: highlight.createdAt,
-                                        updatedAt: highlight.updatedAt,
-                                        paragraphOffset: highlight.paragraphOffset,
-                                        backgroundColor: highlight.backgroundColor,
-                                        isCloze: true,
-                                        filePath: file.path // 添加文件路径
-                                    };
-                                    
-                                    // 添加到 CommentStore
-                                    plugin.commentStore.addHighlightWithCloze(file, hiNote);
-                                }
-                            } catch (error) {
-                                console.error('[HighlightService] Error adding cloze highlight:', error);
-                            }
-                        }
+                        // 挖空格式的自动处理已移除
+                        // 现在用户需要点击 "Create HiCard" 按钮才能创建闪卡
                     }
                 }
             }
