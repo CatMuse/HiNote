@@ -33,7 +33,6 @@ export class FlashcardComponent extends Component {
     private currentCard: FlashcardState | null = null;
     private currentGroupName: string = '';
     private app: any;
-    private boundHandleKeyDown: (e: KeyboardEvent) => void;
     private completionMessage: string | null = null;
     
     // 存储每个分组的完成状态
@@ -78,9 +77,6 @@ export class FlashcardComponent extends Component {
         this.completionMessage = uiState.completionMessage || null;
         this.groupCompletionMessages = uiState.groupCompletionMessages || {};
         this.groupProgress = uiState.groupProgress || {};
-        
-        // 初始化事件处理
-        this.boundHandleKeyDown = this.operations.handleKeyDown.bind(this.operations);
     }
     
     /**
@@ -104,7 +100,7 @@ export class FlashcardComponent extends Component {
      * 清理组件
      */
     public cleanup() {
-        document.removeEventListener('keydown', this.boundHandleKeyDown);
+        // 键盘事件监听器已移除
     }
     
     /**
@@ -134,14 +130,14 @@ export class FlashcardComponent extends Component {
         this.isActive = false;
         this.container.empty();
         this.container.removeClass('flashcard-mode');
-        document.removeEventListener('keydown', this.boundHandleKeyDown);
+        // 键盘事件监听器已移除
     }
     
     /**
      * 销毁组件
      */
     public destroy() {
-        document.removeEventListener('keydown', this.boundHandleKeyDown);
+        // 键盘事件监听器已移除
         this.container.removeClass('flashcard-mode');
         this.container.empty();
     }
@@ -225,13 +221,7 @@ export class FlashcardComponent extends Component {
         this.progressContainer = container;
     }
     
-    public getBoundHandleKeyDown(): (e: KeyboardEvent) => void {
-        return this.boundHandleKeyDown;
-    }
-    
-    public setBoundHandleKeyDown(handler: (e: KeyboardEvent) => void) {
-        this.boundHandleKeyDown = handler;
-    }
+    // 键盘快捷键相关方法已移除
     
     public getRatingButtons() {
         return this.ratingButtons;
@@ -255,9 +245,7 @@ export class FlashcardComponent extends Component {
         this.operations.refreshCardList();
     }
     
-    public setupKeyboardShortcuts() {
-        this.operations.setupKeyboardShortcuts();
-    }
+    // 键盘快捷键设置方法已移除
     
     /**
      * 保存当前状态
