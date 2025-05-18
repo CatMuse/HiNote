@@ -61,9 +61,8 @@ export class FlashcardStatsPanel {
     private renderHeatmap() {
         const heatmapArea = this.containerEl.createDiv('flashcard-heatmap-area');
         
-        // 获取过去一年的学习数据
-        const storage = this.fsrsManager.exportData();
-        const dailyStats = storage.dailyStats || [];
+        // 获取每日学习统计数据
+        const dailyStats = (this.fsrsManager as any).storage?.dailyStats || [];
         
         // 创建热力图
         this.createHeatmap(heatmapArea, dailyStats);
