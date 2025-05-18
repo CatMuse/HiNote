@@ -380,19 +380,7 @@ export class CardGroupRepository {
         }
     }
     
-    /**
-     * 从标签文本中提取标签
-     * @param text 包含标签的文本
-     * @returns 提取的标签数组
-     */
-    public extractTagsFromText(text: string): string[] {
-        if (!text) return [];
-        
-        const tagRegex = /#([a-zA-Z0-9_\u4e00-\u9fa5]+)/g;
-        const matches = [...text.matchAll(tagRegex)];
-        
-        return matches.map(match => match[1]);
-    }
+    // 标签相关功能已移除
     
     /**
      * 获取卡片所属的分组

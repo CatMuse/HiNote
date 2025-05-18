@@ -502,77 +502,28 @@ export class FSRSManager {
         return this.storage.cards[cardId];
     }
     
-    // 获取卡片在不同评分下的预测结果
-    // @param cardId 卡片ID
-    // @returns 不同评分下的预测结果，如果卡片不存在则返回 null
+    /**
+     * 获取卡片在不同评分下的预测结果
+     * @param cardId 卡片ID
+     * @returns 不同评分下的预测结果，如果卡片不存在则返回 null
+     */
     public getCardPredictions(cardId: string): Record<FSRSRating, FlashcardState> | null {
         const card = this.storage.cards[cardId];
         if (!card) return null;
         
-        // 使用 FSRS 服务获取预测结果
+        // 使用 FSRSService 的 getSchedulingCards 方法获取预测结果
         return this.fsrsService.getSchedulingCards(card);
     }
-
+    
     /**
-     * 为分组生成卡片
+     * 批量生成卡片功能已移除
+     * 现在只通过 HighlightCard.handleCreateHiCard 创建闪卡
      * @param groupId 分组ID
-     * @returns 生成的卡片数量
+     * @returns 始终返回0，表示没有生成卡片
      */
     public async generateCardsForGroup(groupId: string): Promise<number> {
-        console.log(`开始为分组获取卡片: ${groupId}`);
-        
-        const group = this.groupRepository.getGroupById(groupId);
-        if (!group) {
-            console.log(`未找到分组: ${groupId}`);
-            return 0;
-        }
-        
-        console.log(`分组信息: 名称=${group.name}, 过滤条件=${group.filter}`);
-        
-        // 确保分组有 cardIds 数组
-        if (!Array.isArray(group.cardIds)) {
-            console.log(`初始化分组 ${group.name} 的 cardIds 数组`);
-            group.cardIds = [];
-        }
-        
-        // 获取当前存储中的卡片数量
-        const existingCardCount = Object.keys(this.storage.cards || {}).length;
-        console.log(`当前存储中有 ${existingCardCount} 张卡片`);
-        
-        // 直接使用 CardGroupRepository 的 getCardsByGroupId 方法获取符合条件的卡片
-        console.log('根据筛选条件获取卡片...');
-        const filteredCards = this.groupRepository.getCardsByGroupId(groupId);
-        
-        // 清空分组中的卡片列表，准备重新添加
-        group.cardIds = [];
-        
-        // 将符合条件的卡片添加到分组中
-        for (const card of filteredCards) {
-            if (card && card.id) {
-                // 添加卡片到分组
-                this.addCardToGroup(card.id, groupId);
-                
-                // 确保卡片有 groupIds 属性
-                if (!card.groupIds) {
-                    card.groupIds = [];
-                }
-                
-                // 将分组添加到卡片的分组列表中
-                if (!card.groupIds.includes(groupId)) {
-                    card.groupIds.push(groupId);
-                }
-            }
-        }
-        
-        console.log(`分组 ${group.name} 中共有 ${filteredCards.length} 张卡片`);
-        
-        // 保存更改
-        console.log('保存存储...');
-        await this.saveStorage();
-        console.log('触发闪卡变更事件...');
-        this.plugin.eventManager.emitFlashcardChanged();
-        
-        return filteredCards.length;
+        console.log(`FSRSManager.generateCardsForGroup: 批量生成卡片功能已移除，现在只通过 HighlightCard.handleCreateHiCard 创建闪卡`);
+        return 0;
     }
 
     /**
@@ -833,20 +784,6 @@ export class FSRSManager {
         return this.saveStorage();
     }
     
-    /**
-     * 从标签文本中提取标签 (委托给 FlashcardFactory)
-     * @param text 包含标签的文本
-     * @returns 提取的标签数组
-     */
-    /**
-     * 从标签文本中提取标签（委托给 CardGroupRepository）
-     * @param text 包含标签的文本
-     * @returns 提取的标签数组
-     */
-    private extractTagsFromText(text: string): string[] {
-        return this.groupRepository.extractTagsFromText(text);
-    }
-
     /**
      * 获取今天的日期时间戳（0点）
      */

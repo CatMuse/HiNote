@@ -59,9 +59,8 @@ export class FlashcardDataService {
         
         // Anki 格式: 正面;背面;标签
         const csvRows = cards.map(card => {
-            // 提取标签（如果有）
-            const tags = this.extractTags(card);
-            const tagsStr = tags.length > 0 ? tags.join(' ') : '';
+            // 标签功能已移除
+            const tagsStr = '';
             
             // 转义分号和换行符
             const front = this.escapeForCsv(card.text);
@@ -97,10 +96,10 @@ export class FlashcardDataService {
                 
                 const front = this.unescapeFromCsv(parts[0]);
                 const back = this.unescapeFromCsv(parts[1]);
-                const tags = parts[2] ? parts[2].split(' ').filter(Boolean) : [];
+                // 标签功能已移除
                 
                 // 创建新卡片
-                const card = this.createCard(front, back, tags);
+                const card = this.createCard(front, back);
                 
                 // 添加到存储
                 this.storage.cards[card.id] = card;
@@ -221,50 +220,19 @@ export class FlashcardDataService {
         }
     }
     
-    /**
-     * 从卡片中提取标签
-     * @private
-     */
-    private extractTags(card: FlashcardState): string[] {
-        const tags: string[] = [];
-        
-        // 从文本中提取标签
-        const textTags = this.extractTagsFromText(card.text);
-        const answerTags = this.extractTagsFromText(card.answer);
-        
-        // 合并去重
-        return [...new Set([...textTags, ...answerTags])];
-    }
-    
-    /**
-     * 从文本中提取标签
-     * @private
-     */
-    private extractTagsFromText(text: string): string[] {
-        if (!text) return [];
-        
-        const tagRegex = /#([a-zA-Z0-9_\u4e00-\u9fa5]+)/g;
-        const matches = [...text.matchAll(tagRegex)];
-        
-        return matches.map(match => match[1]);
-    }
+    // 标签相关功能已移除
     
     /**
      * 创建新卡片
      * @private
      */
-    private createCard(front: string, back: string, tags: string[] = []): FlashcardState {
+    private createCard(front: string, back: string): FlashcardState {
         const now = Date.now();
         const id = `card-${now}-${Math.random().toString(36).substring(2, 9)}`;
         
-        // 如果有标签，添加到文本中
-        const frontWithTags = tags.length > 0 
-            ? `${front} ${tags.map(tag => `#${tag}`).join(' ')}`
-            : front;
-        
         return {
             id,
-            text: frontWithTags,
+            text: front,
             answer: back,
             difficulty: 0,
             stability: 0,

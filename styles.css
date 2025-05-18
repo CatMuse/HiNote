@@ -2362,6 +2362,7 @@ justify-content: center;
     color: var(--text-normal);
     cursor: pointer;
     transition: all 0.2s ease;
+    text-align: left;
 }
 
 .highlight-ai-dropdown-item:hover,
@@ -2374,11 +2375,6 @@ justify-content: center;
 .highlight-more-actions-container {
     position: relative;
     z-index: 1000;
-}
-
-/* 下拉菜单项样式 */
-.highlight-more-dropdown-item {
-    text-align: left;
 }
 
 /* AI 按钮样式 */

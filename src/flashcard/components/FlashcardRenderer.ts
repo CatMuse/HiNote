@@ -134,8 +134,6 @@ export class FlashcardRenderer {
             // 操作按钮
             const actions = header.createEl("div", { cls: "flashcard-group-actions" });
             
-            // 同步功能已移除
-            
             // 编辑按钮
             const editButton = actions.createEl("div", { 
                 cls: "flashcard-group-action", 
