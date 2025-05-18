@@ -348,74 +348,8 @@ export class FSRSManager {
                 break;
         }
         
-        // 保存到存储
-        this.saveStorage();
-    }
-
-    /**
-     * 获取到期需要复习的卡片
-     * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
-     * @returns 到期卡片列表
-     * @private 私有方法，仅内部使用
-     */
-    private getDueCards(): FlashcardState[] {
-        console.warn('调用过时的 getDueCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
-        const dueCards = this.fsrsService.getReviewableCards(Object.values(this.storage.cards));
-        
-        // 如果设置了每日复习限制，则限制返回的卡片数量
-        const remainingReviews = this.getRemainingReviewsToday();
-        if (remainingReviews <= 0) {
-            return []; // 今天的复习配额已用完
-        }
-        
-        return dueCards.slice(0, remainingReviews);
-    }
-    
-    /**
-     * 获取新卡片（从未学习过的卡片）
-     * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
-     * @returns 新卡片列表
-     * @private 私有方法，仅内部使用
-     */
-    private getNewCards(): FlashcardState[] {
-        console.warn('调用过时的 getNewCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
-        const newCards = Object.values(this.storage.cards)
-            .filter(card => card.reviews === 0);
-        
-        // 如果设置了每日新卡片限制，则限制返回的卡片数量
-        const remainingNew = this.getRemainingNewCardsToday();
-        if (remainingNew <= 0) {
-            return []; // 今天的新卡片学习配额已用完
-        }
-        
-        return newCards.slice(0, remainingNew);
-    }
-
-    /**
-     * 获取所有卡片
-     * @deprecated 此方法已过时，请使用 getCardsForStudy 方法并指定分组ID
-     * @returns 所有卡片列表
-     * @private 私有方法，仅内部使用
-     */
-    private getLatestCards(): FlashcardState[] {
-        console.warn('调用过时的 getLatestCards 方法，请使用 getCardsForStudy 方法并指定分组ID');
-        return Object.values(this.storage.cards);
-    }
-    
-    /**
-     * 获取所有卡片对象
-     * @returns 卡片对象集合
-     */
-    public getAllCards(): Record<string, FlashcardState> {
-        return this.storage.cards;
-    }
-    
-    /**
-     * 获取所有分组
-     * @returns 所有分组列表
-     */
-    public getCardGroups(): CardGroup[] {
-        return this.groupRepository.getCardGroups();
+        // 保存更新后的统计数据
+        this.saveStorageDebounced();
     }
     
     /**
@@ -514,19 +448,7 @@ export class FSRSManager {
         return cardsForStudy;
     }
 
-    /**
-     * reviewCard 方法 - 作为历史兼容性保留
-     * @deprecated 请使用 trackStudyProgress 方法代替
-     * @param cardId 卡片ID
-     * @param rating 评分 (0-3: Again, Hard, Good, Easy)
-     * @returns 更新后的卡片状态
-     * @private 私有方法，仅内部使用
-     */
-    private reviewCard(cardId: string, rating: FSRSRating): FlashcardState | null {
-        // 调用统一的学习进度跟踪方法
-        console.warn('FSRSManager.reviewCard 已弃用，请使用 trackStudyProgress 方法代替');
-        return this.trackStudyProgress(cardId, rating);
-    }
+
     
     /**
      * 统一的学习进度跟踪方法
@@ -1247,6 +1169,22 @@ export class FSRSManager {
      */
     public getCardsByGroupId(groupId: string): FlashcardState[] {
         return this.groupRepository.getCardsByGroupId(groupId);
+    }
+    
+    /**
+     * 获取所有卡片的数组
+     * @returns 所有卡片的数组
+     */
+    public getAllCards(): FlashcardState[] {
+        return Object.values(this.storage.cards);
+    }
+    
+    /**
+     * 获取所有分组
+     * @returns 所有分组列表
+     */
+    public getCardGroups(): CardGroup[] {
+        return this.groupRepository.getCardGroups();
     }
     
     /**
