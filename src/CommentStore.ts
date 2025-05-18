@@ -47,7 +47,6 @@ export class CommentStore {
     private commentCache: Map<string, HiNote[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
-    private readonly CLOZE_PATTERN = /\{\{([^{}]+)\}\}/; // 挖空格式的正则表达式
 
     constructor(plugin: Plugin) {
         this.plugin = plugin;
@@ -446,75 +445,5 @@ export class CommentStore {
         return fileHighlights.filter(highlight => highlight.blockId === blockId);
     }
 
-    /**
-     * 添加挖空格式的高亮（无需批注）
-     * @param file 文件
-     * @param highlight 高亮信息
-     * @returns 添加的高亮
-     */
-    addHighlightWithCloze(file: TFile, highlight: HiNote): HiNote | null {
-        // 检查是否为挖空格式
-        if (!this.CLOZE_PATTERN.test(highlight.text)) {
-            return null; // 不是挖空格式，直接返回
-        }
-        
-        // 检查是否已存在相同内容和位置的高亮
-        const filePath = file.path;
-        if (this.data[filePath]) {
-            const existingHighlights = Object.values(this.data[filePath]);
-            const duplicateHighlight = existingHighlights.find(h => 
-                h.text === highlight.text && 
-                Math.abs(h.position - highlight.position) < 10 && // 位置接近视为相同
-                h.isCloze === true
-            );
-            
-            if (duplicateHighlight) {
-                // 如果已存在相同高亮，直接返回现有的高亮
-                return duplicateHighlight;
-            }
-        }
-        
-        // 确保 highlight 有一个唯一的 ID
-        if (!highlight.id) {
-            highlight.id = `highlight-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        }
-        
-        // 设置创建和更新时间
-        const now = Date.now();
-        highlight.createdAt = now;
-        highlight.updatedAt = now;
-        
-        // 设置 isCloze 标记
-        highlight.isCloze = true;
-        
-        // 确保文件路径存在
-        if (!this.data[filePath]) {
-            this.data[filePath] = {};
-        }
-        
-        // 添加高亮到数据中
-        this.data[filePath][highlight.id] = highlight;
-        
-        // 更新缓存
-        if (!this.comments.has(filePath)) {
-            this.comments.set(filePath, []);
-        }
-        const fileHighlights = this.comments.get(filePath) || [];
-        const existingIndex = fileHighlights.findIndex(h => h.id === highlight.id);
-        if (existingIndex >= 0) {
-            fileHighlights[existingIndex] = highlight;
-        } else {
-            fileHighlights.push(highlight);
-        }
-        
-        // 保存数据
-        this.saveComments();
-        
-        // 触发事件通知
-        if (this.eventManager) {
-            this.eventManager.emitHighlightUpdate(filePath, highlight.text, highlight.text);
-        }
-        
-        return highlight;
-    }
+    // addHighlightWithCloze 方法已移除，现在使用 Create HiCard 按钮手动创建闪卡
 }

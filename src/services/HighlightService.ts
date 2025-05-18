@@ -24,8 +24,7 @@ export class HighlightService {
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
         /==\s*([\s\S]*?)\s*==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
     
-    // 挖空格式的正则表达式 - 仅用于检测
-    private static readonly CLOZE_PATTERN = /\{\{([^{}]+)\}\}/;
+    // 已移除挖空格式的正则表达式，现在使用 Create HiCard 按钮手动创建闪卡
 
 
     private settings: PluginSettings;
@@ -162,7 +161,8 @@ export class HighlightService {
                         }
                         
                         // 检查是否包含挖空格式 {{}}
-                        const isCloze = HighlightService.CLOZE_PATTERN.test(text);
+                        // 直接使用正则表达式而不是引用常量
+                        const isCloze = /\{\{([^{}]+)\}\}/.test(text);
                         
                         // 创建高亮对象
                         const highlight = {
