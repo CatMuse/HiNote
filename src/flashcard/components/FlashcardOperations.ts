@@ -157,7 +157,16 @@ export class FlashcardOperations {
         
         // 使用统一的卡片获取方法
         console.log(`获取分组 ${groupName} 的卡片`);
-        const cards = fsrsManager.getCardsForStudy(groupName);
+        
+        // 获取分组 ID
+        const group = fsrsManager.getCardGroups().find((g: any) => g.name === groupName);
+        if (!group) {
+            console.error(`未找到名称为 ${groupName} 的分组`);
+            return;
+        }
+        
+        // 使用分组 ID 获取卡片
+        const cards = fsrsManager.getCardsForStudy(group.id);
         console.log(`获取到 ${cards.length} 张卡片`);
         
         // 获取保存的UI状态（在设置卡片列表之前）

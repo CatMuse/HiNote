@@ -32,6 +32,7 @@ export class FlashcardComponent extends Component {
     private fsrsManager: FSRSManager;
     private currentCard: FlashcardState | null = null;
     private currentGroupName: string = '';
+    private currentGroupId: string = '';
     private app: any;
     private completionMessage: string | null = null;
     
@@ -69,14 +70,47 @@ export class FlashcardComponent extends Component {
         this.progressManager = new FlashcardProgressManager(this);
         this.utils = new FlashcardUtils(this);
         
+        // 初始化属性
+        this.groupCompletionMessages = {};
+        this.groupProgress = {};
+        
         // 加载 UI 状态
-        const uiState = this.fsrsManager.getUIState();
+        const uiState = this.fsrsManager.getUIState() || {};
+        
+        // 设置当前分组名称
         this.currentGroupName = uiState.currentGroupName || '';
+        
+        // 设置当前分组 ID
+        if (this.currentGroupName) {
+            const group = this.fsrsManager.getCardGroups().find((g: any) => g.name === this.currentGroupName);
+            if (group) {
+                this.currentGroupId = group.id;
+                console.log(`初始化当前分组: 名称=${this.currentGroupName}, ID=${group.id}`);
+            } else {
+                console.warn(`初始化时未找到名称为 ${this.currentGroupName} 的分组`);
+                this.currentGroupId = '';
+            }
+        } else {
+            this.currentGroupId = '';
+        }
+        
+        // 设置其他状态
         this.currentIndex = uiState.currentIndex || 0;
         this.isFlipped = uiState.isFlipped || false;
         this.completionMessage = uiState.completionMessage || null;
-        this.groupCompletionMessages = uiState.groupCompletionMessages || {};
-        this.groupProgress = uiState.groupProgress || {};
+        
+        // 确保 groupCompletionMessages 和 groupProgress 是对象
+        if (uiState && 'groupCompletionMessages' in uiState && uiState.groupCompletionMessages && typeof uiState.groupCompletionMessages === 'object') {
+            this.groupCompletionMessages = { ...uiState.groupCompletionMessages };
+        } else {
+            this.groupCompletionMessages = {};
+        }
+        
+        if (uiState && 'groupProgress' in uiState && uiState.groupProgress && typeof uiState.groupProgress === 'object') {
+            this.groupProgress = { ...uiState.groupProgress };
+        } else {
+            this.groupProgress = {};
+        }
     }
     
     /**
@@ -186,6 +220,35 @@ export class FlashcardComponent extends Component {
     
     public setCurrentGroupName(groupName: string) {
         this.currentGroupName = groupName;
+        // 更新分组 ID
+        if (groupName) {
+            const group = this.fsrsManager.getCardGroups().find((g: any) => g.name === groupName);
+            if (group) {
+                this.currentGroupId = group.id;
+                console.log(`设置当前分组: 名称=${groupName}, ID=${group.id}`);
+            } else {
+                console.warn(`未找到名称为 ${groupName} 的分组`);
+                this.currentGroupId = '';
+            }
+        } else {
+            console.log('清空当前分组');
+            this.currentGroupId = '';
+        }
+    }
+    
+    public getCurrentGroupId(): string {
+        return this.currentGroupId;
+    }
+    
+    public setCurrentGroupId(groupId: string) {
+        this.currentGroupId = groupId;
+        // 更新分组名称
+        if (groupId) {
+            const group = this.fsrsManager.getCardGroups().find((g: any) => g.id === groupId);
+            this.currentGroupName = group ? group.name : '';
+        } else {
+            this.currentGroupName = '';
+        }
     }
     
     public getCompletionMessage(): string | null {

@@ -324,13 +324,14 @@ export class ChatView extends Component {
             // 第一次创建时初始化
             this.containerEl.addClass("highlight-chat-window");
             this.containerEl.addClass("highlight-chat-window-position");
+            // 添加浮动窗口的CSS类
             document.body.appendChild(this.containerEl);
         }
 
-        // 隐藏浮动按钮
-        if (this.floatingButton) {
-            this.floatingButton.addClass("hi-note-hidden");
-        }
+        // 隐藏所有浮动按钮
+        document.querySelectorAll('.highlight-floating-button').forEach(btn => {
+            (btn as HTMLElement).style.display = 'none';
+        });
 
         // 聚焦输入框
         requestAnimationFrame(() => {
@@ -342,9 +343,10 @@ export class ChatView extends Component {
         // 只隐藏而不移除
         this.containerEl.addClass('highlight-chat-hidden');
 
-        if (this.floatingButton) {
-            this.floatingButton.removeClass("hi-note-hidden");
-        }
+        // 显示所有浮动按钮
+        document.querySelectorAll('.highlight-floating-button').forEach(btn => {
+            (btn as HTMLElement).style.display = '';
+        });
     }
 
     private addMessage(container: HTMLElement, content: string, type: "user" | "assistant", useTypeWriter: boolean = true) {

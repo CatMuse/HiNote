@@ -1862,6 +1862,15 @@ settings:
     flex-direction: column !important;
     overflow: hidden;
     z-index: 9999 !important;
+    bottom: 20px;
+    right: 20px;
+    top: auto;
+    left: auto;
+}
+
+/* 聊天窗口隐藏状态 */
+.highlight-chat-window.highlight-chat-hidden {
+    display: none !important;
 }
 
 /* 聊天窗口组件样式 */

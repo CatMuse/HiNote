@@ -1138,24 +1138,10 @@ export class FSRSManager {
      * @param deleteCards 是否同时删除分组内的卡片
      * @returns 是否删除成功
      */
-    public async deleteCardGroup(groupId: string, deleteCards = true): Promise<boolean> {
-        // 如果要删除卡片，先获取分组内的所有卡片ID
-        let cardsToDelete: string[] = [];
-        if (deleteCards) {
-            const group = this.groupRepository.getGroupById(groupId);
-            cardsToDelete = group?.cardIds || [];
-        }
-        
-        // 删除分组
-        const result = await this.groupRepository.deleteCardGroup(groupId, false); // 先不删除卡片
+    public async deleteCardGroup(groupId: string, deleteCards = false): Promise<boolean> {
+        // 删除分组，不删除卡片
+        const result = await this.groupRepository.deleteCardGroup(groupId, false);
         if (!result) return false;
-        
-        // 如果需要删除卡片，单独处理
-        if (deleteCards && cardsToDelete.length > 0) {
-            for (const cardId of cardsToDelete) {
-                this.deleteCard(cardId);
-            }
-        }
         
         // 保存更改
         try {

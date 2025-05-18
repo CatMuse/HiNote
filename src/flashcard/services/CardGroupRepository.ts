@@ -123,7 +123,7 @@ export class CardGroupRepository {
      * @param deleteCards 是否同时删除分组内的卡片
      * @returns 是否删除成功
      */
-    public async deleteCardGroup(groupId: string, deleteCards = true): Promise<boolean> {
+    public async deleteCardGroup(groupId: string, deleteCards = false): Promise<boolean> {
         const index = this.storage.cardGroups.findIndex((g: CardGroup) => g.id === groupId);
         if (index === -1) return false;
         
@@ -153,18 +153,13 @@ export class CardGroupRepository {
         }
         
         // 获取该分组内的所有卡片
-        const cardsInGroup = deletedGroup.cardIds || [];
+        const cardsInGroup = [...(deletedGroup.cardIds || [])];
+        console.log(`删除分组 ${groupId}，包含 ${cardsInGroup.length} 张卡片，deleteCards=${deleteCards}`);
         
-        if (deleteCards) {
-            // 删除分组内的所有卡片
-            for (const cardId of cardsInGroup) {
-                this.deleteCardReference(cardId);
-            }
-        } else {
-            // 仅解除卡片与分组的关联
-            for (const cardId of cardsInGroup) {
-                this.removeCardFromGroup(cardId, groupId);
-            }
+        // 仅解除卡片与分组的关联，不再删除卡片
+        for (const cardId of cardsInGroup) {
+            console.log(`从分组 ${groupId} 中移除卡片 ${cardId}`);
+            this.removeCardFromGroup(cardId, groupId);
         }
         
         // 删除分组
@@ -249,118 +244,95 @@ export class CardGroupRepository {
      * @returns 分组中的卡片列表
      */
     public getCardsByGroupId(groupId: string): FlashcardState[] {
-        console.log(`获取分组卡片: ${groupId}`);
+        console.log(`[getCardsByGroupId] 开始获取分组卡片, 分组ID: ${groupId}`);
         
         const group = this.getGroupById(groupId);
         if (!group) {
-            console.log(`未找到分组: ${groupId}`);
+            console.error(`[getCardsByGroupId] 错误: 未找到分组: ${groupId}`);
             return [];
         }
         
-        console.log(`分组信息:`, {
+        console.log(`[getCardsByGroupId] 找到分组:`, {
             id: group.id,
             name: group.name,
-            filter: group.filter
+            filter: group.filter,
+            cardIds: group.cardIds ? group.cardIds.length : 0
         });
         
-        // 检查存储中的卡片总数
-        const allCardIds = Object.keys(this.storage.cards);
-        console.log(`存储中共有 ${allCardIds.length} 张卡片`);
+        // 检查存储中的卡片
+        const allCardIds = Object.keys(this.storage.cards || {});
+        console.log(`[getCardsByGroupId] 存储中共有 ${allCardIds.length} 张卡片`);
         
-        // 如果没有卡片，直接返回空数组
-        if (allCardIds.length === 0) {
-            return [];
-        }
-        
-        // 获取所有卡片
-        const allCards = Object.values(this.storage.cards) as FlashcardState[];
-        
-        // 默认使用所有卡片
-        let filteredCards = allCards;
-        
-        // 如果有筛选条件，应用筛选
-        if (group.filter && group.filter.trim().length > 0) {
-            // 按逗号分割多个筛选条件
-            const filterConditions = group.filter.split(',').map(f => f.trim()).filter(f => f.length > 0);
-            console.log(`分解出 ${filterConditions.length} 个筛选条件:`, filterConditions);
+        // 如果分组有 cardIds 数组，直接返回这些卡片
+        if (group.cardIds && group.cardIds.length > 0) {
+            console.log(`[getCardsByGroupId] 分组 ${group.name} 有 ${group.cardIds.length} 张卡片`);
             
-            // 如果没有有效的筛选条件，返回所有卡片
-            if (filterConditions.length === 0) {
-                return allCards;
+            // 记录前5张卡片的ID，用于调试
+            console.log(`[getCardsByGroupId] 前5张卡片ID:`, group.cardIds.slice(0, 5));
+            
+            const filteredCards = group.cardIds
+                .filter((id: string) => {
+                    const exists = !!this.storage.cards[id];
+                    if (!exists) {
+                        console.warn(`[getCardsByGroupId] 卡片不存在: ${id}`);
+                    }
+                    return exists;
+                })
+                .map((id: string) => this.storage.cards[id]);
+                
+            console.log(`[getCardsByGroupId] 成功获取 ${filteredCards.length}/${group.cardIds.length} 张有效卡片`);
+            
+            if (filteredCards.length > 0) {
+                console.log(`[getCardsByGroupId] 第一张卡片示例:`, {
+                    id: filteredCards[0].id,
+                    text: filteredCards[0].text?.substring(0, 50) + '...',
+                    answer: filteredCards[0].answer,
+                    reviews: filteredCards[0].reviews
+                });
             }
             
-            // Wiki 链接正则表达式
+            return filteredCards;
+        }
+        
+        // 如果没有卡片ID，但有筛选条件，则根据筛选条件获取卡片
+        if (group.filter && group.filter.trim().length > 0) {
+            console.log(`[getCardsByGroupId] 使用筛选条件获取卡片: ${group.filter}`);
+            
+            const allCards = Object.values(this.storage.cards) as FlashcardState[];
+            const filterConditions = group.filter.split(',').map(f => f.trim()).filter(f => f.length > 0);
             const wikiLinkRegex = /\[\[([^\]]+)\]\]/;
             
-            // 对每张卡片进行筛选
-            filteredCards = allCards.filter((card: FlashcardState) => {
-                // 如果卡片没有文件路径，不符合筛选条件
+            const filteredCards = allCards.filter((card: FlashcardState) => {
                 if (!card.filePath) return false;
                 
-                // 处理卡片文件路径
                 const filePath = card.filePath.toLowerCase();
-                const fileName = filePath.split('/').pop() || ''; // 获取文件名
-                const fileNameWithoutExt = fileName.replace(/\.md$/i, ''); // 移除 .md 扩展名
+                const fileName = filePath.split('/').pop() || '';
+                const fileNameWithoutExt = fileName.replace(/\.md$/i, '');
                 
-                // 检查每个筛选条件
                 for (const condition of filterConditions) {
                     const conditionLower = condition.toLowerCase();
-                    
-                    // 检查是否是 Wiki 链接格式
                     const wikiMatch = conditionLower.match(wikiLinkRegex);
                     
                     if (wikiMatch) {
-                        // 如果是 Wiki 链接格式，提取链接内容并匹配文件名
                         const linkText = wikiMatch[1].toLowerCase();
-                        
-                        // 检查文件名是否匹配
                         if (fileNameWithoutExt === linkText || fileName === linkText) {
-                            console.log(`Wiki 链接匹配成功: ${linkText} 匹配文件 ${fileName}`);
                             return true;
                         }
-                    } else {
-                        // 如果不是 Wiki 链接格式，直接匹配文件路径
-                        if (filePath.includes(conditionLower)) {
-                            console.log(`路径匹配成功: ${conditionLower} 匹配路径 ${filePath}`);
-                            return true;
-                        }
-                        
-                        // 检查卡片内容
-                        if (card.text && card.text.toLowerCase().includes(conditionLower)) {
-                            console.log(`内容匹配成功: ${conditionLower} 匹配卡片内容`);
-                            return true;
-                        }
-                        
-                        // 检查卡片答案
-                        if (card.answer && card.answer.toLowerCase().includes(conditionLower)) {
-                            console.log(`答案匹配成功: ${conditionLower} 匹配卡片答案`);
-                            return true;
-                        }
-                        
-                        // 检查标签
-                        const tags = this.extractTagsFromText(card.text);
-                        if (tags.some(tag => tag.toLowerCase().includes(conditionLower))) {
-                            console.log(`标签匹配成功: ${conditionLower} 匹配标签`);
-                            return true;
-                        }
+                    } else if (filePath.includes(conditionLower) ||
+                              (card.text && card.text.toLowerCase().includes(conditionLower)) ||
+                              (card.answer && card.answer.toLowerCase().includes(conditionLower))) {
+                        return true;
                     }
                 }
-                
-                // 所有条件都不匹配
                 return false;
             });
+            
+            console.log(`[getCardsByGroupId] 根据筛选条件找到 ${filteredCards.length} 张卡片`);
+            return filteredCards;
         }
         
-        console.log(`分组 ${group.name} 中根据筛选条件找到 ${filteredCards.length} 张卡片`);
-        if (filteredCards.length > 0) {
-            console.log('第一张卡片信息:', {
-                id: filteredCards[0].id,
-                text: filteredCards[0].text.substring(0, 30) + '...',
-                filePath: filteredCards[0].filePath
-            });
-        }
-        
-        return filteredCards;
+        console.log(`[getCardsByGroupId] 分组 ${group.name} 没有卡片ID和筛选条件，返回空数组`);
+        return [];
     }
     
     /**
