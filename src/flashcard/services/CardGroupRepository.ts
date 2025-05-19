@@ -108,8 +108,6 @@ export class CardGroupRepository {
         
         console.log(`分组已更新: ${this.storage.cardGroups[index].name}`);
         
-        // 注意: 移除了重复的保存逻辑，由调用方统一处理保存
-        
         // 触发事件
         this.plugin.eventManager.emitFlashcardChanged();
         console.log('分组更新完成，已触发事件');
@@ -132,24 +130,24 @@ export class CardGroupRepository {
         
         // 如果当前UI状态使用了这个分组，重置UI状态
         const uiState = this.storage.uiState;
-        const groupName = deletedGroup.name;
         
         // 清理UI状态中的分组信息
-        if (uiState.currentGroupName === groupName) {
-            uiState.currentGroupName = '';
+        if (uiState.currentGroupId === groupId) {
+            uiState.currentGroupId = '';
+            uiState.currentGroupName = ''; // 保持向后兼容
             uiState.currentIndex = 0;
             uiState.isFlipped = false;
             uiState.completionMessage = null;
         }
         
         // 清理分组完成消息
-        if (uiState.groupCompletionMessages && uiState.groupCompletionMessages[groupName] !== undefined) {
-            delete uiState.groupCompletionMessages[groupName];
+        if (uiState.groupCompletionMessages && groupId in uiState.groupCompletionMessages) {
+            delete uiState.groupCompletionMessages[groupId];
         }
         
-        // 清理分组学习进度
-        if (uiState.groupProgress && uiState.groupProgress[groupName]) {
-            delete uiState.groupProgress[groupName];
+        // 清理分组学习进度（使用 groupId 作为键）
+        if (uiState.groupProgress && groupId in uiState.groupProgress) {
+            delete uiState.groupProgress[groupId];
         }
         
         // 获取该分组内的所有卡片
@@ -379,8 +377,6 @@ export class CardGroupRepository {
             }
         }
     }
-    
-    // 标签相关功能已移除
     
     /**
      * 获取卡片所属的分组
