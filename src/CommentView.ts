@@ -95,7 +95,7 @@ export class CommentView extends ItemView {
             }
         });
         // 设置导出图标
-        setIcon(exportButton, 'file-export');
+        setIcon(exportButton, 'download');
         exportButton.addEventListener('click', () => {
             this.exportSelectedHighlights();
         });
@@ -109,7 +109,7 @@ export class CommentView extends ItemView {
             }
         });
         // 设置闪卡图标
-        setIcon(createFlashcardsButton, 'layout-cards');
+        setIcon(createFlashcardsButton, 'book-heart');
         createFlashcardsButton.addEventListener('click', () => {
             this.createFlashcardsFromSelected();
         });
@@ -476,7 +476,7 @@ export class CommentView extends ItemView {
         });
 
         // 添加 message-square-plus 图标按钮
-        const addCommentButton = iconButtonsContainer.createEl("button", {
+        const addCommentButton = iconButtonsContainer.createEl("div", {
             cls: "highlight-icon-button"
         });
         setIcon(addCommentButton, "message-square-plus");
@@ -531,7 +531,7 @@ export class CommentView extends ItemView {
         });
 
         // 添加 square-arrow-out-up-right 图标按钮
-        const exportButton = iconButtonsContainer.createEl("button", {
+        const exportButton = iconButtonsContainer.createEl("div", {
             cls: "highlight-icon-button"
         });
         setIcon(exportButton, "file-symlink");
