@@ -113,20 +113,6 @@ export class CommentView extends ItemView {
         createFlashcardsButton.addEventListener('click', () => {
             this.createFlashcardsFromSelected();
         });
-        
-        // 添加操作按钮 - 取消按钮
-        const cancelButton = actionsContainer.createEl('button', {
-            cls: 'multi-select-action-button cancel',
-            attr: {
-                'aria-label': t('cancel'),
-                'title': t('cancel')
-            }
-        });
-        // 设置取消图标
-        setIcon(cancelButton, 'x');
-        cancelButton.addEventListener('click', () => {
-            this.clearSelection();
-        });
     }
     
     // 隐藏多选操作按钮
@@ -198,6 +184,12 @@ export class CommentView extends ItemView {
             return;
         }
         
+        // 如果已经有选中的卡片，点击空白区域取消选择
+        if (this.selectedHighlights.size > 0) {
+            this.clearSelection();
+            return;
+        }
+        
         // 记录起始位置
         this.selectionStartX = e.clientX;
         this.selectionStartY = e.clientY;
@@ -205,14 +197,8 @@ export class CommentView extends ItemView {
         // 创建选择框
         this.selectionBox = document.createElement('div');
         this.selectionBox.className = 'selection-box';
-        this.selectionBox.style.position = 'fixed';
         this.selectionBox.style.left = `${this.selectionStartX}px`;
         this.selectionBox.style.top = `${this.selectionStartY}px`;
-        this.selectionBox.style.width = '0';
-        this.selectionBox.style.height = '0';
-        this.selectionBox.style.backgroundColor = 'rgba(0, 122, 255, 0.2)';
-        this.selectionBox.style.border = '1px solid rgba(0, 122, 255, 0.5)';
-        this.selectionBox.style.zIndex = '1000';
         document.body.appendChild(this.selectionBox);
         
         // 启动选择模式

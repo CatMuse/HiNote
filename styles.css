@@ -3477,6 +3477,19 @@ textarea.flashcard-modal-input {
 }
 
 /* 多选操作按钮容器 */
+/* 选择框样式 */
+.selection-box {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    background-color: rgba(0, 122, 255, 0.2);
+    border: 1px solid rgba(0, 122, 255, 0.5);
+    z-index: 1000;
+    pointer-events: none;
+}
+
 .multi-select-actions {
     position: absolute;
     bottom: 20px;
