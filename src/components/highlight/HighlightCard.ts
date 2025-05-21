@@ -758,7 +758,7 @@ export class HighlightCard {
     /**
      * 处理创建 HiCard 的逻辑
      */
-    private handleCreateHiCard() {
+    private async handleCreateHiCard() {
         try {
             // 显示通知
             new Notice(t('正在创建闪卡...'));
@@ -779,6 +779,54 @@ export class HighlightCard {
                 return;
             }
             
+            // 在创建闪卡之前，确保高亮内容已保存
+            if (this.highlight.filePath) {
+                // 获取文件对象
+                const file = this.plugin.app.vault.getFileByPath(this.highlight.filePath);
+                if (file) {
+                    try {
+                        // 直接尝试保存高亮
+                        // 创建一个符合 HiNote 类型的对象
+                        if (this.highlight.id) { // 确保 ID 存在
+                            const hiNote = {
+                                id: this.highlight.id,
+                                text: this.highlight.text || '',
+                                position: this.highlight.position || 0,
+                                paragraphId: this.highlight.paragraphId,
+                                blockId: this.highlight.blockId,
+                                comments: this.highlight.comments || [],
+                                createdAt: this.highlight.createdAt || Date.now(),
+                                updatedAt: this.highlight.updatedAt || Date.now(),
+                                isVirtual: this.highlight.isVirtual,
+                                filePath: this.highlight.filePath,
+                                fileType: this.highlight.fileType,
+                                displayText: this.highlight.displayText,
+                                paragraphOffset: this.highlight.paragraphOffset,
+                                backgroundColor: this.highlight.backgroundColor,
+                                isCloze: this.highlight.isCloze
+                            };
+                            
+                            console.log('正在保存高亮到存储...');
+                            // 使用 window 对象访问插件实例
+                            const plugin = (window as any).app.plugins.plugins['hi-note'];
+                            if (plugin && plugin.commentStore) {
+                                await plugin.commentStore.addComment(file, hiNote);
+                                console.log('高亮已成功保存');
+                            } else {
+                                console.warn('无法访问 commentStore');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('保存高亮时出错:', error);
+                        // 继续创建闪卡，即使保存高亮失败
+                    }
+                } else {
+                    console.warn('无法获取文件对象:', this.highlight.filePath);
+                }
+            } else {
+                console.warn('高亮对象缺少文件路径');
+            }
+            
             // 使用 addCard 方法创建闪卡
             // 处理挂空格式的文本
             let text = this.highlight.text || '';
@@ -794,14 +842,21 @@ export class HighlightCard {
                 clozeAnswers.push(match[1]);
             }
             
+            // 收集所有可能的答案部分
+            let answerParts = [];
+            
+            // 如果有挖空内容，添加到答案部分
             if (clozeAnswers.length > 0) {
-                answer = clozeAnswers.join('\n');
-            } else if (this.highlight.comments && this.highlight.comments.length > 0) {
-                // 使用评论作为答案
-                answer = this.highlight.comments.map(c => c.content || '').join('\n');
-            } else {
-                answer = t('请添加答案');
+                answerParts.push(clozeAnswers.join('\n'));
             }
+            
+            // 如果有批注内容，添加到答案部分
+            if (this.highlight.comments && this.highlight.comments.length > 0) {
+                answerParts.push(this.highlight.comments.map(c => c.content || '').join('\n'));
+            }
+            
+            // 合并所有答案部分，如果没有内容则使用默认文本
+            answer = answerParts.length > 0 ? answerParts.join('\n\n') : t('请添加答案');
             
             // 创建闪卡
             const card = fsrsManager.addCard(
