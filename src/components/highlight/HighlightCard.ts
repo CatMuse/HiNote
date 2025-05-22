@@ -44,6 +44,8 @@ export class HighlightCard {
     private isEditing = false;
     private aiDropdown: HTMLElement | null = null;
     private aiButton: HTMLElement | null = null;
+    private moreActionsDropdown: HTMLElement | null = null;
+    private boundClickOutsideHandler: (e: MouseEvent) => void;
     private unfocusedInput: UnfocusedCommentInput | null = null;
 
     constructor(
@@ -68,6 +70,11 @@ export class HighlightCard {
         
         // 注册卡片实例
         HighlightCard.cardInstances.add(this);
+        
+        // 创建点击外部关闭下拉菜单的处理函数
+        this.boundClickOutsideHandler = this.handleClickOutside.bind(this);
+        // 添加全局点击事件监听
+        document.addEventListener('click', this.boundClickOutsideHandler);
         
         this.render();
     }
@@ -299,6 +306,9 @@ export class HighlightCard {
             cls: "highlight-ai-dropdown hi-note-hidden"
         });
         
+        // 保存下拉菜单引用
+        this.aiDropdown = dropdown;
+        
         // 防止下拉菜单的点击事件冒泡
         dropdown.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -329,6 +339,9 @@ export class HighlightCard {
         const moreActionsDropdown = moreActionsContainer.createEl("div", {
             cls: "highlight-more-dropdown hi-note-hidden"
         });
+        
+        // 保存下拉菜单引用
+        this.moreActionsDropdown = moreActionsDropdown;
         
         // 防止下拉菜单的点击事件冒泡
         moreActionsDropdown.addEventListener("click", (e) => {
@@ -393,10 +406,6 @@ export class HighlightCard {
                     });
                 }
             }
-
-
-
-
         }
 
         // 创建 content 容器
@@ -594,7 +603,29 @@ export class HighlightCard {
     }
     
     /**
-     * 切换 AI 下拉菜单的显示/隐藏状态
+     * 处理点击外部事件，关闭所有下拉菜单
+     */
+    private handleClickOutside(e: MouseEvent) {
+        // 如果点击的不是卡片内的元素，关闭所有下拉菜单
+        if (this.card && !this.card.contains(e.target as Node)) {
+            this.closeAllDropdowns();
+        }
+    }
+    
+    /**
+     * 关闭所有下拉菜单
+     */
+    private closeAllDropdowns() {
+        if (this.aiDropdown) {
+            this.aiDropdown.addClass("hi-note-hidden");
+        }
+        if (this.moreActionsDropdown) {
+            this.moreActionsDropdown.addClass("hi-note-hidden");
+        }
+    }
+    
+    /**
+     * 切换 AI 下拉菜单的显示状态
      * @param dropdown 下拉菜单元素
      */
     private toggleAIDropdown(dropdown: HTMLElement) {
