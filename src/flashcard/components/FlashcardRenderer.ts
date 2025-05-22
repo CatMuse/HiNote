@@ -607,8 +607,25 @@ export class FlashcardRenderer {
         // 处理挖空符号 {{}}
         let markdownContent = content;
         if (isCardFront) {
-            // 在卡片正面，将 {{}} 内的内容替换为挂空
-            markdownContent = content.replace(/\{\{([^{}]+)\}\}/g, '______');
+            // 在卡片正面，将 {{}} 内的内容替换为长度相应的下划线
+            markdownContent = content.replace(/\{\{([^{}]+)\}\}/g, (match, p1) => {
+                // 计算原文本的长度，中文字符算三个单位，英文字符算一个单位
+                const originalLength = p1.split('').reduce((acc: number, char: string) => {
+                    // 判断是否是中文字符
+                    const isChinese = /[\u4e00-\u9fa5]/.test(char);
+                    return acc + (isChinese ? 3 : 1);
+                }, 0);
+                
+                // 对于较长的文本，进一步增加长度
+                let adjustedLength = originalLength;
+                if (p1.length > 5) {
+                    adjustedLength = Math.floor(adjustedLength * 1.2); // 增加 20% 的长度
+                }
+                
+                // 生成相应长度的下划线，最少 8 个下划线
+                const underscores = '_'.repeat(Math.max(8, adjustedLength));
+                return underscores;
+            });
         } else {
             // 在卡片背面，去除 {{}} 符号，保留内容
             markdownContent = content.replace(/\{\{([^{}]+)\}\}/g, '$1');
