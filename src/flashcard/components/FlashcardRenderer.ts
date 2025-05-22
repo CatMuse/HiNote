@@ -353,46 +353,11 @@ export class FlashcardRenderer {
         
         // 如果没有分组或者卡片数组为空，显示"没有需要复习的卡片"
         if (!hasGroups || cards.length === 0) {
-            // 如果有分组完成消息且有分组，显示完成消息界面
-            if (groupCompletionMessage && hasGroups) {
-                const completionContainer = cardContainer.createEl("div", { 
-                    cls: "flashcard-completion-message" 
-                });
-                
-                // 添加一个图标
-                const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
-                setIcon(iconEl, "check-circle");
-                
-                // 添加标题
-                completionContainer.createEl("h3", { 
-                    text: t("学习完成！") 
-                });
-                
-                // 添加消息
-                completionContainer.createEl("p", { 
-                    text: groupCompletionMessage 
-                });
-                
-                // 添加按钮继续学习
-                const continueButton = completionContainer.createEl("button", {
-                    cls: "flashcard-return-button",
-                    text: t("继续学习")
-                });
-                
-                continueButton.addEventListener("click", () => {
-                    // 清除分组完成消息
-                    this.component.setGroupCompletionMessage(groupName, null);
-                    
-                    // 重新渲染
-                    this.render();
-                });
-            } else {
-                // 否则显示没有卡片需要复习
-                cardContainer.createEl("div", {
-                    cls: "flashcard-empty", 
-                    text: t("No cards due for review") 
-                });
-            }
+            // 不管是否有分组完成消息，都只显示没有卡片的提示
+            cardContainer.createEl("div", {
+                cls: "flashcard-empty", 
+                text: "No cards due for review" 
+            });
             return;
         }
 
@@ -632,14 +597,22 @@ export class FlashcardRenderer {
         // 检查content是否为空
         if (!content) {
             console.warn('renderMarkdownContent: content is empty or undefined');
-            
-            // 如果内容为空，添加提示文本
             containerEl.textContent = '请添加答案';
             return;
         }
         
-        // 内容直接使用传入的 content
-        const markdownContent = content;
+        // 判断当前渲染的是卡片正面还是背面
+        const isCardFront = containerEl.closest('.flashcard-front') !== null;
+        
+        // 处理挖空符号 {{}}
+        let markdownContent = content;
+        if (isCardFront) {
+            // 在卡片正面，将 {{}} 内的内容替换为挂空
+            markdownContent = content.replace(/\{\{([^{}]+)\}\}/g, '______');
+        } else {
+            // 在卡片背面，去除 {{}} 符号，保留内容
+            markdownContent = content.replace(/\{\{([^{}]+)\}\}/g, '$1');
+        }
         
         try {
             // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown
@@ -656,6 +629,16 @@ export class FlashcardRenderer {
             lists.forEach(list => {
                 list.addClass('flashcard-markdown-list');
             });
+            
+            // 如果是卡片正面，添加挂空样式
+            if (isCardFront) {
+                const blanks = containerEl.querySelectorAll('p');
+                blanks.forEach(p => {
+                    if (p.textContent && p.textContent.includes('______')) {
+                        p.addClass('flashcard-cloze');
+                    }
+                });
+            }
         } catch (error) {
             console.error('Error rendering markdown in flashcard:', error);
             

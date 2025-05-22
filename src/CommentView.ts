@@ -1041,18 +1041,6 @@ export class CommentView extends ItemView {
             // 隐藏搜索容器
             this.searchContainer.addClass('highlight-display-none');
 
-            // 获取所有文件
-            const files = await this.getFilesWithHighlights();
-            
-            // 获取所有高亮和评论数据
-            const allHighlights: HiNote[] = [];
-            for (const file of files) {
-                const fileHighlights = this.commentStore.getFileComments(file);
-                // 只添加非虚拟高亮且有评论的卡片
-                const validHighlights = fileHighlights.filter(h => !h.isVirtual && (h.comments?.length > 0 || /\{\{([^{}]+)\}\}/.test(h.text)));
-                allHighlights.push(...validHighlights);
-            }
-
             // 清空当前容器
             this.highlightContainer.empty();
             
@@ -1062,9 +1050,8 @@ export class CommentView extends ItemView {
                 this.flashcardComponent.setLicenseManager(this.licenseManager);
             }
             
-            // 激活闪卡组件并设置数据
+            // 激活闪卡组件
             await this.flashcardComponent.activate();
-            this.flashcardComponent.setCards(convertToFlashcardState(allHighlights));
         });
 
         const flashcardLeft = flashcardItem.createEl("div", {
@@ -1114,45 +1101,24 @@ export class CommentView extends ItemView {
                 // 使用第一个分组的ID获取卡片
                 const groupId = groups[0].id;
                 latestCards = this.plugin.fsrsManager.getCardsForStudy(groupId);
+                
+                // 清空当前容器
+                this.highlightContainer.empty();
+                
+                // 创建或更新闪卡组件
+                if (!this.flashcardComponent) {
+                    this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
+                    this.flashcardComponent.setLicenseManager(this.licenseManager);
+                }
+                
+                // 激活闪卡组件
+                await this.flashcardComponent.activate();
+                
+                // 更新文件列表选中状态
+                this.updateFileListSelection();
             } else {
-                // 如果没有分组，显示提示信息
-                console.log('没有可用的闪卡分组');
+                // 如果没有分组，不做任何处理
             }
-            
-            // 将 FlashcardState 转换为 HiNote
-            const allHighlights: HiNote[] = latestCards.map(card => ({
-                id: card.id,
-                text: card.text,
-                filePath: card.filePath,
-                comments: [{
-                    id: card.id + '-answer',
-                    content: card.answer,
-                    createdAt: card.createdAt,
-                    updatedAt: card.lastReview || card.createdAt
-                }],
-                isVirtual: false,
-                position: 0,
-                paragraphOffset: 0,
-                paragraphId: '',
-                createdAt: card.createdAt,
-                updatedAt: card.lastReview || card.createdAt
-            }));
-
-            // 清空当前容器
-            this.highlightContainer.empty();
-            
-            // 创建或更新闪卡组件
-            if (!this.flashcardComponent) {
-                this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
-                this.flashcardComponent.setLicenseManager(this.licenseManager);
-            }
-            
-            // 设置闪卡数据
-            await this.flashcardComponent.activate();
-            this.flashcardComponent.setCards(convertToFlashcardState(allHighlights));
-
-            // 更新文件列表选中状态
-            this.updateFileListSelection();
         });
 
         // 获取所有文件的高亮总数
