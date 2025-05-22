@@ -612,8 +612,8 @@ export class CommentView extends ItemView {
 
         if (highlightsToRender.length === 0) {
             const emptyMessage = this.highlightContainer.createEl("div", {
-                cls: "empty-message",
-                text: t("no_highlights")
+                cls: "highlight-empty-state",
+                text: t("The current document has no highlighted content.")
             });
             return;
         }

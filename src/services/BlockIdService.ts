@@ -4,6 +4,10 @@ import { Editor, TFile, App, MarkdownView } from 'obsidian';
  * 处理 Block ID 相关操作的服务
  */
 export class BlockIdService {
+    // Block ID 正则表达式
+    private static readonly BLOCK_ID_REGEX = /\^([a-zA-Z0-9-]+)$/;
+    // Block ID 字符集
+    private static readonly BLOCK_ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
     constructor(private app: App) {}
 
     /**
@@ -17,17 +21,20 @@ export class BlockIdService {
      */
     public getOrCreateBlockId(editor: Editor, line: number): string {
         const lineText = editor.getLine(line);
-        const blockIdMatch = lineText.match(/\^([a-zA-Z0-9-]+)$/);
+        const blockIdMatch = lineText.match(BlockIdService.BLOCK_ID_REGEX);
         
         if (blockIdMatch) {
             return blockIdMatch[1];
         }
         
         // 如果没有 Block ID，生成一个并添加到行尾
-        // 使用时间戳+随机字符的组合确保唯一性
-        const timestamp = Date.now().toString(36);
-        const randomPart = Math.random().toString(36).substr(2, 5);
-        const newBlockId = `${timestamp}-${randomPart}`;
+        // 使用 7 位随机字符，类似 Obsidian 官方的做法
+        let newBlockId = '';
+        for (let i = 0; i < 7; i++) {
+            newBlockId += BlockIdService.BLOCK_ID_CHARS.charAt(
+                Math.floor(Math.random() * BlockIdService.BLOCK_ID_CHARS.length)
+            );
+        }
         
         // 处理行尾空格，先去除所有行尾空格，然后只添加一个空格
         const trimmedLineText = lineText.trimEnd();
@@ -42,7 +49,7 @@ export class BlockIdService {
      * @returns Block ID 或 undefined
      */
     public extractBlockId(text: string): string | undefined {
-        const blockIdMatch = text.match(/\^([a-zA-Z0-9-]+)$/);
+        const blockIdMatch = text.match(BlockIdService.BLOCK_ID_REGEX);
         return blockIdMatch ? blockIdMatch[1] : undefined;
     }
 
@@ -129,6 +136,6 @@ export class BlockIdService {
      * @returns 是否包含有效的 Block ID
      */
     public hasValidBlockId(text: string): boolean {
-        return /\^[a-zA-Z0-9-]+$/.test(text);
+        return BlockIdService.BLOCK_ID_REGEX.test(text);
     }
 }
