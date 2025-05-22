@@ -1825,7 +1825,7 @@ settings:
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 1000;
+    z-index: 9999;
     transition: all 0.3s ease;
 }
 
