@@ -700,16 +700,57 @@ export class FSRSManager {
     }
 
     public getProgress(): FlashcardProgress {
-        // 使用推荐的方式获取所有卡片，而不是调用过时的 getLatestCards 方法
-        const cards = Object.values(this.storage.cards);
+        // 获取所有学习分组中的卡片
+        const allGroupCards = this.getAllGroupCards();
         const now = Date.now();
         
+        // 如果没有学习分组或分组中没有卡片，则返回全部为0的统计
+        if (allGroupCards.length === 0) {
+            return {
+                due: 0,
+                newCards: 0,
+                learned: 0,
+                retention: this.storage.globalStats.averageRetention
+            };
+        }
+        
         return {
-            due: cards.filter(c => c.nextReview <= now).length,
-            newCards: cards.filter(c => c.lastReview === 0).length,
-            learned: cards.filter(c => c.lastReview > 0).length,
+            due: allGroupCards.filter(c => c.nextReview <= now).length,
+            newCards: allGroupCards.filter(c => c.lastReview === 0).length,
+            learned: allGroupCards.filter(c => c.lastReview > 0).length,
             retention: this.storage.globalStats.averageRetention
         };
+    }
+
+    /**
+     * 获取所有学习分组中的卡片（去重）
+     * @returns 所有学习分组中的卡片数组
+     */
+    private getAllGroupCards(): FlashcardState[] {
+        // 获取所有分组
+        const groups = this.groupRepository.getCardGroups();
+        if (!groups || groups.length === 0) {
+            console.log('没有找到任何学习分组');
+            return [];
+        }
+        
+        // 用于去重的卡片ID集合
+        const uniqueCardIds = new Set<string>();
+        const uniqueCards: FlashcardState[] = [];
+        
+        // 遍历所有分组，收集卡片
+        for (const group of groups) {
+            const groupCards = this.groupRepository.getCardsByGroupId(group.id);
+            for (const card of groupCards) {
+                if (!uniqueCardIds.has(card.id)) {
+                    uniqueCardIds.add(card.id);
+                    uniqueCards.push(card);
+                }
+            }
+        }
+        
+        console.log(`所有学习分组中共有 ${uniqueCards.length} 张不重复卡片`);
+        return uniqueCards;
     }
 
     public getStats(): FSRSGlobalStats {
