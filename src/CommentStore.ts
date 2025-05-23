@@ -1,5 +1,6 @@
 import { Plugin, TFile, MarkdownView, Editor, App } from "obsidian";
 import { BlockIdService } from './services/BlockIdService';
+import { IdGenerator } from './utils/IdGenerator'; // 导入 IdGenerator
 
 export interface CommentItem {
     id: string;           // 评论的唯一ID
@@ -315,7 +316,12 @@ export class CommentStore {
     async addComment(file: TFile, highlight: HiNote): Promise<HiNote> {
         // 确保 highlight 有一个唯一的 ID
         if (!highlight.id) {
-            highlight.id = `highlight-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            // 使用统一的ID生成策略
+            highlight.id = IdGenerator.generateHighlightId(
+                file.path, 
+                highlight.position || 0, 
+                highlight.text
+            );
         }
         
         // 设置或更新时间戳
@@ -356,10 +362,10 @@ export class CommentStore {
             // 如果有评论，触发评论更新事件
             if (highlight.comments && highlight.comments.length > 0) {
                 const latestComment = highlight.comments[highlight.comments.length - 1];
-                this.eventManager.emitCommentUpdate(filePath, highlight.text, latestComment.content);
+                this.eventManager.emitCommentUpdate(filePath, highlight.text, latestComment.content, highlight.id);
             } else {
                 // 否则触发高亮更新事件
-                this.eventManager.emitHighlightUpdate(filePath, highlight.text, highlight.text);
+                this.eventManager.emitHighlightUpdate(filePath, highlight.text, highlight.text, highlight.id);
             }
         }
         
@@ -408,10 +414,10 @@ export class CommentStore {
             // 如果有评论，触发评论删除事件
             if (highlight.comments && highlight.comments.length > 0) {
                 const latestComment = highlight.comments[highlight.comments.length - 1];
-                this.eventManager.emitCommentDelete(filePath, latestComment.content);
+                this.eventManager.emitCommentDelete(filePath, latestComment.content, highlight.id);
             } else {
                 // 否则触发高亮删除事件
-                this.eventManager.emitHighlightDelete(filePath, highlight.text);
+                this.eventManager.emitHighlightDelete(filePath, highlight.text, highlight.id);
             }
         }
         

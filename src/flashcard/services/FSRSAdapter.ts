@@ -18,6 +18,8 @@ import {
     FSRS_RATING 
 } from '../types/FSRSTypes';
 
+import { IdGenerator } from '../../utils/IdGenerator';
+
 /**
  * FSRSAdapter 类
  * 用于将 ts-fsrs 库与现有的 FSRS 系统进行适配
@@ -158,7 +160,7 @@ export class FSRSAdapter {
         const emptyCard = createEmptyCard(new Date(now));
         
         return {
-            id: `card-${now}-${Math.random().toString(36).substr(2, 9)}`,
+            id: IdGenerator.generateCardId(),
             difficulty: emptyCard.difficulty,
             stability: emptyCard.stability,
             retrievability: 1,

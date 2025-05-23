@@ -1,4 +1,5 @@
 import { CardGroup, FlashcardState, FlashcardProgress } from '../types/FSRSTypes';
+import { IdGenerator } from '../../utils/IdGenerator';
 
 /**
  * 闪卡分组仓库类，负责管理闪卡分组数据
@@ -47,7 +48,7 @@ export class CardGroupRepository {
         }
         
         // 生成唯一ID
-        const id = `group-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const id = IdGenerator.generateGroupId();
         console.log(`生成分组ID: ${id}`);
         
         // 创建新分组

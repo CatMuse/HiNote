@@ -15,6 +15,7 @@ import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
 import { LicenseManager } from './services/LicenseManager';
+import { IdGenerator } from './utils/IdGenerator'; // 导入 IdGenerator
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -683,7 +684,12 @@ export class CommentView extends ItemView {
 
         // 确保高亮有 ID
         if (!highlight.id) {
-            highlight.id = this.generateHighlightId(highlight);
+            // 使用统一的ID生成策略
+            highlight.id = IdGenerator.generateHighlightId(
+                this.currentFile?.path || '', 
+                highlight.position || 0, 
+                highlight.text
+            );
         }
 
         if (!highlight.comments) {
@@ -691,7 +697,7 @@ export class CommentView extends ItemView {
         }
 
         const newComment: CommentItem = {
-            id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: IdGenerator.generateCommentId(),
             content,
             createdAt: Date.now(),
             updatedAt: Date.now()
@@ -720,6 +726,8 @@ export class CommentView extends ItemView {
 
         const comment = highlight.comments.find(c => c.id === commentId);
         if (comment) {
+            const oldContent = comment.content; // 保存旧内容
+            
             comment.content = content;
             comment.updatedAt = Date.now();
             highlight.updatedAt = Date.now();
@@ -733,25 +741,15 @@ export class CommentView extends ItemView {
                 }
             }));
             
-            // 自动更新闪卡
-            try {
-                if (this.plugin.fsrsManager) {
-                    // 获取所有评论内容作为闪卡背面
-                    const allComments = highlight.comments.map(c => c.content).join("\n");
-                    
-                    // 使用高亮文本作为正面，更新后的评论内容作为背面
-                    this.plugin.fsrsManager.updateCardContent(
-                        highlight.text,
-                        allComments,
-                        file.path
-                    );
-                    
-                    console.log(`自动更新闪卡成功，文本: ${highlight.text.substring(0, 20)}...`);
-                }
-            } catch (error) {
-                console.error('自动更新闪卡失败:', error);
+            // 通过 EventManager 触发批注更新事件，用于闪卡同步
+            if (highlight.id) {
+                console.log(`触发批注更新事件: ${file.path}, ${oldContent} -> ${content}, sourceId: ${highlight.id}`);
+                this.plugin.eventManager.emitCommentUpdate(file.path, oldContent, content, highlight.id);
             }
-
+            
+            // 现在通过事件系统自动处理闪卡更新
+            console.log(`批注更新将通过事件系统自动同步到闪卡`);
+            
             // 使用新的刷新方法
             await this.refreshView();
         }
@@ -812,7 +810,12 @@ export class CommentView extends ItemView {
     }
 
     private generateHighlightId(highlight: HighlightInfo): string {
-        return `highlight-${highlight.position}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        // 使用统一的ID生成策略
+        return IdGenerator.generateHighlightId(
+            this.currentFile?.path || '', 
+            highlight.position || 0, 
+            highlight.text
+        );
     }
 
     private async jumpToHighlight(highlight: HighlightInfo) {
@@ -1511,7 +1514,11 @@ export class CommentView extends ItemView {
             if (!storedComment && this.plugin.highlightMatchingService) {
                 // 将 highlight 转换为 HiNote 格式
                 const hiNote: HiNote = {
-                    id: highlight.id || `highlight-${Date.now()}-${highlight.position !== undefined ? highlight.position : 0}`,
+                    id: highlight.id || IdGenerator.generateHighlightId(
+                        this.currentFile?.path || '', 
+                        highlight.position || 0, 
+                        highlight.text
+                    ),
                     text: highlight.text,
                     position: highlight.position || 0, // 确保 position 不为 undefined
                     comments: [],

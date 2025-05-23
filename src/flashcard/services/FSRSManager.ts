@@ -150,6 +150,8 @@ export class FSRSManager {
 
     private async saveStorage() {
         try {
+            console.log('开始保存 FSRS 数据...');
+            
             // 加载当前数据
             const currentData = await this.plugin.loadData() || {};
             
@@ -163,6 +165,8 @@ export class FSRSManager {
                 this.storage.cards = {};
             }
 
+            console.log('当前要保存的卡片数据:', Object.keys(this.storage.cards).length, '张卡片');
+            
             // 更新 FSRS 数据，保持其他数据不变
             const dataToSave = {
                 ...currentData,
@@ -170,11 +174,13 @@ export class FSRSManager {
             };
 
             await this.plugin.saveData(dataToSave);
+            console.log('FSRS 数据保存完成');
 
         } catch (error) {
             console.error('保存数据时出错:', error);
             throw error;
-        }    }
+        }
+    }
 
     private saveStorageDebounced: () => void;
 
@@ -232,159 +238,6 @@ export class FSRSManager {
         
         this.saveStorageDebounced();
         return card;
-    }
-    
-    /**
-     * 更新卡片内容（用于高亮文本或批注更新时）
-     * @param text 更新的文本内容
-     * @param answer 更新的答案内容
-     * @param filePath 文件路径
-     */
-    public updateCardContent(text: string, answer: string, filePath?: string): void {
-        // 调用 FlashcardFactory 的方法
-        this.cardFactory.updateCardContent(text, answer, filePath);
-    }
-    
-    /**
-     * 统一的卡片创建或更新方法
-     * @param text 卡片正面文本
-     * @param answer 卡片背面答案
-     * @param filePath 文件路径
-     * @returns 创建或更新后的卡片
-     */
-    public createOrUpdateCard(text: string, answer: string, filePath?: string): FlashcardState {
-        // 调用 FlashcardFactory 的方法
-        return this.cardFactory.createOrUpdateCard(text, answer, filePath);
-    }
-
-    /**
-     * 删除指定文件路径下的卡片
-     * @param filePath 文件路径
-     * @param text 可选，特定的高亮文本
-     * @param answer 可选，特定的评论内容
-     * @returns 是否有卡片被删除
-     */
-    public deleteCardsByContent(filePath: string, text?: string, answer?: string): boolean {
-        // 调用 FlashcardFactory 的方法
-        const deletedCount = this.cardFactory.deleteCardsByContent(filePath, text, answer);
-        return deletedCount > 0;
-    }
-    
-    /**
-     * 更新每日学习统计
-     * @param isNewCard 是否是新卡片
-     * @param rating 评分
-     * @private 私有方法，只应由 trackStudyProgress 调用
-     */
-    private updateDailyStats(isNewCard: boolean, rating: FSRSRating) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayTimestamp = today.getTime();
-        
-        // 更新全局统计
-        if (!this.storage.globalStats.lastReviewDate) {
-            // 第一次复习
-            this.storage.globalStats.lastReviewDate = todayTimestamp;
-            this.storage.globalStats.streakDays = 1;
-        } else if (this.storage.globalStats.lastReviewDate === todayTimestamp) {
-            // 今天已经复习过
-            // 不需要更新
-        } else if (this.storage.globalStats.lastReviewDate === todayTimestamp - 86400000) {
-            // 昨天复习过，连续学习天数+1
-            this.storage.globalStats.lastReviewDate = todayTimestamp;
-            this.storage.globalStats.streakDays++;
-        } else if (this.storage.globalStats.lastReviewDate < todayTimestamp) {
-            // 之前复习过，但不是昨天，重置连续学习天数
-            this.storage.globalStats.lastReviewDate = todayTimestamp;
-            this.storage.globalStats.streakDays = 1;
-        }
-        
-        // 使用日期字符串比较而不是时间戳
-        const todayDateStr = today.toDateString();
-        let todayStats = this.storage.dailyStats.find(stats => {
-            const statsDate = new Date(stats.date);
-            return statsDate.toDateString() === todayDateStr;
-        });
-        
-        // 如果不存在，创建新的统计数据
-        if (!todayStats) {
-            todayStats = {
-                date: todayTimestamp,
-                newCardsLearned: 0,
-                cardsReviewed: 0,
-                reviewCount: 0,
-                newCount: 0,
-                againCount: 0,
-                hardCount: 0,
-                goodCount: 0,
-                easyCount: 0
-            };
-            this.storage.dailyStats.push(todayStats);
-        }
-        
-        // 更新统计数据
-        todayStats.reviewCount++;
-        
-        if (isNewCard) {
-            todayStats.newCount++;
-            todayStats.newCardsLearned++;
-        } else {
-            todayStats.cardsReviewed++;
-        }
-        
-        // 更新评分统计
-        switch (rating) {
-            case FSRS_RATING.AGAIN:
-                todayStats.againCount++;
-                break;
-            case FSRS_RATING.HARD:
-                todayStats.hardCount++;
-                break;
-            case FSRS_RATING.GOOD:
-                todayStats.goodCount++;
-                break;
-            case FSRS_RATING.EASY:
-                todayStats.easyCount++;
-                break;
-        }
-        
-        // 保存更新后的统计数据
-        this.saveStorageDebounced();
-    }
-    
-    /**
-     * 重置指定分组的完成消息状态
-     * @param groupId 分组ID
-     */
-    private resetGroupCompletionMessage(groupId: string): void {
-        if (!groupId) return;
-        
-        // 获取分组名称
-        const group = this.groupRepository.getGroupById(groupId);
-        if (!group) return;
-        
-        // 确保 uiState 和 groupCompletionMessages 存在
-        if (!this.storage.uiState) {
-            this.storage.uiState = {
-                currentGroupName: '',
-                currentIndex: 0,
-                isFlipped: false,
-                completionMessage: null,
-                groupCompletionMessages: {},
-                groupProgress: {}
-            };
-        }
-        
-        if (!this.storage.uiState.groupCompletionMessages) {
-            this.storage.uiState.groupCompletionMessages = {};
-        }
-        
-        // 重置完成消息
-        if (this.storage.uiState.groupCompletionMessages[group.name]) {
-            console.log(`重置分组 ${group.name} 的完成消息`);
-            this.storage.uiState.groupCompletionMessages[group.name] = null;
-            this.saveStorageDebounced();
-        }
     }
     
     /**
@@ -654,15 +507,94 @@ export class FSRSManager {
     }
 
     /**
-     * 根据内容查找卡片
-     * @param text 卡片正面文本
-     * @param answer 卡片背面答案
-     * @param filePath 可选的文件路径
-     * @returns 找到的卡片或 null
+     * 根据来源ID查找卡片
+     * @param sourceId 来源ID（高亮或批注的ID）
+     * @param sourceType 来源类型
+     * @returns 找到的卡片列表
      */
-    public findCardByContent(text: string, answer: string, filePath?: string): FlashcardState | null {
-        // 调用 FlashcardFactory 的方法
-        return this.cardFactory.findCardByContent(text, answer, filePath);
+    public findCardsBySourceId(sourceId: string, sourceType?: 'highlight' | 'comment'): FlashcardState[] {
+        if (!this.storage.cards || !sourceId) {
+            return [];
+        }
+        
+        return Object.values(this.storage.cards).filter(card => 
+            card.sourceId === sourceId && 
+            (!sourceType || card.sourceType === sourceType)
+        );
+    }
+    
+    /**
+     * 根据来源ID删除卡片
+     * @param sourceId 来源ID（高亮或批注的ID）
+     * @param sourceType 来源类型
+     * @returns 删除的卡片数量
+     */
+    public deleteCardsBySourceId(sourceId: string, sourceType?: 'highlight' | 'comment'): number {
+        const cardsToDelete = this.findCardsBySourceId(sourceId, sourceType);
+        let deletedCount = 0;
+        
+        for (const card of cardsToDelete) {
+            // 从存储中删除卡片
+            delete this.storage.cards[card.id];
+            
+            // 从所有分组中移除卡片引用
+            if (card.groupIds) {
+                for (const groupId of card.groupIds) {
+                    this.removeCardFromGroup(card.id, groupId);
+                }
+            }
+            
+            deletedCount++;
+        }
+        
+        if (deletedCount > 0) {
+            this.saveStorageDebounced();
+        }
+        
+        return deletedCount;
+    }
+    
+    /**
+     * 根据来源ID更新卡片内容
+     * @param sourceId 来源ID
+     * @param sourceType 来源类型
+     * @param newText 新的文本内容
+     * @param newAnswer 新的答案内容
+     * @returns 更新的卡片数量
+     */
+    public updateCardsBySourceId(sourceId: string, sourceType: 'highlight' | 'comment', newText?: string, newAnswer?: string): number {
+        console.log(`updateCardsBySourceId 调用参数:`, { sourceId, sourceType, newText, newAnswer });
+        
+        const cardsToUpdate = this.findCardsBySourceId(sourceId, sourceType);
+        console.log(`找到需要更新的卡片:`, cardsToUpdate.map(card => ({ id: card.id, currentAnswer: card.answer })));
+        
+        let updatedCount = 0;
+        
+        for (const card of cardsToUpdate) {
+            console.log(`更新卡片 ${card.id} 前:`, { text: card.text, answer: card.answer });
+            
+            if (newText !== undefined) {
+                card.text = newText;
+                console.log(`更新卡片 ${card.id} 的文本为:`, newText);
+            }
+            if (newAnswer !== undefined) {
+                card.answer = newAnswer;
+                console.log(`更新卡片 ${card.id} 的答案为:`, newAnswer);
+            }
+            card.updatedAt = Date.now();
+            updatedCount++;
+            
+            console.log(`更新卡片 ${card.id} 后:`, { text: card.text, answer: card.answer });
+        }
+        
+        console.log(`总共更新了 ${updatedCount} 张卡片`);
+        
+        if (updatedCount > 0) {
+            console.log(`调用 saveStorageDebounced 保存数据`);
+            this.saveStorageDebounced();
+        }
+        
+        return updatedCount;
     }
 
     /**
@@ -1196,29 +1128,29 @@ export class FSRSManager {
         
         // 监听高亮更新事件
         this.plugin.eventManager.on('highlight:update', 
-            (filePath: string, oldText: string, newText: string) => {
-                this.handleHighlightUpdate(filePath, oldText, newText);
+            (filePath: string, oldText: string, newText: string, sourceId: string) => {
+                this.handleHighlightUpdate(filePath, oldText, newText, sourceId);
             }
         );
         
         // 监听高亮删除事件
         this.plugin.eventManager.on('highlight:delete',
-            (filePath: string, text: string) => {
-                this.handleHighlightDelete(filePath, text);
+            (filePath: string, text: string, sourceId: string) => {
+                this.handleHighlightDelete(filePath, text, sourceId);
             }
         );
         
         // 监听批注更新事件
         this.plugin.eventManager.on('comment:update',
-            (filePath: string, oldComment: string, newComment: string) => {
-                this.handleCommentUpdate(filePath, oldComment, newComment);
+            (filePath: string, oldComment: string, newComment: string, sourceId: string) => {
+                this.handleCommentUpdate(filePath, oldComment, newComment, sourceId);
             }
         );
         
         // 监听批注删除事件
         this.plugin.eventManager.on('comment:delete',
-            (filePath: string, comment: string) => {
-                this.handleCommentDelete(filePath, comment);
+            (filePath: string, comment: string, sourceId: string) => {
+                this.handleCommentDelete(filePath, comment, sourceId);
             }
         );
         
@@ -1230,75 +1162,28 @@ export class FSRSManager {
      * @param filePath 文件路径
      * @param oldText 旧文本
      * @param newText 新文本
+     * @param sourceId 高亮ID，用于精确匹配
      * @private
      */
-    private handleHighlightUpdate(filePath: string, oldText: string, newText: string): void {
-        console.log(`处理高亮更新事件: ${filePath}, ${oldText} -> ${newText}`);
+    private handleHighlightUpdate(filePath: string, oldText: string, newText: string, sourceId: string): void {
+        console.log(`处理高亮更新事件: ${filePath}, ${oldText} -> ${newText}, sourceId: ${sourceId}`);
         
-        // 查找与该高亮关联的所有卡片
-        const relatedCards = Object.values(this.storage.cards).filter(card => 
-            card.sourceType === 'highlight' && 
-            card.text === oldText && 
-            (card.filePath === filePath || !card.filePath)
-        );
-        
-        if (relatedCards.length === 0) {
-            console.log('未找到与该高亮关联的卡片');
-            return;
-        }
-        
-        console.log(`找到 ${relatedCards.length} 张与该高亮关联的卡片，正在更新...`);
-        
-        // 更新卡片内容
-        for (const card of relatedCards) {
-            card.text = newText;
-            card.updatedAt = Date.now();
-        }
-        
-        // 保存变更
-        this.saveStorageDebounced();
-        console.log('卡片内容已更新并保存');
+        const updatedCount = this.updateCardsBySourceId(sourceId, 'highlight', newText);
+        console.log(`通过 sourceId ${sourceId} 更新了 ${updatedCount} 张卡片`);
     }
     
     /**
      * 处理高亮删除事件
      * @param filePath 文件路径
      * @param text 高亮文本
+     * @param sourceId 高亮ID，用于精确匹配
      * @private
      */
-    private handleHighlightDelete(filePath: string, text: string): void {
-        console.log(`处理高亮删除事件: ${filePath}, ${text}`);
+    private handleHighlightDelete(filePath: string, text: string, sourceId: string): void {
+        console.log(`处理高亮删除事件: ${filePath}, ${text}, sourceId: ${sourceId}`);
         
-        // 查找与该高亮关联的所有卡片
-        const relatedCards = Object.values(this.storage.cards).filter(card => 
-            card.sourceType === 'highlight' && 
-            card.text === text && 
-            (card.filePath === filePath || !card.filePath)
-        );
-        
-        if (relatedCards.length === 0) {
-            console.log('未找到与该高亮关联的卡片');
-            return;
-        }
-        
-        console.log(`找到 ${relatedCards.length} 张与该高亮关联的卡片，正在删除...`);
-        
-        // 删除关联的卡片
-        for (const card of relatedCards) {
-            // 从存储中删除卡片
-            delete this.storage.cards[card.id];
-            
-            // 从所有分组中移除卡片引用
-            if (card.groupIds) {
-                for (const groupId of card.groupIds) {
-                    this.removeCardFromGroup(card.id, groupId);
-                }
-            }
-        }
-        
-        // 保存变更
-        this.saveStorageDebounced();
-        console.log('关联的卡片已删除并保存');
+        const deletedCount = this.deleteCardsBySourceId(sourceId, 'highlight');
+        console.log(`通过 sourceId ${sourceId} 删除了 ${deletedCount} 张卡片`);
     }
     
     /**
@@ -1306,74 +1191,162 @@ export class FSRSManager {
      * @param filePath 文件路径
      * @param oldComment 旧批注
      * @param newComment 新批注
+     * @param sourceId 批注ID，用于精确匹配
      * @private
      */
-    private handleCommentUpdate(filePath: string, oldComment: string, newComment: string): void {
-        console.log(`处理批注更新事件: ${filePath}, ${oldComment} -> ${newComment}`);
+    private handleCommentUpdate(filePath: string, oldComment: string, newComment: string, sourceId: string): void {
+        console.log(`处理批注更新事件: ${filePath}, ${oldComment} -> ${newComment}, sourceId: ${sourceId}`);
         
-        // 查找与该批注关联的所有卡片
-        const relatedCards = Object.values(this.storage.cards).filter(card => 
-            card.sourceType === 'comment' && 
-            card.answer === oldComment && 
-            (card.filePath === filePath || !card.filePath)
-        );
+        // 测试：直接调用 updateCardsBySourceId 看看是否有问题
+        console.log(`测试：直接调用 updateCardsBySourceId`);
         
-        if (relatedCards.length === 0) {
-            console.log('未找到与该批注关联的卡片');
-            return;
-        }
+        // 查找关联的卡片
+        const foundCards = this.findCardsBySourceId(sourceId, 'highlight');
+        console.log(`找到 ${foundCards.length} 张关联卡片:`, foundCards.map(card => ({ id: card.id, sourceId: card.sourceId, sourceType: card.sourceType })));
         
-        console.log(`找到 ${relatedCards.length} 张与该批注关联的卡片，正在更新...`);
+        // 批注更新时，需要查找所有关联到该高亮的卡片（sourceType为highlight）
+        const updatedCount = this.updateCardsBySourceId(sourceId, 'highlight', undefined, newComment);
+        console.log(`通过 sourceId ${sourceId} 更新了 ${updatedCount} 张卡片`);
         
-        // 更新卡片内容
-        for (const card of relatedCards) {
-            card.answer = newComment;
-            card.updatedAt = Date.now();
-        }
-        
-        // 保存变更
-        this.saveStorageDebounced();
-        console.log('卡片内容已更新并保存');
+        // 验证更新结果
+        const updatedCards = this.findCardsBySourceId(sourceId, 'highlight');
+        console.log(`更新后的卡片答案:`, updatedCards.map(card => ({ id: card.id, answer: card.answer })));
     }
     
     /**
      * 处理批注删除事件
      * @param filePath 文件路径
      * @param comment 批注内容
+     * @param sourceId 批注ID，用于精确匹配
      * @private
      */
-    private handleCommentDelete(filePath: string, comment: string): void {
-        console.log(`处理批注删除事件: ${filePath}, ${comment}`);
+    private handleCommentDelete(filePath: string, comment: string, sourceId: string): void {
+        console.log(`处理批注删除事件: ${filePath}, ${comment}, sourceId: ${sourceId}`);
         
-        // 查找与该批注关联的所有卡片
-        const relatedCards = Object.values(this.storage.cards).filter(card => 
-            card.sourceType === 'comment' && 
-            card.answer === comment && 
-            (card.filePath === filePath || !card.filePath)
-        );
+        const deletedCount = this.deleteCardsBySourceId(sourceId, 'highlight');
+        console.log(`通过 sourceId ${sourceId} 删除了 ${deletedCount} 张卡片`);
+    }
+
+    /**
+     * 更新每日学习统计
+     * @param isNewCard 是否是新卡片
+     * @param rating 评分
+     * @private 私有方法，只应由 trackStudyProgress 调用
+     */
+    private updateDailyStats(isNewCard: boolean, rating: FSRSRating) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = today.getTime();
         
-        if (relatedCards.length === 0) {
-            console.log('未找到与该批注关联的卡片');
-            return;
+        // 更新全局统计
+        if (!this.storage.globalStats.lastReviewDate) {
+            // 第一次复习
+            this.storage.globalStats.lastReviewDate = todayTimestamp;
+            this.storage.globalStats.streakDays = 1;
+        } else if (this.storage.globalStats.lastReviewDate === todayTimestamp) {
+            // 今天已经复习过
+            // 不需要更新
+        } else if (this.storage.globalStats.lastReviewDate === todayTimestamp - 86400000) {
+            // 昨天复习过，连续学习天数+1
+            this.storage.globalStats.lastReviewDate = todayTimestamp;
+            this.storage.globalStats.streakDays++;
+        } else if (this.storage.globalStats.lastReviewDate < todayTimestamp) {
+            // 之前复习过，但不是昨天，重置连续学习天数
+            this.storage.globalStats.lastReviewDate = todayTimestamp;
+            this.storage.globalStats.streakDays = 1;
         }
         
-        console.log(`找到 ${relatedCards.length} 张与该批注关联的卡片，正在删除...`);
+        // 使用日期字符串比较而不是时间戳
+        const todayDateStr = today.toDateString();
+        let todayStats = this.storage.dailyStats.find(stats => {
+            const statsDate = new Date(stats.date);
+            return statsDate.toDateString() === todayDateStr;
+        });
         
-        // 删除关联的卡片
-        for (const card of relatedCards) {
-            // 从存储中删除卡片
-            delete this.storage.cards[card.id];
+        // 如果不存在，创建新的统计数据
+        if (!todayStats) {
+            todayStats = {
+                date: todayTimestamp,
+                newCardsLearned: 0,
+                cardsReviewed: 0,
+                reviewCount: 0,
+                newCount: 0,
+                againCount: 0,
+                hardCount: 0,
+                goodCount: 0,
+                easyCount: 0
+            };
+            this.storage.dailyStats.push(todayStats);
             
-            // 从所有分组中移除卡片引用
-            if (card.groupIds) {
-                for (const groupId of card.groupIds) {
-                    this.removeCardFromGroup(card.id, groupId);
-                }
+            // 只保留最近30天的数据
+            if (this.storage.dailyStats.length > 30) {
+                this.storage.dailyStats.sort((a, b) => b.date - a.date);
+                this.storage.dailyStats = this.storage.dailyStats.slice(0, 30);
             }
         }
         
-        // 保存变更
+        // 更新统计数据
+        todayStats.reviewCount++;
+        
+        if (isNewCard) {
+            todayStats.newCount++;
+            todayStats.newCardsLearned++;
+        } else {
+            todayStats.cardsReviewed++;
+        }
+        
+        // 更新评分统计
+        switch (rating) {
+            case FSRS_RATING.AGAIN:
+                todayStats.againCount++;
+                break;
+            case FSRS_RATING.HARD:
+                todayStats.hardCount++;
+                break;
+            case FSRS_RATING.GOOD:
+                todayStats.goodCount++;
+                break;
+            case FSRS_RATING.EASY:
+                todayStats.easyCount++;
+                break;
+        }
+        
+        // 保存更新后的统计数据
         this.saveStorageDebounced();
-        console.log('关联的卡片已删除并保存');
+    }
+    
+    /**
+     * 重置指定分组的完成消息状态
+     * @param groupId 分组ID
+     */
+    private resetGroupCompletionMessage(groupId: string): void {
+        if (!groupId) return;
+        
+        // 获取分组名称
+        const group = this.groupRepository.getGroupById(groupId);
+        if (!group) return;
+        
+        // 确保 uiState 和 groupCompletionMessages 存在
+        if (!this.storage.uiState) {
+            this.storage.uiState = {
+                currentGroupName: '',
+                currentIndex: 0,
+                isFlipped: false,
+                completionMessage: null,
+                groupCompletionMessages: {},
+                groupProgress: {}
+            };
+        }
+        
+        if (!this.storage.uiState.groupCompletionMessages) {
+            this.storage.uiState.groupCompletionMessages = {};
+        }
+        
+        // 重置完成消息
+        if (this.storage.uiState.groupCompletionMessages[group.name]) {
+            console.log(`重置分组 ${group.name} 的完成消息`);
+            this.storage.uiState.groupCompletionMessages[group.name] = null;
+            this.saveStorageDebounced();
+        }
     }
 }

@@ -3,6 +3,7 @@ import { HighlightInfo, CommentItem } from "../types";
 import { CommentStore } from "../CommentStore";
 import { t } from "../i18n";
 import { HighlightService } from "./HighlightService";
+import { IdGenerator } from '../utils/IdGenerator';
 
 export class ExportService {
     private highlightService: HighlightService;
@@ -212,7 +213,11 @@ export class ExportService {
             }
 
             return {
-                id: this.generateHighlightId(highlight),
+                id: IdGenerator.generateHighlightId(
+                    file.path, 
+                    highlight.position || 0, 
+                    highlight.text
+                ),
                 ...highlight,
                 position: highlight.position ?? 0,
                 paragraphOffset: highlight.paragraphOffset ?? 0,
@@ -510,7 +515,11 @@ export class ExportService {
     /**
      * 生成高亮ID
      */
-    private generateHighlightId(highlight: HighlightInfo): string {
-        return `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    private generateHighlightId(highlight: HighlightInfo, filePath: string): string {
+        return IdGenerator.generateHighlightId(
+            filePath, 
+            highlight.position || 0, 
+            highlight.text
+        );
     }
 }
