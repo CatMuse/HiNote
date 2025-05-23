@@ -355,9 +355,10 @@ export class HighlightCard {
         });
         
         // 添加创建 HiCard 选项到下拉菜单
+        const hasFlashcard = this.checkHasFlashcard();
         const createHiCardItem = moreActionsDropdown.createEl("div", {
-            cls: "highlight-more-dropdown-item",
-            text: t('Create HiCard')
+            cls: "highlight-more-dropdown-item create-hicard-btn",
+            text: hasFlashcard ? t('Delete HiCard') : t('Create HiCard')
         });
         
         // 添加点击事件
@@ -752,26 +753,253 @@ export class HighlightCard {
      * @returns 是否已创建闪卡
      */
     private checkHasFlashcard(): boolean {
-        // 确保有 FSRSManager 实例和高亮 ID
-        if (!this.plugin.fsrsManager || !this.highlight.id) {
+        const fsrsManager = this.plugin.fsrsManager;
+        if (!fsrsManager || !this.highlight.id) {
             return false;
         }
         
-        // 获取所有卡片
-        const cards = this.plugin.fsrsManager.getAllCards();
-        if (!cards) {
-            return false;
-        }
-        
-        // 检查是否有与当前高亮关联的卡片
-        const hasCard = Object.values(cards).some(card => 
-            card.sourceType === 'highlight' && 
-            card.sourceId === this.highlight.id
-        );
-        
-        return hasCard;
+        // 通过 sourceId 查找闪卡
+        const cards = fsrsManager.findCardsBySourceId(this.highlight.id, 'highlight');
+        return cards && cards.length > 0;
     }
     
+    /**
+     * 处理创建/删除 HiCard 的逻辑
+     */
+    private async handleCreateHiCard() {
+        try {
+            const fsrsManager = this.plugin.fsrsManager;
+            if (!fsrsManager) {
+                new Notice(t('FSRS 管理器未初始化'));
+                return;
+            }
+
+            // 检查是否已经存在闪卡
+            const hasFlashcard = this.checkHasFlashcard();
+            
+            if (hasFlashcard) {
+                // 删除闪卡逻辑
+                await this.handleDeleteHiCard();
+            } else {
+                // 创建闪卡逻辑
+                await this.handleCreateNewHiCard();
+            }
+        } catch (error) {
+            console.error('处理闪卡操作时出错:', error);
+            new Notice(t(`操作失败: ${error.message}`));
+        }
+    }
+
+    /**
+     * 处理删除闪卡的逻辑
+     */
+    private async handleDeleteHiCard() {
+        try {
+            const fsrsManager = this.plugin.fsrsManager;
+            if (!fsrsManager) {
+                new Notice(t('FSRS 管理器未初始化'));
+                return;
+            }
+
+            // 根据 sourceId 删除闪卡
+            const deletedCount = fsrsManager.deleteCardsBySourceId(this.highlight.id || '', 'highlight');
+            
+            if (deletedCount > 0) {
+                console.log(`删除了 ${deletedCount} 张闪卡`);
+                
+                // 清理可能残留的无效卡片引用
+                const cleanedCount = fsrsManager.cleanupInvalidCardReferences();
+                if (cleanedCount > 0) {
+                    console.log(`额外清理了 ${cleanedCount} 个无效引用`);
+                }
+                
+                // 检查是否有批注，决定是否删除高亮
+                const hasComments = this.highlight.comments && this.highlight.comments.length > 0;
+                
+                if (!hasComments) {
+                    // 没有批注，删除整个高亮
+                    await this.deleteHighlightCompletely();
+                    new Notice(t('闪卡和高亮已删除'));
+                } else {
+                    // 有批注，只删除闪卡，保留高亮和批注
+                    new Notice(t('闪卡已删除，高亮和批注已保留'));
+                }
+                
+                // 更新按钮显示
+                this.updateIconsAfterCardDeletion();
+                
+                // 触发闪卡变化事件
+                this.plugin.eventManager.emitFlashcardChanged();
+            } else {
+                new Notice(t('未找到要删除的闪卡'));
+            }
+        } catch (error) {
+            console.error('删除闪卡时出错:', error);
+            new Notice(t(`删除闪卡失败: ${error.message}`));
+        }
+    }
+
+    /**
+     * 完全删除高亮（当没有批注时）
+     */
+    private async deleteHighlightCompletely() {
+        try {
+            if (this.highlight.filePath) {
+                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
+                if (file instanceof TFile) {
+                    // 从 CommentStore 中删除高亮
+                    const plugin = (window as any).app.plugins.plugins['hi-note'];
+                    if (plugin && plugin.commentStore) {
+                        await plugin.commentStore.removeComment(file, this.highlight as any);
+                        console.log('高亮已从存储中删除');
+                    } else {
+                        console.warn('无法访问 commentStore');
+                    }
+                    
+                    // 触发高亮删除事件
+                    this.plugin.eventManager.emitHighlightDelete(
+                        this.highlight.filePath, 
+                        this.highlight.text || '', 
+                        this.highlight.id || ''
+                    );
+                }
+            }
+        } catch (error) {
+            console.error('删除高亮时出错:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 处理创建新闪卡的逻辑（原有逻辑）
+     */
+    private async handleCreateNewHiCard() {
+        const fsrsManager = this.plugin.fsrsManager;
+        if (!fsrsManager) {
+            new Notice(t('FSRS 管理器未初始化'));
+            return;
+        }
+
+        // 确保高亮有 ID
+        if (!this.highlight.id) {
+            console.warn('高亮缺少 ID，正在生成...');
+            this.highlight.id = `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        }
+        
+        // 如果高亮是虚拟的，需要先保存到存储中
+        if (this.highlight.isVirtual && this.highlight.filePath) {
+            try {
+                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
+                if (file instanceof TFile) {
+                    console.log('正在保存虚拟高亮到存储...');
+                    // 创建 HiNote 对象
+                    const hiNote = {
+                        id: this.highlight.id,
+                        text: this.highlight.text || '',
+                        position: this.highlight.position || 0,
+                        comments: this.highlight.comments || [],
+                        createdAt: this.highlight.createdAt || Date.now(),
+                        updatedAt: this.highlight.updatedAt || Date.now(),
+                        isVirtual: this.highlight.isVirtual,
+                        filePath: this.highlight.filePath,
+                        fileType: this.highlight.fileType,
+                        displayText: this.highlight.displayText,
+                        paragraphOffset: this.highlight.paragraphOffset,
+                        backgroundColor: this.highlight.backgroundColor,
+                        isCloze: this.highlight.isCloze
+                    };
+                    
+                    console.log('正在保存高亮到存储...');
+                    const plugin = (window as any).app.plugins.plugins['hi-note'];
+                    if (plugin && plugin.commentStore) {
+                        await plugin.commentStore.addComment(file, hiNote);
+                        console.log('高亮已成功保存');
+                    } else {
+                        console.warn('无法访问 commentStore');
+                    }
+                }
+            } catch (error) {
+                console.error('保存高亮时出错:', error);
+                // 继续创建闪卡，即使保存高亮失败
+            }
+        } else {
+            console.warn('高亮对象缺少文件路径');
+        }
+        
+        // 使用 addCard 方法创建闪卡
+        // 处理挂空格式的文本
+        let text = this.highlight.text || '';
+        let answer = '';
+        
+        // 检查是否为挂空格式（例如：{{content}})
+        const clozeRegex = /\{\{([^{}]+)\}\}/g;
+        let match;
+        let clozeAnswers: string[] = [];
+        
+        // 如果文本中包含挂空格式，提取挂空内容作为答案
+        while ((match = clozeRegex.exec(text)) !== null) {
+            clozeAnswers.push(match[1]);
+        }
+        
+        // 收集所有可能的答案部分
+        let answerParts = [];
+        
+        // 如果有挖空内容，添加到答案部分
+        if (clozeAnswers.length > 0) {
+            answerParts.push(clozeAnswers.join('\n'));
+        }
+        
+        // 如果有批注内容，添加到答案部分
+        if (this.highlight.comments && this.highlight.comments.length > 0) {
+            answerParts.push(this.highlight.comments.map(c => c.content || '').join('\n'));
+        }
+        
+        // 合并所有答案部分，如果没有内容则使用默认文本
+        answer = answerParts.length > 0 ? answerParts.join('\n\n') : t('请添加答案');
+        
+        // 创建闪卡
+        const card = fsrsManager.addCard(
+            text, 
+            answer, 
+            this.highlight.filePath || this.fileName, 
+            this.highlight.id, 
+            'highlight'
+        );
+        
+        if (!card) {
+            new Notice(t('创建闪卡失败，请检查高亮内容'));
+            return;
+        }
+        
+        // 触发事件，让 FSRSManager 来处理保存
+        this.plugin.eventManager.emitFlashcardChanged();
+        
+        // 显示成功消息
+        new Notice(t('闪卡创建成功！'));
+        
+        console.log('创建的闪卡:', card);
+        
+        // 更新图标显示
+        this.updateIconsAfterCardCreation();
+    }
+
+    /**
+     * 更新删除闪卡后的图标显示
+     */
+    private updateIconsAfterCardDeletion() {
+        // 查找卡片中的所有图标元素
+        const fileIcons = this.card.querySelectorAll('.highlight-card-icon');
+        
+        // 更新所有图标为 file-text
+        fileIcons.forEach(icon => {
+            setIcon(icon as HTMLElement, 'file-text');
+            (icon as HTMLElement).removeClass('has-flashcard');
+        });
+        
+        // 更新按钮文本
+        this.updateCreateHiCardButtonText();
+    }
+
     /**
      * 更新创建闪卡后的图标显示
      */
@@ -784,138 +1012,19 @@ export class HighlightCard {
             setIcon(icon as HTMLElement, 'book-heart');
             (icon as HTMLElement).addClass('has-flashcard');
         });
+        
+        // 更新按钮文本
+        this.updateCreateHiCardButtonText();
     }
-    
+
     /**
-     * 处理创建 HiCard 的逻辑
+     * 更新创建闪卡按钮的文本
      */
-    private async handleCreateHiCard() {
-        try {
-            // 显示通知
-            new Notice(t('正在创建闪卡...'));
-            
-            // 获取 FSRSManager 实例
-            const fsrsManager = this.plugin.fsrsManager;
-            if (!fsrsManager) {
-                new Notice(t('无法获取 FSRS 管理器'));
-                return;
-            }
-            
-            // 确保高亮对象有必要的属性
-            console.log('创建闪卡的高亮对象:', this.highlight);
-            
-            // 确保高亮对象有 id
-            if (!this.highlight.id) {
-                new Notice(t('高亮对象缺少 ID'));
-                return;
-            }
-            
-            // 在创建闪卡之前，确保高亮内容已保存
-            if (this.highlight.filePath) {
-                // 获取文件对象
-                const file = this.plugin.app.vault.getFileByPath(this.highlight.filePath);
-                if (file) {
-                    try {
-                        // 直接尝试保存高亮
-                        // 创建一个符合 HiNote 类型的对象
-                        if (this.highlight.id) { // 确保 ID 存在
-                            const hiNote = {
-                                id: this.highlight.id,
-                                text: this.highlight.text || '',
-                                position: this.highlight.position || 0,
-                                paragraphId: this.highlight.paragraphId,
-                                blockId: this.highlight.blockId,
-                                comments: this.highlight.comments || [],
-                                createdAt: this.highlight.createdAt || Date.now(),
-                                updatedAt: this.highlight.updatedAt || Date.now(),
-                                isVirtual: this.highlight.isVirtual,
-                                filePath: this.highlight.filePath,
-                                fileType: this.highlight.fileType,
-                                displayText: this.highlight.displayText,
-                                paragraphOffset: this.highlight.paragraphOffset,
-                                backgroundColor: this.highlight.backgroundColor,
-                                isCloze: this.highlight.isCloze
-                            };
-                            
-                            console.log('正在保存高亮到存储...');
-                            // 使用 window 对象访问插件实例
-                            const plugin = (window as any).app.plugins.plugins['hi-note'];
-                            if (plugin && plugin.commentStore) {
-                                await plugin.commentStore.addComment(file, hiNote);
-                                console.log('高亮已成功保存');
-                            } else {
-                                console.warn('无法访问 commentStore');
-                            }
-                        }
-                    } catch (error) {
-                        console.error('保存高亮时出错:', error);
-                        // 继续创建闪卡，即使保存高亮失败
-                    }
-                } else {
-                    console.warn('无法获取文件对象:', this.highlight.filePath);
-                }
-            } else {
-                console.warn('高亮对象缺少文件路径');
-            }
-            
-            // 使用 addCard 方法创建闪卡
-            // 处理挂空格式的文本
-            let text = this.highlight.text || '';
-            let answer = '';
-            
-            // 检查是否为挂空格式（例如：{{content}})
-            const clozeRegex = /\{\{([^{}]+)\}\}/g;
-            let match;
-            let clozeAnswers: string[] = [];
-            
-            // 如果文本中包含挂空格式，提取挂空内容作为答案
-            while ((match = clozeRegex.exec(text)) !== null) {
-                clozeAnswers.push(match[1]);
-            }
-            
-            // 收集所有可能的答案部分
-            let answerParts = [];
-            
-            // 如果有挖空内容，添加到答案部分
-            if (clozeAnswers.length > 0) {
-                answerParts.push(clozeAnswers.join('\n'));
-            }
-            
-            // 如果有批注内容，添加到答案部分
-            if (this.highlight.comments && this.highlight.comments.length > 0) {
-                answerParts.push(this.highlight.comments.map(c => c.content || '').join('\n'));
-            }
-            
-            // 合并所有答案部分，如果没有内容则使用默认文本
-            answer = answerParts.length > 0 ? answerParts.join('\n\n') : t('请添加答案');
-            
-            // 创建闪卡
-            const card = fsrsManager.addCard(
-                text, 
-                answer, 
-                this.highlight.filePath || this.fileName, 
-                this.highlight.id, 
-                'highlight'
-            );
-            
-            if (!card) {
-                new Notice(t('创建闪卡失败，请检查高亮内容'));
-                return;
-            }
-            
-            // 触发事件，让 FSRSManager 来处理保存
-            this.plugin.eventManager.emitFlashcardChanged();
-            
-            // 显示成功消息
-            new Notice(t('闪卡创建成功！'));
-            
-            console.log('创建的闪卡:', card);
-            
-            // 更新图标显示
-            this.updateIconsAfterCardCreation();
-        } catch (error) {
-            console.error('创建闪卡时出错:', error);
-            new Notice(t(`创建闪卡失败: ${error.message}`));
+    private updateCreateHiCardButtonText() {
+        const createButton = this.card.querySelector('.create-hicard-btn');
+        if (createButton) {
+            const hasFlashcard = this.checkHasFlashcard();
+            createButton.textContent = hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
         }
     }
-} 
+}

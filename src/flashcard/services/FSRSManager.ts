@@ -534,15 +534,15 @@ export class FSRSManager {
         let deletedCount = 0;
         
         for (const card of cardsToDelete) {
-            // 从存储中删除卡片
-            delete this.storage.cards[card.id];
-            
-            // 从所有分组中移除卡片引用
+            // 先从所有分组中移除卡片引用（在删除卡片之前）
             if (card.groupIds) {
                 for (const groupId of card.groupIds) {
                     this.removeCardFromGroup(card.id, groupId);
                 }
             }
+            
+            // 然后从存储中删除卡片
+            delete this.storage.cards[card.id];
             
             deletedCount++;
         }
@@ -711,20 +711,14 @@ export class FSRSManager {
         const card = this.storage.cards[cardId];
         if (!card) return false;
         
-        // 如果卡片关联了分组，需要更新分组的卡片列表
-        if (card.groupIds && card.groupIds.length > 0) {
+        // 先从所有分组中移除卡片引用（在删除卡片之前）
+        if (card.groupIds) {
             for (const groupId of card.groupIds) {
-                const group = this.storage.cardGroups.find(g => g.id === groupId);
-                if (group && group.cardIds) {
-                    // 从分组的卡片列表中移除该卡片
-                    group.cardIds = group.cardIds.filter(id => id !== cardId);
-                    // 更新分组的最后更新时间
-                    group.lastUpdated = Date.now();
-                }
+                this.removeCardFromGroup(cardId, groupId);
             }
         }
         
-        // 删除卡片
+        // 然后从存储中删除卡片
         delete this.storage.cards[cardId];
         this.saveStorageDebounced();
         this.plugin.eventManager.emitFlashcardChanged();
@@ -1315,6 +1309,42 @@ export class FSRSManager {
         this.saveStorageDebounced();
     }
     
+    /**
+     * 清理所有分组中的无效卡片引用
+     * 这个方法会移除分组中指向不存在卡片的引用
+     */
+    public cleanupInvalidCardReferences(): number {
+        let cleanedCount = 0;
+        
+        if (!this.storage.cardGroups) {
+            return cleanedCount;
+        }
+        
+        for (const group of this.storage.cardGroups) {
+            if (group.cardIds && group.cardIds.length > 0) {
+                const originalLength = group.cardIds.length;
+                // 过滤出仍然存在的卡片ID
+                group.cardIds = group.cardIds.filter(cardId => 
+                    this.storage.cards && this.storage.cards[cardId]
+                );
+                
+                const removedCount = originalLength - group.cardIds.length;
+                if (removedCount > 0) {
+                    cleanedCount += removedCount;
+                    group.lastUpdated = Date.now();
+                    console.log(`从分组 "${group.name}" 中清理了 ${removedCount} 个无效卡片引用`);
+                }
+            }
+        }
+        
+        if (cleanedCount > 0) {
+            this.saveStorageDebounced();
+            console.log(`总共清理了 ${cleanedCount} 个无效卡片引用`);
+        }
+        
+        return cleanedCount;
+    }
+
     /**
      * 重置指定分组的完成消息状态
      * @param groupId 分组ID
