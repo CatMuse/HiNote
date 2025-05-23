@@ -145,7 +145,6 @@ export class CommentView extends ItemView {
         if (this.selectedHighlights.size === 0) return;
         
         // TODO: 实现导出选中高亮的功能
-        console.log('导出选中的高亮', this.selectedHighlights.size);
         
         // 清除选中状态
         this.clearSelection();
@@ -156,7 +155,6 @@ export class CommentView extends ItemView {
         if (this.selectedHighlights.size === 0) return;
         
         // TODO: 实现从选中高亮创建闪卡的功能
-        console.log('从选中的高亮创建闪卡', this.selectedHighlights.size);
         
         // 显示消息
         new Notice(t('feature_not_implemented'));
@@ -743,13 +741,9 @@ export class CommentView extends ItemView {
             
             // 通过 EventManager 触发批注更新事件，用于闪卡同步
             if (highlight.id) {
-                console.log(`触发批注更新事件: ${file.path}, ${oldContent} -> ${content}, sourceId: ${highlight.id}`);
                 this.plugin.eventManager.emitCommentUpdate(file.path, oldContent, content, highlight.id);
             }
-            
-            // 现在通过事件系统自动处理闪卡更新
-            console.log(`批注更新将通过事件系统自动同步到闪卡`);
-            
+
             // 使用新的刷新方法
             await this.refreshView();
         }
@@ -1361,16 +1355,12 @@ export class CommentView extends ItemView {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('点击了AI对话浮动按钮');
-            
             try {
                 const chatView = ChatView.getInstance(this.app, this.plugin);
-                console.log('成功创建ChatView实例');
                 
                 // 确保在下一个事件循环中显示对话框
                 setTimeout(() => {
                     chatView.show();
-                    console.log('ChatView显示完成');
                 }, 0);
             } catch (error) {
                 console.error('创建ChatView失败:', error);

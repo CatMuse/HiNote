@@ -85,9 +85,7 @@ export class FlashcardComponent extends Component {
             const group = this.fsrsManager.getCardGroups().find((g: any) => g.name === this.currentGroupName);
             if (group) {
                 this.currentGroupId = group.id;
-                console.log(`初始化当前分组: 名称=${this.currentGroupName}, ID=${group.id}`);
             } else {
-                console.warn(`初始化时未找到名称为 ${this.currentGroupName} 的分组`);
                 this.currentGroupId = '';
             }
         } else {
@@ -225,13 +223,10 @@ export class FlashcardComponent extends Component {
             const group = this.fsrsManager.getCardGroups().find((g: any) => g.name === groupName);
             if (group) {
                 this.currentGroupId = group.id;
-                console.log(`设置当前分组: 名称=${groupName}, ID=${group.id}`);
             } else {
-                console.warn(`未找到名称为 ${groupName} 的分组`);
                 this.currentGroupId = '';
             }
         } else {
-            console.log('清空当前分组');
             this.currentGroupId = '';
         }
     }
@@ -355,15 +350,6 @@ export class FlashcardComponent extends Component {
         
         // 保存 UI 状态
         this.fsrsManager.updateUIState(uiState);
-        
-        // 输出调试信息
-        console.log('保存状态:', {
-            currentGroupName: groupName,
-            currentIndex: this.currentIndex,
-            isFlipped: this.isFlipped,
-            completionMessage: this.completionMessage,
-            groupCompletionMessage: groupName ? this.getGroupCompletionMessage(groupName) : null
-        });
     }
     
     public updateProgress() {

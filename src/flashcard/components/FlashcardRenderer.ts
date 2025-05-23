@@ -271,16 +271,6 @@ export class FlashcardRenderer {
         const currentIndex = this.component.getCurrentIndex();
         const currentCard = cards.length > 0 && currentIndex < cards.length ? cards[currentIndex] : null;
         
-        // 输出调试信息
-        console.log('在 render 方法中，当前状态:', {
-            groupName: this.component.getCurrentGroupName(),
-            cardsLength: cards.length,
-            currentIndex: currentIndex,
-            currentCard: currentCard ? currentCard.id : null,
-            completionMessage: this.component.getCompletionMessage(),
-            groupCompletionMessage: this.component.getGroupCompletionMessage(this.component.getCurrentGroupName())
-        });
-        
         // 先检查是否有完成消息，再检查卡片数组
         // 显示完成消息（如果有）
         if (this.component.getCompletionMessage()) {
@@ -415,10 +405,6 @@ export class FlashcardRenderer {
             
             // 获取卡片预测信息
             const predictions = currentCard ? this.component.getFsrsManager().getCardPredictions(currentCard.id) : null;
-            
-            // 调试信息：输出当前卡片和预测结果
-            console.log('Current Card:', currentCard);
-            console.log('Predictions:', predictions);
             
             this.component.getRatingButtons().forEach((btn: any) => {
                 const button = ratingContainer.createEl("button", {

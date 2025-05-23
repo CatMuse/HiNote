@@ -19,7 +19,6 @@ export class FlashcardProgressManager {
     public getGroupProgress(): FlashcardProgress {
         // 获取当前分组 ID
         const groupId = this.component.getCurrentGroupId();
-        console.log('当前分组 ID:', groupId);
         
         // 获取卡片
         let cards: FlashcardState[] = [];
@@ -49,10 +48,8 @@ export class FlashcardProgressManager {
         if (groupId) {
             // 获取自定义分组的卡片
             cards = this.component.getFsrsManager().getCardsByGroupId(groupId);
-            console.log(`获取到分组 ${groupId} 的卡片数量:`, cards.length);
         } else {
             // 如果没有选择分组，获取所有分组的卡片（去重）
-            console.log('未选择分组，获取所有分组的卡片');
             cards = getAllGroupCards();
         }
         

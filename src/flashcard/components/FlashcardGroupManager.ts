@@ -282,7 +282,6 @@ export class FlashcardGroupManager {
             if (group) {
                 // 保存旧名称供后续使用
                 const oldName = group.name;
-                console.log(`分组名称更新: ${oldName} -> ${groupName}`);
                 
                 try {
                     // 使用 FSRSManager 的 updateCardGroup 方法更新分组

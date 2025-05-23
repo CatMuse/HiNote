@@ -36,20 +36,14 @@ export class CardGroupRepository {
      * @returns 创建的分组
      */
     public async createCardGroup(group: Omit<CardGroup, 'id'>): Promise<CardGroup> {
-        console.log(`开始创建新分组: ${group.name}, 过滤条件: ${group.filter}`);
-        
-        // 检查存储对象
-        console.log('存储对象结构:', Object.keys(this.storage));
         
         // 确保 cardGroups 数组已初始化
         if (!Array.isArray(this.storage.cardGroups)) {
-            console.log('初始化 cardGroups 数组');
             this.storage.cardGroups = [];
         }
         
         // 生成唯一ID
         const id = IdGenerator.generateGroupId();
-        console.log(`生成分组ID: ${id}`);
         
         // 创建新分组
         const newGroup: CardGroup = {
@@ -67,20 +61,16 @@ export class CardGroupRepository {
         
         // 添加到存储
         this.storage.cardGroups.push(newGroup);
-        console.log(`分组已添加到存储，当前分组数量: ${this.storage.cardGroups.length}`);
-        console.log('存储中的分组:', this.storage.cardGroups.map((g: CardGroup) => g.name));
         
         // 直接保存一次，确保分组数据被保存
         try {
             await this.plugin.fsrsManager.saveStoragePublic();
-            console.log('分组数据已直接保存');
         } catch (error) {
             console.error('保存分组数据时出错:', error);
         }
         
         // 触发事件
         this.plugin.eventManager.emitFlashcardChanged();
-        console.log('分组创建完成，已触发事件');
         
         return newGroup;
     }
@@ -92,11 +82,9 @@ export class CardGroupRepository {
      * @returns 是否更新成功
      */
     public async updateCardGroup(groupId: string, updates: Partial<CardGroup>): Promise<boolean> {
-        console.log(`开始更新分组: ${groupId}`);
         
         const index = this.storage.cardGroups.findIndex((g: CardGroup) => g.id === groupId);
         if (index === -1) {
-            console.log(`未找到分组: ${groupId}`);
             return false;
         }
         
@@ -107,11 +95,8 @@ export class CardGroupRepository {
             // 移除 lastUpdated 字段，因为 FlashcardState 类型中没有这个字段
         };
         
-        console.log(`分组已更新: ${this.storage.cardGroups[index].name}`);
-        
         // 触发事件
         this.plugin.eventManager.emitFlashcardChanged();
-        console.log('分组更新完成，已触发事件');
         
         return true;
     }
@@ -153,11 +138,9 @@ export class CardGroupRepository {
         
         // 获取该分组内的所有卡片
         const cardsInGroup = [...(deletedGroup.cardIds || [])];
-        console.log(`删除分组 ${groupId}，包含 ${cardsInGroup.length} 张卡片，deleteCards=${deleteCards}`);
         
         // 仅解除卡片与分组的关联，不再删除卡片
         for (const cardId of cardsInGroup) {
-            console.log(`从分组 ${groupId} 中移除卡片 ${cardId}`);
             this.removeCardFromGroup(cardId, groupId);
         }
         
@@ -243,7 +226,6 @@ export class CardGroupRepository {
      * @returns 分组中的卡片列表
      */
     public getCardsByGroupId(groupId: string): FlashcardState[] {
-        console.log(`[getCardsByGroupId] 开始获取分组卡片, 分组ID: ${groupId}`);
         
         const group = this.getGroupById(groupId);
         if (!group) {
@@ -251,23 +233,12 @@ export class CardGroupRepository {
             return [];
         }
         
-        console.log(`[getCardsByGroupId] 找到分组:`, {
-            id: group.id,
-            name: group.name,
-            filter: group.filter,
-            cardIds: group.cardIds ? group.cardIds.length : 0
-        });
         
         // 检查存储中的卡片
         const allCardIds = Object.keys(this.storage.cards || {});
-        console.log(`[getCardsByGroupId] 存储中共有 ${allCardIds.length} 张卡片`);
         
         // 如果分组有 cardIds 数组，直接返回这些卡片
         if (group.cardIds && group.cardIds.length > 0) {
-            console.log(`[getCardsByGroupId] 分组 ${group.name} 有 ${group.cardIds.length} 张卡片`);
-            
-            // 记录前5张卡片的ID，用于调试
-            console.log(`[getCardsByGroupId] 前5张卡片ID:`, group.cardIds.slice(0, 5));
             
             const filteredCards = group.cardIds
                 .filter((id: string) => {
@@ -278,24 +249,12 @@ export class CardGroupRepository {
                     return exists;
                 })
                 .map((id: string) => this.storage.cards[id]);
-                
-            console.log(`[getCardsByGroupId] 成功获取 ${filteredCards.length}/${group.cardIds.length} 张有效卡片`);
-            
-            if (filteredCards.length > 0) {
-                console.log(`[getCardsByGroupId] 第一张卡片示例:`, {
-                    id: filteredCards[0].id,
-                    text: filteredCards[0].text?.substring(0, 50) + '...',
-                    answer: filteredCards[0].answer,
-                    reviews: filteredCards[0].reviews
-                });
-            }
             
             return filteredCards;
         }
         
         // 如果没有卡片ID，但有筛选条件，则根据筛选条件获取卡片
         if (group.filter && group.filter.trim().length > 0) {
-            console.log(`[getCardsByGroupId] 使用筛选条件获取卡片: ${group.filter}`);
             
             const allCards = Object.values(this.storage.cards) as FlashcardState[];
             const filterConditions = group.filter.split(',').map(f => f.trim()).filter(f => f.length > 0);
@@ -326,11 +285,9 @@ export class CardGroupRepository {
                 return false;
             });
             
-            console.log(`[getCardsByGroupId] 根据筛选条件找到 ${filteredCards.length} 张卡片`);
             return filteredCards;
         }
         
-        console.log(`[getCardsByGroupId] 分组 ${group.name} 没有卡片ID和筛选条件，返回空数组`);
         return [];
     }
     

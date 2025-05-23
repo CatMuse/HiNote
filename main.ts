@@ -62,9 +62,6 @@ export default class CommentPlugin extends Plugin {
 		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
 		this.highlightDecorator.enable();
 
-		// 注册事件处理程序
-		this.registerEventHandlers();
-
 		// 注册视图
 		this.registerView(
 			VIEW_TYPE_COMMENT,
@@ -241,12 +238,6 @@ export default class CommentPlugin extends Plugin {
 				}
 			}
 		});
-	}
-
-	private registerEventHandlers() {
-		// FSRSManager 已经注册了自己的事件监听器
-		// 这里不需要重复注册
-		console.log('事件处理器注册完成');
 	}
 
 	async onunload() {

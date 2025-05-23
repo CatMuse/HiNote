@@ -805,12 +805,12 @@ export class HighlightCard {
             const deletedCount = fsrsManager.deleteCardsBySourceId(this.highlight.id || '', 'highlight');
             
             if (deletedCount > 0) {
-                console.log(`删除了 ${deletedCount} 张闪卡`);
+
                 
                 // 清理可能残留的无效卡片引用
                 const cleanedCount = fsrsManager.cleanupInvalidCardReferences();
                 if (cleanedCount > 0) {
-                    console.log(`额外清理了 ${cleanedCount} 个无效引用`);
+
                 }
                 
                 // 检查是否有批注，决定是否删除高亮
@@ -851,7 +851,7 @@ export class HighlightCard {
                     const plugin = (window as any).app.plugins.plugins['hi-note'];
                     if (plugin && plugin.commentStore) {
                         await plugin.commentStore.removeComment(file, this.highlight as any);
-                        console.log('高亮已从存储中删除');
+
                     } else {
                         console.warn('无法访问 commentStore');
                     }
@@ -891,7 +891,7 @@ export class HighlightCard {
             try {
                 const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
                 if (file instanceof TFile) {
-                    console.log('正在保存虚拟高亮到存储...');
+
                     // 创建 HiNote 对象
                     const hiNote = {
                         id: this.highlight.id,
@@ -909,11 +909,11 @@ export class HighlightCard {
                         isCloze: this.highlight.isCloze
                     };
                     
-                    console.log('正在保存高亮到存储...');
+
                     const plugin = (window as any).app.plugins.plugins['hi-note'];
                     if (plugin && plugin.commentStore) {
                         await plugin.commentStore.addComment(file, hiNote);
-                        console.log('高亮已成功保存');
+
                     } else {
                         console.warn('无法访问 commentStore');
                     }
@@ -977,7 +977,7 @@ export class HighlightCard {
         // 显示成功消息
         new Notice(t('闪卡创建成功！'));
         
-        console.log('创建的闪卡:', card);
+
         
         // 更新图标显示
         this.updateIconsAfterCardCreation();

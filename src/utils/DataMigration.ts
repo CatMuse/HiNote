@@ -42,8 +42,6 @@ export class DataMigration {
 
             migratedHighlights[newId] = migratedHighlight;
             idMapping[oldId] = newId;
-
-            console.log(`迁移高亮ID: ${oldId} -> ${newId}`);
         }
 
         return { migratedHighlights, idMapping };
@@ -79,8 +77,6 @@ export class DataMigration {
 
             migratedCards[newId] = migratedCard;
             idMapping[oldId] = newId;
-
-            console.log(`迁移闪卡ID: ${oldId} -> ${newId}`);
         }
 
         return { migratedCards, idMapping };
@@ -104,7 +100,6 @@ export class DataMigration {
             // 更新sourceId引用
             if (card.sourceId && highlightIdMapping[card.sourceId]) {
                 updatedCard.sourceId = highlightIdMapping[card.sourceId];
-                console.log(`更新闪卡 ${cardId} 的sourceId: ${card.sourceId} -> ${updatedCard.sourceId}`);
             }
 
             updatedCards[cardId] = updatedCard;
@@ -145,8 +140,6 @@ export class DataMigration {
      * @returns 迁移后的数据
      */
     static migrateData(data: any): any {
-        console.log('开始数据迁移...');
-
         const migratedData = { ...data };
         const allHighlightIdMappings: Record<string, string> = {};
 
@@ -176,7 +169,6 @@ export class DataMigration {
             migratedData.cards = updatedCards;
         }
 
-        console.log('数据迁移完成');
         return migratedData;
     }
 }

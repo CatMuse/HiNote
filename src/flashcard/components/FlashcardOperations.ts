@@ -144,8 +144,7 @@ export class FlashcardOperations {
                 isFlipped: this.component.isCardFlipped(),
                 currentCardId: currentCardId
             };
-            console.log(`保存切换前分组 ${currentGroupName} 的状态:`, currentProgress);
-            
+
             // 更新分组进度
             const uiState = fsrsManager.getUIState();
             if (!uiState.groupProgress) {
@@ -154,9 +153,6 @@ export class FlashcardOperations {
             uiState.groupProgress[currentGroupName] = currentProgress;
             fsrsManager.updateUIState(uiState);
         }
-        
-        // 使用统一的卡片获取方法
-        console.log(`获取分组 ${groupName} 的卡片`);
         
         // 获取分组 ID
         const group = fsrsManager.getCardGroups().find((g: any) => g.name === groupName);
@@ -167,11 +163,9 @@ export class FlashcardOperations {
         
         // 使用分组 ID 获取卡片
         const cards = fsrsManager.getCardsForStudy(group.id);
-        console.log(`获取到 ${cards.length} 张卡片`);
         
         // 获取保存的UI状态（在设置卡片列表之前）
         const savedProgress = this.component.getGroupProgress(groupName);
-        console.log(`获取到分组 ${groupName} 的保存状态:`, savedProgress);
         
         // 清除完成消息
         this.component.setCompletionMessage(null);
@@ -192,27 +186,22 @@ export class FlashcardOperations {
                     if (foundIndex !== -1) {
                         // 如果找到了卡片，使用该索引
                         newIndex = foundIndex;
-                        console.log(`通过卡片ID找到了之前学习的卡片，索引=${newIndex}`);
                     } else {
                         // 如果没有找到，使用保存的索引（确保不超出范围）
                         newIndex = Math.min(savedProgress.currentIndex, cards.length - 1);
-                        console.log(`没有找到之前学习的卡片ID，使用保存的索引=${newIndex}`);
                     }
                 } else {
                     // 如果没有保存卡片ID，使用保存的索引（确保不超出范围）
                     newIndex = Math.min(savedProgress.currentIndex, cards.length - 1);
-                    console.log(`没有保存卡片ID，使用保存的索引=${newIndex}`);
                 }
                 
                 // 设置当前索引和翻转状态
                 this.component.setCurrentIndex(newIndex);
                 this.component.setCardFlipped(savedProgress.isFlipped);
-                console.log(`恢复分组 ${groupName} 的UI状态: 索引=${newIndex}, 翻转=${savedProgress.isFlipped}`);
             } else {
                 // 如果没有保存的状态，从头开始
                 this.component.setCurrentIndex(0);
                 this.component.setCardFlipped(false);
-                console.log(`没有找到分组 ${groupName} 的保存状态，从头开始`);
             }
         } else {
             // 如果没有卡片，显示完成消息
@@ -224,21 +213,9 @@ export class FlashcardOperations {
                 }
             }
             this.component.setGroupCompletionMessage(groupName, message);
-            console.log(`分组 ${groupName} 没有卡片，显示完成消息:`, message);
         }
         
         // 保存状态
         this.component.saveState();
-        
-        // 输出调试信息
-        console.log('设置卡片列表后的状态:', {
-            cards: this.component.getCards().length,
-            currentIndex: this.component.getCurrentIndex(),
-            isFlipped: this.component.isCardFlipped(),
-            completionMessage: this.component.getCompletionMessage(),
-            groupCompletionMessage: this.component.getGroupCompletionMessage(groupName)
-        });
     }
-    
-    // 键盘快捷键相关方法已移除
 }

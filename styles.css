@@ -481,7 +481,7 @@ settings:
 
 .hi-note-input {
     padding: 8px;
-    background-color: var(--background-primary);
+    background-color: var(--background-secondary);
     border-radius: 6px;
     margin: 0 0 4px 0;
     width: 100%;
@@ -3307,10 +3307,10 @@ textarea.flashcard-modal-input {
 }
 
 .unfocused-input-area {
-    min-height: 32px;
-    padding: 6px 12px;
+    min-height: 30px;
+    padding: 4px 8px;
     border-radius: 4px;
-    border: 1px dashed var(--background-modifier-border);
+    border: 2px solid var(--background-modifier-border);
     color: var(--text-muted);
     display: flex;
     align-items: center;
@@ -3341,7 +3341,7 @@ textarea.flashcard-modal-input {
 .highlight-card-title-bar {
     display: flex;
     align-items: center;
-    padding: 4px 12px;
+    padding: 4px 10px;
     background-color: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
     border-radius: 6px 6px 0 0;
