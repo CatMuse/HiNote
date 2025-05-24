@@ -540,11 +540,7 @@ settings:
 
 /* 已合并到上面的样式定义中 */
 
-.highlight-container {
-    height: calc(100% - 60px);
-    overflow-y: auto;
-    padding: 12px;
-}
+/* 已合并到下面的样式定义中（L3542-3547） */
 
 .hi-note-button {
     display: inline-flex;
@@ -675,7 +671,7 @@ settings:
     display: flex;
     justify-content: space-around;
     margin-bottom: 8px;
-    gap: inherit;
+    gap: 10px;
 }
 
 .flashcard-stat-item {
@@ -790,8 +786,7 @@ settings:
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
-    border-bottom: 1px solid var(--background-modifier-border);
+    width: 100%; /* 从flashcard-groups-actions合并过来 */
 }
 
 .flashcard-groups-title {
@@ -800,10 +795,7 @@ settings:
     color: var(--text-normal);
 }
 
-.flashcard-groups-actions {
-    display: flex;
-    width: 100%;
-}
+/* flashcard-groups-actions类已移除，相关样式已合并到flashcard-groups-header中 */
 
 /* 分组操作按钮 - 已合并 */
 .flashcard-group-action {
@@ -827,21 +819,19 @@ settings:
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: 8px;
-}
-
-.flashcard-add-group:hover {
-    background-color: var(--background-modifier-hover);
-}
-
-.flashcard-add-group-content {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
 }
 
-.flashcard-add-group-content svg {
+.flashcard-add-group:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* flashcard-add-group-content类已移除，相关样式已合并到flashcard-add-group中 */
+
+.flashcard-add-group svg {
     width: 16px;
     height: 16px;
     color: var(--text-muted);
@@ -967,8 +957,6 @@ settings:
 
 .flashcard-sidebar {
     width: 240px;
-    border-right: 1px solid var(--background-modifier-border);
-    padding-right: 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -1209,7 +1197,7 @@ settings:
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 12px;
+    padding: 6px 12px;
     background: var(--background-secondary);
     border-radius: 4px;
 }
@@ -1857,7 +1845,7 @@ settings:
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 9999;
+    z-index: 999;
     transition: all 0.3s ease;
 }
 
@@ -3542,7 +3530,7 @@ textarea.flashcard-modal-input {
 /* 确保 highlight-container 有相对定位，以便子元素可以相对于它定位 */
 .highlight-container {
     position: relative;
-    height: calc(100% - 60px);
+    height: calc(100%);
     overflow-y: auto;
     padding: 12px;
 }

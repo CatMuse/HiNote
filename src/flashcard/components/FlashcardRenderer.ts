@@ -99,15 +99,11 @@ export class FlashcardRenderer {
         // 添加标题和操作区
         const customGroupHeader = customGroups.createEl("div", { cls: "flashcard-groups-header" });
         
-        // 添加按钮区
-        const customGroupActions = customGroupHeader.createEl("div", { cls: "flashcard-groups-actions" });
+        // 添加分组按钮（直接添加到header中，跳过中间层级）
+        const addButton = customGroupHeader.createEl("div", { cls: "flashcard-add-group", attr: { 'aria-label': t('添加分组') } });
         
-        // 添加分组按钮
-        const addButton = customGroupActions.createEl("div", { cls: "flashcard-add-group", attr: { 'aria-label': t('添加分组') } });
-        
-        // 创建图标和文本容器
-        const buttonContent = addButton.createEl("div", { cls: "flashcard-add-group-content" });
-        setIcon(buttonContent, 'plus');
+        // 直接在按钮上设置图标，简化DOM结构
+        setIcon(addButton, 'plus');
         
         addButton.addEventListener('click', () => this.component.getGroupManager().showCreateGroupModal());
         

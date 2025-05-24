@@ -72,7 +72,6 @@ export class FlashcardStatsPanel {
         
         // 添加调试信息 - 当前日期
         const today = new Date();
-        console.log('当前日期:', today, '星期:', today.getDay());
         
         // 获取过去84天的日期（7行*12列）
         const startDate = new Date(today);
@@ -81,26 +80,18 @@ export class FlashcardStatsPanel {
         // 创建日期映射，用于快速查找特定日期的数据
         const dateMap = new Map();
         
-        // 添加调试信息
-        console.log('热力图数据:', dailyStats);
-        
         // 手动添加当天的数据（如果不存在）
         const todayDate = new Date(today);
         todayDate.setHours(0, 0, 0, 0);
         const todayTimestamp = todayDate.getTime();
         const todayKey = `${todayDate.getFullYear()}-${todayDate.getMonth() + 1}-${todayDate.getDate()}`;
-        
-        console.log('当天的日期键:', todayKey);
-        
+                
         // 检查是否有当天的数据
         let hasTodayData = false;
         
         // 使用真实的学习数据
         const allStats = [...dailyStats];
-        
-        // 添加调试信息
-        console.log('学习数据数量:', allStats.length);
-        
+
         // 处理所有数据
         allStats.forEach(stat => {
             // 将时间戳转换为日期对象
@@ -119,9 +110,6 @@ export class FlashcardStatsPanel {
                 hasTodayData = true;
             }
             
-            // 添加调试信息
-            console.log(`日期映射: ${stat.date} -> ${dateKey}`, date);
-            
             // 存储到映射中（如果有重复的日期，使用最后一条数据）
             dateMap.set(dateKey, stat);
         });
@@ -129,7 +117,6 @@ export class FlashcardStatsPanel {
         // 如果没有当天的数据，手动添加一个空的记录
         // 这样即使当天没有学习数据，也会显示一个空单元格
         if (!hasTodayData) {
-            console.log('没有当天数据，添加空记录');
             dateMap.set(todayKey, {
                 date: todayTimestamp,
                 newCardsLearned: 0,
@@ -158,23 +145,15 @@ export class FlashcardStatsPanel {
         // 在热力图中，周一在第0行，周六在第5行，周日在第6行
         const todayRowIndex = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1;
         
-        console.log('当天是周几:', todayDayOfWeek, '在热力图中的行索引:', todayRowIndex);
-        
-        // 我们希望当天显示在最后一列（第11列）
         // 计算当前周的周一的日期
         const thisWeekMonday = new Date(today);
         thisWeekMonday.setDate(today.getDate() - ((todayDayOfWeek === 0 ? 7 : todayDayOfWeek) - 1));
-        
-        console.log('当前周的周一:', thisWeekMonday);
-        
+                
         // 计算热力图第一列第一行（左上角）的日期
         // 往前推算11周
         const firstCellDate = new Date(thisWeekMonday);
         firstCellDate.setDate(firstCellDate.getDate() - 11 * 7);
-        
-        console.log('热力图左上角日期:', firstCellDate);
-        
-        
+ 
         // 创建一个二维数组来存储所有单元格的日期
         const cellDates = [];
         
@@ -217,11 +196,6 @@ export class FlashcardStatsPanel {
                 
                 // 从映射中获取统计数据
                 const stat = dateMap.get(dateKey);
-                
-                // 如果找到数据，添加调试信息
-                if (stat) {
-                    console.log(`找到日期 ${dateKey} 的数据:`, stat);
-                }
                 
                 const cell = grid.createDiv('flashcard-heatmap-cell');
                 
