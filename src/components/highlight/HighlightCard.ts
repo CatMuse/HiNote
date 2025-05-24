@@ -42,8 +42,7 @@ export class HighlightCard {
     private static cardInstances = new Set<HighlightCard>();
     private fileName: string | undefined;
     private isEditing = false;
-    private aiDropdown: HTMLElement | null = null;
-    private aiButton: HTMLElement | null = null;
+    private aiButtonInstance: AIButton | null = null;
     private moreActionsDropdown: HTMLElement | null = null;
     private boundClickOutsideHandler: (e: MouseEvent) => void;
     private unfocusedInput: UnfocusedCommentInput | null = null;
@@ -288,40 +287,25 @@ export class HighlightCard {
         
         // 在标题栏右侧添加操作按钮
         
-        // AI 按钮和下拉菜单容器
-        const aiContainer = titleBarRight.createEl("div", {
-            cls: "highlight-ai-container"
-        });
-        
-        // AI 按钮
-        const aiButton = titleBarRight.createEl("div", {
-            cls: "highlight-title-btn highlight-ai-btn",
-            attr: { 'aria-label': t('AI Analysis') }
-        });
-        this.aiButton = aiButton;
-        setIcon(aiButton, "bot-message-square");
-        
-        // 创建下拉菜单
-        const dropdown = aiContainer.createEl("div", {
-            cls: "highlight-ai-dropdown hi-note-hidden"
-        });
-        
-        // 保存下拉菜单引用
-        this.aiDropdown = dropdown;
-        
-        // 防止下拉菜单的点击事件冒泡
-        dropdown.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
-        
-        // 添加按钮点击事件
-        aiButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            this.toggleAIDropdown(dropdown);
-        });
-        
-        // 更新下拉菜单内容
-        this.updateAIDropdownContent(dropdown, aiButton);
+        // 使用重构后的 AIButton 组件
+        this.aiButtonInstance = new AIButton(
+            titleBarRight,
+            {
+                getText: () => this.highlight.text,
+                getComments: () => (this.highlight.comments || []).map(c => c.content || "").join('\n')
+            },
+            this.plugin,
+            {
+                onResponse: async (content) => {
+                    await this.options.onAIResponse(content);
+                },
+                buttonClass: "highlight-title-btn highlight-ai-btn",
+                buttonIcon: "bot",
+                buttonLabel: t('AI bot'),
+                position: 'titlebar',
+                dropdownClass: "highlight-ai-dropdown"
+            }
+        );
         
         // 创建更多操作的容器
         const moreActionsContainer = titleBarRight.createEl("div", {
@@ -602,47 +586,6 @@ export class HighlightCard {
         const generator = new DragContentGenerator(this.highlight, this.plugin);
         return generator.generate();
     }
-    
-    /**
-     * 处理点击外部事件，关闭所有下拉菜单
-     */
-    private handleClickOutside(e: MouseEvent) {
-        // 如果点击的不是卡片内的元素，关闭所有下拉菜单
-        if (this.card && !this.card.contains(e.target as Node)) {
-            this.closeAllDropdowns();
-        }
-    }
-    
-    /**
-     * 关闭所有下拉菜单
-     */
-    private closeAllDropdowns() {
-        if (this.aiDropdown) {
-            this.aiDropdown.addClass("hi-note-hidden");
-        }
-        if (this.moreActionsDropdown) {
-            this.moreActionsDropdown.addClass("hi-note-hidden");
-        }
-    }
-    
-    /**
-     * 切换 AI 下拉菜单的显示状态
-     * @param dropdown 下拉菜单元素
-     */
-    private toggleAIDropdown(dropdown: HTMLElement) {
-        if (dropdown.hasClass("hi-note-hidden")) {
-            // 关闭其他所有下拉菜单
-            document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((otherDropdown) => {
-                if (otherDropdown !== dropdown) {
-                    otherDropdown.addClass("hi-note-hidden");
-                }
-            });
-            dropdown.removeClass("hi-note-hidden");
-        } else {
-            dropdown.addClass("hi-note-hidden");
-        }
-    }
-    
     /**
      * 切换更多操作下拉菜单的显示/隐藏状态
      * @param dropdown 下拉菜单元素
@@ -662,89 +605,21 @@ export class HighlightCard {
     }
     
     /**
-     * 更新 AI 下拉菜单的内容
-     * @param dropdown 下拉菜单元素
-     * @param aiButton AI 按钮元素
+     * 处理点击外部事件，关闭所有下拉菜单
+     * @param e 鼠标事件
      */
-    private updateAIDropdownContent(dropdown: HTMLElement, aiButton: HTMLElement) {
-        // 清空所有内容
-        dropdown.empty();
-
-        // 获取所有可用的 prompts
-        const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
-        if (prompts.length > 0) {
-            prompts.forEach(([promptName, promptContent]) => {
-                const promptItem = dropdown.createEl("div", {
-                    cls: "highlight-ai-dropdown-item",
-                    text: promptName
-                });
-                promptItem.addEventListener("click", async () => {
-                    dropdown.addClass("hi-note-hidden");
-                    await this.handleAIAnalysis(promptName, aiButton);
-                });
+    private handleClickOutside(e: MouseEvent) {
+        // 如果点击的不是卡片内的元素，关闭所有下拉菜单
+        if (!this.card.contains(e.target as Node)) {
+            // 关闭所有下拉菜单
+            document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((dropdown) => {
+                dropdown.addClass("hi-note-hidden");
             });
-        } else {
-            // 如果没有可用的 prompts，显示提示信息
-            dropdown.createEl("div", {
-                cls: "highlight-ai-dropdown-item",
-                text: t("请在设置中添加 Prompt")
-            });
-        }
-    }
-    
-    /**
-     * 处理 AI 分析
-     * @param promptName 提示名称
-     * @param aiButton AI 按钮元素
-     */
-    private async handleAIAnalysis(promptName: string, aiButton: HTMLElement) {
-        try {
-            // 设置加载状态
-            this.setAIButtonLoading(aiButton, true);
-
-            const aiService = new AIService(this.plugin.settings.ai);
-            const prompt = this.plugin.settings.ai.prompts[promptName];
             
-            if (!prompt) {
-                throw new Error(t(`未找到名为 "${promptName}" 的 Prompt`));
+            // 如果 AI 按钮实例存在，也关闭其下拉菜单
+            if (this.aiButtonInstance) {
+                this.aiButtonInstance.closeDropdown();
             }
-
-            // 获取所有评论内容
-            const comments = this.highlight.comments || [];
-            const commentsText = comments.map(comment => comment.content).join('\n');
-
-            // 调用 AI 服务进行分析
-            const response = await aiService.generateResponse(
-                prompt,
-                this.highlight.text,
-                commentsText
-            );
-
-            // 添加 AI 分析结果作为新评论
-            await this.options.onAIResponse(response);
-
-            new Notice(t('AI 评论已添加'));
-
-        } catch (error) {
-            new Notice(t(`AI 评论失败: ${error.message}`));
-        } finally {
-            // 恢复按钮状态
-            this.setAIButtonLoading(aiButton, false);
-        }
-    }
-    
-    /**
-     * 设置 AI 按钮的加载状态
-     * @param aiButton AI 按钮元素
-     * @param loading 是否处于加载状态
-     */
-    private setAIButtonLoading(aiButton: HTMLElement, loading: boolean) {
-        if (loading) {
-            aiButton.addClass('loading');
-            setIcon(aiButton, 'loader');
-        } else {
-            aiButton.removeClass('loading');
-            setIcon(aiButton, 'bot-message-square');
         }
     }
     
