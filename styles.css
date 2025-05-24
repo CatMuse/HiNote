@@ -2593,7 +2593,7 @@ justify-content: center;
 }
 
 .virtual-highlight-card .hi-notes-section {
-    margin-top: 0;  /* 移除评论区域的顶部边距 */
+    margin-top: 12px;  /* 移除评论区域的顶部边距 */
     border-radius: 8px;
 }
 
