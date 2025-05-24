@@ -1112,6 +1112,13 @@ settings:
     transition: all 0.2s ease;
 }
 
+.flashcard-group-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .flashcard-group-item-left {
     display: flex;
     align-items: center;
@@ -1131,8 +1138,22 @@ settings:
     color: var(--text-accent);
 }
 
+.flashcard-group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0; /* 允许子元素缩小到比其内容更小 */
+    overflow: hidden;
+}
+
 .flashcard-group-name {
     font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0; /* 允许文本缩小到比其内容更小 */
 }
 
 .flashcard-group-actions {
@@ -1140,6 +1161,8 @@ settings:
     gap: 4px;
     opacity: 0;
     transition: opacity 0.2s ease;
+    flex-shrink: 0; /* 防止操作按钮被挤压 */
+    margin-left: 8px; /* 与分组名称保持一定距离 */
 }
 
 .flashcard-group-item:hover .flashcard-group-actions {
