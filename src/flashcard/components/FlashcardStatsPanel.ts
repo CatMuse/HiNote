@@ -174,6 +174,7 @@ export class FlashcardStatsPanel {
         
         console.log('热力图左上角日期:', firstCellDate);
         
+        
         // 创建一个二维数组来存储所有单元格的日期
         const cellDates = [];
         
