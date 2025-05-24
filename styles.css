@@ -764,6 +764,15 @@ settings:
     border: 1px solid rgba(76, 175, 80, 1);
 }
 
+/* 当天的单元格样式 - 使用特殊的边框和背景样式 */
+.flashcard-heatmap-today {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(33, 150, 243, 0.8); /* 使用蓝色边框 */
+    box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
+    transform: scale(1.1); /* 缩放效果，使其更突出 */
+    z-index: 1; /* 确保它显示在其他单元格上面 */
+}
+
 /* 已删除热力图缩放相关样式 */
 
 /* 统计信息容器水平布局 */

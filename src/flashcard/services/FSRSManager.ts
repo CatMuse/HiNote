@@ -1202,6 +1202,45 @@ export class FSRSManager {
     }
 
     /**
+     * 检查并维护每日统计数据
+     * 确保我们保留最近84天的数据，并按日期排序
+     * @private 私有方法，用于维护每日统计数据
+     */
+    private checkAndMaintainDailyStats() {
+        // 确保 dailyStats 数组存在
+        if (!this.storage.dailyStats) {
+            this.storage.dailyStats = [];
+        }
+        
+        // 按日期排序（从新到旧）
+        this.storage.dailyStats.sort((a, b) => b.date - a.date);
+        
+        // 去除重复的日期记录（保留最新的）
+        const uniqueDates = new Map<string, DailyStats>();
+        this.storage.dailyStats.forEach(stat => {
+            const date = new Date(stat.date);
+            const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+            if (!uniqueDates.has(dateKey)) {
+                uniqueDates.set(dateKey, stat);
+            }
+        });
+        
+        // 将去重后的数据转回数组
+        this.storage.dailyStats = Array.from(uniqueDates.values());
+        
+        // 再次按日期排序（确保顺序正确）
+        this.storage.dailyStats.sort((a, b) => b.date - a.date);
+        
+        // 保留最近84天的数据（对应热力图的显示范围）
+        if (this.storage.dailyStats.length > 84) {
+            this.storage.dailyStats = this.storage.dailyStats.slice(0, 84);
+        }
+        
+        // 返回当前数据数量
+        return this.storage.dailyStats.length;
+    }
+    
+    /**
      * 更新每日学习统计
      * @param isNewCard 是否是新卡片
      * @param rating 评分
@@ -1252,11 +1291,8 @@ export class FSRSManager {
             };
             this.storage.dailyStats.push(todayStats);
             
-            // 只保留最近30天的数据
-            if (this.storage.dailyStats.length > 30) {
-                this.storage.dailyStats.sort((a, b) => b.date - a.date);
-                this.storage.dailyStats = this.storage.dailyStats.slice(0, 30);
-            }
+            // 维护每日统计数据，保留最近84天
+            this.checkAndMaintainDailyStats();
         }
         
         // 更新统计数据
