@@ -87,8 +87,14 @@ export class CommentView extends ItemView {
             cls: 'multi-select-actions'
         });
         
+        // 添加选中数量显示
+        const selectedCountEl = actionsContainer.createEl('div', {
+            cls: 'selected-count',
+            text: `selected ${this.selectedHighlights.size}`
+        });
+        
         // 添加操作按钮 - 导出按钮
-        const exportButton = actionsContainer.createEl('button', {
+        const exportButton = actionsContainer.createEl('div', {
             cls: 'multi-select-action-button',
             attr: {
                 'aria-label': t('export_selected'),
@@ -102,7 +108,7 @@ export class CommentView extends ItemView {
         });
         
         // 添加操作按钮 - 创建闪卡按钮
-        const createFlashcardsButton = actionsContainer.createEl('button', {
+        const createFlashcardsButton = actionsContainer.createEl('div', {
             cls: 'multi-select-action-button',
             attr: {
                 'aria-label': t('create_flashcards'),

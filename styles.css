@@ -3392,6 +3392,10 @@ textarea.flashcard-modal-input {
     margin-left: 8px;
 }
 
+.highlight-card-icon.has-flashcard {
+    color: var(--text-accent);
+}
+
 .highlight-card-icon {
     display: flex;
     align-items: center;
@@ -3520,11 +3524,12 @@ textarea.flashcard-modal-input {
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
-    padding: 8px;
+    padding: 4px 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 1001;
     display: flex;
     gap: 8px;
+    align-items: center;
 }
 
 /* 确保 highlight-container 有相对定位，以便子元素可以相对于它定位 */
@@ -3535,27 +3540,33 @@ textarea.flashcard-modal-input {
     padding: 12px;
 }
 
+/* 选中数量显示 */
+.selected-count {
+    font-size: 14px;
+    color: var(--text-muted);
+    background-color: var(--background-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* 多选操作按钮 */
 .multi-select-action-button {
-    background-color: var(--interactive-normal);
-    color: var(--text-normal);
-    border: none;
+    color: var(--text-muted);
     border-radius: 6px;
     width: 32px;
     height: 32px;
-    padding: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .multi-select-action-button:hover {
-    background-color: var(--interactive-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    background-color: var(--background-secondary);
+    color: var(--text-accent);
 }
 
 .multi-select-action-button svg {
