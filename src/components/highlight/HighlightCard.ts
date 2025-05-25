@@ -26,6 +26,24 @@ export class HighlightCard {
         HighlightCard.lastSelectedCard = null;
     }
     
+    // 静态方法：根据高亮ID查找HighlightCard实例
+    public static findCardInstanceByHighlightId(highlightId: string): HighlightCard | null {
+        for (const instance of HighlightCard.cardInstances) {
+            if (instance.highlight.id === highlightId) {
+                return instance;
+            }
+        }
+        return null;
+    }
+    
+    // 静态方法：更新指定高亮的UI状态
+    public static updateCardUIByHighlightId(highlightId: string): void {
+        const cardInstance = HighlightCard.findCardInstanceByHighlightId(highlightId);
+        if (cardInstance) {
+            cardInstance.updateIconsAfterCardCreation();
+        }
+    }
+    
     // 静态方法：清除所有卡片上的不聚焦输入框
     public static clearAllUnfocusedInputs(): void {
         HighlightCard.cardInstances.forEach(instance => {
