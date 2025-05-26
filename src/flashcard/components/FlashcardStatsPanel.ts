@@ -181,11 +181,6 @@ export class FlashcardStatsPanel {
             for (let col = 0; col < cols; col++) {
                 const date = cellDates[col][row];
                 
-                // 跳过未来的日期
-                if (date > today) {
-                    continue;
-                }
-                
                 // 获取日期的年、月、日
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1;
@@ -197,6 +192,7 @@ export class FlashcardStatsPanel {
                 // 从映射中获取统计数据
                 const stat = dateMap.get(dateKey);
                 
+                // 创建单元格
                 const cell = grid.createDiv('flashcard-heatmap-cell');
                 
                 // 检查是否是当天的单元格
@@ -229,13 +225,15 @@ export class FlashcardStatsPanel {
                     
                     cell.setAttribute('title', tooltipText);
                 } else {
-                    // 如果是当天的单元格，使用特殊样式标记
+                    // 不再为当天使用特殊样式
                     if (isTodayCell) {
-                        // 添加当天标记类
-                        cell.addClass('flashcard-heatmap-today');
-                        cell.setAttribute('title', `${date.toLocaleDateString()}: 今天，还没有学习记录`);
+                        // 使用默认样式
+                        cell.addClass('flashcard-heatmap-level-0');
+                    } else if (date > today) {
+                        // 未来日期
+                        cell.addClass('flashcard-heatmap-level-0');
                     } else {
-                        // 非当天的空单元格
+                        // 过去的空单元格
                         cell.addClass('flashcard-heatmap-level-0');
                     }
                 }
