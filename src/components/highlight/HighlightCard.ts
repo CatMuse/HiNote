@@ -283,24 +283,7 @@ export class HighlightCard {
                 setIcon(highlightIcon, "highlighter");
             }
             
-            // 添加 BlockID 显示
-            if (this.highlight.blockId || this.highlight.paragraphId) {
-                const blockIdEl = titleBarLeft.createEl("div", {
-                    cls: "highlight-card-blockid"
-                });
-                
-                // 优先显示 blockId，如果没有则显示 paragraphId
-                const idToShow = this.highlight.blockId || this.highlight.paragraphId || '';
-
-                // 创建 ID 值
-                const idValue = blockIdEl.createEl("span", {
-                    cls: "highlight-card-blockid-value",
-                    text: idToShow
-                });
-                
-                // 设置工具提示
-                blockIdEl.setAttribute("title", idToShow);
-            }
+            // BlockID 显示功能已移除
         }
         
         // 在标题栏右侧添加操作按钮
