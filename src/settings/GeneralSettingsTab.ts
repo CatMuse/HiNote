@@ -77,7 +77,7 @@ export class GeneralSettingsTab {
         // 导出模板设置
         new Setting(container)
             .setName(t('Export template'))
-            .setDesc(t('Customize the format of exported highlights and comments using variables. Available variables: {{sourceFile}}, {{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}. Leave empty to use default template.'))
+            .setDesc(t('Customize the format of exported highlights and comments using variables. Available variables: {{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}. Leave empty to use default template.'))
             .addTextArea(text => {
                 const defaultTemplate = 
 `> [!quote] HiNote
