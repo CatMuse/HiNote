@@ -882,6 +882,24 @@ export class CommentView extends ItemView {
         }
     }
 
+    /**
+     * 检查高亮是否已经创建了闪卡
+     * @param highlightId 高亮 ID
+     * @returns 是否已创建闪卡
+     */
+    private checkHasFlashcard(highlightId: string): boolean {
+        // 获取 fsrsManager
+        const plugin = this.plugin;
+        const fsrsManager = plugin.fsrsManager;
+        if (!fsrsManager || !highlightId) {
+            return false;
+        }
+        
+        // 通过 sourceId 查找闪卡
+        const cards = fsrsManager.findCardsBySourceId(highlightId, 'highlight');
+        return cards && cards.length > 0;
+    }
+
     private async deleteComment(highlight: HighlightInfo, commentId: string) {
         const file = await this.getFileForHighlight(highlight);
         if (!file || !highlight.comments) return;
@@ -889,15 +907,24 @@ export class CommentView extends ItemView {
         highlight.comments = highlight.comments.filter(c => c.id !== commentId);
         highlight.updatedAt = Date.now();
 
-        // 如果是虚拟高亮且没有评论了，则删除整个高亮
-        if (highlight.isVirtual && highlight.comments.length === 0) {
-            // 从 CommentStore 中删除高亮
-            await this.commentStore.removeComment(file, highlight as HiNote);
+        // 检查高亮是否没有评论了
+        if (highlight.comments.length === 0) {
+            // 检查高亮是否关联了闪卡
+            const hasFlashcard = highlight.id ? this.checkHasFlashcard(highlight.id) : false;
             
-            // 从当前高亮列表中移除
-            this.highlights = this.highlights.filter(h => h.id !== highlight.id);
+            // 如果是虚拟高亮或者没有关联闪卡，则删除整个高亮
+            if (highlight.isVirtual || !hasFlashcard) {
+                // 从 CommentStore 中删除高亮
+                await this.commentStore.removeComment(file, highlight as HiNote);
+                
+                // 从当前高亮列表中移除
+                this.highlights = this.highlights.filter(h => h.id !== highlight.id);
+            } else {
+                // 有关联闪卡，只更新评论
+                await this.commentStore.addComment(file, highlight as HiNote);
+            }
         } else {
-            // 否则只更新评论
+            // 还有其他评论，只更新评论
             await this.commentStore.addComment(file, highlight as HiNote);
         }
 

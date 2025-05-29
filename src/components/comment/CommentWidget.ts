@@ -35,6 +35,9 @@ export class CommentWidget extends WidgetType {
     eq(widget: WidgetType): boolean {
         if (!(widget instanceof CommentWidget)) return false;
         
+        // 首先比较高亮 ID，如果不同则直接返回 false
+        if (this.highlight.id !== widget.highlight.id) return false;
+        
         // 使用模糊匹配来比较文本相似度
         const textSimilarity = this.textSimilarityService.calculateSimilarity(
             this.highlight.text,
@@ -77,6 +80,9 @@ export class CommentWidget extends WidgetType {
     toDOM() {
         const wrapper = document.createElement("span");
         wrapper.addClass("hi-note-widget");
+        
+        // 添加高亮 ID 作为数据属性，确保每个 Widget 都有唯一标识
+        wrapper.setAttribute('data-highlight-id', this.highlight.id);
         
         // 优先使用 blockId，如果没有则使用 paragraphId
         if (this.highlight.blockId) {
@@ -137,29 +143,8 @@ export class CommentWidget extends WidgetType {
         // 使用 setIcon API 替代内联 SVG
         setIcon(iconContainer, "message-circle");
         
-        // 尝试从 highlightItems 中找到最匹配的高亮
-        let bestMatch = this.highlight;
-        let highestSimilarity = 0;
-        
-        // 如果有多个高亮项，尝试找到最匹配的一个
-        if (this.highlightItems && this.highlightItems.length > 1) {
-            for (const item of this.highlightItems) {
-                if (!item.comments || item.comments.length === 0) continue;
-                
-                const similarity = this.textSimilarityService.calculateSimilarity(
-                    this.highlight.text,
-                    item.text
-                );
-                
-                if (similarity > highestSimilarity) {
-                    highestSimilarity = similarity;
-                    bestMatch = item;
-                }
-            }
-        }
-        
-        // 获取评论数量
-        const comments = bestMatch.comments || [];
+        // 直接使用当前高亮的评论数量，不从其他高亮中查找
+        const comments = this.highlight.comments || [];
         const commentCount = comments.length;
 
         // 如果有评论，显示评论数量
