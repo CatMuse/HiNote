@@ -221,37 +221,49 @@ export class HighlightDecorator {
                 if (highlight.blockId) {
                     const blockComments = commentStore.getCommentsByBlockId(file, highlight.blockId);
                     if (blockComments && blockComments.length > 0) {
-                        const matchingHighlight = this.findExactMatchingHighlight(highlight, blockComments);
-                        if (matchingHighlight) {
-                            comments = matchingHighlight.comments || [];
-                        } else if (fullMatch) {
-                            const bestMatch = findMatchingHighlightMethod(file, highlight, blockComments);
-                            if (bestMatch) {
-                                this.handleTextChanges(file, bestMatch, highlight);
-                                comments = bestMatch.comments || [];
-                            } else {
-                                comments = blockComments[0].comments || [];
-                            }
+                        // 首先尝试通过文本内容进行精确匹配
+                        const textMatchingHighlight = blockComments.find(h => h.text === highlight.text);
+                        if (textMatchingHighlight) {
+                            // 如果找到文本完全匹配的高亮，直接使用其评论
+                            comments = textMatchingHighlight.comments || [];
                         } else {
-                            comments = blockComments[0].comments || [];
+                            // 如果没有找到文本匹配，尝试通过位置和文本相似度匹配
+                            const matchingHighlight = this.findExactMatchingHighlight(highlight, blockComments);
+                            if (matchingHighlight) {
+                                comments = matchingHighlight.comments || [];
+                            } else if (fullMatch) {
+                                const bestMatch = findMatchingHighlightMethod(file, highlight, blockComments);
+                                if (bestMatch) {
+                                    this.handleTextChanges(file, bestMatch, highlight);
+                                    comments = bestMatch.comments || [];
+                                }
+                                // 移除默认使用第一个评论的逻辑
+                            }
+                            // 移除默认使用第一个评论的逻辑
                         }
                     }
                 } else {
                     const storedHighlight = commentStore.getHiNotes(highlight);
                     if (storedHighlight && storedHighlight.length > 0) {
-                        const matchingHighlight = this.findExactMatchingHighlight(highlight, storedHighlight);
-                        if (matchingHighlight) {
-                            comments = matchingHighlight.comments || [];
-                        } else if (fullMatch) {
-                            const bestMatch = findMatchingHighlightMethod(file, highlight, storedHighlight);
-                            if (bestMatch) {
-                                this.handleTextChanges(file, bestMatch, highlight);
-                                comments = bestMatch.comments || [];
-                            } else {
-                                comments = storedHighlight[0].comments || [];
-                            }
+                        // 首先尝试通过文本内容进行精确匹配
+                        const textMatchingHighlight = storedHighlight.find(h => h.text === highlight.text);
+                        if (textMatchingHighlight) {
+                            // 如果找到文本完全匹配的高亮，直接使用其评论
+                            comments = textMatchingHighlight.comments || [];
                         } else {
-                            comments = storedHighlight[0].comments || [];
+                            // 如果没有找到文本匹配，尝试通过位置和文本相似度匹配
+                            const matchingHighlight = this.findExactMatchingHighlight(highlight, storedHighlight);
+                            if (matchingHighlight) {
+                                comments = matchingHighlight.comments || [];
+                            } else if (fullMatch) {
+                                const bestMatch = findMatchingHighlightMethod(file, highlight, storedHighlight);
+                                if (bestMatch) {
+                                    this.handleTextChanges(file, bestMatch, highlight);
+                                    comments = bestMatch.comments || [];
+                                }
+                                // 移除默认使用第一个评论的逻辑
+                            }
+                            // 移除默认使用第一个评论的逻辑
                         }
                     }
                 }
