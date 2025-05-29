@@ -504,31 +504,41 @@ export class CommentView extends ItemView {
         const handleCommentInput = (e: CustomEvent) => {
             const { highlightId, text } = e.detail;
             
-            // 等待一下��视图已经更新
+            // 等待一下确保视图已经更新
             setTimeout(() => {
                 // 移除所有卡片的选中状态
                 this.highlightContainer.querySelectorAll('.highlight-card').forEach(card => {
                     card.removeClass('selected');
                 });
 
-                // 找到对应的高亮卡片
-                const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
-                    .find(card => {
-                        const textContent = card.querySelector('.highlight-text-content')?.textContent;
-                        return textContent === text;
-                    });
+                // 首先尝试直接通过高亮 ID 查找卡片实例
+                let cardInstance = HighlightCard.findCardInstanceByHighlightId(highlightId);
+                
+                // 如果没找到，尝试通过文本内容查找
+                if (!cardInstance) {
+                    // 找到对应的高亮卡片
+                    const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
+                        .find(card => {
+                            const textContent = card.querySelector('.highlight-text-content')?.textContent;
+                            return textContent === text;
+                        });
 
-                if (highlightCard) {
-                    // 添加选中状态
-                    highlightCard.addClass('selected');
-                    
-                    // 更新按钮选择器以匹配新的 DOM 结构
-                    const addButton = highlightCard.querySelector('.highlight-action-buttons .highlight-action-buttons-right .highlight-add-comment-btn') as HTMLElement;
-                    if (addButton) {
-                        addButton.click();
+                    if (highlightCard) {
+                        // 添加选中状态
+                        highlightCard.addClass('selected');
+                        
+                        // 查找 HighlightCard 实例
+                        cardInstance = HighlightCard.findCardInstanceByElement(highlightCard as HTMLElement);
+                        
+                        // 滚动到评论区域
+                        highlightCard.scrollIntoView({ behavior: "smooth" });
                     }
-                    // 滚动到评论区域
-                    highlightCard.scrollIntoView({ behavior: "smooth" });
+                }
+                
+                // 如果找到了卡片实例，显示评论输入框
+                if (cardInstance) {
+                    // 调用 showCommentInput 方法直接触发评论输入框显示
+                    cardInstance.showCommentInput();
                 }
             }, 100);
         };

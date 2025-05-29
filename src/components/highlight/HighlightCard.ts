@@ -473,7 +473,7 @@ export class HighlightCard {
         
         // 清除其他卡片的输入框
         HighlightCard.selectedCards.forEach(card => {
-            const cardInstance = this.findCardInstanceByElement(card);
+            const cardInstance = HighlightCard.findCardInstanceByElement(card);
             if (cardInstance && cardInstance.unfocusedInput) {
                 cardInstance.unfocusedInput.remove();
                 cardInstance.unfocusedInput = null;
@@ -514,22 +514,32 @@ export class HighlightCard {
     }
     
     // 根据 DOM 元素查找对应的 HighlightCard 实例
-    private findCardInstanceByElement(element: HTMLElement): HighlightCard | null {
-        // 这里我们需要一个方法来根据 DOM 元素找到对应的 HighlightCard 实例
-        // 由于我们没有一个全局的映射关系，这里使用一个简单的方法：
-        // 通过 data-highlight 属性获取高亮信息，然后与当前实例比较
-        try {
-            const highlightData = element.getAttribute('data-highlight');
-            if (highlightData) {
-                const highlight = JSON.parse(highlightData) as HighlightInfo;
-                if (highlight.id === this.highlight.id) {
-                    return this;
-                }
+    public static findCardInstanceByElement(element: HTMLElement): HighlightCard | null {
+        // 遍历所有卡片实例，查找卡片元素匹配的实例
+        for (const instance of HighlightCard.cardInstances) {
+            if (instance.card === element || instance.card.contains(element)) {
+                return instance;
             }
-        } catch (e) {
-            // 忽略解析错误
         }
         return null;
+    }
+    
+    /**
+     * 显示评论输入框
+     * 用于外部调用，直接触发评论输入框的显示
+     */
+    public showCommentInput(): void {
+        // 清除所有卡片的不聚焦输入框
+        HighlightCard.clearAllUnfocusedInputs();
+        
+        // 如果当前卡片有不聚焦输入框，先移除它
+        if (this.unfocusedInput) {
+            this.unfocusedInput.remove();
+            this.unfocusedInput = null;
+        }
+        
+        // 直接触发添加评论回调，显示真正的输入框
+        this.options.onCommentAdd(this.highlight);
     }
 
     public getElement(): HTMLElement {
