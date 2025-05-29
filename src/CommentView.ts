@@ -69,8 +69,8 @@ export class CommentView extends ItemView {
             }
         });
         
-        // 如果有选中的高亮，显示多选操作按钮
-        if (this.selectedHighlights.size > 0) {
+        // 只有在多选情况下才显示批量操作按钮
+        if (this.selectedHighlights.size > 1) {
             this.showMultiSelectActions();
         } else {
             this.hideMultiSelectActions();
@@ -330,8 +330,15 @@ export class CommentView extends ItemView {
             return;
         }
         
+        // 检查 DOM 中是否有带有 selected 类的卡片
+        const hasSelectedCards = this.highlightContainer.querySelectorAll('.highlight-card.selected').length > 0;
+        
+        // 检查 HighlightCard.selectedCards 集合
+        const HighlightCardClass = (window as any).HighlightCard;
+        const hasSelectedCardsInSet = HighlightCardClass && HighlightCardClass.selectedCards && HighlightCardClass.selectedCards.size > 0;
+        
         // 如果已经有选中的卡片，点击空白区域取消选择
-        if (this.selectedHighlights.size > 0) {
+        if (this.selectedHighlights.size > 0 || hasSelectedCards || hasSelectedCardsInSet) {
             this.clearSelection();
             return;
         }
@@ -413,6 +420,9 @@ export class CommentView extends ItemView {
         // 获取所有高亮卡片
         const cards = this.highlightContainer.querySelectorAll('.highlight-card');
         
+        // 获取 HighlightCard 类
+        const HighlightCardClass = (window as any).HighlightCard;
+        
         // 检查每个卡片是否在选择框内
         cards.forEach(card => {
             const cardRect = card.getBoundingClientRect();
@@ -426,9 +436,17 @@ export class CommentView extends ItemView {
             // 如果重叠，选中卡片
             if (overlap) {
                 card.addClass('selected');
+                // 将卡片添加到 HighlightCard.selectedCards 集合中
+                if (HighlightCardClass && HighlightCardClass.selectedCards) {
+                    HighlightCardClass.selectedCards.add(card);
+                }
             } else if (!document.querySelector('.multi-select-mode')) {
                 // 如果没有处于多选模式，取消选中框外的卡片
                 card.removeClass('selected');
+                // 从 HighlightCard.selectedCards 集合中移除
+                if (HighlightCardClass && HighlightCardClass.selectedCards) {
+                    HighlightCardClass.selectedCards.delete(card);
+                }
             }
         });
     }

@@ -48,7 +48,7 @@ export class HighlightCard {
     public static clearAllUnfocusedInputs(): void {
         HighlightCard.cardInstances.forEach(instance => {
             if (instance.unfocusedInput) {
-                instance.unfocusedInput.hide();
+                instance.unfocusedInput.remove();
                 instance.unfocusedInput = null;
             }
         });
@@ -395,13 +395,13 @@ export class HighlightCard {
         }
 
         // 创建 content 容器
-        const contentEl = this.card.createEl("div", {
+        const highlightContentEl = this.card.createEl("div", {
             cls: "highlight-content"
         });
 
         // 渲染高亮内容
         new HighlightContent(
-            contentEl,
+            highlightContentEl,
             this.highlight,
             this.options.onHighlightClick
         );
@@ -417,69 +417,8 @@ export class HighlightCard {
             }
         );
     }
-
-    // 添加选中卡片的方法，支持多选
-    private selectCard(event?: MouseEvent) {
-        // 先清除所有卡片上的不聚焦输入框
-        HighlightCard.clearAllUnfocusedInputs();
-        
-        // 如果按住 Shift 键，则进行多选
-        if (event && event.shiftKey && HighlightCard.lastSelectedCard) {
-            // 保持上一个选中的卡片状态
-            HighlightCard.selectedCards.add(HighlightCard.lastSelectedCard);
-            // 添加当前卡片到选中集合
-            HighlightCard.selectedCards.add(this.card);
-            this.card.addClass('selected');
-            
-            // 触发自定义事件，通知 CommentView 多选状态变化
-            const customEvent = new CustomEvent('highlight-multi-select', {
-                detail: {
-                    selectedCards: Array.from(HighlightCard.selectedCards),
-                    lastSelected: this.card
-                },
-                bubbles: true
-            });
-            this.card.dispatchEvent(customEvent);
-            
-            // 多选模式下不显示输入框
-        } else {
-            // 单选模式，清除之前的所有选择
-            HighlightCard.selectedCards.forEach(card => {
-                if (card !== this.card) {
-                    card.removeClass('selected');
-                }
-            });
-            HighlightCard.selectedCards.clear();
-            
-            // 选中当前卡片
-            this.card.addClass('selected');
-            HighlightCard.selectedCards.add(this.card);
-            
-            // 在单选模式下显示不聚焦的批注输入框
-            this.showUnfocusedCommentInput();
-        }
-        
-        // 更新最后选中的卡片
-        HighlightCard.lastSelectedCard = this.card;
-    }
     
-    // 清除所有卡片上的不聚焦输入框
-    private clearAllUnfocusedInputs() {
-        // 清除当前卡片的输入框
-        if (this.unfocusedInput) {
-            this.unfocusedInput.remove();
-            this.unfocusedInput = null;
-        }
-        
-        // 清除其他卡片的输入框
-        HighlightCard.selectedCards.forEach(card => {
-            const cardInstance = HighlightCard.findCardInstanceByElement(card);
-            if (cardInstance && cardInstance.unfocusedInput) {
-                cardInstance.unfocusedInput.remove();
-                cardInstance.unfocusedInput = null;
-            }
-        });
-    }
+
     
     // 显示不聚焦的批注输入框
     private showUnfocusedCommentInput() {
@@ -495,12 +434,12 @@ export class HighlightCard {
         }
         
         // 获取高亮内容容器
-        const contentEl = this.card.querySelector('.highlight-content');
-        if (!contentEl) return;
+        const contentElement = this.card.querySelector('.highlight-content');
+        if (!contentElement) return;
         
         // 创建不聚焦的批注输入框，放在高亮内容下方
         this.unfocusedInput = new UnfocusedCommentInput(
-            contentEl as HTMLElement,
+            contentElement as HTMLElement,
             this.highlight,
             () => {
                 // 点击不聚焦的输入框时，移除它并显示真正的输入框
@@ -542,6 +481,73 @@ export class HighlightCard {
         this.options.onCommentAdd(this.highlight);
     }
 
+    // 添加选中卡片的方法，支持多选和取消选择
+    private selectCard(event?: MouseEvent) {
+        // 先清除所有卡片上的不聚焦输入框
+        HighlightCard.clearAllUnfocusedInputs();
+        
+        // 如果按住 Shift 键，则进行多选或取消选择
+        if (event && event.shiftKey && HighlightCard.lastSelectedCard) {
+            // 检查当前卡片是否已经被选中
+            const isCurrentCardSelected = this.card.hasClass('selected');
+            
+            if (isCurrentCardSelected) {
+                // 如果已经选中，则取消选择
+                this.card.removeClass('selected');
+                HighlightCard.selectedCards.delete(this.card);
+            } else {
+                // 如果未选中，则添加到选中集合
+                // 保持上一个选中的卡片状态
+                HighlightCard.selectedCards.add(HighlightCard.lastSelectedCard);
+                // 添加当前卡片到选中集合
+                HighlightCard.selectedCards.add(this.card);
+                this.card.addClass('selected');
+            }
+            
+            // 触发自定义事件，通知 CommentView 多选状态变化
+            const customEvent = new CustomEvent('highlight-multi-select', {
+                detail: {
+                    selectedCards: Array.from(HighlightCard.selectedCards),
+                    lastSelected: this.card
+                },
+                bubbles: true
+            });
+            this.card.dispatchEvent(customEvent);
+            
+            // 多选模式下不显示输入框
+        } else {
+            // 单选模式，清除之前的所有选择
+            
+            // 清除 DOM 中所有带有 selected 类的卡片
+            const allSelectedCards = document.querySelectorAll('.highlight-card.selected');
+            allSelectedCards.forEach(card => {
+                if (card !== this.card) {
+                    card.removeClass('selected');
+                }
+            });
+            
+            // 清除 HighlightCard.selectedCards 集合
+            HighlightCard.selectedCards.forEach(card => {
+                if (card !== this.card) {
+                    card.removeClass('selected');
+                }
+            });
+            HighlightCard.selectedCards.clear();
+            
+            // 选中当前卡片
+            this.card.addClass('selected');
+            HighlightCard.selectedCards.add(this.card);
+            
+            // 在单选模式下显示不聚焦的批注输入框
+            this.showUnfocusedCommentInput();
+            
+            // 在单选模式下不触发多选事件，避免显示批量操作按钮
+        }
+        
+        // 更新最后选中的卡片，即使它被取消选择了
+        HighlightCard.lastSelectedCard = this.card;
+    }
+    
     public getElement(): HTMLElement {
         return this.card;
     }
