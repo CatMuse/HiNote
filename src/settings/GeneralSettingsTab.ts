@@ -62,7 +62,7 @@ export class GeneralSettingsTab {
             .setName(t('Export Path'))
             .setDesc(t('Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.'))
             .addText(text => text
-                .setPlaceholder('Example: Highlights/Export')
+                .setPlaceholder('Highlights/Export')
                 .setValue(this.plugin.settings.export.exportPath || '')
                 .onChange(async (value) => {
                     // 移除开头的斜杠
@@ -96,7 +96,7 @@ export class GeneralSettingsTab {
                         await this.plugin.saveSettings();
                     });
                     
-                text.inputEl.rows = 10;
+                text.inputEl.rows = 6;
                 text.inputEl.cols = 40;
             });
 
