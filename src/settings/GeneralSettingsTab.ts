@@ -83,8 +83,6 @@ export class GeneralSettingsTab {
 `> [!quote] HiNote
 > ![[{{highlightBlockRef}}]]
 > 
-> ---
-> 
 >> [!note] Comment
 >> {{commentContent}}
 >> *{{commentDate}}*`;

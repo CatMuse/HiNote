@@ -25,13 +25,57 @@ export class ExportService {
             return null;
         }
         
-        // 生成导出内容
-        const content = await this.generateContentForMultipleHighlights(highlights);
-        
-        // 获取导出路径
+        // 获取插件实例和设置
         const plugins = (this.app as any).plugins;
         const hiNotePlugin = plugins && plugins.plugins ? 
             plugins.plugins['hi-note'] : undefined;
+        
+        // 按文件分组高亮
+        const highlightsByFile: Record<string, HighlightInfo[]> = {};
+        
+        for (const highlight of highlights) {
+            if (!highlight.filePath) continue;
+            
+            if (!highlightsByFile[highlight.filePath]) {
+                highlightsByFile[highlight.filePath] = [];
+            }
+            
+            highlightsByFile[highlight.filePath].push(highlight);
+        }
+        
+        // 生成内容
+        const contentParts: string[] = [];
+        
+        // 为每个文件生成内容
+        for (const filePath in highlightsByFile) {
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            if (!(file instanceof TFile)) continue;
+            
+            contentParts.push(`## ${file.basename}`);
+            contentParts.push("");
+            
+            // 使用模板或默认方式生成内容
+            const fileHighlights = highlightsByFile[filePath];
+            
+            // 获取插件实例和设置
+            const customTemplate = hiNotePlugin?.settings?.export?.exportTemplate;
+            
+            // 如果有自定义模板且不为空，使用模板解析方式
+            if (customTemplate && customTemplate.trim() !== '') {
+                const templateContent = await this.generateContentFromTemplate(file, fileHighlights, customTemplate);
+                if (templateContent.trim() !== '') {
+                    contentParts.push(templateContent);
+                }
+            } else {
+                // 如果没有自定义模板或模板为空，使用原来的方式
+                const defaultContent = await this.generateDefaultContent(file, fileHighlights);
+                contentParts.push(defaultContent);
+            }
+        }
+        
+        const content = contentParts.join("\n");
+        
+        // 获取导出路径
         const exportPath = hiNotePlugin?.settings?.export?.exportPath || '';
         
         // 创建新文件
@@ -326,21 +370,23 @@ export class ExportService {
                         
                         // 如果模板中包含评论变量，移除这些部分
                         if (hasCommentVars) {
-                            // 查找并移除包含评论变量的部分
-                            // 如果模板中包含分隔线和评论部分，则移除这些部分
-                            if (template.includes('> ---')) {
-                                const separatorIndex = highlightOnlyTemplate.indexOf('> ---');
-                                if (separatorIndex > -1) {
-                                    highlightOnlyTemplate = highlightOnlyTemplate.substring(0, separatorIndex).trim();
-                                }
-                            }
+                            // 查找并移除所有与批注相关的部分
                             
-                            // 移除评论变量
+                            // 先尝试匹配并移除带有分隔线的批注部分
+                            const commentWithSeparatorRegex = /\n>\s*\n>\s*---[\s\S]*?(?=\n\s*$|$)/g;
+                            highlightOnlyTemplate = highlightOnlyTemplate.replace(commentWithSeparatorRegex, '');
+                            
+                            // 匹配并移除所有的批注块
+                            const commentBlockRegex = /\n>>\s*\[!note\]\s*Comment[\s\S]*?(?=\n>\s*$|\n\s*$|$)/g;
+                            highlightOnlyTemplate = highlightOnlyTemplate.replace(commentBlockRegex, '');
+                            
+                            // 移除所有的批注变量
                             highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentContent\}\}/g, '');
                             highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentDate\}\}/g, '');
                             
-                            // 清理多余的空行
+                            // 清理多余的空行和尾部空行
                             highlightOnlyTemplate = highlightOnlyTemplate.replace(/\n{3,}/g, '\n\n');
+                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\n>\s*\n\s*$/g, '\n');
                         }
                         
                         // 替换高亮变量
@@ -428,104 +474,16 @@ export class ExportService {
      * 使用默认方式生成导出内容
      */
     private async generateDefaultContent(file: TFile, highlights: HighlightInfo[]): Promise<string> {
-        const lines: string[] = [];
+        // 使用用户提供的模板作为默认模板
+        const defaultTemplate = `> [!quote] HiNote
+> ![[{{highlightBlockRef}}]]
+> 
+>> [!note] Comment
+>> {{commentContent}}
+>> *{{commentDate}}*`;
         
-        // 添加高亮和评论内容
-        for (const highlight of highlights) {
-            if (highlight.isVirtual) {
-                // 虚拟高亮使用不同的格式
-                lines.push("> [!note] File Comment");
-                lines.push("> ");
-            } else {
-                // 普通高亮
-                lines.push("> [!quote] HiNote");
-                
-                // 尝试使用或创建 Block ID
-                if (typeof highlight.position === 'number') {
-                    try {
-                        // 获取高亮长度（如果有）
-                        const highlightLength = highlight.originalLength || highlight.text.length;
-                        
-                        // 尝试获取或创建 Block ID，传递高亮的起始位置和长度
-                        const blockIdRef = await this.highlightService.createBlockIdForHighlight(
-                            file, 
-                            highlight.position, 
-                            highlightLength
-                        );
-                        
-                        if (blockIdRef) {
-                            // 使用 Block ID 引用
-                            lines.push(`> ![[${blockIdRef}]]`);
-                            console.debug(`[ExportService] 使用 Block ID 引用: ${blockIdRef}`);
-                        } else {
-                            // 如果没有成功创建 Block ID，使用原文本
-                            lines.push(`> ${highlight.text}`);
-                        }
-                    } catch (error) {
-                        console.error('[ExportService] Error creating block ID:', error);
-                        // 如果创建 Block ID 失败，使用原文本
-                        lines.push(`> ${highlight.text}`);
-                    }
-                } else {
-                    // 如果没有位置信息，使用原文本
-                    lines.push(`> ${highlight.text}`);
-                }
-                lines.push("> ");
-            }
-            
-            // 如果有评论内容，添加分割线
-            if (highlight.comments && highlight.comments.length > 0) {
-                if (!highlight.isVirtual) {
-                    lines.push("> ---");
-                    lines.push("> ");
-                }
-                
-                // 添加评论内容
-                for (const comment of highlight.comments) {
-                    if (highlight.isVirtual) {
-                        // 虚拟高亮的评论直接显示，不需要额外的缩进
-                        // 处理多行内容，确保每行都有正确的缩进
-                        const commentLines = comment.content
-                            .split('\n')
-                            .map(line => {
-                                line = line.trim();
-                                // 如果是空行，返回带缩进的空行
-                                if (!line) return '>';
-                                return `> ${line}`;
-                            })
-                            .join('\n');
-                        lines.push(commentLines);
-                    } else {
-                        // 普通高亮的评论使用双层缩进
-                        lines.push(">> [!note] Comment");
-                        // 处理多行内容，确保每行都有正确的缩进
-                        const commentLines = comment.content
-                            .split('\n')
-                            .map(line => {
-                                line = line.trim();
-                                // 如果是空行，返回带缩进的空行
-                                if (!line) return '>>';
-                                return `>> ${line}`;
-                            })
-                            .join('\n');
-                        lines.push(commentLines);
-                    }
-                    
-                    if (comment.updatedAt) {
-                        const date = window.moment(comment.updatedAt);
-                        if (highlight.isVirtual) {
-                            lines.push(`> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
-                        } else {
-                            lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
-                        }
-                    }
-                    lines.push(highlight.isVirtual ? ">" : ">");
-                }
-            }
-            lines.push("");
-        }
-
-        return lines.join("\n");
+        // 调用模板生成方法
+        return this.generateContentFromTemplate(file, highlights, defaultTemplate);
     }
 
     /**

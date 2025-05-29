@@ -147,13 +147,27 @@ export class CommentView extends ItemView {
     }
     
     // 导出选中的高亮
-    private exportSelectedHighlights() {
+    private async exportSelectedHighlights() {
         if (this.selectedHighlights.size === 0) return;
         
-        // TODO: 实现导出选中高亮的功能
-        
-        // 清除选中状态
-        this.clearSelection();
+        try {
+            // 将 Set 转换为数组
+            const selectedHighlightsArray = Array.from(this.selectedHighlights);
+            
+            // 调用 ExportService 的方法导出选中的高亮
+            const newFile = await this.exportService.exportHighlightsAsMarkdown(selectedHighlightsArray);
+            
+            // 显示成功通知
+            if (newFile) {
+                new Notice(t("成功导出选中的高亮到: ") + newFile.path);
+            }
+        } catch (error) {
+            console.error("导出选中高亮失败:", error);
+            new Notice(t("导出选中高亮失败: ") + (error instanceof Error ? error.message : String(error)));
+        } finally {
+            // 清除选中状态
+            this.clearSelection();
+        }
     }
     
     // 从选中的高亮创建闪卡
