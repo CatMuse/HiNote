@@ -80,9 +80,7 @@ export class GeneralSettingsTab {
             .setDesc(t('Customize the format of exported highlights and comments using variables. Available variables: {{sourceFile}}, {{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}. Leave empty to use default template.'))
             .addTextArea(text => {
                 const defaultTemplate = 
-`[[{{sourceFile}}]] - HighlightsNotes
-
-> [!quote] Highlight
+`> [!quote] HiNote
 > ![[{{highlightBlockRef}}]]
 > 
 > ---

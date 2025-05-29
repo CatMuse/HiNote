@@ -157,7 +157,7 @@ export class ExportService {
         const exportPath = hiNotePlugin?.settings?.export?.exportPath || '';
         
         // 创建新文件
-        const fileName = `${sourceFile.basename} - Highlights ${window.moment().format("YYYYMMDDHHmm")}`;
+        const fileName = `${sourceFile.basename} - HiNote ${window.moment().format("YYYYMMDDHHmm")}`;
         
         // 如果设置了导出路径，确保目录存在
         let fullPath = fileName;
@@ -401,9 +401,9 @@ export class ExportService {
     private async generateDefaultContent(file: TFile, highlights: HighlightInfo[]): Promise<string> {
         const lines: string[] = [];
         
-        // 添加标题 - 使用双链接格式
-        lines.push(`[[${file.basename}]] - HighlightsNotes`);
-        lines.push("");
+        // 不再添加标题
+        // lines.push(`[[${file.basename}]] - HighlightsNotes`);
+        // lines.push("");
 
         // 添加高亮和评论内容
         for (const highlight of highlights) {
@@ -413,7 +413,7 @@ export class ExportService {
                 lines.push("> ");
             } else {
                 // 普通高亮
-                lines.push("> [!quote] Highlight");
+                lines.push("> [!quote] HiNote");
                 
                 // 尝试使用或创建 Block ID
                 if (typeof highlight.position === 'number') {

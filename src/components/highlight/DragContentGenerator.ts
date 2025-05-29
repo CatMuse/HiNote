@@ -20,7 +20,7 @@ export class DragContentGenerator {
             lines.push(`> [!note] [[${fileName}]]`);
             lines.push("> ");
         } else {
-            lines.push("> [!quote] Highlight");
+            lines.push("> [!quote] HiNote");
             
             let hasAddedContent = false;
             
