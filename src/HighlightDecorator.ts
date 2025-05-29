@@ -19,6 +19,8 @@ export class HighlightDecorator {
         this.highlightService = new HighlightService(this.plugin.app);
         this.textSimilarityService = new TextSimilarityService(this.plugin.app);
     }
+
+
     
     /**
      * 使用多种策略匹配高亮和评论
@@ -82,6 +84,9 @@ export class HighlightDecorator {
     enable() {
         const plugin = this.plugin;
         const commentStore = this.commentStore;
+        const highlightService = this.highlightService;
+        const textSimilarityService = this.textSimilarityService;
+        const findMatchingHighlightMethod = this.findMatchingHighlight.bind(this);
 
         // 监听评论更新事件
         this.plugin.registerDomEvent(window, 'comment-updated', (e: CustomEvent) => {
@@ -142,6 +147,144 @@ export class HighlightDecorator {
                 this.decorations = this.buildDecorations(view);
             }
             
+            /**
+             * 从高亮对象创建 HiNote 对象
+             * @param highlight 高亮对象
+             * @returns 创建的 HiNote 对象
+             */
+            private createHiNoteFromHighlight(highlight: any): HiNote {
+                return {
+                    ...highlight,
+                    id: highlight.id || `highlight-${Date.now()}-${highlight.position}`,
+                    comments: highlight.comments || [],
+                    position: highlight.position,
+                    paragraphOffset: highlight.paragraphOffset || 0,
+                    // 优先使用 blockId
+                    blockId: highlight.blockId,
+                    // 保留 paragraphId 以保持兼容性
+                    paragraphId: highlight.paragraphId || `p-${highlight.paragraphOffset || 0}`,
+                    createdAt: highlight.createdAt || Date.now(),
+                    updatedAt: highlight.updatedAt || Date.now(),
+                    text: highlight.text
+                };
+            }
+
+            /**
+             * 精确匹配高亮
+             * @param highlight 当前高亮
+             * @param highlights 高亮列表
+             * @returns 匹配的高亮或 null
+             */
+            private findExactMatchingHighlight(highlight: HiNote, highlights: HiNote[]): HiNote | null {
+                return highlights.find(h => 
+                    h.text === highlight.text && 
+                    (typeof h.position !== 'number' || 
+                     typeof highlight.position !== 'number' || 
+                     Math.abs(h.position - highlight.position) < 10)
+                ) || null;
+            }
+
+            /**
+             * 处理文本变化
+             * @param file 当前文件
+             * @param bestMatch 最佳匹配的高亮
+             * @param currentHighlight 当前高亮
+             */
+            private handleTextChanges(file: TFile, bestMatch: HiNote, currentHighlight: HiNote) {
+                if (bestMatch.text !== currentHighlight.text) {
+                    (plugin as any).highlightMatchingService.recoverHighlight(
+                        file,
+                        bestMatch,
+                        currentHighlight.text
+                    ).then((recoveredHighlight: HiNote | null) => {
+                        if (recoveredHighlight) {
+                            (plugin as any).eventManager.emitHighlightUpdate(
+                                file.path,
+                                bestMatch.text,
+                                currentHighlight.text
+                            );
+                        }
+                    });
+                }
+            }
+
+            /**
+             * 获取高亮的评论
+             * @param file 当前文件
+             * @param highlight 高亮对象
+             * @param fullMatch 是否需要完整匹配（包括处理文本变化）
+             * @returns 评论列表
+             */
+            private getCommentsForHighlight(file: TFile, highlight: HiNote, fullMatch: boolean = true): CommentItem[] {
+                let comments: CommentItem[] = [];
+                
+                if (highlight.blockId) {
+                    const blockComments = commentStore.getCommentsByBlockId(file, highlight.blockId);
+                    if (blockComments && blockComments.length > 0) {
+                        const matchingHighlight = this.findExactMatchingHighlight(highlight, blockComments);
+                        if (matchingHighlight) {
+                            comments = matchingHighlight.comments || [];
+                        } else if (fullMatch) {
+                            const bestMatch = findMatchingHighlightMethod(file, highlight, blockComments);
+                            if (bestMatch) {
+                                this.handleTextChanges(file, bestMatch, highlight);
+                                comments = bestMatch.comments || [];
+                            } else {
+                                comments = blockComments[0].comments || [];
+                            }
+                        } else {
+                            comments = blockComments[0].comments || [];
+                        }
+                    }
+                } else {
+                    const storedHighlight = commentStore.getHiNotes(highlight);
+                    if (storedHighlight && storedHighlight.length > 0) {
+                        const matchingHighlight = this.findExactMatchingHighlight(highlight, storedHighlight);
+                        if (matchingHighlight) {
+                            comments = matchingHighlight.comments || [];
+                        } else if (fullMatch) {
+                            const bestMatch = findMatchingHighlightMethod(file, highlight, storedHighlight);
+                            if (bestMatch) {
+                                this.handleTextChanges(file, bestMatch, highlight);
+                                comments = bestMatch.comments || [];
+                            } else {
+                                comments = storedHighlight[0].comments || [];
+                            }
+                        } else {
+                            comments = storedHighlight[0].comments || [];
+                        }
+                    }
+                }
+                
+                return comments;
+            }
+
+            /**
+             * 计算高亮文本的结束位置和是否为HTML标签
+             * @param text 文档文本
+             * @param highlight 高亮对象
+             * @returns 包含结束位置和是否为HTML标签的对象
+             */
+            private calculateHighlightPosition(text: string, highlight: any): { highlightEndPos: number, isHtmlTag: boolean, originalText: string, originalLength: number } {
+                const originalLength = highlight.originalLength ?? highlight.text.length + 4;
+                const originalText = text.slice(highlight.position, highlight.position + originalLength);
+                const isHtmlTag = originalText.startsWith('<');
+                let highlightEndPos;
+                
+                if (isHtmlTag) {
+                    // 对于 HTML 标签，找到内容的结束位置
+                    const startTagMatch = /<[^>]+>/.exec(originalText);
+                    const endTagMatch = /<\/[^>]+>/.exec(originalText);
+                    
+                    highlightEndPos = highlight.position + originalLength;
+                } else {
+                    // 对于 Markdown 语法的高亮
+                    highlightEndPos = highlight.position + highlight.text.length + 4; // +4 for == ==
+                }
+
+                return { highlightEndPos, isHtmlTag, originalText, originalLength };
+            }
+
             /**
              * 使用多种策略匹配高亮和评论
              * @param file 当前文件
@@ -207,254 +350,59 @@ export class HighlightDecorator {
                 const decorations: Range<Decoration>[] = [];
                 const doc = view.state.doc;
                 const text = doc.toString();
-
+            
                 // 获取当前文件
                 const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
                 if (!activeView || !activeView.file) {
                     return Decoration.none;
                 }
-
+            
                 // 检查文件是否应该被排除
                 if (!this.highlightService.shouldProcessFile(activeView.file)) {
                     return Decoration.none;
                 }
-
+            
                 // 使用 HighlightService 提取高亮
                 const highlights = this.highlightService.extractHighlights(text, activeView.file);
-
-                // 为每个高亮文本添加 CommentWidget
+            
+                // 处理每个高亮
                 for (const highlight of highlights) {
                     if (highlight.position === undefined) continue;
-
+            
                     // 转换为 HiNote 类型
-                    const commentHighlight: HiNote = {
-                        ...highlight,
-                        id: highlight.id || `highlight-${Date.now()}-${highlight.position}`,
-                        comments: highlight.comments || [],
-                        position: highlight.position,
-                        paragraphOffset: highlight.paragraphOffset || 0,
-                        // 优先使用 blockId
-                        blockId: highlight.blockId,
-                        // 保留 paragraphId 以保持兼容性
-                        paragraphId: highlight.paragraphId || `p-${highlight.paragraphOffset || 0}`,
-                        createdAt: highlight.createdAt || Date.now(),
-                        updatedAt: highlight.updatedAt || Date.now(),
-                        text: highlight.text
-                    };
-
-                    // 从 CommentStore 中获取最新的评论数据
-                    // 先尝试使用 blockId 获取
-                    if (commentHighlight.blockId) {
-                        const blockComments = this.commentStore.getCommentsByBlockId(activeView.file, commentHighlight.blockId);
-                        if (blockComments && blockComments.length > 0) {
-                            // 找到与当前高亮文本和位置匹配的特定高亮
-                            const matchingHighlight = blockComments.find(h => 
-                                h.text === commentHighlight.text && 
-                                (typeof h.position !== 'number' || 
-                                 typeof commentHighlight.position !== 'number' || 
-                                 Math.abs(h.position - commentHighlight.position) < 10)
-                            );
-                            
-                            if (matchingHighlight) {
-                                commentHighlight.comments = matchingHighlight.comments || [];
-                            } else {
-                                // 使用模糊匹配找到最佳匹配的高亮
-                                const file = activeView.file;
-                                if (!file) continue;
-                                
-                                const bestMatch = this.findMatchingHighlight(file, commentHighlight, blockComments);
-                                
-                                if (bestMatch) {
-                                    // 如果找到最佳匹配，但文本有变化，则调用 recoverHighlight
-                                    if (bestMatch.text !== commentHighlight.text) {
-                                        // 使用 highlightMatchingService 恢复高亮
-                                        (this.plugin as any).highlightMatchingService.recoverHighlight(
-                                            file,
-                                            bestMatch,
-                                            commentHighlight.text
-                                        ).then((recoveredHighlight: HiNote | null) => {
-                                            if (recoveredHighlight) {
-                                                // 触发高亮更新事件
-                                                (this.plugin as any).eventManager.emitHighlightUpdate(
-                                                    file.path,
-                                                    bestMatch.text,
-                                                    commentHighlight.text
-                                                );
-                                            }
-                                        });
-                                    }
-                                    
-                                    // 使用最佳匹配的评论
-                                    commentHighlight.comments = bestMatch.comments || [];
-                                } else {
-                                    commentHighlight.comments = blockComments[0].comments || [];
-                                }
-                            }
-                        }
-                    } else {
-                        // 如果没有 blockId，则使用旧的方法
-                        const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
-                        if (storedHighlight && storedHighlight.length > 0) {
-                            // 找到与当前高亮文本和位置匹配的特定高亮
-                            const matchingHighlight = storedHighlight.find(h => 
-                                h.text === commentHighlight.text && 
-                                (typeof h.position !== 'number' || 
-                                 typeof commentHighlight.position !== 'number' || 
-                                 Math.abs(h.position - commentHighlight.position) < 10)
-                            );
-                            
-                            if (matchingHighlight) {
-                                commentHighlight.comments = matchingHighlight.comments || [];
-                            } else {
-                                // 使用模糊匹配找到最佳匹配的高亮
-                                const file = activeView.file;
-                                if (!file) continue;
-                                
-                                const bestMatch = this.findMatchingHighlight(file, commentHighlight, storedHighlight);
-                                
-                                if (bestMatch) {
-                                    // 如果找到最佳匹配，但文本有变化，则调用 recoverHighlight
-                                    if (bestMatch.text !== commentHighlight.text) {
-                                        // 使用 highlightMatchingService 恢复高亮
-                                        (this.plugin as any).highlightMatchingService.recoverHighlight(
-                                            file,
-                                            bestMatch,
-                                            commentHighlight.text
-                                        ).then((recoveredHighlight: HiNote | null) => {
-                                            if (recoveredHighlight) {
-                                                // 触发高亮更新事件
-                                                (this.plugin as any).eventManager.emitHighlightUpdate(
-                                                    file.path,
-                                                    bestMatch.text,
-                                                    commentHighlight.text
-                                                );
-                                            }
-                                        });
-                                    }
-                                    
-                                    // 使用最佳匹配的评论
-                                    commentHighlight.comments = bestMatch.comments || [];
-                                } else {
-                                    commentHighlight.comments = storedHighlight[0].comments || [];
-                                }
-                            }
-                        }
+                    const commentHighlight = this.createHiNoteFromHighlight(highlight);
+            
+                    // 获取评论数据
+                    if (activeView.file) {
+                        const comments = this.getCommentsForHighlight(activeView.file, commentHighlight, true);
+                        commentHighlight.comments = comments;
                     }
-
-                    // 计算高亮文本的结束位置
-                    let highlightEndPos;
-                    const originalLength = highlight.originalLength ?? highlight.text.length + 4;
-                    const originalText = text.slice(highlight.position, highlight.position + originalLength);
-                    const isHtmlTag = originalText.startsWith('<');
-                    
-                    if (isHtmlTag) {
-                        // 对于 HTML 标签，找到内容的结束位置
-                        const startTagMatch = /<[^>]+>/.exec(originalText);
-                        const endTagMatch = /<\/[^>]+>/.exec(originalText);
-                        
-                        if (startTagMatch && endTagMatch) {
-                            highlightEndPos = highlight.position + originalLength;
-                        } else {
-                            highlightEndPos = highlight.position + originalLength;
-                        }
-                    } else {
-                        // 对于 Markdown 语法的高亮
-                        highlightEndPos = highlight.position + highlight.text.length + 4; // +4 for == ==
-                    }
-
+            
+                    // 计算高亮文本的位置信息
+                    const { highlightEndPos, isHtmlTag, originalText, originalLength } = this.calculateHighlightPosition(text, highlight);
+            
                     // 检查文本是否在段落末尾
                     const isAtParagraphEnd = this.isAtParagraphEnd(text, highlightEndPos);
-
-                    // 创建 widget
+            
+                    // 创建并添加 CommentWidget
                     const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
-                    
-                    if (isAtParagraphEnd) {
-                        // 如果在段落末尾，直接在高亮文本后面放置 Widget
-                        decorations.push(widget.range(highlightEndPos));
-                    } else {
-                        // 如果不在段落末尾，直接在高亮文本后面放置 Widget
-                        // 不添加额外的装饰器，避免"吞掉"高亮后的第一个字符
-                        decorations.push(widget.range(highlightEndPos));
-                    }
-                }
-
-                // 为每个高亮添加背景色
-                for (const highlight of highlights) {
-                    if (highlight.position === undefined) continue;
-
-                    // 转换为 HiNote 类型
-                    const commentHighlight: HiNote = {
-                        ...highlight,
-                        id: highlight.id || `highlight-${Date.now()}-${highlight.position}`,
-                        comments: highlight.comments || [],
-                        position: highlight.position,
-                        paragraphOffset: highlight.paragraphOffset || 0,
-                        // 优先使用 blockId
-                        blockId: highlight.blockId,
-                        // 保留 paragraphId 以保持兼容性
-                        paragraphId: highlight.paragraphId || `p-${highlight.paragraphOffset || 0}`,
-                        createdAt: highlight.createdAt || Date.now(),
-                        updatedAt: highlight.updatedAt || Date.now(),
-                        text: highlight.text
-                    };
-
-                    // 从 CommentStore 中获取最新的评论数据
-                    // 先尝试使用 blockId 获取
-                    if (commentHighlight.blockId) {
-                        const blockComments = this.commentStore.getCommentsByBlockId(activeView.file, commentHighlight.blockId);
-                        if (blockComments && blockComments.length > 0) {
-                            // 找到与当前高亮文本和位置匹配的特定高亮
-                            const matchingHighlight = blockComments.find(h => 
-                                h.text === commentHighlight.text && 
-                                (typeof h.position !== 'number' || 
-                                 typeof commentHighlight.position !== 'number' || 
-                                 Math.abs(h.position - commentHighlight.position) < 10)
-                            );
-                            
-                            if (matchingHighlight) {
-                                commentHighlight.comments = matchingHighlight.comments || [];
-                            } else {
-                                commentHighlight.comments = blockComments[0].comments || [];
-                            }
-                        }
-                    } else {
-                        // 如果没有 blockId，则使用旧的方法
-                        const storedHighlight = this.commentStore.getHiNotes(commentHighlight);
-                        if (storedHighlight && storedHighlight.length > 0) {
-                            // 找到与当前高亮文本和位置匹配的特定高亮
-                            const matchingHighlight = storedHighlight.find(h => 
-                                h.text === commentHighlight.text && 
-                                (typeof h.position !== 'number' || 
-                                 typeof commentHighlight.position !== 'number' || 
-                                 Math.abs(h.position - commentHighlight.position) < 10)
-                            );
-                            
-                            if (matchingHighlight) {
-                                commentHighlight.comments = matchingHighlight.comments || [];
-                            } else {
-                                commentHighlight.comments = storedHighlight[0].comments || [];
-                            }
-                        }
-                    }
-
-                    // 获取原始的匹配文本，包括标签
-                    const originalLength = highlight.originalLength ?? highlight.text.length + 4;
-                    const originalText = text.slice(highlight.position, highlight.position + originalLength);
-                    const isHtmlTag = originalText.startsWith('<');
-
+                    decorations.push(widget.range(highlightEndPos));
+            
+                    // 添加背景色高亮
                     if (isHtmlTag) {
-                        // 对于 HTML 标签，我们需要找到内容的实际位置
+                        // 对于 HTML 标签，找到内容的实际位置
                         const startTagMatch = /<[^>]+>/.exec(originalText);
                         const endTagMatch = /<\/[^>]+>/.exec(originalText);
                         
                         if (startTagMatch && endTagMatch) {
                             const contentStart = highlight.position + startTagMatch[0].length;
                             const contentEnd = highlight.position + originalLength - endTagMatch[0].length;
-
-                            // 获取评论
-                            const comments = this.commentStore.getHiNotes(commentHighlight);
-                            const firstComment = comments.length > 0 ? comments[0].comments[0]?.content : '';
-
+            
+                            // 获取评论 - 使用简化版获取评论函数，不需要处理文本变化
+                            const commentsForTooltip = activeView.file ? 
+                                this.getCommentsForHighlight(activeView.file, commentHighlight, false) : [];
+                            const firstComment = commentsForTooltip.length > 0 ? commentsForTooltip[0]?.content : '';
+            
                             // 创建装饰器元素，使用标签中定义的背景色
                             const highlightMark = Decoration.mark({
                                 class: 'cm-highlight',
@@ -464,32 +412,21 @@ export class HighlightDecorator {
                                     style: highlight.backgroundColor ? `background-color: ${highlight.backgroundColor}` : ''
                                 }
                             });
-
+            
                             decorations.push(highlightMark.range(contentStart, contentEnd));
                         }
                     } else {
                         // 对于 Markdown 语法的高亮，保持原有行为
                         const from = highlight.position;
                         const to = from + highlight.text.length + 4; // +4 for == ==
-
-                        // 获取评论
-                        const comments = this.commentStore.getHiNotes(commentHighlight);
-                        const firstComment = comments.length > 0 ? comments[0].comments[0]?.content : '';
-
-                        // TODO: 暂时注释掉 Markdown 语法高亮的装饰器代码，因为目前没有功能使用它
-                        // // 创建装饰器元素
-                        // const highlightMark = Decoration.mark({
-                        //     class: 'cm-highlight',
-                        //     attributes: {
-                        //         title: firstComment || '',
-                        //         'data-highlight-type': 'markdown'
-                        //     }
-                        // });
-
-                        // decorations.push(highlightMark.range(from, to));
+            
+                        // 获取评论 - 使用简化版获取评论函数，不需要处理文本变化
+                        const commentsForTooltip = activeView.file ? 
+                            this.getCommentsForHighlight(activeView.file, commentHighlight, false) : [];
+                        const firstComment = commentsForTooltip.length > 0 ? commentsForTooltip[0]?.content : '';
                     }
                 }
-
+            
                 return Decoration.set(decorations.sort((a, b) => a.from - b.from));
             }
 
