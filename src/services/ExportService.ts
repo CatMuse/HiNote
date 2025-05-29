@@ -311,61 +311,98 @@ export class ExportService {
                     }
                 }
                 
-                // 如果模板中有高亮变量但没有评论变量，或者没有评论
-                if ((hasHighlightVars && !hasCommentVars) || !highlight.comments || highlight.comments.length === 0) {
-                    // 只处理高亮部分
-                    let processedTemplate = this.replaceVariables(template, {
-                        sourceFile: file.basename,
-                        highlightText: highlightText,
-                        highlightBlockRef: blockIdRef,
-                        highlightType: 'HiNote',
-                        // 空的评论变量
-                        commentContent: '',
-                        commentDate: ''
-                    });
-                    content.push(processedTemplate.trim());
-                }
-                // 如果模板中有评论变量但没有高亮变量，且有评论
-                else if (!hasHighlightVars && hasCommentVars && highlight.comments && highlight.comments.length > 0) {
-                    // 只处理评论部分
-                    for (const comment of highlight.comments) {
-                        let processedTemplate = this.replaceVariables(template, {
+                // 如果没有评论
+                if (!highlight.comments || highlight.comments.length === 0) {
+                    // 如果模板只包含评论变量，没有高亮变量，则跳过该高亮
+                    if (hasCommentVars && !hasHighlightVars) {
+                        // 跳过该高亮，因为模板只包含评论变量但该高亮没有评论
+                        continue;
+                    }
+                    
+                    // 如果模板包含高亮变量，则处理高亮部分
+                    if (hasHighlightVars) {
+                        // 只处理高亮部分，移除评论相关的部分
+                        let highlightOnlyTemplate = template;
+                        
+                        // 如果模板中包含评论变量，移除这些部分
+                        if (hasCommentVars) {
+                            // 查找并移除包含评论变量的部分
+                            // 如果模板中包含分隔线和评论部分，则移除这些部分
+                            if (template.includes('> ---')) {
+                                const separatorIndex = highlightOnlyTemplate.indexOf('> ---');
+                                if (separatorIndex > -1) {
+                                    highlightOnlyTemplate = highlightOnlyTemplate.substring(0, separatorIndex).trim();
+                                }
+                            }
+                            
+                            // 移除评论变量
+                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentContent\}\}/g, '');
+                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentDate\}\}/g, '');
+                            
+                            // 清理多余的空行
+                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\n{3,}/g, '\n\n');
+                        }
+                        
+                        // 替换高亮变量
+                        let processedTemplate = this.replaceVariables(highlightOnlyTemplate, {
                             sourceFile: file.basename,
-                            commentContent: comment.content || '',
-                            commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss"),
-                            // 空的高亮变量
-                            highlightText: '',
-                            highlightBlockRef: '',
-                            highlightType: 'HiNote'
+                            highlightText: highlightText,
+                            highlightBlockRef: blockIdRef,
+                            highlightType: 'HiNote',
+                            // 空的评论变量
+                            commentContent: '',
+                            commentDate: ''
                         });
                         content.push(processedTemplate.trim());
                     }
                 }
-                // 如果模板中同时有高亮和评论变量，且有评论
-                else if (hasHighlightVars && hasCommentVars && highlight.comments && highlight.comments.length > 0) {
-                    // 先处理高亮部分
-                    let highlightOnlyTemplate = template;
-                    // 移除评论变量
-                    highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentContent\}\}/g, '');
-                    highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentDate\}\}/g, '');
-                    
-                    let processedHighlight = this.replaceVariables(highlightOnlyTemplate, {
-                        sourceFile: file.basename,
-                        highlightText: highlightText,
-                        highlightBlockRef: blockIdRef,
-                        highlightType: 'HiNote'
-                    });
-                    content.push(processedHighlight.trim());
-                    
-                    // 然后处理每个评论
-                    for (const comment of highlight.comments) {
-                        // 使用固定的评论格式
-                        let commentTemplate = ">> [!note] Comment\n>> {{commentContent}}\n>> *{{commentDate}}*";
-                        let processedComment = this.replaceVariables(commentTemplate, {
-                            commentContent: comment.content || '',
-                            commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss")
+                // 如果有评论
+                else if (highlight.comments && highlight.comments.length > 0) {
+                    // 如果模板只包含评论变量（没有高亮变量）
+                    if (hasCommentVars && !hasHighlightVars) {
+                        // 对每个评论，使用完整的模板进行处理
+                        for (const comment of highlight.comments) {
+                            let processedTemplate = this.replaceVariables(template, {
+                                sourceFile: file.basename,
+                                commentContent: comment.content || '',
+                                commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss"),
+                                // 空的高亮变量
+                                highlightText: '',
+                                highlightBlockRef: '',
+                                highlightType: 'HiNote'
+                            });
+                            content.push(processedTemplate.trim());
+                        }
+                    }
+                    // 如果模板同时包含高亮和评论变量
+                    else if (hasHighlightVars && hasCommentVars) {
+                        // 对每个评论，使用完整的模板进行处理
+                        for (const comment of highlight.comments) {
+                            // 使用用户自定义的模板格式，直接替换所有变量
+                            let processedTemplate = this.replaceVariables(template, {
+                                sourceFile: file.basename,
+                                highlightText: highlightText,
+                                highlightBlockRef: blockIdRef,
+                                highlightType: 'HiNote',
+                                commentContent: comment.content || '',
+                                commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss")
+                            });
+                            content.push(processedTemplate.trim());
+                        }
+                    }
+                    // 如果模板只包含高亮变量（没有评论变量）
+                    else if (hasHighlightVars && !hasCommentVars) {
+                        // 只处理高亮部分
+                        let processedTemplate = this.replaceVariables(template, {
+                            sourceFile: file.basename,
+                            highlightText: highlightText,
+                            highlightBlockRef: blockIdRef,
+                            highlightType: 'HiNote',
+                            // 空的评论变量
+                            commentContent: '',
+                            commentDate: ''
                         });
-                        content.push(processedComment.trim());
+                        content.push(processedTemplate.trim());
                     }
                 }
             }
