@@ -534,14 +534,23 @@ export class HighlightCard {
             });
             HighlightCard.selectedCards.clear();
             
-            // 选中当前卡片
-            this.card.addClass('selected');
             HighlightCard.selectedCards.add(this.card);
-            
-            // 在单选模式下显示不聚焦的批注输入框
+            this.card.addClass('selected');
+        }
+        
+        // 触发自定义事件，通知 CommentView 多选状态变化
+        const customEvent = new CustomEvent('highlight-multi-select', {
+            detail: {
+                selectedCards: Array.from(HighlightCard.selectedCards),
+                lastSelected: this.card
+            },
+            bubbles: true
+        });
+        this.card.dispatchEvent(customEvent);
+        
+        // 在单选模式下显示不聚焦的批注输入框
+        if (!event?.shiftKey) {
             this.showUnfocusedCommentInput();
-            
-            // 在单选模式下不触发多选事件，避免显示批量操作按钮
         }
         
         // 更新最后选中的卡片，即使它被取消选择了

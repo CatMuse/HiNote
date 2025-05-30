@@ -98,7 +98,6 @@ export class CommentView extends ItemView {
             cls: 'multi-select-action-button',
             attr: {
                 'aria-label': t('Export'),
-                'title': t('Export')
             }
         });
         // 设置导出图标
@@ -112,7 +111,6 @@ export class CommentView extends ItemView {
             cls: 'multi-select-action-button',
             attr: {
                 'aria-label': t('Create HiCard'),
-                'title': t('Create HiCard')
             }
         });
         // 设置闪卡图标
