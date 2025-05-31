@@ -200,12 +200,20 @@ export class FlashcardProgressManager {
         const cardsForToday = groupId ? fsrsManager.getCardsForStudy(groupId) : [];
         const totalTodayCards = cardsForToday.length;
         
-        // 设置索引文本，显示剩余卡片数/今日需要学习的卡片数
+        // 设置索引文本，显示当前学习的卡片序号/总数
         if (totalTodayCards > 0 || remainingCards > 0) {
             // 使用当前学习列表长度和初始学习列表长度中的较大值
             // 这样可以避免在学习过程中总数变化
             const totalToShow = Math.max(totalTodayCards, remainingCards);
-            indexContainer.textContent = `${remainingCards}/${totalToShow}`;
+            // 计算当前学习的是第几张卡片
+            const currentCardNumber = totalToShow - remainingCards + 1;
+            // 如果还有卡片，显示当前卡片序号/总数
+            if (remainingCards > 0) {
+                indexContainer.textContent = `${currentCardNumber}/${totalToShow}`;
+            } else {
+                // 如果没有卡片了，显示完成状态
+                indexContainer.textContent = `${totalToShow}/${totalToShow}`;
+            }
         } else {
             indexContainer.textContent = '0/0';
         }

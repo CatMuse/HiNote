@@ -81,14 +81,15 @@ export class FlashcardOperations {
             
             // 自定义分组
             if (groupName) {
-                const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.id === groupName);
+                const group = this.component.getFsrsManager().getCardGroups().find((g: any) => g.name === groupName);
                 if (group) {
-                    message = t('No cards due for review in group: ') + group.name;
+                    message = t('Group completed: ') + group.name + t('. Add more cards in Settings, but remember: more cards = more reviews.');
                 }
             } else {
-                message = t('You have completed all flashcards for today!');
+                message = t('All flashcards completed for today!');
             }
             
+            // 设置分组完成消息
             this.component.setGroupCompletionMessage(groupName, message);
             
             // 更新进度
@@ -167,8 +168,7 @@ export class FlashcardOperations {
         // 获取保存的UI状态（在设置卡片列表之前）
         const savedProgress = this.component.getGroupProgress(groupName);
         
-        // 清除完成消息
-        this.component.setCompletionMessage(null);
+        // 清除分组完成消息
         this.component.setGroupCompletionMessage(groupName, null);
         
         // 设置卡片列表

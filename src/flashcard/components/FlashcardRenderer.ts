@@ -267,68 +267,7 @@ export class FlashcardRenderer {
         const currentIndex = this.component.getCurrentIndex();
         const currentCard = cards.length > 0 && currentIndex < cards.length ? cards[currentIndex] : null;
         
-        // 先检查是否有完成消息，再检查卡片数组
-        // 显示完成消息（如果有）
-        if (this.component.getCompletionMessage()) {
-            const completionContainer = cardContainer.createEl("div", { 
-                cls: "flashcard-completion-message" 
-            });
-            
-            // 添加一个图标
-            const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
-            setIcon(iconEl, "check-circle");
-            
-            // 添加标题
-            completionContainer.createEl("h3", { 
-                text: t("学习完成！") 
-            });
-            
-            // 添加消息
-            completionContainer.createEl("p", { 
-                text: this.component.getCompletionMessage() 
-            });
-            
-            // 添加按钮继续学习
-            const continueButton = completionContainer.createEl("button", {
-                cls: "flashcard-return-button",
-                text: t("继续学习")
-            });
-            
-            continueButton.addEventListener("click", () => {
-                // 清除完成消息
-                this.component.setCompletionMessage(null);
-                
-                // 清除当前分组的完成状态
-                this.component.setGroupCompletionMessage(this.component.getCurrentGroupName(), null);
-                
-                // 重置当前分组的每日学习统计
-                const fsrsManager = this.component.getFsrsManager();
-                const dailyStats = fsrsManager.exportData().dailyStats;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayDateStr = today.toDateString();
-                
-                const todayStatsIndex = dailyStats.findIndex((stats: any) => {
-                    const statsDate = new Date(stats.date);
-                    return statsDate.toDateString() === todayDateStr;
-                });
-                
-                if (todayStatsIndex !== -1) {
-                    // 重置今日学习统计
-                    dailyStats[todayStatsIndex].newCardsLearned = 0;
-                    dailyStats[todayStatsIndex].cardsReviewed = 0;
-                    fsrsManager.saveStorage();
-                }
-                
-                // 重新开始学习
-                this.component.setCurrentIndex(0);
-                this.component.setCardFlipped(false);
-                this.component.saveState();
-                this.render();
-            });
-            
-            return;
-        }
+        // 不再使用全局完成消息，只使用分组完成消息
 
         // 先检查是否有组完成消息
         const groupName = this.component.getCurrentGroupName();
@@ -337,13 +276,34 @@ export class FlashcardRenderer {
         // 检查是否还有分组
         const hasGroups = this.component.getFsrsManager().getCardGroups().length > 0;
         
-        // 如果没有分组或者卡片数组为空，显示"没有需要复习的卡片"
+        // 如果没有分组或者卡片数组为空，显示完成消息或默认提示
         if (!hasGroups || cards.length === 0) {
-            // 不管是否有分组完成消息，都只显示没有卡片的提示
-            cardContainer.createEl("div", {
-                cls: "flashcard-empty", 
-                text: "No cards due for review" 
-            });
+            // 如果有分组完成消息，显示完成消息
+            if (groupCompletionMessage) {
+                const completionContainer = cardContainer.createEl("div", { 
+                    cls: "flashcard-completion-message" 
+                });
+                
+                // 添加一个图标
+                const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
+                setIcon(iconEl, "check-circle");
+                
+                // 添加标题
+                completionContainer.createEl("h3", { 
+                    text: t("学习完成！") 
+                });
+                
+                // 添加消息
+                completionContainer.createEl("p", { 
+                    text: groupCompletionMessage 
+                });
+            } else {
+                // 如果没有完成消息，显示默认提示
+                cardContainer.createEl("div", {
+                    cls: "flashcard-empty", 
+                    text: t("No cards due for review")
+                });
+            }
             return;
         }
 
@@ -543,9 +503,12 @@ export class FlashcardRenderer {
             // 这样可以避免在学习过程中总数变化
             const totalToShow = Math.max(totalTodayCards, remainingCards);
             
+            // 计算当前学习的是第几张卡片
+            const currentCardNumber = totalToShow - remainingCards + 1;
+            
             cardContainer.createEl("div", { 
                 cls: "flashcard-counter",
-                text: `${remainingCards}/${totalToShow}`
+                text: `${currentCardNumber}/${totalToShow}`
             });
 
             // 如果有关联文件，显示文件名
