@@ -200,8 +200,8 @@ export class CommentView extends ItemView {
                     continue;
                 }
 
-                // 如果高亮是虚拟的，需要先保存到存储中
-                if (highlight.isVirtual && highlight.filePath) {
+                // 如果高亮有文件路径，需要先保存到存储中（不管是否为虚拟高亮）
+                if (highlight.filePath) {
                     try {
                         const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
                         if (file instanceof TFile) {
