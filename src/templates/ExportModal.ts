@@ -19,6 +19,7 @@ export class ExportPreviewModal extends Modal {
     private html2canvasInstance: any;
     private selectedTemplateId: string = 'default';
     private previewContainer: HTMLElement;
+    private includeComments: boolean = false;
 
     constructor(app: App, highlight: HighlightInfo & { comments?: CommentItem[] }, html2canvas: any) {
         super(app);
@@ -77,6 +78,34 @@ export class ExportPreviewModal extends Modal {
         const buttonContainer = contentEl.createEl('div', {
             cls: 'highlight-export-modal-buttons'
         });
+        
+        // 在按钮组左侧添加批注显示开关
+        if (this.highlight.comments && this.highlight.comments.length > 0) {
+            const showCommentsToggle = buttonContainer.createEl('div', {
+                cls: 'highlight-export-toggle-container'
+            });
+
+            const toggleLabel = showCommentsToggle.createEl('label', {
+                cls: 'highlight-export-toggle-label',
+                text: t('Include Comments')
+            });
+
+            const toggleInput = toggleLabel.createEl('input', {
+                attr: { type: 'checkbox' },
+                cls: 'highlight-export-toggle-input'
+            });
+
+            // 创建开关外观
+            const toggleSlider = toggleLabel.createEl('span', {
+                cls: 'highlight-export-toggle-slider'
+            });
+
+            // 监听开关状态变化
+            toggleInput.addEventListener('change', (e) => {
+                this.includeComments = (e.target as HTMLInputElement).checked;
+                this.updatePreview();
+            });
+        }
 
         // 取消按钮
         buttonContainer.createEl('button', {
@@ -97,6 +126,12 @@ export class ExportPreviewModal extends Modal {
                 const template = getTemplate(this.selectedTemplateId);
                 const cardElement = template.render(this.highlight);
                 exportContainer.appendChild(cardElement);
+                
+                // 如果开启了批注显示，则添加批注
+                if (this.includeComments && this.highlight.comments && this.highlight.comments.length > 0) {
+                    this.addCommentsToContainer(exportContainer);
+                }
+                
                 document.body.appendChild(exportContainer);
 
                 const canvas = await this.html2canvasInstance(exportContainer, {
@@ -140,6 +175,57 @@ export class ExportPreviewModal extends Modal {
         const template = getTemplate(this.selectedTemplateId);
         const cardElement = template.render(this.highlight);
         this.previewContainer.appendChild(cardElement);
+        
+        // 如果开启了批注显示，则添加批注
+        if (this.includeComments && this.highlight.comments && this.highlight.comments.length > 0) {
+            this.addCommentsToContainer(this.previewContainer);
+        }
+    }
+    
+    private addCommentsToContainer(container: HTMLElement) {
+        // 获取卡片元素
+        const cardElement = container.querySelector('.highlight-export-card');
+        if (!cardElement) return;
+        
+        // 获取页脚元素
+        const footerElement = cardElement.querySelector('.highlight-export-footer');
+        if (!footerElement) return;
+        
+        // 创建批注区域
+        const commentsContainer = document.createElement('div');
+        commentsContainer.className = 'highlight-export-comments-section';
+        
+        // 添加批注列表
+        const commentsList = document.createElement('div');
+        commentsList.className = 'highlight-export-comments-list';
+        commentsContainer.appendChild(commentsList);
+        
+        // 渲染每条批注
+        if (this.highlight.comments) {
+            this.highlight.comments.forEach(comment => {
+                const commentItem = document.createElement('div');
+                commentItem.className = 'highlight-export-comment-item';
+                
+                // 批注内容
+                const content = document.createElement('div');
+                content.className = 'highlight-export-comment-content';
+                content.textContent = comment.content;
+                commentItem.appendChild(content);
+                
+                // 批注时间
+                if (comment.createdAt) {
+                    const time = document.createElement('div');
+                    time.className = 'highlight-export-comment-time';
+                    time.textContent = new Date(comment.createdAt).toLocaleString();
+                    commentItem.appendChild(time);
+                }
+                
+                commentsList.appendChild(commentItem);
+            });
+        }
+        
+        // 将批注区域插入到页脚之前
+        cardElement.insertBefore(commentsContainer, footerElement);
     }
 
     private getExportStyles(): string {

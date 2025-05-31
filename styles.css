@@ -2488,7 +2488,7 @@ justify-content: center;
     line-height: 1.8;
     font-style: italic;
     color: var(--text-normal);
-    margin: 20px 0;
+    margin: 16px 0;
 }
 
 .highlight-export-card-academic .highlight-export-footer {
@@ -2548,6 +2548,96 @@ justify-content: center;
     overflow: hidden;
 }
 
+/* 批注导出样式 */
+.highlight-export-comments-section {
+    margin: 4px 0;
+    padding: 4px 0;
+}
+
+.highlight-export-comments-divider {
+    height: 1px;
+    background-color: var(--background-modifier-border);
+    margin: 10px 0;
+    opacity: 0.5;
+}
+
+.highlight-export-comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.highlight-export-comment-item {
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    background-color: var(--background-secondary);
+    border-radius: 6px;
+}
+
+.highlight-export-comment-content {
+    color: var(--text-normal);
+    line-height: 1.5;
+    font-size: 0.95em;
+}
+
+.highlight-export-comment-time {
+    margin-top: 5px;
+    font-size: 0.75em;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+/* 开关样式 */
+.highlight-export-toggle-container {
+    display: flex;
+    align-items: center;
+    margin-right: auto; /* 将开关推到左侧 */
+}
+
+.highlight-export-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.highlight-export-toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.highlight-export-toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    background-color: var(--background-modifier-border);
+    border-radius: 10px;
+    margin-left: 8px;
+    transition: .4s;
+}
+
+.highlight-export-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: var(--background-primary);
+    border-radius: 50%;
+    transition: .4s;
+}
+
+.highlight-export-toggle-input:checked + .highlight-export-toggle-slider {
+    background-color: var(--interactive-accent);
+}
+
+.highlight-export-toggle-input:checked + .highlight-export-toggle-slider:before {
+    transform: translateX(16px);
+}
+
 /* 背景装饰 */
 .highlight-export-card-modern::before {
     content: '';
@@ -2589,7 +2679,7 @@ justify-content: center;
 
 /* 底部信息样式 */
 .highlight-export-card-modern .highlight-export-footer {
-    margin-top: 24px;
+    margin-top: 8px;
     padding-top: 20px;
     border-top: 1px solid var(--background-modifier-border);
     display: flex;
