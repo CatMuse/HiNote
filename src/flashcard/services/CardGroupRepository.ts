@@ -62,6 +62,11 @@ export class CardGroupRepository {
         // 添加到存储
         this.storage.cardGroups.push(newGroup);
         
+        // 如果有筛选条件，自动添加符合条件的卡片
+        if (group.filter && group.filter.trim().length > 0) {
+            this.updateGroupCardIds(newGroup.id);
+        }
+        
         // 直接保存一次，确保分组数据被保存
         try {
             await this.plugin.fsrsManager.saveStoragePublic();
@@ -94,6 +99,11 @@ export class CardGroupRepository {
             ...updates
             // 移除 lastUpdated 字段，因为 FlashcardState 类型中没有这个字段
         };
+        
+        // 如果更新了筛选条件，自动更新卡片列表
+        if (updates.filter) {
+            this.updateGroupCardIds(groupId);
+        }
         
         // 触发事件
         this.plugin.eventManager.emitFlashcardChanged();
@@ -348,5 +358,73 @@ export class CardGroupRepository {
         return card.groupIds
             .map((id: string) => this.storage.cardGroups.find((g: CardGroup) => g.id === id))
             .filter((group: CardGroup | undefined) => group !== undefined);
+    }
+    
+    /**
+     * 更新分组的卡片列表，根据筛选条件自动添加符合条件的卡片
+     * @param groupId 分组ID
+     * @returns 是否更新成功
+     */
+    public updateGroupCardIds(groupId: string): boolean {
+        const group = this.getGroupById(groupId);
+        if (!group || !group.filter || group.filter.trim().length === 0) {
+            return false;
+        }
+        
+        // 根据筛选条件获取符合条件的卡片
+        const allCards = Object.values(this.storage.cards || {}) as FlashcardState[];
+        const filterConditions = group.filter.split(',').map(f => f.trim()).filter(f => f.length > 0);
+        const wikiLinkRegex = /\[\[([^\]]+)\]\]/;
+        
+        // 筛选符合条件的卡片
+        const matchedCards = allCards.filter((card: FlashcardState) => {
+            if (!card.filePath) return false;
+            
+            const filePath = card.filePath.toLowerCase();
+            const fileName = filePath.split('/').pop() || '';
+            const fileNameWithoutExt = fileName.replace(/\.md$/i, '');
+            
+            for (const condition of filterConditions) {
+                const conditionLower = condition.toLowerCase();
+                const wikiMatch = conditionLower.match(wikiLinkRegex);
+                
+                if (wikiMatch) {
+                    const linkText = wikiMatch[1].toLowerCase();
+                    if (fileNameWithoutExt === linkText || fileName === linkText) {
+                        return true;
+                    }
+                } else if (filePath.includes(conditionLower) ||
+                          (card.text && card.text.toLowerCase().includes(conditionLower)) ||
+                          (card.answer && card.answer.toLowerCase().includes(conditionLower))) {
+                    return true;
+                }
+            }
+            return false;
+        });
+        
+        // 获取匹配卡片的ID列表
+        const matchedCardIds = matchedCards.map(card => card.id);
+        
+        // 更新分组的cardIds数组
+        if (!group.cardIds) {
+            group.cardIds = [];
+        }
+        
+        // 将符合条件的卡片ID添加到分组中
+        let updated = false;
+        for (const cardId of matchedCardIds) {
+            if (!group.cardIds.includes(cardId)) {
+                group.cardIds.push(cardId);
+                updated = true;
+            }
+        }
+        
+        if (updated) {
+            console.log(`[更新分组卡片] 分组 "${group.name}" 添加了 ${matchedCardIds.length} 个卡片`);
+            // 触发保存
+            this.plugin.fsrsManager.saveStorageDebounced();
+        }
+        
+        return updated;
     }
 }

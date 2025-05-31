@@ -297,11 +297,11 @@ export class FlashcardGroupManager {
                         lastUpdated: Date.now()
                     });
                     
-                    // 获取存储对象
-                    const storage = fsrsManager.exportData();
+                    // 直接使用 fsrsManager 的存储对象
+                    const storage = fsrsManager.storage;
                     
                     // 更新 UI 状态中的分组完成消息和学习进度
-                    if (storage.uiState) {
+                    if (storage && storage.uiState) {
                         // 更新分组完成消息
                         if (storage.uiState.groupCompletionMessages && storage.uiState.groupCompletionMessages[oldName] !== undefined) {
                             storage.uiState.groupCompletionMessages[groupName] = storage.uiState.groupCompletionMessages[oldName];
