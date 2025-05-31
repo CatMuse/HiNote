@@ -787,8 +787,8 @@ export class HighlightCard {
             this.highlight.id = `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         }
         
-        // 如果高亮是虚拟的，需要先保存到存储中
-        if (this.highlight.isVirtual && this.highlight.filePath) {
+        // 如果高亮有文件路径，需要先保存到存储中
+        if (this.highlight.filePath) {
             try {
                 const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
                 if (file instanceof TFile) {
