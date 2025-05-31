@@ -189,13 +189,23 @@ export class FlashcardProgressManager {
         // 添加当前卡片索引信息
         const indexContainer = progressContainer.createEl('div', { cls: 'flashcard-index-container' });
         
-        // 计算当前索引
-        const currentIndex = this.component.getCurrentIndex() + 1;
-        const totalCards = this.component.getCards().length;
+        // 获取当前分组ID
+        const groupId = this.component.getCurrentGroupId();
         
-        // 设置索引文本
-        if (totalCards > 0) {
-            indexContainer.textContent = `${currentIndex}/${totalCards}`;
+        // 获取当前学习列表中的卡片数量
+        const remainingCards = this.component.getCards().length;
+        
+        // 获取今日需要学习的卡片数量
+        const fsrsManager = this.component.getFsrsManager();
+        const cardsForToday = groupId ? fsrsManager.getCardsForStudy(groupId) : [];
+        const totalTodayCards = cardsForToday.length;
+        
+        // 设置索引文本，显示剩余卡片数/今日需要学习的卡片数
+        if (totalTodayCards > 0 || remainingCards > 0) {
+            // 使用当前学习列表长度和初始学习列表长度中的较大值
+            // 这样可以避免在学习过程中总数变化
+            const totalToShow = Math.max(totalTodayCards, remainingCards);
+            indexContainer.textContent = `${remainingCards}/${totalToShow}`;
         } else {
             indexContainer.textContent = '0/0';
         }

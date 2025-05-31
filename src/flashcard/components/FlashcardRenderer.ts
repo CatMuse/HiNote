@@ -528,9 +528,24 @@ export class FlashcardRenderer {
             }
 
             // 显示进度
+            // 获取当前分组ID
+            const groupId = this.component.getCurrentGroupId();
+            
+            // 获取当前学习列表中的卡片数量
+            const remainingCards = cards.length;
+            
+            // 获取今日需要学习的卡片数量
+            const fsrsManager = this.component.getFsrsManager();
+            const cardsForToday = groupId ? fsrsManager.getCardsForStudy(groupId) : [];
+            const totalTodayCards = cardsForToday.length;
+            
+            // 使用当前学习列表长度和初始学习列表长度中的较大值
+            // 这样可以避免在学习过程中总数变化
+            const totalToShow = Math.max(totalTodayCards, remainingCards);
+            
             cardContainer.createEl("div", { 
                 cls: "flashcard-counter",
-                text: `${currentIndex + 1}/${cards.length}`
+                text: `${remainingCards}/${totalToShow}`
             });
 
             // 如果有关联文件，显示文件名
