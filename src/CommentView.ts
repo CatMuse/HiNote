@@ -197,7 +197,6 @@ export class CommentView extends ItemView {
                 // 检查是否已经存在闪卡
                 const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
                 if (existingCards && existingCards.length > 0) {
-                    console.log(`高亮 ${highlight.id} 已存在闪卡，跳过`);
                     continue;
                 }
 

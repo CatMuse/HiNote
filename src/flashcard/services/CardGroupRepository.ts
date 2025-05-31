@@ -420,7 +420,6 @@ export class CardGroupRepository {
         }
         
         if (updated) {
-            console.log(`[更新分组卡片] 分组 "${group.name}" 添加了 ${matchedCardIds.length} 个卡片`);
             // 触发保存
             this.plugin.fsrsManager.saveStorageDebounced();
         }
