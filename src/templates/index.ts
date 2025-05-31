@@ -133,43 +133,28 @@ export const socialTemplate: CardTemplate = {
         logoSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
         logoSvg.setAttribute("width", "24");
         logoSvg.setAttribute("height", "24");
-        logoSvg.setAttribute("viewBox", "0 0 24 24");
-        logoSvg.setAttribute("fill", "none");
-        logoSvg.setAttribute("stroke", "currentColor");
-        logoSvg.setAttribute("stroke-width", "2");
-        logoSvg.setAttribute("stroke-linecap", "round");
-        logoSvg.setAttribute("stroke-linejoin", "round");
+        logoSvg.setAttribute("viewBox", "0 0 100 100");
+        logoSvg.setAttribute("fill", "currentColor");
+        logoSvg.setAttribute("stroke", "none");
 
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("cx", "12");
-        circle.setAttribute("cy", "12");
-        circle.setAttribute("r", "10");
+        // Obsidian Logo - 钻石/宝石形状
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "M50,9.4L14.8,37.1l12.6,38.8l22.6,14.7l22.6-14.7l12.6-38.8L50,9.4z M50,19.5l25.5,20l-9.4,28.9L50,80.6 L33.9,68.4l-9.4-28.9L50,19.5z");
+        
+        // 内部细节
+        const innerPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        innerPath.setAttribute("d", "M50,19.5l-25.5,20l9.4,28.9L50,80.6V19.5z");
+        innerPath.setAttribute("fill-opacity", "0.3");
 
-        const lines = [
-            ["14.31", "8", "20.05", "17.94"],
-            ["9.69", "8", "21.17", "8"],
-            ["7.38", "12", "13.12", "2.06"],
-            ["9.69", "16", "3.95", "6.06"],
-            ["14.31", "16", "2.83", "16"],
-            ["16.62", "12", "10.88", "21.94"]
-        ].map(([x1, y1, x2, y2]) => {
-            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            line.setAttribute("x1", x1);
-            line.setAttribute("y1", y1);
-            line.setAttribute("x2", x2);
-            line.setAttribute("y2", y2);
-            return line;
-        });
-
-        logoSvg.appendChild(circle);
-        lines.forEach(line => logoSvg.appendChild(line));
+        logoSvg.appendChild(path);
+        logoSvg.appendChild(innerPath);
         logo.appendChild(logoSvg);
 
         header.appendChild(logo);
         
         const appName = document.createElement('div');
         appName.className = 'highlight-export-app-name';
-        appName.textContent = 'Obsidian';
+        appName.textContent = 'HiNote';
         header.appendChild(appName);
         
         cardContainer.appendChild(header);

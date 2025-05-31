@@ -2491,6 +2491,12 @@ justify-content: center;
     margin: 20px 0;
 }
 
+.highlight-export-card-academic .highlight-export-footer {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    line-height: var(--highlight-text-line-height);
+}
+
 /* 交媒体模板 */
 .highlight-export-card-social {
     padding: 20px;
@@ -2507,11 +2513,16 @@ justify-content: center;
 
 .highlight-export-card-social .highlight-export-logo {
     margin-right: 10px;
+    display: flex;
+    align-items: center;
 }
 
 .highlight-export-card-social .highlight-export-app-name {
     font-weight: 600;
     color: var(--text-normal);
+    line-height: 24px; /* 与Logo高度匹配 */
+    display: flex;
+    align-items: center;
 }
 
 .highlight-export-card-social .highlight-export-quote {
@@ -2519,6 +2530,12 @@ justify-content: center;
     line-height: 1.6;
     color: var(--text-normal);
     margin: 20px 0;
+}
+
+.highlight-export-card-social .highlight-export-footer {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    line-height: var(--highlight-text-line-height);
 }
 
 /* 默认模板（现代风格）样式优化 */
@@ -2578,12 +2595,19 @@ justify-content: center;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    color: var(--text-muted);
 }
 
 .highlight-export-card-modern .highlight-export-source {
     font-size: 0.9em;
-    color: var(--text-muted);
-    font-weight: 500;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+}
+
+.highlight-export-card-modern .highlight-export-date {
+    font-size: 0.9em;
+    font-weight: 400;
     display: flex;
     align-items: center;
 }
