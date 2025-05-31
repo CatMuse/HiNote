@@ -204,14 +204,19 @@ export class FlashcardOperations {
                 this.component.setCardFlipped(false);
             }
         } else {
-            // 如果没有卡片，显示完成消息
-            let message = `没有需要复习的卡片`;
+            // If there are no cards, show completion message
+            let message = t('No cards due for review');
+            
+            // Custom group
             if (groupName) {
-                const group = fsrsManager.getCardGroups().find((g: any) => g.id === groupName);
+                const group = fsrsManager.getCardGroups().find((g: any) => g.name === groupName);
                 if (group) {
-                    message = `分组 ${group.name} 中没有需要复习的卡片`;
+                    message = t('Group completed: ') + group.name + t('. Add more cards in Settings, but remember: more cards = more reviews.');
                 }
+            } else {
+                message = t('All flashcards completed for today!');
             }
+            
             this.component.setGroupCompletionMessage(groupName, message);
         }
         

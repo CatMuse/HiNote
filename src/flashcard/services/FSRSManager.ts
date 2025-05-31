@@ -41,10 +41,7 @@ export class FSRSManager {
             cardGroups: [],
             uiState: {
                 currentGroupName: '',
-                currentIndex: 0,
-                isFlipped: false,
                 completionMessage: null,
-                groupCompletionMessages: {},
                 groupProgress: {}
             },
             dailyStats: [] // 初始化每日学习统计数据
@@ -92,10 +89,7 @@ export class FSRSManager {
             cardGroups: [],
             uiState: {
                 currentGroupName: '',
-                currentIndex: 0,
-                isFlipped: false,
                 completionMessage: null,
-                groupCompletionMessages: {},
                 groupProgress: {}
             },
             dailyStats: []
@@ -1372,25 +1366,23 @@ export class FSRSManager {
         const group = this.groupRepository.getGroupById(groupId);
         if (!group) return;
         
-        // 确保 uiState 和 groupCompletionMessages 存在
+        // 确保 uiState 和 groupProgress 存在
         if (!this.storage.uiState) {
             this.storage.uiState = {
                 currentGroupName: '',
-                currentIndex: 0,
-                isFlipped: false,
                 completionMessage: null,
-                groupCompletionMessages: {},
                 groupProgress: {}
             };
         }
         
-        if (!this.storage.uiState.groupCompletionMessages) {
-            this.storage.uiState.groupCompletionMessages = {};
+        if (!this.storage.uiState.groupProgress) {
+            this.storage.uiState.groupProgress = {};
         }
         
         // 重置完成消息
-        if (this.storage.uiState.groupCompletionMessages[group.name]) {
-            this.storage.uiState.groupCompletionMessages[group.name] = null;
+        if (this.storage.uiState.groupProgress[group.name]) {
+            // 如果分组进度存在，将完成消息设置为 null
+            this.storage.uiState.groupProgress[group.name].completionMessage = null;
             this.saveStorageDebounced();
         }
     }

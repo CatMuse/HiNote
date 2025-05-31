@@ -7,7 +7,8 @@ import {
     FSRS_RATING, 
     FSRSRating, 
     CardGroup,
-    FlashcardProgress
+    FlashcardProgress,
+    GroupProgressState
 } from "../types/FSRSTypes";
 import { t } from "../../i18n";
 
@@ -36,11 +37,8 @@ export class FlashcardComponent extends Component {
     private app: any;
     private completionMessage: string | null = null;
     
-    // 存储每个分组的完成状态
-    private groupCompletionMessages: Record<string, string | null> = {};
-    
-    // 存储每个分组的学习进度
-    private groupProgress: Record<string, { currentIndex: number, isFlipped: boolean, currentCardId?: string }> = {};
+    // 存储每个分组的学习进度和完成状态
+    private groupProgress: Record<string, GroupProgressState> = {};
 
     // 评分按钮配置
     private readonly ratingButtons = [
@@ -71,7 +69,6 @@ export class FlashcardComponent extends Component {
         this.utils = new FlashcardUtils(this);
         
         // 初始化属性
-        this.groupCompletionMessages = {};
         this.groupProgress = {};
         
         // 加载 UI 状态
@@ -93,15 +90,27 @@ export class FlashcardComponent extends Component {
         }
         
         // 设置其他状态
-        this.currentIndex = uiState.currentIndex || 0;
-        this.isFlipped = uiState.isFlipped || false;
         this.completionMessage = uiState.completionMessage || null;
         
-        // 确保 groupCompletionMessages 和 groupProgress 是对象
-        if (uiState && 'groupCompletionMessages' in uiState && uiState.groupCompletionMessages && typeof uiState.groupCompletionMessages === 'object') {
-            this.groupCompletionMessages = { ...uiState.groupCompletionMessages };
+        // 初始化分组进度
+        if (uiState.groupProgress) {
+            this.groupProgress = { ...uiState.groupProgress };
+        }
+        
+        // 不再需要将完成消息存储到单独的对象中，直接从 groupProgress 读取
+        
+        // 从分组进度中获取当前索引和翻转状态
+        if (this.currentGroupName && this.groupProgress[this.currentGroupName]) {
+            this.currentIndex = this.groupProgress[this.currentGroupName].currentIndex || 0;
+            this.isFlipped = this.groupProgress[this.currentGroupName].isFlipped || false;
         } else {
-            this.groupCompletionMessages = {};
+            this.currentIndex = 0;
+            this.isFlipped = false;
+        }
+        
+        // 确保 groupProgress 是对象
+        if (!uiState || !uiState.groupProgress || typeof uiState.groupProgress !== 'object') {
+            this.groupProgress = {};
         }
         
         if (uiState && 'groupProgress' in uiState && uiState.groupProgress && typeof uiState.groupProgress === 'object') {
@@ -246,20 +255,51 @@ export class FlashcardComponent extends Component {
         }
     }
     
+    /**
+     * 获取全局完成消息
+     * @returns 完成消息或 null
+     */
     public getCompletionMessage(): string | null {
         return this.completionMessage;
     }
     
+    /**
+     * 设置全局完成消息
+     * @param message 完成消息或 null
+     */
     public setCompletionMessage(message: string | null) {
         this.completionMessage = message;
     }
     
+    /**
+     * 获取指定分组的完成消息
+     * @param groupName 分组名称
+     * @returns 完成消息或 null
+     */
     public getGroupCompletionMessage(groupName: string): string | null {
-        return this.groupCompletionMessages[groupName] || null;
+        if (this.groupProgress[groupName]) {
+            return this.groupProgress[groupName].completionMessage || null;
+        }
+        return null;
     }
     
+    /**
+     * 设置指定分组的完成消息
+     * @param groupName 分组名称
+     * @param message 完成消息或 null
+     */
     public setGroupCompletionMessage(groupName: string, message: string | null) {
-        this.groupCompletionMessages[groupName] = message;
+        // 确保分组进度对象存在
+        if (!this.groupProgress[groupName]) {
+            this.groupProgress[groupName] = {
+                currentIndex: 0,
+                isFlipped: false,
+                completionMessage: null
+            };
+        }
+        
+        // 设置完成消息
+        this.groupProgress[groupName].completionMessage = message;
     }
     
     public getGroupProgress(groupName?: string): { currentIndex: number, isFlipped: boolean } | null {
@@ -318,8 +358,6 @@ export class FlashcardComponent extends Component {
         
         // 更新基本 UI 状态
         uiState.currentGroupName = groupName;
-        uiState.currentIndex = this.currentIndex;
-        uiState.isFlipped = this.isFlipped;
         uiState.completionMessage = this.completionMessage;
         
         // 确保分组进度存在
@@ -332,20 +370,25 @@ export class FlashcardComponent extends Component {
             // 保存当前分组的进度
             const currentCardId = this.cards.length > 0 && this.currentIndex < this.cards.length ? 
                 this.cards[this.currentIndex].id : undefined;
+            
+            // 获取当前分组的完成消息
+            const completionMessage = this.getGroupCompletionMessage(groupName);
                 
-            uiState.groupProgress[groupName] = {
-                currentIndex: this.currentIndex,
-                isFlipped: this.isFlipped,
-                currentCardId: currentCardId // 保存当前卡片ID
-            };
-            
-            // 确保分组完成消息存在
-            if (!uiState.groupCompletionMessages) {
-                uiState.groupCompletionMessages = {};
+            // 创建或更新分组进度
+            if (!uiState.groupProgress[groupName]) {
+                uiState.groupProgress[groupName] = {
+                    currentIndex: this.currentIndex,
+                    isFlipped: this.isFlipped,
+                    currentCardId: currentCardId,
+                    completionMessage: completionMessage
+                };
+            } else {
+                // 更新现有分组进度
+                uiState.groupProgress[groupName].currentIndex = this.currentIndex;
+                uiState.groupProgress[groupName].isFlipped = this.isFlipped;
+                uiState.groupProgress[groupName].currentCardId = currentCardId;
+                uiState.groupProgress[groupName].completionMessage = completionMessage;
             }
-            
-            // 保存分组完成消息
-            uiState.groupCompletionMessages[groupName] = this.getGroupCompletionMessage(groupName);
         }
         
         // 保存 UI 状态

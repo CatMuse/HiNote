@@ -54,13 +54,17 @@ export interface CardGroup {
     lastUpdated?: number;  // 上次更新时间戳
 }
 
-export interface HiCardState {
-    currentGroupName: string;
+export interface GroupProgressState {
     currentIndex: number;
     isFlipped: boolean;
+    currentCardId?: string;
     completionMessage?: string | null;
-    groupCompletionMessages?: Record<string, string | null>;
-    groupProgress?: Record<string, { currentIndex: number, isFlipped: boolean, currentCardId?: string }>;
+}
+
+export interface HiCardState {
+    currentGroupName: string;
+    completionMessage?: string | null;
+    groupProgress?: Record<string, GroupProgressState>;
 }
 
 export interface DailyStats {

@@ -278,8 +278,33 @@ export class FlashcardRenderer {
         
         // 如果没有分组或者卡片数组为空，显示完成消息或默认提示
         if (!hasGroups || cards.length === 0) {
-            // 如果有分组完成消息，显示完成消息
-            if (groupCompletionMessage) {
+            // 检查当前分组是否为空分组
+            const currentGroup = this.component.getFsrsManager().getCardGroups().find(
+                (g: any) => g.name === groupName
+            );
+            const isEmptyGroup = currentGroup && currentGroup.cardIds.length === 0;
+            
+            if (isEmptyGroup) {
+                // If it's an empty group, show special message
+                const emptyContainer = cardContainer.createEl("div", { 
+                    cls: "flashcard-completion-message flashcard-empty-group" 
+                });
+                
+                // Add an icon, using a different icon
+                const iconEl = emptyContainer.createEl("div", { cls: "completion-icon" });
+                setIcon(iconEl, "circle-slash-2"); // Use question icon for empty groups
+                
+                // Add title
+                emptyContainer.createEl("h3", { 
+                    text: t("No Cards Available") 
+                });
+                
+                // Add description
+                emptyContainer.createEl("p", { 
+                    text: t("This group has no cards") 
+                });
+            } else {
+                // 对于非空分组但没有卡片需要复习的情况，显示学习完成消息
                 const completionContainer = cardContainer.createEl("div", { 
                     cls: "flashcard-completion-message" 
                 });
@@ -290,18 +315,25 @@ export class FlashcardRenderer {
                 
                 // 添加标题
                 completionContainer.createEl("h3", { 
-                    text: t("学习完成！") 
+                    text: t("Learning Completed!") 
                 });
                 
                 // 添加消息
+                let message = groupCompletionMessage;
+                if (!message) {
+                    // 如果没有设置完成消息，使用默认消息
+                    if (currentGroup) {
+                        message = t('Group completed: ') + currentGroup.name + t('. All cards have been reviewed.');
+                    } else {
+                        message = t('All flashcards completed for today!');
+                    }
+                    
+                    // 保存完成消息到状态中
+                    this.component.setGroupCompletionMessage(groupName, message);
+                }
+                
                 completionContainer.createEl("p", { 
-                    text: groupCompletionMessage 
-                });
-            } else {
-                // 如果没有完成消息，显示默认提示
-                cardContainer.createEl("div", {
-                    cls: "flashcard-empty", 
-                    text: t("No cards due for review")
+                    text: message 
                 });
             }
             return;

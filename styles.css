@@ -3027,6 +3027,24 @@ justify-content: center;
     color: var(--text-muted);
 }
 
+/* 空分组样式 */
+.flashcard-empty-group .completion-icon {
+    color: var(--text-muted); /* 使用淡色而非强调色 */
+}
+
+.flashcard-empty-group h3 {
+    color: var(--text-normal);
+}
+
+.flashcard-empty-tip {
+    font-size: 14px !important;
+    color: var(--text-accent) !important;
+    background-color: var(--background-secondary-alt);
+    padding: 8px 12px !important;
+    border-radius: 6px;
+    margin-top: 8px !important;
+}
+
 .flashcard-return-button {
     padding: 8px 16px;
     background: var(--interactive-accent);
