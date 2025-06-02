@@ -64,9 +64,9 @@ export class FSRSManager {
             // 注册事件监听
             this.registerEventListeners();
         }).catch(error => {
-            console.error('加载存储数据时出错:', error);
+            console.error('Loading storage data failed:', error);
             
-            // 即使出错也初始化分组仓库
+            // Even if it fails, initialize the group repository
             this.groupRepository = new CardGroupRepository(plugin, this.storage);
             // this.dataService = new FlashcardDataService(plugin, this.storage);
             
@@ -137,7 +137,7 @@ export class FSRSManager {
 
             return storage;
         } catch (error) {
-            console.error('加载存储数据时出错:', error);
+            console.error('Loading storage data failed:', error);
             return defaultStorage;
         }
     }
@@ -171,7 +171,7 @@ export class FSRSManager {
 
 
         } catch (error) {
-            console.error('保存数据时出错:', error);
+            console.error('Saving data failed:', error);
             throw error;
         }
     }
@@ -240,13 +240,13 @@ export class FSRSManager {
      * @returns 分组中的卡片列表
      */
     public getCardsForStudy(groupId: string): FlashcardState[] {
-        // 如果没有指定分组ID，返回空数组
+        // If no group ID is specified, return an empty array
         if (!groupId) {
-            console.warn('没有指定分组ID，返回空卡片列表');
+            console.warn('No group ID specified, returning empty card list');
             return [];
         }
         
-        // 重置分组完成消息状态
+        // Reset group completion message state
         this.resetGroupCompletionMessage(groupId);
         
         // 获取指定分组的所有卡片
@@ -308,11 +308,11 @@ export class FSRSManager {
         // 获取卡片
         const card = this.storage.cards[cardId];
         if (!card) {
-            console.error(`跟踪学习进度失败: 卡片 ${cardId} 不存在`);
+            console.error(`Tracking study progress failed: Card ${cardId} does not exist`);
             return null;
         }
         
-        // 调用 FSRS 算法进行评分
+        // Call FSRS algorithm for rating
         const isNewCard = card.lastReview === 0;
         const updatedCard = this.fsrsService.reviewCard(card, rating);
         

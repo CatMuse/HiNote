@@ -104,7 +104,7 @@ export class FlashcardProgressManager {
         
         // 添加分组名称
         progressText.createSpan({
-            text: this.component.getCurrentGroupName() || t('所有卡片'),
+            text: this.component.getCurrentGroupName() || t('Groups'),
             cls: "group-name"
         });
 

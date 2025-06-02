@@ -130,8 +130,8 @@ export class GeneralSettingsTab {
 
         // 启用自定义正则表达式的开关
         new Setting(container)
-            .setName(t('使用自定义规则'))
-            .setDesc(t('启用后将使用自定义正则表达式规则提取高亮文本。'))
+            .setName(t('Use custom rules'))
+            .setDesc(t('Enable to use custom regex rules to extract highlight text.'))
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.useCustomPattern)
                 .onChange(async (value) => {
@@ -145,7 +145,7 @@ export class GeneralSettingsTab {
                 
         // 数据管理设置组
         new Setting(container)
-            .setName(t('数据管理'))
+            .setName(t('Data management'))
             .setHeading();
             
         // 检查/清理孤立数据按钮

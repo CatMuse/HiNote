@@ -164,7 +164,7 @@ export class CommentList extends Component {
 
             // 添加双击编辑提示
             footer.createEl("span", {
-                text: "双击编辑",
+                text: "Double click to edit",
                 cls: "hi-note-edit-hint"
             });
 

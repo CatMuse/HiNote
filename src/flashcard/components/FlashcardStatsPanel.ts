@@ -38,9 +38,9 @@ export class FlashcardStatsPanel {
         const progress = this.fsrsManager.getProgress();
         
         // 创建统计项
-        this.createStatItem(statsArea, progress.newCards.toString(), '未学习', 'flashcard-stat-new');
-        this.createStatItem(statsArea, progress.learned.toString(), '学习中', 'flashcard-stat-learning');
-        this.createStatItem(statsArea, progress.due.toString(), '待复习', 'flashcard-stat-due');
+        this.createStatItem(statsArea, progress.newCards.toString(), 'New', 'flashcard-stat-new');
+        this.createStatItem(statsArea, progress.learned.toString(), 'Learning', 'flashcard-stat-learning');
+        this.createStatItem(statsArea, progress.due.toString(), 'Review', 'flashcard-stat-due');
     }
     
     /**
@@ -216,11 +216,11 @@ export class FlashcardStatsPanel {
                     cell.addClass(`flashcard-heatmap-level-${level}`);
                     
                     // 添加更详细的提示信息，包括评分分布
-                    let tooltipText = `${date.toLocaleDateString()}: 学习了${stat.newCardsLearned}张新卡片，复习了${stat.cardsReviewed}张卡片`;
+                    let tooltipText = `${date.toLocaleDateString()}: Learned ${stat.newCardsLearned} new cards, reviewed ${stat.cardsReviewed} cards`;
                     
                     // 如果有评分记录，添加评分分布信息
                     if (stat.reviewCount > 0) {
-                        tooltipText += `\n评分分布: 困难(${stat.againCount}), 一般(${stat.hardCount}), 良好(${stat.goodCount}), 简单(${stat.easyCount})`;
+                        tooltipText += `\nRating distribution: Hard(${stat.againCount}), Good(${stat.goodCount}), Easy(${stat.easyCount})`;
                     }
                     
                     cell.setAttribute('title', tooltipText);

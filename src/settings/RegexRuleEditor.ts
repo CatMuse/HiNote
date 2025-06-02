@@ -32,12 +32,12 @@ export class RegexRuleEditor {
     
     // 添加警告提示和示例
     const warningEl = this.rulesContainer.createDiv({ cls: 'regex-rule-warning' });
-    warningEl.innerHTML = t('使用正则表达式时请谨慎。如果有捕获组()，将使用第一个捕获组作为高亮文本；如果没有捕获组，将使用整个匹配内容。')
+    warningEl.innerHTML = t('Use regex with caution. If there are capture groups (), the first capture group will be used as the highlight text; if there are no capture groups, the entire match will be used.')
     
     // 显示现有规则
     if (this.rules.length === 0) {
       const emptyEl = this.rulesContainer.createDiv();
-      emptyEl.setText(t('没有自定义正则规则。点击"+"添加新规则。'));
+      emptyEl.setText(t('No custom regex rules. Click "+" to add a new rule.'));
     } else {
       this.rules.forEach((rule, index) => {
         this.createRuleItem(rule, index);
@@ -49,7 +49,7 @@ export class RegexRuleEditor {
     
     // 添加加号图标和文本
     const textSpan = addButton.createSpan({ cls: 'regex-rule-add-text' });
-    textSpan.setText(t('添加新规则'));
+    textSpan.setText(t('Add new rule'));
     
     // 添加点击事件
     addButton.addEventListener('click', () => {
@@ -77,7 +77,7 @@ export class RegexRuleEditor {
     
     // 名称输入框
     const nameInput = new TextComponent(ruleContainer);
-    nameInput.setPlaceholder(t('规则名称'));
+    nameInput.setPlaceholder(t('Rule name'));
     nameInput.setValue(rule.name);
     nameInput.onChange(value => {
       rule.name = value;
@@ -86,7 +86,7 @@ export class RegexRuleEditor {
     
     // 正则表达式输入框
     const patternInput = new TextComponent(ruleContainer);
-    patternInput.setPlaceholder(t('包含捕获组的正则表达式'));
+    patternInput.setPlaceholder(t('Regular expression with capture groups'));
     patternInput.setValue(rule.pattern);
     patternInput.onChange(value => {
       rule.pattern = value;
@@ -111,7 +111,7 @@ export class RegexRuleEditor {
     // 删除图标
     const deleteContainer = ruleContainer.createDiv({ cls: 'regex-rule-delete' });
     setIcon(deleteContainer, 'trash-2'); // 使用 Obsidian 的 trash-2 图标
-    deleteContainer.setAttr('aria-label', t('删除规则'));
+    deleteContainer.setAttr('aria-label', t('Delete rule'));
     deleteContainer.addEventListener('click', () => {
       this.rules.splice(index, 1);
       this.saveRules();

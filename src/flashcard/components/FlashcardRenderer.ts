@@ -100,7 +100,7 @@ export class FlashcardRenderer {
         const customGroupHeader = customGroups.createEl("div", { cls: "flashcard-groups-header" });
         
         // 添加分组按钮（直接添加到header中，跳过中间层级）
-        const addButton = customGroupHeader.createEl("div", { cls: "flashcard-add-group", attr: { 'aria-label': t('添加分组') } });
+        const addButton = customGroupHeader.createEl("div", { cls: "flashcard-add-group", attr: { 'aria-label': t('Add Group') } });
         
         // 直接在按钮上设置图标，简化DOM结构
         setIcon(addButton, 'plus');
@@ -133,7 +133,7 @@ export class FlashcardRenderer {
             // 编辑按钮
             const editButton = actions.createEl("div", { 
                 cls: "flashcard-group-action", 
-                attr: { 'aria-label': t('编辑分组') } 
+                attr: { 'aria-label': t('Edit Group') } 
             });
             setIcon(editButton, 'edit');
             editButton.addEventListener('click', (e: MouseEvent) => {
@@ -144,12 +144,12 @@ export class FlashcardRenderer {
             // 删除按钮
             const deleteButton = actions.createEl("div", { 
                 cls: "flashcard-group-action", 
-                attr: { 'aria-label': t('删除分组') } 
+                attr: { 'aria-label': t('Delete Group') } 
             });
             setIcon(deleteButton, 'trash');
             deleteButton.addEventListener('click', async (e: MouseEvent) => {
                 e.stopPropagation();
-                if (confirm(t('确定要删除分组 "') + group.name + t('" 吗？'))) {
+                if (confirm(t('Are you sure you want to delete group "') + group.name + t('"?'))) {
                     try {
                         const deleted = await this.component.getFsrsManager().deleteCardGroup(group.id);
                         if (deleted) {
@@ -164,14 +164,14 @@ export class FlashcardRenderer {
                                     this.component.setCurrentGroupName('');
                                 }
                             }
-                            new Notice(t('分组删除成功'));
+                            new Notice(t('Group deleted successfully'));
                             this.render();
                         } else {
-                            new Notice(t('删除分组失败'));
+                            new Notice(t('Delete group failed'));
                         }
                     } catch (error) {
-                        console.error('删除分组失败:', error);
-                        new Notice(t('删除分组失败'));
+                        console.error('Delete group failed:', error);
+                        new Notice(t('Delete group failed'));
                     }
                 }
             });

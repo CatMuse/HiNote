@@ -26,7 +26,7 @@ export class UnfocusedCommentInput {
         const inputArea = this.container.createEl("div", {
             cls: "unfocused-input-area",
             attr: {
-                "placeholder": t("添加批注...")
+                "placeholder": t("Add comment...")
             }
         });
 
