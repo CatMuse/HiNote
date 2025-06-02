@@ -1455,43 +1455,151 @@ export class CommentView extends ItemView {
 
     // 添加新方法来更新全部高亮
     private async updateAllHighlights() {
-    // 重置批次计数
-    this.currentBatch = 0;
-    this.highlights = [];
+        // 重置批次计数
+        this.currentBatch = 0;
+        this.highlights = [];
 
-    // 清空容器并添加加载指示
-    this.highlightContainer.empty();
-    this.highlightContainer.appendChild(this.loadingIndicator);
+        // 清空容器并添加加载指示
+        this.highlightContainer.empty();
+        this.highlightContainer.appendChild(this.loadingIndicator);
 
-    // 获取所有高亮
-    const allHighlights = await this.highlightService.getAllHighlights();
-    // 展平成扁平数组，附加文件信息
-    this.highlights = allHighlights.flatMap(({ file, highlights }) =>
-        highlights.map(h => ({
-            ...h,
-            fileName: file.basename,
-            filePath: file.path,
-            fileIcon: 'file-text'
-        }))
-    );
-
-    // 初始加载
-    await this.loadMoreHighlights();
-
-    // 添加滚动监听
-    const handleScroll = debounce(async (e: Event) => {
-        const container = e.target as HTMLElement;
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        // 当滚动到底部附近时加载更多
-        if (scrollHeight - scrollTop - clientHeight < 300) {
+        try {
+            // 获取所有高亮
+            const allHighlights = await this.highlightService.getAllHighlights();
+            
+            // 创建所有文件的批注映射
+            const fileCommentsMap = new Map<string, HiNote[]>();
+            
+            // 获取所有文件
+            const allFiles = this.app.vault.getMarkdownFiles();
+            
+            // 预先加载所有文件的批注
+            for (const file of allFiles) {
+                const fileComments = this.commentStore.getFileComments(file);
+                if (fileComments && fileComments.length > 0) {
+                    fileCommentsMap.set(file.path, fileComments);
+                }
+            }
+            
+            // 处理所有高亮
+            this.highlights = [];
+            
+            for (const { file, highlights } of allHighlights) {
+                // 获取当前文件的所有批注
+                const fileComments = fileCommentsMap.get(file.path) || [];
+                
+                // 创建一个集合来跟踪已使用的批注ID，防止重复匹配
+                const usedCommentIds = new Set<string>();
+                
+                // 处理每个高亮
+                const processedHighlights = highlights.map(highlight => {
+                    // 1. 先尝试精确匹配 ID
+                    let storedComment = fileComments.find(c => 
+                        !usedCommentIds.has(c.id) && c.id === highlight.id
+                    );
+                    
+                    // 2. 如果没有精确匹配，尝试文本和位置匹配
+                    if (!storedComment) {
+                        storedComment = fileComments.find(c => {
+                            if (usedCommentIds.has(c.id)) return false;
+                            
+                            const textMatch = c.text === highlight.text;
+                            if (textMatch && highlight.position !== undefined && c.position !== undefined) {
+                                // 如果文本匹配且都有位置信息，检查是否在同一段落内
+                                return Math.abs(c.position - highlight.position) < 1000;
+                            }
+                            return textMatch; // 如果没有位置信息，只比较文本
+                        });
+                    }
+                    
+                    // 3. 如果还是没有匹配，尝试仅使用位置匹配
+                    if (!storedComment && highlight.position !== undefined) {
+                        // 由于上面的条件已经确保 highlight.position 不为 undefined，
+                        // 这里可以安全地使用它，但为了类型安全，我们使用一个临时变量
+                        const highlightPos = highlight.position;
+                        storedComment = fileComments.find(c => 
+                            !usedCommentIds.has(c.id) && 
+                            c.position !== undefined && 
+                            Math.abs(c.position - highlightPos) < 50
+                        );
+                    }
+                    
+                    if (storedComment) {
+                        // 标记这个批注ID已被使用
+                        usedCommentIds.add(storedComment.id);
+                        
+                        // 返回合并后的高亮对象
+                        return {
+                            ...highlight,
+                            id: storedComment.id, // 使用存储的批注ID
+                            comments: storedComment.comments || [],
+                            createdAt: storedComment.createdAt,
+                            updatedAt: storedComment.updatedAt,
+                            fileName: file.basename,
+                            filePath: file.path,
+                            fileIcon: 'file-text'
+                        };
+                    }
+                    
+                    // 如果没有匹配的批注，返回原始高亮并添加文件信息
+                    return {
+                        ...highlight,
+                        comments: highlight.comments || [],
+                        fileName: file.basename,
+                        filePath: file.path,
+                        fileIcon: 'file-text'
+                    };
+                });
+                
+                // 添加处理后的高亮到结果中
+                this.highlights.push(...processedHighlights);
+                
+                // 添加虚拟高亮（只有批注的高亮）
+                const virtualHighlights = fileComments
+                    .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
+                
+                // 将这些虚拟高亮添加到列表并标记为已使用
+                virtualHighlights.forEach(vh => {
+                    usedCommentIds.add(vh.id);
+                    this.highlights.push({
+                        ...vh,
+                        fileName: file.basename,
+                        filePath: file.path,
+                        fileIcon: 'file-text',
+                        position: vh.position || 0 // 确保 position 不为 undefined
+                    });
+                });
+            }
+            
+            // 初始加载
             await this.loadMoreHighlights();
+            
+            // 添加滚动监听
+            const handleScroll = debounce(async (e: Event) => {
+                const container = e.target as HTMLElement;
+                const { scrollTop, scrollHeight, clientHeight } = container;
+                // 当滚动到底部附近时加载更多
+                if (scrollHeight - scrollTop - clientHeight < 300) {
+                    await this.loadMoreHighlights();
+                }
+            }, 100);
+            
+            // 注册和清理滚动监听
+            this.highlightContainer.addEventListener('scroll', handleScroll);
+            this.register(() => this.highlightContainer.removeEventListener('scroll', handleScroll));
+            
+        } catch (error) {
+            console.error('[CommentView] Error in updateAllHighlights:', error);
+            new Notice(t("Error loading all highlights"));
+            this.highlightContainer.empty();
+            this.highlightContainer.createEl("div", {
+                cls: "highlight-empty-state",
+                text: t("Error loading highlights. Please try again.")
+            });
+        } finally {
+            this.loadingIndicator.removeClass('highlight-display-block');
         }
-    }, 100);
-
-    // 注册和清理滚动监听
-    this.highlightContainer.addEventListener('scroll', handleScroll);
-    this.register(() => this.highlightContainer.removeEventListener('scroll', handleScroll));
-}
+    }
 
 
     // 添加新方法：加载更多高亮
