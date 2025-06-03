@@ -1394,12 +1394,7 @@ settings:
 }
 
 /* 模板选择器样式 */
-.highlight-template-selector {
-    padding: 0 0 16px 0;
-    position: relative;  /* 添加相对定位 */
-    z-index: 1;         /* 确保选择器在按钮上方 */
-}
-
+/* 移除了中间容器，样式直接应用到选择器上 */
 .highlight-template-select {
     width: 100%;
     padding: 8px 32px 8px 8px;  /* 右侧留出箭头的空间 */
@@ -1409,6 +1404,9 @@ settings:
     height: 36px;  /* 设置固定高度 */
     line-height: 1.4;  /* 添加行高 */
     font-size: 14px;
+    margin-bottom: 16px;
+    position: relative;  /* 添加相对定位 */
+    z-index: 1;         /* 确保选择器在按钮上方 */
     color: var(--text-normal);
     cursor: pointer;
     appearance: none;
@@ -1444,8 +1442,8 @@ settings:
     display: flex;
     flex-direction: column;
     flex: 1;
-    overflow: auto;     /* 改为 auto，允许容超出时滚动 */
-    padding: 12px 4px 4px 4px;      /* 添加内边距 */
+    overflow: visible;  /* 改为 visible，允许内容超出而不被裁切 */
+    padding: 12px 0px;  /* 保持内边距 */
 }
 
 .highlight-export-preview-container {
@@ -2588,54 +2586,24 @@ justify-content: center;
 }
 
 /* 开关样式 */
-.highlight-export-toggle-container {
+/* 新的复选框样式 */
+.highlight-export-checkbox-container {
     display: flex;
     align-items: center;
-    margin-right: auto; /* 将开关推到左侧 */
+    margin-right: auto; /* 将复选框推到左侧 */
+    gap: 4px;
 }
 
-.highlight-export-toggle-label {
-    display: inline-flex;
-    align-items: center;
+.highlight-export-checkbox {
+    cursor: pointer;
+    margin: 0;
+}
+
+.highlight-export-checkbox-label {
     cursor: pointer;
     user-select: none;
-}
-
-.highlight-export-toggle-input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.highlight-export-toggle-slider {
-    position: relative;
-    display: inline-block;
-    width: 36px;
-    height: 20px;
-    background-color: var(--background-modifier-border);
-    border-radius: 10px;
-    margin-left: 8px;
-    transition: .4s;
-}
-
-.highlight-export-toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: var(--background-primary);
-    border-radius: 50%;
-    transition: .4s;
-}
-
-.highlight-export-toggle-input:checked + .highlight-export-toggle-slider {
-    background-color: var(--interactive-accent);
-}
-
-.highlight-export-toggle-input:checked + .highlight-export-toggle-slider:before {
-    transform: translateX(16px);
+    font-size: 14px;
+    color: var(--text-normal);
 }
 
 /* 背景装饰 */

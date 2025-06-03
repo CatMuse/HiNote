@@ -37,13 +37,8 @@ export class ExportPreviewModal extends Modal {
             cls: 'highlight-export-main-container'
         });
 
-        // 添加模板选择区域
-        const templateSelector = mainContainer.createEl('div', {
-            cls: 'highlight-template-selector'
-        });
-
-        // 创建下拉框
-        const selectEl = templateSelector.createEl('select', {
+        // 直接创建下拉框
+        const selectEl = mainContainer.createEl('select', {
             cls: 'highlight-template-select'
         });
 
@@ -79,29 +74,32 @@ export class ExportPreviewModal extends Modal {
             cls: 'highlight-export-modal-buttons'
         });
         
-        // 在按钮组左侧添加批注显示开关
+        // 在按钮组左侧添加批注显示复选框
         if (this.highlight.comments && this.highlight.comments.length > 0) {
-            const showCommentsToggle = buttonContainer.createEl('div', {
-                cls: 'highlight-export-toggle-container'
+            const showCommentsContainer = buttonContainer.createEl('div', {
+                cls: 'highlight-export-checkbox-container'
             });
 
-            const toggleLabel = showCommentsToggle.createEl('label', {
-                cls: 'highlight-export-toggle-label',
-                text: t('Include Comments')
+            // 创建复选框
+            const checkbox = showCommentsContainer.createEl('input', {
+                attr: { 
+                    type: 'checkbox',
+                    id: 'include-comments-checkbox'
+                },
+                cls: 'highlight-export-checkbox'
             });
 
-            const toggleInput = toggleLabel.createEl('input', {
-                attr: { type: 'checkbox' },
-                cls: 'highlight-export-toggle-input'
+            // 创建标签
+            const label = showCommentsContainer.createEl('label', {
+                text: t('Include Comments'),
+                attr: {
+                    for: 'include-comments-checkbox'
+                },
+                cls: 'highlight-export-checkbox-label'
             });
 
-            // 创建开关外观
-            const toggleSlider = toggleLabel.createEl('span', {
-                cls: 'highlight-export-toggle-slider'
-            });
-
-            // 监听开关状态变化
-            toggleInput.addEventListener('change', (e) => {
+            // 监听复选框状态变化
+            checkbox.addEventListener('change', (e) => {
                 this.includeComments = (e.target as HTMLInputElement).checked;
                 this.updatePreview();
             });
