@@ -226,7 +226,18 @@ export class CommentView extends ItemView {
                 });
         });
         
-        menu.showAtMouseEvent(event);
+        // 获取触发事件的按钮元素
+        const targetElement = event.currentTarget as HTMLElement;
+        
+        // 计算菜单应该显示的位置
+        if (targetElement) {
+            const rect = targetElement.getBoundingClientRect();
+            // 在按钮上方显示菜单
+            menu.showAtPosition({ x: rect.left - 85, y: rect.top - 60 });
+        } else {
+            // 如果无法获取按钮位置，则在鼠标位置显示
+            menu.showAtMouseEvent(event);
+        }
     }
     
     // 创建缺失的闪卡

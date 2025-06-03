@@ -3701,6 +3701,11 @@ textarea.flashcard-modal-input {
     color: var(--text-accent);
 }
 
+.delete-flashcard-button:hover {
+    background-color: var(--background-modifier-error-hover);
+    color: white;
+}
+
 .multi-select-action-button svg {
     width: 20px;
     height: 20px;
