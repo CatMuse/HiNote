@@ -247,19 +247,36 @@ export class CommentView extends ItemView {
                     const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
                     if (existingCards && existingCards.length > 0) continue; // 跳过已有闪卡的高亮
                     
-                    // 创建新闪卡
-                    const card = await fsrsManager.addCard(
-                        highlight.text,
-                        highlight.comments?.map((c: any) => c.content).join('\n') || '',
-                        highlight.filePath || '',
-                        highlight.id,
-                        'highlight'
-                    );
+                    // 查找当前高亮对应的 HighlightCard 实例
+                    let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
+                    let result = false;
                     
-                    if (card) {
+                    if (highlightCard) {
+                        // 如果找到了实例，直接使用该实例的创建方法
+                        result = await highlightCard.createHiCardForHighlight();
+                    } else {
+                        // 如果没有找到实例，创建一个临时容器元素
+                        const tempContainer = document.createElement('div');
+                        
+                        // 创建一个临时实例并使用它的创建方法
+                        highlightCard = new HighlightCard(
+                            tempContainer,
+                            highlight,
+                            this.plugin,
+                            {
+                                onHighlightClick: async () => {},
+                                onCommentAdd: () => {},
+                                onExport: () => {},
+                                onCommentEdit: () => {},
+                                onAIResponse: async () => {}
+                            },
+                            false
+                        );
+                        result = await highlightCard.createHiCardForHighlight();
+                    }
+                    
+                    if (result) {
                         successCount++;
-                        // 更新高亮卡片的UI
-                        HighlightCard.updateCardUIByHighlightId(highlight.id);
                     } else {
                         failCount++;
                         console.error(`创建闪卡失败：${highlight.text}`);
@@ -285,50 +302,6 @@ export class CommentView extends ItemView {
             new Notice(t(`没有需要创建的闪卡`));
         } else {
             new Notice(t(`批量创建闪卡失败！请检查选中的高亮内容`));
-        }
-
-        // 清除选中状态
-        this.clearSelection();
-    }
-    
-    // 删除现有的闪卡
-    private async deleteExistingFlashcards() {
-        const fsrsManager = this.plugin.fsrsManager;
-        if (!fsrsManager) {
-            new Notice(t('闪卡功能未初始化，请先启用FSRS功能'));
-            return;
-        }
-        
-        let successCount = 0;
-        let failCount = 0;
-        
-        for (const highlight of this.selectedHighlights) {
-            try {
-                if (highlight.id) {
-                    // 检查是否存在闪卡
-                    const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
-                    if (!existingCards || existingCards.length === 0) continue; // 跳过没有闪卡的高亮
-                    
-                    // 删除闪卡
-                    const result = await fsrsManager.deleteCardsBySourceId(highlight.id, 'highlight');
-                    if (result) {
-                        successCount++;
-                        // 更新高亮卡片的UI
-                        HighlightCard.updateCardUIByHighlightId(highlight.id);
-                    } else {
-                        failCount++;
-                        console.error(`删除闪卡失败：${highlight.text}`);
-                    }
-                }
-            } catch (error) {
-                failCount++;
-                console.error('删除闪卡时出错:', error);
-            }
-        }
-        
-        // 触发事件，让 FSRSManager 来处理保存
-        if (successCount > 0) {
-            this.plugin.eventManager.emitFlashcardChanged();
         }
         
         // 显示结果消息
@@ -402,6 +375,85 @@ export class CommentView extends ItemView {
         });
         
         modal.open();
+    }
+    
+    // 删除选中高亮的闪卡
+    private async deleteExistingFlashcards() {
+        const fsrsManager = this.plugin.fsrsManager;
+        if (!fsrsManager) {
+            new Notice(t('闪卡功能未初始化，请先启用FSRS功能'));
+            return;
+        }
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const highlight of this.selectedHighlights) {
+            try {
+                if (highlight.id) {
+                    // 检查是否存在闪卡
+                    const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
+                    if (!existingCards || existingCards.length === 0) continue; // 跳过没有闪卡的高亮
+                    
+                    // 查找当前高亮对应的 HighlightCard 实例
+                    let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
+                    let result = false;
+                    
+                    if (highlightCard) {
+                        // 如果找到了实例，直接使用该实例的删除方法
+                        result = await highlightCard.deleteHiCardForHighlight();
+                    } else {
+                        // 如果没有找到实例，创建一个临时容器元素
+                        const tempContainer = document.createElement('div');
+                        
+                        // 创建一个临时实例并使用它的删除方法
+                        highlightCard = new HighlightCard(
+                            tempContainer,
+                            highlight,
+                            this.plugin,
+                            {
+                                onHighlightClick: async () => {},
+                                onCommentAdd: () => {},
+                                onExport: () => {},
+                                onCommentEdit: () => {},
+                                onAIResponse: async () => {}
+                            },
+                            false
+                        );
+                        result = await highlightCard.deleteHiCardForHighlight();
+                    }
+                    
+                    if (result) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        console.error(`删除闪卡失败：${highlight.text}`);
+                    }
+                }
+            } catch (error) {
+                failCount++;
+                console.error('删除闪卡时出错:', error);
+            }
+        }
+
+        // 触发事件，让 FSRSManager 来处理保存
+        if (successCount > 0) {
+            this.plugin.eventManager.emitFlashcardChanged();
+        }
+        
+        // 显示结果消息
+        if (successCount > 0 && failCount === 0) {
+            new Notice(t(`成功删除 ${successCount} 个闪卡`));
+        } else if (successCount > 0 && failCount > 0) {
+            new Notice(t(`成功删除 ${successCount} 个闪卡，${failCount} 个失败`));
+        } else if (successCount === 0 && failCount === 0) {
+            new Notice(t(`没有需要删除的闪卡`));
+        } else {
+            new Notice(t(`批量删除闪卡失败！请检查选中的高亮内容`));
+        }
+        
+        // 清除选中状态
+        this.clearSelection();
     }
     
     // 设置框选功能

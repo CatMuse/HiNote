@@ -692,6 +692,21 @@ export class HighlightCard {
     }
 
     /**
+     * 公共方法：为高亮删除闪卡
+     * 可以被外部调用，用于批量删除闪卡
+     * @returns 删除是否成功
+     */
+    public async deleteHiCardForHighlight(): Promise<boolean> {
+        try {
+            await this.handleDeleteHiCard();
+            return true;
+        } catch (error) {
+            console.error('删除闪卡时出错:', error);
+            return false;
+        }
+    }
+
+    /**
      * 处理删除闪卡的逻辑
      */
     private async handleDeleteHiCard() {
@@ -768,6 +783,21 @@ export class HighlightCard {
         } catch (error) {
             console.error('删除高亮时出错:', error);
             throw error;
+        }
+    }
+
+    /**
+     * 公共方法：为高亮创建闪卡
+     * 可以被外部调用，用于批量创建闪卡
+     * @returns 创建是否成功
+     */
+    public async createHiCardForHighlight(): Promise<boolean> {
+        try {
+            await this.handleCreateNewHiCard();
+            return true;
+        } catch (error) {
+            console.error('创建闪卡时出错:', error);
+            return false;
         }
     }
 
