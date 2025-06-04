@@ -143,8 +143,8 @@ export class FlashcardProgressManager {
                 const helpIcon = statEl.createSpan({ cls: "help-icon" });
                 setIcon(helpIcon, "help-circle");
                 helpIcon.setAttribute("aria-label", 
-                    t('记忆保持率 = (总复习次数 - 遗忘次数) / 总复习次数\n' +
-                    '该指标反映了你的学习效果，越高说明记忆效果越好')
+                    t('Retention = (Total Reviews - Forget Count) / Total Reviews\n' +
+                    'This metric reflects your learning effectiveness, higher means better memory retention')
                 );
             }
         });

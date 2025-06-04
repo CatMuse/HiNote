@@ -300,6 +300,36 @@ export class FlashcardComponent extends Component {
         
         // 设置完成消息
         this.groupProgress[groupName].completionMessage = message;
+        
+        // 同步更新到 FSRSManager 的存储中
+        if (this.fsrsManager) {
+            const uiState = this.fsrsManager.getUIState();
+            if (!uiState.groupProgress) {
+                uiState.groupProgress = {};
+            }
+            
+            // 确保分组进度对象存在
+            if (!uiState.groupProgress[groupName]) {
+                uiState.groupProgress[groupName] = {
+                    currentIndex: 0,
+                    isFlipped: false,
+                    currentCardId: undefined,
+                    completionMessage: undefined
+                };
+            }
+            
+            // 更新完成消息
+            uiState.groupProgress[groupName].completionMessage = message;
+            
+            // 如果设置了完成消息，同时重置卡片状态
+            if (message) {
+                uiState.groupProgress[groupName].isFlipped = false;
+                uiState.groupProgress[groupName].currentCardId = undefined;
+            }
+            
+            // 更新 UI 状态
+            this.fsrsManager.updateUIState(uiState);
+        }
     }
     
     public getGroupProgress(groupName?: string): { currentIndex: number, isFlipped: boolean } | null {

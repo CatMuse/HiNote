@@ -162,14 +162,84 @@ export class FlashcardOperations {
             return;
         }
         
-        // 使用分组 ID 获取卡片
-        const cards = fsrsManager.getCardsForStudy(group.id);
+        // 检查分组中是否有今天需要学习的卡片
+        const allCards = fsrsManager.getCardsByGroupId(group.id);
+        const fsrsService = fsrsManager.fsrsService;
+        
+        // 筛选出今天需要学习或复习的卡片
+        const cardsForToday = allCards.filter((card: FlashcardState) => {
+            // 新卡片（从未学习过）
+            if (card.reviews === 0 && card.lastReview === 0) return true;
+            // 到期需要复习的卡片
+            if (fsrsService.isDue(card)) return true;
+            // 不再包含稳定性低的卡片，因为这会导致重复学习
+            // 只有真正到期的卡片才会被加载
+            return false;
+        });
+        
+        // 如果没有今天需要学习的卡片，显示完成消息
+        if (cardsForToday.length === 0) {
+            let message = t('No cards due for review');
+            
+            // Custom group
+            if (groupName) {
+                message = t('Group completed: ') + group.name + t('. Add more cards in Settings, but remember: more cards = more reviews.');
+            } else {
+                message = t('All flashcards completed for today!');
+            }
+            
+            this.component.setGroupCompletionMessage(groupName, message);
+            this.component.setCards([]);
+            this.component.updateProgress();
+            
+            // 重置 UI 状态，完全清除卡片状态
+            const uiState = fsrsManager.getUIState();
+            if (!uiState.groupProgress) {
+                uiState.groupProgress = {};
+            }
+            
+            // 完全重置分组进度状态，删除卡片ID和翻转状态
+            uiState.groupProgress[groupName] = {
+                currentIndex: 0,
+                isFlipped: false,
+                currentCardId: null, // 完全清除卡片ID
+                completionMessage: message // 设置完成消息
+            };
+            
+            fsrsManager.updateUIState(uiState);
+            this.component.getRenderer().render();
+            
+            // 保存状态
+            this.component.saveState();
+            return;
+        }
+        
+        // 直接使用已筛选好的今天需要学习的卡片
+        const cards = cardsForToday;
         
         // 获取保存的UI状态（在设置卡片列表之前）
         const savedProgress = this.component.getGroupProgress(groupName);
         
-        // 清除分组完成消息
-        this.component.setGroupCompletionMessage(groupName, null);
+        // 有卡片需要学习，确保清除完成消息
+        // 使用不同的变量名避免重复声明
+        const cardUIState = fsrsManager.getUIState();
+        if (!cardUIState.groupProgress) {
+            cardUIState.groupProgress = {};
+        }
+        
+        if (!cardUIState.groupProgress[groupName]) {
+            cardUIState.groupProgress[groupName] = {
+                currentIndex: 0,
+                isFlipped: false,
+                currentCardId: undefined,
+                completionMessage: undefined
+            };
+        } else {
+            // 清除完成消息，但保留其他状态
+            cardUIState.groupProgress[groupName].completionMessage = undefined;
+        }
+        
+        fsrsManager.updateUIState(cardUIState);
         
         // 设置卡片列表
         this.component.setCards(cards);

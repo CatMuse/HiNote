@@ -202,7 +202,7 @@ export class CommentView extends ItemView {
         button.setAttribute('aria-label', t('Create HiCard'));
         setIcon(button, 'plus-circle');
         button.addEventListener('click', () => {
-            new Notice(t('闪卡功能未初始化，请先启用FSRS功能'));
+            new Notice(t('HiCard function is not initialized, please enable FSRS function'));
         });
     }
     
@@ -211,7 +211,7 @@ export class CommentView extends ItemView {
         const menu = new Menu();
         
         menu.addItem((item: any) => {
-            item.setTitle(t('创建缺失的闪卡'))
+            item.setTitle(t('Create missing HiCard'))
                 .setIcon('plus-circle')
                 .onClick(async () => {
                     await this.createMissingFlashcards();
@@ -219,7 +219,7 @@ export class CommentView extends ItemView {
         });
         
         menu.addItem((item: any) => {
-            item.setTitle(t('删除现有的闪卡'))
+            item.setTitle(t('Delete existing HiCards'))
                 .setIcon('trash')
                 .onClick(() => {
                     this.deleteFlashcardsFromSelected();
@@ -244,7 +244,7 @@ export class CommentView extends ItemView {
     private async createMissingFlashcards() {
         const fsrsManager = this.plugin.fsrsManager;
         if (!fsrsManager) {
-            new Notice(t('闪卡功能未初始化，请先启用FSRS功能'));
+            new Notice(t('HiCard function is not initialized, please enable FSRS function'));
             return;
         }
         
@@ -290,12 +290,12 @@ export class CommentView extends ItemView {
                         successCount++;
                     } else {
                         failCount++;
-                        console.error(`创建闪卡失败：${highlight.text}`);
+                        console.error(`Create HiCard failed: ${highlight.text}`);
                     }
                 }
             } catch (error) {
                 failCount++;
-                console.error('创建闪卡时出错:', error);
+                console.error('Create HiCard failed:', error);
             }
         }
 
@@ -306,24 +306,24 @@ export class CommentView extends ItemView {
 
         // 显示结果消息
         if (successCount > 0 && failCount === 0) {
-            new Notice(t(`成功创建 ${successCount} 个闪卡`));
+            new Notice(t(`Successfully created ${successCount} HiCard`));
         } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`成功创建 ${successCount} 个闪卡，${failCount} 个失败`));
+            new Notice(t(`Successfully created ${successCount} HiCard, ${failCount} failed`));
         } else if (successCount === 0 && failCount === 0) {
-            new Notice(t(`没有需要创建的闪卡`));
+            new Notice(t(`No HiCard to create`));
         } else {
-            new Notice(t(`批量创建闪卡失败！请检查选中的高亮内容`));
+            new Notice(t(`Failed to create HiCard! Please check the selected highlight content`));
         }
         
         // 显示结果消息
         if (successCount > 0 && failCount === 0) {
-            new Notice(t(`成功删除 ${successCount} 个闪卡`));
+            new Notice(t(`Successfully deleted ${successCount} HiCard`));
         } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`成功删除 ${successCount} 个闪卡，${failCount} 个失败`));
+            new Notice(t(`Successfully deleted ${successCount} HiCard, ${failCount} failed`));
         } else if (successCount === 0 && failCount === 0) {
-            new Notice(t(`没有需要删除的闪卡`));
+            new Notice(t(`No HiCard to delete`));
         } else {
-            new Notice(t(`批量删除闪卡失败！请检查选中的高亮内容`));
+            new Notice(t(`Failed to delete HiCard! Please check the selected highlight content`));
         }
         
         // 清除选中状态
@@ -333,7 +333,7 @@ export class CommentView extends ItemView {
     // 导出选中的高亮内容
     private async exportSelectedHighlights() {
         if (this.selectedHighlights.size === 0) {
-            new Notice(t('请先选择要导出的高亮'));
+            new Notice(t('Please select highlights to export'));
             return;
         }
         try {
@@ -341,14 +341,14 @@ export class CommentView extends ItemView {
             const newFile = await this.exportService.exportHighlightsAsMarkdown(selectedHighlightsArray);
             
             if (newFile) {
-                new Notice(t('成功导出选中的高亮到：') + newFile.path);
+                new Notice(t('Successfully exported selected highlights to: ') + newFile.path);
                 this.clearSelection();
             } else {
-                new Notice(t('没有可导出的高亮内容'));
+                new Notice(t('No highlights to export'));
             }
         } catch (error) {
-            console.error('导出高亮失败:', error);
-            new Notice(t('导出高亮失败：') + (error instanceof Error ? error.message : String(error)));
+            console.error('Failed to export highlights:', error);
+            new Notice(t('Failed to export highlights: ') + (error instanceof Error ? error.message : String(error)));
         }
     }
     
@@ -356,13 +356,13 @@ export class CommentView extends ItemView {
     private deleteFlashcardsFromSelected() {
         // 创建确认对话框
         const modal = new Modal(this.app);
-        modal.titleEl.setText(t('确认删除闪卡'));
+        modal.titleEl.setText(t('Confirm delete HiCard'));
         
         const contentEl = modal.contentEl;
         contentEl.empty();
         
         contentEl.createEl('p', {
-            text: t('确定要删除所选高亮的闪卡吗？此操作不可撤销。')
+            text: t('Are you sure you want to delete the HiCards of the selected highlights? This action cannot be undone.')
         });
         
         const buttonContainer = contentEl.createEl('div', {
@@ -370,7 +370,7 @@ export class CommentView extends ItemView {
         });
         
         const cancelButton = buttonContainer.createEl('button', {
-            text: t('取消')
+            text: t('Cancel')
         });
         cancelButton.addEventListener('click', () => {
             modal.close();
@@ -378,7 +378,7 @@ export class CommentView extends ItemView {
         
         const confirmButton = buttonContainer.createEl('button', {
             cls: 'mod-warning',
-            text: t('删除')
+            text: t('Delete')
         });
         confirmButton.addEventListener('click', async () => {
             modal.close();
@@ -392,7 +392,7 @@ export class CommentView extends ItemView {
     private async deleteExistingFlashcards() {
         const fsrsManager = this.plugin.fsrsManager;
         if (!fsrsManager) {
-            new Notice(t('闪卡功能未初始化，请先启用FSRS功能'));
+            new Notice(t('HiCard function is not initialized, please enable FSRS function'));
             return;
         }
         
@@ -438,12 +438,12 @@ export class CommentView extends ItemView {
                         successCount++;
                     } else {
                         failCount++;
-                        console.error(`删除闪卡失败：${highlight.text}`);
+                        console.error(`Failed to delete HiCard: ${highlight.text}`);
                     }
                 }
             } catch (error) {
                 failCount++;
-                console.error('删除闪卡时出错:', error);
+                console.error('Failed to delete HiCard:', error);
             }
         }
 
@@ -454,13 +454,13 @@ export class CommentView extends ItemView {
         
         // 显示结果消息
         if (successCount > 0 && failCount === 0) {
-            new Notice(t(`成功删除 ${successCount} 个闪卡`));
+            new Notice(t(`Successfully deleted ${successCount} HiCard`));
         } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`成功删除 ${successCount} 个闪卡，${failCount} 个失败`));
+            new Notice(t(`Successfully deleted ${successCount} HiCard, ${failCount} failed`));
         } else if (successCount === 0 && failCount === 0) {
-            new Notice(t(`没有需要删除的闪卡`));
+            new Notice(t(`No HiCard to delete`));
         } else {
-            new Notice(t(`批量删除闪卡失败！请检查选中的高亮内容`));
+            new Notice(t(`Failed to delete HiCard! Please check the selected highlight content`));
         }
         
         // 清除选中状态

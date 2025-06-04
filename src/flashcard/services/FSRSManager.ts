@@ -240,18 +240,14 @@ export class FSRSManager {
      * @returns 分组中的卡片列表
      */
     public getCardsForStudy(groupId: string): FlashcardState[] {
-        // If no group ID is specified, return an empty array
+        // 如果没有指定分组ID，返回空数组
         if (!groupId) {
             console.warn('No group ID specified, returning empty card list');
             return [];
         }
         
-        // Reset group completion message state
-        this.resetGroupCompletionMessage(groupId);
-        
         // 获取指定分组的所有卡片
         const allCards = this.groupRepository.getCardsByGroupId(groupId);
-
         
         if (allCards.length === 0) {
             return [];
@@ -263,39 +259,19 @@ export class FSRSManager {
         // 筛选出今天需要学习或复习的卡片
         const cardsForStudy = allCards.filter(card => {
             // 新卡片（从未学习过）
-            if (card.reviews === 0 && card.lastReview === 0) {
-
-                return true;
-            }
+            if (card.reviews === 0 && card.lastReview === 0) return true;
             
             // 到期需要复习的卡片
-            if (card.nextReview <= now) {
-
-                return true;
-            }
+            if (card.nextReview <= now) return true;
             
-            // 学习中的卡片（已学习但稳定性很低）
-            if (card.stability < 1 && card.lastReview > 0) {
-
-                return true;
-            }
+            // 不再包含稳定性低的卡片，因为这会导致重复学习
+            // 只有真正到期的卡片才会被加载
             
             return false;
         });
         
-
-        
-        // 如果没有需要学习的卡片，返回所有新卡片
-        if (cardsForStudy.length === 0) {
-            const newCards = allCards.filter(card => card.reviews === 0);
-
-            return newCards;
-        }
-        
         return cardsForStudy;
     }
-
-
     
     /**
      * 统一的学习进度跟踪方法
