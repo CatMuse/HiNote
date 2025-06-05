@@ -267,9 +267,6 @@ export class FSRSManager {
         const remainingNewCards = this.getRemainingNewCardsToday(groupId);
         const remainingReviews = this.getRemainingReviewsToday(groupId);
         
-        console.log(`[每日限制] 分组 ${groupId} - 剩余新卡: ${remainingNewCards}, 剩余复习: ${remainingReviews}`);
-        console.log(`[每日限制] 总新卡: ${newCards.length}, 总复习卡: ${reviewCards.length}`);
-        
         // 获取分组设置
         const group = this.storage.cardGroups.find(g => g.id === groupId);
         let newCardsPerDay = 20; // 默认值
@@ -280,13 +277,11 @@ export class FSRSManager {
                 // 使用分组特定设置
                 newCardsPerDay = group.settings.newCardsPerDay !== undefined ? group.settings.newCardsPerDay : newCardsPerDay;
                 reviewsPerDay = group.settings.reviewsPerDay !== undefined ? group.settings.reviewsPerDay : reviewsPerDay;
-                console.log(`[每日限制] 使用分组设置: 每日新卡=${newCardsPerDay}, 每日复习=${reviewsPerDay}`);
             } else {
                 // 使用全局设置
                 const params = this.fsrsService.getParameters();
                 newCardsPerDay = params.newCardsPerDay;
                 reviewsPerDay = params.reviewsPerDay;
-                console.log(`[每日限制] 使用全局设置: 每日新卡=${newCardsPerDay}, 每日复习=${reviewsPerDay}`);
             }
         }
         
@@ -294,8 +289,6 @@ export class FSRSManager {
         const limitedNewCards = newCards.slice(0, remainingNewCards);
         // 限制复习卡片数量
         const limitedReviewCards = reviewCards.slice(0, remainingReviews);
-        
-        console.log(`[每日限制] 限制后新卡: ${limitedNewCards.length}, 限制后复习卡: ${limitedReviewCards.length}`);
         
         // 合并并返回
         return [...limitedNewCards, ...limitedReviewCards];
@@ -789,8 +782,6 @@ export class FSRSManager {
             this.storage.dailyStats.push(todayStats);
             this.saveStorageDebounced();
         }
-        
-        console.log(`[每日统计] 今天日期: ${new Date(todayStats.date).toLocaleDateString()}, 新卡已学: ${todayStats.newCardsLearned}, 复习卡片: ${todayStats.cardsReviewed}`);
         
         return todayStats;
     }

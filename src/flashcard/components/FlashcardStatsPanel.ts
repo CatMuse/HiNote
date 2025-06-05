@@ -220,7 +220,7 @@ export class FlashcardStatsPanel {
                     
                     // 如果有评分记录，添加评分分布信息
                     if (stat.reviewCount > 0) {
-                        tooltipText += `\nRating distribution: Hard(${stat.againCount}), Good(${stat.goodCount}), Easy(${stat.easyCount})`;
+                        tooltipText += `\nRating distribution: Again(${stat.againCount}), Hard(${stat.hardCount}), Good(${stat.goodCount}), Easy(${stat.easyCount})`;
                     }
                     
                     cell.setAttribute('title', tooltipText);
