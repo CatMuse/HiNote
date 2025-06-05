@@ -121,8 +121,8 @@ export class AIButton {
         });
         setIcon(aiButton, this.options.buttonIcon || "bot");
 
-        // 创建下拉菜单
-        this.dropdown = aiContainer.createEl("div", {
+        // 创建下拉菜单，添加到 document.body
+        this.dropdown = document.body.createEl("div", {
             cls: `${this.options.dropdownClass || "highlight-ai-dropdown"} hi-note-hidden`
         });
 
@@ -149,12 +149,33 @@ export class AIButton {
      */
     private toggleDropdown() {
         if (this.dropdown.hasClass("hi-note-hidden")) {
-            // 关闭其他所有下拉菜单
-            document.querySelectorAll(`.${this.options.dropdownClass}`).forEach((dropdown) => {
+            // 关闭所有下拉菜单，包括 AI 和 More 按钮的菜单
+            document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((dropdown) => {
                 if (dropdown !== this.dropdown) {
                     dropdown.addClass("hi-note-hidden");
                 }
             });
+            
+            // 获取按钮的位置信息
+            const rect = this.aiButton.getBoundingClientRect();
+            
+            // 计算下拉菜单的宽度和位置
+            const dropdownWidth = 160; // 菜单宽度，保持与 More 按钮一致
+            
+            // 计算合适的左侧位置，确保菜单不会超出屏幕右侧
+            let leftPos = rect.right - dropdownWidth;
+            const viewportWidth = window.innerWidth;
+            
+            // 确保菜单不会超出屏幕右侧
+            if (leftPos + dropdownWidth > viewportWidth - 10) {
+                leftPos = viewportWidth - dropdownWidth - 10; // 保留 10px 的边距
+            }
+            
+            // 设置下拉菜单的位置
+            this.dropdown.style.position = "fixed";
+            this.dropdown.style.top = (rect.bottom + 5) + "px"; // 按钮下方5px
+            this.dropdown.style.left = leftPos + "px"; // 右对齐，并防止超出屏幕
+            
             this.dropdown.removeClass("hi-note-hidden");
         } else {
             this.dropdown.addClass("hi-note-hidden");

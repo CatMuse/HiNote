@@ -2349,20 +2349,19 @@ justify-content: center;
 /* AI 下拉菜单样式 */
 .highlight-ai-dropdown,
 .highlight-more-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0; /* 居右对齐 */
-    left: auto;
-    margin-top: 12px;
+    position: fixed; /* 使用fixed定位，相对于视口 */
+    /* 位置将通过JavaScript动态设置 */
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     padding: 4px 0;
     min-width: 160px;
+    max-width: 200px;
     max-height: 300px;
     overflow-y: auto;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999999; /* 使用更高的z-index */
+    transform: translateZ(0); /* 强制确保元素在自己的层台上 */
 }
 
 .highlight-ai-dropdown.hidden,
@@ -3396,6 +3395,34 @@ textarea.flashcard-modal-input {
 
 .flashcard-cancel-btn:hover {
     background-color: var(--background-modifier-hover);
+}
+
+/* 下拉菜单项样式 */
+
+.highlight-more-dropdown-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* 禁用的菜单项样式 */
+.disabled-menu-item {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.disabled-menu-item:hover {
+    background-color: transparent;
+}
+
+/* 禁用的按钮样式 */
+.disabled-button {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.disabled-button:hover {
+    background-color: transparent;
 }
 
 /* 创建/保存按钮 */

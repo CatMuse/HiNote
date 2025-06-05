@@ -147,14 +147,26 @@ export class FlashcardComponent extends Component {
     /**
      * 激活组件
      */
-    public activate() {
+    public async activate() {
         this.isActive = true;
         
-        // 刷新卡片列表
-        this.operations.refreshCardList();
+        // 检查许可证状态
+        if (this.licenseManager) {
+            const isActivated = await this.licenseManager.isActivated();
+            const isFeatureEnabled = isActivated ? await this.licenseManager.isFeatureEnabled('flashcard') : false;
+            
+            if (isActivated && isFeatureEnabled) {
+                // 已激活且启用了闪卡功能，刷新卡片列表
+                this.operations.refreshCardList();
+                
+                // 渲染功能界面
+                this.renderer.render();
+                return;
+            }
+        }
         
-        // 渲染界面
-        this.renderer.render();
+        // 未激活或未启用闪卡功能，显示激活界面
+        this.renderer.renderActivation();
     }
     
     /**

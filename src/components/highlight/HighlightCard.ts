@@ -10,6 +10,7 @@ import { t } from "../../i18n";
 import { DragContentGenerator } from "./DragContentGenerator";
 import { AIButton } from "../AIButton";
 import { AIService } from "../../services/AIService";
+import { LicenseManager } from "../../services/LicenseManager";
 
 export class HighlightCard {
     // 静态方法：获取所有选中的卡片
@@ -351,8 +352,8 @@ export class HighlightCard {
         });
         setIcon(moreActionsBtn, "ellipsis-vertical");
         
-        // 创建下拉菜单
-        const moreActionsDropdown = moreActionsContainer.createEl("div", {
+        // 创建下拉菜单，添加到 document.body
+        const moreActionsDropdown = document.body.createEl("div", {
             cls: "highlight-more-dropdown hi-note-hidden"
         });
         
@@ -367,20 +368,46 @@ export class HighlightCard {
         // 添加按钮点击事件
         moreActionsBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.toggleMoreActionsDropdown(moreActionsDropdown);
+            this.toggleMoreActionsDropdown(moreActionsDropdown, moreActionsBtn);
         });
         
         // 添加创建 HiCard 选项到下拉菜单
         const hasFlashcard = this.checkHasFlashcard();
+        
+        // 创建一个异步函数来检查许可证状态
+        const checkLicenseStatus = async () => {
+            const licenseManager = new LicenseManager(this.plugin);
+            const isActivated = await licenseManager.isActivated();
+            const isFeatureEnabled = isActivated ? await licenseManager.isFeatureEnabled('flashcard') : false;
+            return isActivated && isFeatureEnabled;
+        };
+        
+        // 创建 HiCard 菜单项
         const createHiCardItem = moreActionsDropdown.createEl("div", {
             cls: "highlight-more-dropdown-item create-hicard-btn",
             text: hasFlashcard ? t('Delete HiCard') : t('Create HiCard')
         });
         
+        // 异步检查许可证状态并设置菜单项样式
+        checkLicenseStatus().then(isLicensed => {
+            if (!isLicensed && !hasFlashcard) {
+                // 如果没有许可证且没有闪卡，置灰菜单项
+                createHiCardItem.addClass("disabled-menu-item");
+                // 添加提示信息
+                createHiCardItem.setAttribute("aria-label", t('Only HiNote Pro'));
+            }
+        });
+        
         // 添加点击事件
-        createHiCardItem.addEventListener("click", (e) => {
+        createHiCardItem.addEventListener("click", async (e) => {
             e.stopPropagation();
             moreActionsDropdown.addClass("hi-note-hidden");
+            
+            // 如果菜单项被禁用，不执行操作
+            if (createHiCardItem.hasClass("disabled-menu-item") && !hasFlashcard) {
+                new Notice(t('Only HiNote Pro'));
+                return;
+            }
             
             // 调用创建 HiCard 的逻辑
             this.handleCreateHiCard();
@@ -697,8 +724,9 @@ export class HighlightCard {
     /**
      * 切换更多操作下拉菜单的显示/隐藏状态
      * @param dropdown 下拉菜单元素
+     * @param button 触发菜单的按钮元素
      */
-    private toggleMoreActionsDropdown(dropdown: HTMLElement) {
+    private toggleMoreActionsDropdown(dropdown: HTMLElement, button: HTMLElement) {
         if (dropdown.hasClass("hi-note-hidden")) {
             // 关闭其他所有下拉菜单
             document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((otherDropdown) => {
@@ -706,12 +734,33 @@ export class HighlightCard {
                     otherDropdown.addClass("hi-note-hidden");
                 }
             });
+            
+            // 获取按钮的位置信息
+            const rect = button.getBoundingClientRect();
+            
+            // 计算下拉菜单的宽度和位置
+            const dropdownWidth = 160; // 菜单宽度
+            
+            // 计算合适的左侧位置，确保菜单不会超出屏幕右侧
+            let leftPos = rect.right - dropdownWidth;
+            const viewportWidth = window.innerWidth;
+            
+            // 确保菜单不会超出屏幕右侧
+            if (leftPos + dropdownWidth > viewportWidth - 10) {
+                leftPos = viewportWidth - dropdownWidth - 10; // 保留 10px 的边距
+            }
+            
+            // 设置下拉菜单的位置
+            dropdown.style.position = "fixed";
+            dropdown.style.top = (rect.bottom + 5) + "px"; // 按钮下方5px
+            dropdown.style.left = leftPos + "px"; // 右对齐，并防止超出屏幕
+            
             dropdown.removeClass("hi-note-hidden");
         } else {
             dropdown.addClass("hi-note-hidden");
         }
     }
-    
+
     /**
      * 处理点击外部事件，关闭所有下拉菜单
      * @param e 鼠标事件
@@ -751,6 +800,17 @@ export class HighlightCard {
      */
     private async handleCreateHiCard() {
         try {
+            // 检查许可证状态
+            const licenseManager = new LicenseManager(this.plugin);
+            const isActivated = await licenseManager.isActivated();
+            const isFeatureEnabled = isActivated ? await licenseManager.isFeatureEnabled('flashcard') : false;
+            
+            if (!isActivated || !isFeatureEnabled) {
+                // 未激活或未启用闪卡功能，显示提示
+                new Notice(t('Only HiNote Pro'));
+                return;
+            }
+            
             const fsrsManager = this.plugin.fsrsManager;
             if (!fsrsManager) {
                 new Notice(t('FSRS 管理器未初始化'));

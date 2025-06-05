@@ -159,7 +159,30 @@ export class CommentView extends ItemView {
             });
             createButton.setAttribute('aria-label', t('Create HiCard'));
             setIcon(createButton, 'book-plus');
+            
+            // 检查许可证状态
+            const checkLicenseStatus = async () => {
+                const isActivated = await this.licenseManager.isActivated();
+                const isFeatureEnabled = isActivated ? await this.licenseManager.isFeatureEnabled('flashcard') : false;
+                return isActivated && isFeatureEnabled;
+            };
+            
+            // 异步检查许可证状态并设置按钮样式
+            checkLicenseStatus().then(isLicensed => {
+                if (!isLicensed) {
+                    // 如果没有许可证，置灰按钮
+                    createButton.addClass('disabled-button');
+                    createButton.setAttribute('aria-label', t('Only HiNote Pro'));
+                }
+            });
+            
             createButton.addEventListener('click', async () => {
+                // 如果按钮被禁用，显示提示并不执行操作
+                if (createButton.hasClass('disabled-button')) {
+                    new Notice(t('Only HiNote Pro'));
+                    return;
+                }
+                
                 await this.createMissingFlashcards();
             });
         } else if (existingFlashcardCount === this.selectedHighlights.size) {
@@ -242,6 +265,16 @@ export class CommentView extends ItemView {
     
     // 创建缺失的闪卡
     private async createMissingFlashcards() {
+        // 检查许可证状态
+        const isActivated = await this.licenseManager.isActivated();
+        const isFeatureEnabled = isActivated ? await this.licenseManager.isFeatureEnabled('flashcard') : false;
+        
+        if (!isActivated || !isFeatureEnabled) {
+            // 未激活或未启用闪卡功能，显示提示
+            new Notice(t('Only HiNote Pro'));
+            return;
+        }
+        
         const fsrsManager = this.plugin.fsrsManager;
         if (!fsrsManager) {
             new Notice(t('HiCard function is not initialized, please enable FSRS function'));
@@ -313,17 +346,6 @@ export class CommentView extends ItemView {
             new Notice(t(`No HiCard to create`));
         } else {
             new Notice(t(`Failed to create HiCard! Please check the selected highlight content`));
-        }
-        
-        // 显示结果消息
-        if (successCount > 0 && failCount === 0) {
-            new Notice(t(`Successfully deleted ${successCount} HiCard`));
-        } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`Successfully deleted ${successCount} HiCard, ${failCount} failed`));
-        } else if (successCount === 0 && failCount === 0) {
-            new Notice(t(`No HiCard to delete`));
-        } else {
-            new Notice(t(`Failed to delete HiCard! Please check the selected highlight content`));
         }
         
         // 清除选中状态
