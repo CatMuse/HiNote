@@ -291,7 +291,7 @@ settings:
     transition: all 0.2s ease;
     break-inside: avoid;
     page-break-inside: avoid;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     display: inline-block;
     width: 100%;
     animation: fadeIn 0.3s ease;
@@ -527,7 +527,7 @@ settings:
 
 .hi-notes-section {
     background-color: var(--background-primary);
-    padding: 0px 8px 8px 8px;
+    padding: 0px 12px 8px 12px;
     border-bottom-right-radius: 8px; /* 右下角圆角 */
     border-bottom-left-radius: 8px; /* 左下角圆角 */
 }
