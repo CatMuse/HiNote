@@ -3366,14 +3366,6 @@ textarea.flashcard-modal-input {
     height: 6px;
 }
 
-.slider-value {
-    flex: 0 0 30px;
-    text-align: right;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-accent);
-}
-
 /* 按钮容器 */
 .button-container {
     display: flex;
