@@ -3485,6 +3485,39 @@ textarea.flashcard-modal-input {
     overflow: hidden;
 }
 
+/* 行号标签样式 */
+.highlight-line-number-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 2px;
+    background-color: var(--background-primary);
+    border-radius: 4px;
+    padding: 1px 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    /* 添加垂直对齐 */
+    vertical-align: middle;
+    line-height: 1;
+    /* 确保高度与图标一致 */
+    height: 12px;
+}
+
+.highlight-line-number {
+    font-weight: 500;
+    font-family: var(--font-monospace);
+    /* 添加垂直对齐 */
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.highlight-card:hover {
+    opacity: 1;
+    color: var(--text-accent);
+}
+
 .highlight-card-title-right {
     display: flex;
     align-items: center;

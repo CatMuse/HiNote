@@ -123,8 +123,6 @@ export class HighlightCard {
             cls: "highlight-card-title-left"
         });
         
-
-        
         // 标题栏右侧区域 (用于放置按钮)
         const titleBarRight = titleBar.createEl("div", {
             cls: "highlight-card-title-right"
@@ -148,6 +146,8 @@ export class HighlightCard {
             } else {
                 setIcon(fileIcon, "file-text");
             }
+            
+            // 行号标签已在标题栏左侧区域添加
             
             // 添加双击事件
             fileIcon.addEventListener("dblclick", async (e) => {
@@ -267,7 +267,7 @@ export class HighlightCard {
             // 添加页面预览功能
             this.addPagePreview(fileNameText, this.highlight.filePath || this.fileName);
         } 
-        // 在非主视图下显示 BlockID
+        // 在非主视图下显示行号
         else {
             // 添加高亮图标
             const highlightIcon = titleBarLeft.createEl("div", {
@@ -283,7 +283,40 @@ export class HighlightCard {
                 setIcon(highlightIcon, "highlighter");
             }
             
-            // BlockID 显示功能已移除
+            // 在高亮图标右侧显示行号（如果有文件路径和位置信息）
+            if (this.highlight.filePath && typeof this.highlight.position === 'number') {
+                // 获取文件
+                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
+                if (file instanceof TFile) {
+                    // 尝试打开文件并获取编辑器实例
+                    const cachedLeaf = this.plugin.app.workspace.getLeavesOfType('markdown').find(leaf => {
+                        const view = leaf.view;
+                        return view instanceof MarkdownView && view.file && view.file.path === file.path;
+                    });
+                    
+                    if (cachedLeaf) {
+                        const view = cachedLeaf.view as MarkdownView;
+                        if (view.editor) {
+                            // 计算行号
+                            const pos = view.editor.offsetToPos(this.highlight.position);
+                            const lineNumber = pos.line + 1; // 行号从0开始，显示时+1
+                            
+                            // 创建行号标签
+                            const lineNumberBadge = titleBarLeft.createEl("div", {
+                                cls: "highlight-line-number-badge",
+                                attr: {
+                                    'aria-label': `行号: ${lineNumber}`,
+                                }
+                            });
+                            
+                            lineNumberBadge.createEl("span", {
+                                text: `L${lineNumber}`,
+                                cls: "highlight-line-number"
+                            });
+                        }
+                    }
+                }
+            }
         }
         
         // 在标题栏右侧添加操作按钮

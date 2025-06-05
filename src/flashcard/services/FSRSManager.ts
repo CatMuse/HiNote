@@ -256,21 +256,49 @@ export class FSRSManager {
         // 当前时间
         const now = Date.now();
         
-        // 筛选出今天需要学习或复习的卡片
-        const cardsForStudy = allCards.filter(card => {
-            // 新卡片（从未学习过）
-            if (card.reviews === 0 && card.lastReview === 0) return true;
-            
-            // 到期需要复习的卡片
-            if (card.nextReview <= now) return true;
-            
-            // 不再包含稳定性低的卡片，因为这会导致重复学习
-            // 只有真正到期的卡片才会被加载
-            
-            return false;
+        // 分离新卡片和复习卡片
+        const newCards = allCards.filter(card => card.reviews === 0 && card.lastReview === 0);
+        const reviewCards = allCards.filter(card => {
+            // 不是新卡片，且到期需要复习
+            return !(card.reviews === 0 && card.lastReview === 0) && card.nextReview <= now;
         });
         
-        return cardsForStudy;
+        // 获取今天剩余的可学习数量
+        const remainingNewCards = this.getRemainingNewCardsToday(groupId);
+        const remainingReviews = this.getRemainingReviewsToday(groupId);
+        
+        console.log(`[每日限制] 分组 ${groupId} - 剩余新卡: ${remainingNewCards}, 剩余复习: ${remainingReviews}`);
+        console.log(`[每日限制] 总新卡: ${newCards.length}, 总复习卡: ${reviewCards.length}`);
+        
+        // 获取分组设置
+        const group = this.storage.cardGroups.find(g => g.id === groupId);
+        let newCardsPerDay = 20; // 默认值
+        let reviewsPerDay = 100; // 默认值
+        
+        if (group && group.settings) {
+            if (!group.settings.useGlobalSettings) {
+                // 使用分组特定设置
+                newCardsPerDay = group.settings.newCardsPerDay !== undefined ? group.settings.newCardsPerDay : newCardsPerDay;
+                reviewsPerDay = group.settings.reviewsPerDay !== undefined ? group.settings.reviewsPerDay : reviewsPerDay;
+                console.log(`[每日限制] 使用分组设置: 每日新卡=${newCardsPerDay}, 每日复习=${reviewsPerDay}`);
+            } else {
+                // 使用全局设置
+                const params = this.fsrsService.getParameters();
+                newCardsPerDay = params.newCardsPerDay;
+                reviewsPerDay = params.reviewsPerDay;
+                console.log(`[每日限制] 使用全局设置: 每日新卡=${newCardsPerDay}, 每日复习=${reviewsPerDay}`);
+            }
+        }
+        
+        // 限制新卡片数量
+        const limitedNewCards = newCards.slice(0, remainingNewCards);
+        // 限制复习卡片数量
+        const limitedReviewCards = reviewCards.slice(0, remainingReviews);
+        
+        console.log(`[每日限制] 限制后新卡: ${limitedNewCards.length}, 限制后复习卡: ${limitedReviewCards.length}`);
+        
+        // 合并并返回
+        return [...limitedNewCards, ...limitedReviewCards];
     }
     
     /**
@@ -731,11 +759,20 @@ export class FSRSManager {
     }
 
     /**
-     * 获取或创建今天的学习统计数据
+     * 获取今天的统计数据
+     * @returns 今天的统计数据
      */
     private getTodayStats(): DailyStats {
-        const todayTimestamp = this.getTodayTimestamp();
-        let todayStats = this.storage.dailyStats.find(stats => stats.date === todayTimestamp);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = today.getTime();
+        
+        // 使用日期字符串比较而不是时间戳
+        const todayDateStr = today.toDateString();
+        let todayStats = this.storage.dailyStats.find(stats => {
+            const statsDate = new Date(stats.date);
+            return statsDate.toDateString() === todayDateStr;
+        });
         
         if (!todayStats) {
             todayStats = {
@@ -750,13 +787,10 @@ export class FSRSManager {
                 easyCount: 0
             };
             this.storage.dailyStats.push(todayStats);
-            
-            // 只保留最近30天的数据
-            if (this.storage.dailyStats.length > 30) {
-                this.storage.dailyStats.sort((a, b) => b.date - a.date);
-                this.storage.dailyStats = this.storage.dailyStats.slice(0, 30);
-            }
+            this.saveStorageDebounced();
         }
+        
+        console.log(`[每日统计] 今天日期: ${new Date(todayStats.date).toLocaleDateString()}, 新卡已学: ${todayStats.newCardsLearned}, 复习卡片: ${todayStats.cardsReviewed}`);
         
         return todayStats;
     }
