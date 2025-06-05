@@ -217,6 +217,38 @@ export class CommentView extends ItemView {
         }
     }
     
+    // 处理全局点击事件，用于隐藏批量操作容器
+    private handleGlobalClick = (e: MouseEvent) => {
+        // 如果正在进行框选操作，不处理全局点击事件
+        if (this.isSelectionMode) {
+            return;
+        }
+        
+        // 如果没有选中的高亮或者没有显示批量操作容器，则不处理
+        if (this.selectedHighlights.size <= 1 || !this.multiSelectActionsContainer || this.multiSelectActionsContainer.style.display === 'none') {
+            return;
+        }
+        
+        // 检查点击的目标是否是批量操作容器本身或其子元素
+        const target = e.target as HTMLElement;
+        if (target.closest('.multi-select-actions')) {
+            return; // 点击的是批量操作容器，不隐藏
+        }
+        
+        // 检查点击的是否是已选中的卡片
+        if (target.closest('.highlight-card.selected')) {
+            return; // 点击的是已选中的卡片，不隐藏
+        }
+        
+        // 检查点击的是否是高亮容器，如果是，让原有的点击处理逻辑处理
+        if (target.closest('.highlight-container')) {
+            return;
+        }
+        
+        // 点击了其他区域，清除选择
+        this.clearSelection();
+    }
+    
     // 创建默认的闪卡按钮（当FSRSManager未初始化时）
     private createDefaultFlashcardButton(container: HTMLElement) {
         const button = container.createEl('div', {
@@ -781,6 +813,9 @@ export class CommentView extends ItemView {
         container.addEventListener('highlight-multi-select', (e: CustomEvent) => {
             this.handleMultiSelect(e);
         });
+
+        // 添加全局点击事件监听器
+        document.addEventListener('click', this.handleGlobalClick);
 
         // 创建主容器
         const mainContainer = container.createEl("div", {
