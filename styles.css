@@ -3579,6 +3579,7 @@ textarea.flashcard-modal-input {
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text-muted);
+    font-size: 12px;
 }
 
 .highlight-card-blockid {
