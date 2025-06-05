@@ -3489,13 +3489,11 @@ textarea.flashcard-modal-input {
 .highlight-card-title-bar {
     display: flex;
     align-items: center;
-    padding: 4px 10px;
+    padding: 2px 10px;
     background-color: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
     border-radius: 6px 6px 0 0;
     justify-content: space-between;
-    font-size: 12px;
-    color: var(--text-muted);
     gap: 6px;
     cursor: grab;
 }
