@@ -139,21 +139,21 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     regexRules: [
         {
             id: 'default-md',
-            name: '默认高亮',
+            name: 'Default Highlight',
             pattern: '==\\s*([\\s\\S]*?)\\s*==',
             color: '#ffeb3b',
             enabled: true
         },
         {
             id: 'default-mark',
-            name: 'Mark 格式',
+            name: 'Mark format',
             pattern: '<mark[^>]*>([\\s\\S]*?)</mark>',
             color: '#ffeb3b',
             enabled: true
         },
         {
             id: 'default-span',
-            name: 'Span 标签',
+            name: 'Span format',
             pattern: '<span[^>]*>([\\s\\S]*?)</span>',
             color: '#ffeb3b',
             enabled: true
