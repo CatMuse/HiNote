@@ -100,14 +100,12 @@ The Flashcard feature is available in the Pro version of HiNote. This advanced s
 - Utilize the FSRS (Free Spaced Repetition Scheduler) algorithm for optimal learning efficiency
 - Customize review schedules to match your learning style
 
-To access these premium features, you'll need to [obtain a license](https://www.hinote.vip/en.html).
+To access these premium features, you'll need to [obtain a license](https://hinote.gumroad.com/l/qovuny).
 
 ![HiCard](./doc/hi-card.jpg)
 
 ---
 
-## Say Thanks
+## License
 
-If you like this plugin and are considering making a donation to support ongoing development, please use the button below!
-
-[PayPal](https://paypal.me/paykairos)
+This plugin is released under the MIT License. The basic features are free and open-source, while some advanced features require a Pro license.
