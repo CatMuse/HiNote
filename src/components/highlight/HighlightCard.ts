@@ -193,9 +193,10 @@ export class HighlightCard {
                 }
             });
             
-            // 添加文件名文本
+            // 添加文件名文本（移除 .md 后缀）
+            const displayName = this.fileName ? this.fileName.replace(/\.md$/, '') : '';
             const fileNameText = titleBarLeft.createEl("span", {
-                text: this.fileName,
+                text: displayName,
                 cls: "highlight-card-title-text"
             });
             
