@@ -174,9 +174,16 @@ export default {
     "These settings control the FSRS algorithm parameters. Only change them if you understand the algorithm.": "这些设置控制FSRS算法参数。仅在理解算法的情况下更改它们。",
     "Reset algorithm parameters": "重置算法参数",
     "Reset the FSRS algorithm parameters to default values": "将FSRS算法参数重置为默认值",
-    "Reset to Default": "重置为默认值",
+    "Reset to default": "重置为默认值",
     "FSRS parameters have been reset to default values": "FSRS参数已重置为默认值",
     "days": "天",
+    
+    // FSRS 权重参数编辑
+    "FSRS weight parameter. The default value is obtained from a smaller sample; if adjustment is needed, please use the FSRS optimizer for calculation.": "算法权重参数。默认值为较小样本获得，如果需要调整请使用 FSRS 优化器计算",
+    "FSRS parameters": "FSRS 参数",
+    "Edit the 17 FSRS algorithm weights. Format: JSON array of numbers.": "编辑 17 个 FSRS 算法权重。格式：数字数组的 JSON 格式。",
+
+    "FSRS parameters updated successfully": "FSRS 参数更新成功",
 
     // Flashcard UI
     "Activate HiCard": "激活 HiCard",

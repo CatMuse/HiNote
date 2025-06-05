@@ -3366,14 +3366,6 @@ textarea.flashcard-modal-input {
     height: 6px;
 }
 
-.slider-value {
-    flex: 0 0 30px;
-    text-align: right;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-accent);
-}
-
 /* 按钮容器 */
 .button-container {
     display: flex;
@@ -3755,4 +3747,32 @@ textarea.flashcard-modal-input {
 
 .multi-select-action-button.cancel:hover {
     background-color: var(--background-modifier-error);
+}
+
+/* FSRS 参数编辑样式 */
+.fsrs-params-container {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: var(--background-secondary);
+}
+
+.fsrs-weights-textarea {
+    font-family: var(--font-monospace);
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+}
+
+.fsrs-buttons-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.fsrs-buttons-container button {
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
 }

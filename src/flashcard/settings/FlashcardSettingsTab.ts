@@ -117,30 +117,34 @@ export class FlashcardSettingsTab {
         new Setting(container)
             .setName(t('Maximum interval'))
             .setDesc(t('Maximum interval in days between reviews'))
-            .addSlider(slider => {
+            .addText(text => {
                 const params = this.fsrsService.getParameters();
-                slider
-                    .setLimits(365, 3650, 365)
-                    .setValue(params.maximum_interval)
-                    .setDynamicTooltip()
+                text
+                    .setValue(params.maximum_interval.toString())
+                    .setPlaceholder('365')
                     .onChange(async (value) => {
-                        const params = this.fsrsService.getParameters();
-                        params.maximum_interval = value;
-                        this.fsrsService.setParameters(params);
-                        await this.plugin.saveSettings();
+                        const numValue = parseInt(value);
+                        if (!isNaN(numValue) && numValue > 0) {
+                            const params = this.fsrsService.getParameters();
+                            params.maximum_interval = numValue;
+                            this.fsrsService.setParameters(params);
+                            await this.plugin.saveSettings();
+                        }
                     });
                 
-                // 添加数值显示
-                const valueDisplay = createEl('span', {
-                    cls: 'slider-value',
-                    text: `${params.maximum_interval} ${t('days')}`
+                // 设置输入框样式和后缀
+                const inputEl = text.inputEl;
+                inputEl.type = 'number';
+                inputEl.min = '1';
+                inputEl.style.width = '80px';
+                
+                // 添加天数后缀
+                const suffixEl = createEl('span', {
+                    text: ` ${t('days')}`,
+                    cls: 'setting-item-suffix'
                 });
                 
-                slider.sliderEl.parentElement?.appendChild(valueDisplay);
-                
-                slider.sliderEl.addEventListener('input', () => {
-                    valueDisplay.textContent = `${slider.getValue()} ${t('days')}`;
-                });
+                inputEl.after(suffixEl);
             });
 
         // 重置学习统计
@@ -190,9 +194,106 @@ export class FlashcardSettingsTab {
                     // 重置 FSRS 参数
                     this.fsrsService.resetParameters();
                     await this.plugin.saveSettings();
-                    // 刷新设置页面
-                    this.display();
+                    
+                    // 获取重置后的参数
+                    const params = this.fsrsService.getParameters();
+                    
+                    // 更新目标保持率滑动条
+                    const retentionSlider = this.containerEl.querySelector('.setting-item:nth-child(4) .slider') as HTMLInputElement;
+                    const retentionValue = this.containerEl.querySelector('.setting-item:nth-child(4) .slider-value') as HTMLElement;
+                    if (retentionSlider && retentionValue) {
+                        retentionSlider.value = String(params.request_retention);
+                        retentionValue.textContent = `${Math.round(params.request_retention * 100)}%`;
+                    }
+                    
+                    // 更新最大间隔输入框
+                    const maxIntervalInput = this.containerEl.querySelector('.setting-item:nth-child(5) input[type="number"]') as HTMLInputElement;
+                    if (maxIntervalInput) {
+                        maxIntervalInput.value = String(params.maximum_interval);
+                    }
+                    
+                    // 更新每日新卡片滑动条
+                    const newCardsSlider = this.containerEl.querySelector('.setting-item:nth-child(2) .slider') as HTMLInputElement;
+                    const newCardsValue = this.containerEl.querySelector('.setting-item:nth-child(2) .slider-value') as HTMLElement;
+                    if (newCardsSlider && newCardsValue) {
+                        newCardsSlider.value = String(params.newCardsPerDay);
+                        newCardsValue.textContent = String(params.newCardsPerDay);
+                    }
+                    
+                    // 更新每日复习卡片滑动条
+                    const reviewsSlider = this.containerEl.querySelector('.setting-item:nth-child(3) .slider') as HTMLInputElement;
+                    const reviewsValue = this.containerEl.querySelector('.setting-item:nth-child(3) .slider-value') as HTMLElement;
+                    if (reviewsSlider && reviewsValue) {
+                        reviewsSlider.value = String(params.reviewsPerDay);
+                        reviewsValue.textContent = String(params.reviewsPerDay);
+                    }
+                    
+                    // 更新 FSRS 权重参数文本区域
+                    const textareaEl = this.containerEl.querySelector('.fsrs-weights-textarea') as HTMLTextAreaElement;
+                    if (textareaEl) {
+                        textareaEl.value = JSON.stringify(params.w);
+                    }
+                    
                     new Notice(t('FSRS parameters have been reset to default values'));
                 }));
+
+        // FSRS 算法参数编辑
+        const fsrsParamsContainer = container.createEl('div', {
+            cls: 'fsrs-params-container'
+        });
+
+        // 添加 FSRS 参数说明
+        fsrsParamsContainer.createEl('p', {
+            text: t('FSRS weight parameter. The default value is obtained from a smaller sample; if adjustment is needed, please use the FSRS optimizer for calculation.'),
+            cls: 'setting-item-description'
+        });
+
+        // 获取当前参数
+        const params = this.fsrsService.getParameters();
+        const wParamsString = JSON.stringify(params.w);
+
+        // 创建文本区域设置
+        new Setting(fsrsParamsContainer)
+            .setName(t('FSRS parameters'))
+            .setDesc(t('Edit the 17 FSRS algorithm weights. Format: JSON array of numbers.'))
+            .addTextArea(textarea => {
+                textarea
+                    .setValue(wParamsString)
+                    .setPlaceholder('[0.4872, 1.4003, ...]')
+                    .onChange(async (value) => {
+                        try {
+                            // 尝试解析用户输入的 JSON
+                            const newParams = JSON.parse(value);
+                            
+                            // 验证参数是否有效（必须是 17 个数字的数组）
+                            if (Array.isArray(newParams) && 
+                                newParams.length === 17 && 
+                                newParams.every(p => typeof p === 'number')) {
+                                
+                                // 更新参数
+                                const currentParams = this.fsrsService.getParameters();
+                                currentParams.w = newParams;
+                                this.fsrsService.setParameters(currentParams);
+                                await this.plugin.saveSettings();
+                                
+                                // 显示成功提示
+                                new Notice(t('FSRS weights updated successfully'));
+                            } else {
+                                // 显示错误提示
+                                new Notice(t('Invalid format. Must be an array of 17 numbers.'), 5000);
+                            }
+                        } catch (e) {
+                            // JSON 解析错误
+                            new Notice(t('Invalid JSON format. Please check your input.'), 5000);
+                        }
+                    });
+                
+                // 设置文本区域样式
+                textarea.inputEl.rows = 2;
+                textarea.inputEl.cols = 32;
+                textarea.inputEl.addClass('fsrs-weights-textarea');
+            });
+
+        // 不再需要按钮容器和验证按钮
     }
 }
