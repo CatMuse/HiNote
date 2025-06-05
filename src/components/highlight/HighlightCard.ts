@@ -304,9 +304,6 @@ export class HighlightCard {
                             // 创建行号标签
                             const lineNumberBadge = titleBarLeft.createEl("div", {
                                 cls: "highlight-line-number-badge",
-                                attr: {
-                                    'aria-label': `行号: ${lineNumber}`,
-                                }
                             });
                             
                             lineNumberBadge.createEl("span", {
@@ -393,6 +390,26 @@ export class HighlightCard {
             cls: "highlight-more-dropdown-divider"
         });
         
+        // 添加复制功能选项到下拉菜单
+        const copyItem = moreActionsDropdown.createEl("div", {
+            cls: "highlight-more-dropdown-item",
+            text: t('Copy Highlight')
+        });
+        
+        // 添加复制功能的点击事件
+        copyItem.addEventListener("click", (e) => {
+            e.stopPropagation();
+            moreActionsDropdown.addClass("hi-note-hidden");
+            
+            // 复制高亮和批注内容
+            this.copyHighlightContent();
+        });
+        
+        // 添加分隔线
+        moreActionsDropdown.createEl("div", {
+            cls: "highlight-more-dropdown-divider"
+        });
+        
         // 添加导出图片选项到下拉菜单
         const exportItem = moreActionsDropdown.createEl("div", {
             cls: "highlight-more-dropdown-item",
@@ -404,12 +421,10 @@ export class HighlightCard {
             e.stopPropagation();
             moreActionsDropdown.addClass("hi-note-hidden");
             
-            // 确保导出时包含文件名
-            const highlightWithFileName = { ...this.highlight };
-            if (this.fileName) {
-                highlightWithFileName.fileName = this.fileName;
+            // 调用导出图片的选项
+            if (this.options.onExport) {
+                this.options.onExport(this.highlight);
             }
-            this.options.onExport(highlightWithFileName);
         });
 
         // 在主视图中预先生成 Block ID
@@ -645,6 +660,39 @@ export class HighlightCard {
         const generator = new DragContentGenerator(this.highlight, this.plugin);
         return generator.generate();
     }
+    
+    /**
+     * 复制高亮和批注内容
+     */
+    private copyHighlightContent(): void {
+        try {
+            // 构建要复制的内容
+            let content = `> ${this.highlight.text}\n\n`;
+            
+            // 添加文件名信息（如果有）
+            if (this.highlight.filePath) {
+                // 获取文件名，优先使用已存储的文件名，否则从路径中提取
+                const displayName = this.fileName || this.highlight.filePath.split('/').pop() || this.highlight.filePath;
+                
+                // 使用 Obsidian 的内部链接格式 [[filename]]
+                content += `From: [[${displayName}]]`;
+                content += '\n\n';
+            }
+            
+            // 复制到剪贴板
+            navigator.clipboard.writeText(content).then(() => {
+                // 显示成功提示
+                new Notice('已复制高亮内容');
+            }).catch(err => {
+                console.error('复制内容失败:', err);
+                new Notice('复制内容失败');
+            });
+        } catch (error) {
+            console.error('复制高亮内容时出错:', error);
+            new Notice('复制内容时出错');
+        }
+    }
+
     /**
      * 切换更多操作下拉菜单的显示/隐藏状态
      * @param dropdown 下拉菜单元素
