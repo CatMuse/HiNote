@@ -41,7 +41,7 @@ The note comment feature allows you to add your thoughts to the entire document 
 
 ## Export as image
 
-Export your highlighted text as beautifully designed knowledge cards for easy sharing.
+Export your highlighted text and comments to create beautifully designed knowledge cards for easy sharing.
 
 ![Export image](./doc/export-image.jpg)
 
@@ -76,6 +76,8 @@ Next, configure your custom Prompt. Here, you can use two fields to obtain the h
 
 Finally, you can use your custom Prompt in the AI button on the highlighted card.
 
+![AI comment](./doc/ai-comment.jpg)
+
 ---
 
 ## AI Chat
@@ -103,6 +105,8 @@ The Flashcard feature is available in the Pro version of HiNote. This advanced s
 To access these premium features, you'll need to [obtain a license](https://hinote.gumroad.com/l/qovuny).
 
 ![HiCard](./doc/hi-card.jpg)
+
+[![HiNote Pro](./doc/hinote-pro.jpg)](https://www.hinote.vip/en.html)
 
 ---
 

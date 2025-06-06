@@ -39,7 +39,7 @@
 
 ## 导出为图片
 
-将您的高亮文本导出为精美的知识卡片，便于分享。
+导出你的高亮文本和评论，创建设计精美的知识卡片，便于分享。
 
 ![Export image](./doc/export-image.jpg)
 
@@ -74,6 +74,8 @@ AI 可以辅助你进行思考，并将生成的内容以评论的形式添加�
 
 最后，你就可以在高亮卡片的 AI 按钮中使用你自定义的 Prompt 了。
 
+![AI comment](./doc/ai-comment.jpg)
+
 ---
 
 ## AI  对话
@@ -99,6 +101,8 @@ HiNote 的专业版中提供了闪卡功能。这个高级的间隔重复系统�
 要访问这些高级功能，您需要 [获取许可证](https://hinote.vip)。
 
 ![HiCard](./doc/hi-card.jpg)
+
+[![HiNote Pro](./doc/hinote-pro.jpg)](https://www.hinote.vip/en.html)
 
 ---
 
