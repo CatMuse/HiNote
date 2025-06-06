@@ -86,7 +86,8 @@ export class FSRSAdapter {
             reps: card.reviews,
             lapses: card.lapses,
             state: state,
-            last_review: card.lastReview ? new Date(card.lastReview) : undefined
+            last_review: card.lastReview ? new Date(card.lastReview) : undefined,
+            learning_steps: 0 // 添加缺失的learning_steps属性，使用数字类型
         };
     }
 
