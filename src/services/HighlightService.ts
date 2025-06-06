@@ -252,56 +252,7 @@ export class HighlightService {
         return result;
     }
 
-    /**
-     * 为指定位置创建 Block ID
-     * 采用懒加载策略，只在特定场景下才实际创建 Block ID
-     * 
-     * @param file 文件
-     * @param position 位置
-     * @param forceCreate 是否强制创建 Block ID（用于拖拽和导出场景）
-     * @returns 纯 BlockID 或 undefined（如果不强制创建）
-     */
-    private createBlockIdForPosition(file: TFile, position: number, forceCreate: boolean = false): string | undefined {
-        try {
-            // 检查是否已有 Block ID
-            const existingIdRef = this.blockIdService.getParagraphBlockId(file, position);
-            if (existingIdRef) {
-                // 使用与 BlockIdService 一致的正则表达式提取 BlockID
-                const match = existingIdRef.match(/#\^([a-zA-Z0-9-]+)/);
-                if (match && match[1]) {
-                    return match[1];
-                }
-                return undefined;
-            }
-            
-            // 如果强制创建（拖拽或导出场景），则创建并返回 Block ID
-            if (forceCreate) {
-                // 这里使用 Promise，但返回 undefined
-                // 实际创建会在后台进行，不阻塞当前操作
-                this.blockIdService.createParagraphBlockId(file, position)
-                    .then(blockIdRef => {
-                        // 使用与 BlockIdService 一致的正则表达式提取 BlockID
-                        let blockId;
-                        const match = blockIdRef.match(/#\^([a-zA-Z0-9-]+)/);
-                        if (match && match[1]) {
-                            blockId = match[1];
-                        }
-                        console.debug(`[HighlightService] Created block ID: ${blockId}`);
-                        return blockId;
-                    })
-                    .catch(error => {
-                        console.error('[HighlightService] Error creating block ID:', error);
-                        return undefined;
-                    });
-            }
-            
-            // 默认情况下不创建，返回 undefined
-            return undefined;
-        } catch (error) {
-            console.error('[HighlightService] Error in createBlockIdForPosition:', error);
-            return undefined;
-        }
-    }
+     // 此处删除了未使用的 createBlockIdForPosition 方法
 
     /**
      * 为高亮创建 Block ID（用于拖拽和导出场景）
