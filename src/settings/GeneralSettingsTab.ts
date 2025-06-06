@@ -81,7 +81,7 @@ export class GeneralSettingsTab {
             .addTextArea(text => {
                 const defaultTemplate = 
 `> [!quote] HiNote
-> ![[{{highlightBlockRef}}]]
+> {{highlightText}}
 > 
 >> [!note] Comment
 >> {{commentContent}}

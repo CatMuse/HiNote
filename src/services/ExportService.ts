@@ -342,7 +342,8 @@ export class ExportService {
                 let highlightText = highlight.text || '';
                 
                 // 获取 BlockID 引用（如果可能）
-                if (typeof highlight.position === 'number') {
+                // 只有当模板中包含 highlightBlockRef 变量时，才创建 BlockID
+                if (typeof highlight.position === 'number' && template.includes('{{highlightBlockRef}}')) {
                     try {
                         const highlightLength = highlight.originalLength || highlight.text.length;
                         blockIdRef = await this.highlightService.createBlockIdForHighlight(
@@ -476,7 +477,7 @@ export class ExportService {
     private async generateDefaultContent(file: TFile, highlights: HighlightInfo[]): Promise<string> {
         // 使用用户提供的模板作为默认模板
         const defaultTemplate = `> [!quote] HiNote
-> ![[{{highlightBlockRef}}]]
+> {{highlightText}}
 > 
 >> [!note] Comment
 >> {{commentContent}}
