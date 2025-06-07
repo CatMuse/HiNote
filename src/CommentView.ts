@@ -1892,7 +1892,7 @@ export class CommentView extends ItemView {
         this.floatingButton.className = 'highlight-floating-button';
         
         const icon = document.createElement('span');
-        setIcon(icon, 'message-circle');
+        setIcon(icon, 'bot-message-square');
         this.floatingButton.appendChild(icon);
         
         // 使用 getInstance 方法

@@ -333,8 +333,8 @@ export class HighlightCard {
                     await this.options.onAIResponse(content);
                 },
                 buttonClass: "highlight-title-btn highlight-ai-btn",
-                buttonIcon: "bot",
-                buttonLabel: t('AI bot'),
+                buttonIcon: "sparkles",
+                buttonLabel: t('AI comment'),
                 position: 'titlebar',
                 dropdownClass: "highlight-ai-dropdown"
             }

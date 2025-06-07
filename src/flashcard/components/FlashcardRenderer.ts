@@ -284,24 +284,59 @@ export class FlashcardRenderer {
             );
             const isEmptyGroup = currentGroup && currentGroup.cardIds.length === 0;
             
-            if (isEmptyGroup) {
-                // If it's an empty group, show special message
+            if (!hasGroups) {
+                // 如果没有分组，显示创建分组的提示
+                const noGroupContainer = cardContainer.createEl("div", { 
+                    cls: "flashcard-completion-message flashcard-no-group" 
+                });
+                
+                // 添加图标
+                const iconEl = noGroupContainer.createEl("div", { cls: "completion-icon" });
+                setIcon(iconEl, "folder-plus");
+                
+                // 添加标题
+                noGroupContainer.createEl("h3", { 
+                    text: t("No Flashcard Groups") 
+                });
+                
+                // 添加描述
+                noGroupContainer.createEl("p", { 
+                    text: t("You haven't created any flashcard groups yet. Create a group to get started with your flashcards.") 
+                });
+                
+                // 添加创建分组按钮
+                const createButton = noGroupContainer.createEl("button", {
+                    cls: "mod-cta",
+                    text: t("Create Flashcard Group")
+                });
+                
+                createButton.addEventListener("click", () => {
+                    // 调用组件的 groupManager 来显示创建分组模态框
+                    if (this.component && this.component.groupManager) {
+                        this.component.groupManager.showCreateGroupModal();
+                    } else {
+                        console.error('Group manager is not available');
+                    }
+                });
+            } 
+            else if (isEmptyGroup) {
+                // 如果是空分组，显示特殊消息
                 const emptyContainer = cardContainer.createEl("div", { 
                     cls: "flashcard-completion-message flashcard-empty-group" 
                 });
                 
-                // Add an icon, using a different icon
+                // 添加图标
                 const iconEl = emptyContainer.createEl("div", { cls: "completion-icon" });
-                setIcon(iconEl, "circle-slash-2"); // Use question icon for empty groups
+                setIcon(iconEl, "circle-slash-2");
                 
-                // Add title
+                // 添加标题
                 emptyContainer.createEl("h3", { 
-                    text: t("No Cards Available") 
+                    text: t("No Cards in This Group") 
                 });
                 
-                // Add description
+                // 添加描述
                 emptyContainer.createEl("p", { 
-                    text: t("This group has no cards") 
+                    text: t("This group doesn't contain any flashcards yet. Add some flashcards to this group to start learning.") 
                 });
             } else {
                 // 对于非空分组但没有卡片需要复习的情况，显示学习完成消息
