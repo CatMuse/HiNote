@@ -218,41 +218,63 @@ settings:
 }
 
 /* 搜索区域样式 */
-/* 合并后的搜索容器样式 */
 .highlight-search-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px; /* 使用第二个样式的padding */
-    border-bottom: 1px solid var(--background-modifier-border);
     position: sticky;
     top: 0;
     z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
 }
 
-/* 合并后的搜索输入框样式 */
+/* 搜索框样式 */
 .highlight-search-input {
-    flex: 1;
-    width: 100%;
+    flex: 1 0 auto;
+    width: 0;
+    min-width: 0;
     padding: 6px 12px;
-    border-radius: 6px; /* 使用第二个样式的圆角 */
+    border-radius: 6px;
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     color: var(--text-normal);
     font-size: 13px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.highlight-search-container.focused .highlight-search-input {
+    width: 100%;
 }
 
 .highlight-search-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
-    box-shadow: 0 0 0 2px var(--background-modifier-border-hover); /* 使用第二个样式的阴影 */
+    box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
 }
 
+/* 搜索框图标容器 */
 .highlight-search-icons {
     display: flex;
+    align-items: center;
     gap: 8px;
+    will-change: transform, opacity; /* 提示浏览器优化动画性能 */
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: right center;
+}
+
+/* 搜索框获得焦点时的图标状态 */
+.highlight-search-container.focused .highlight-search-icons {
+    opacity: 0;
+    transform: scaleX(0);
+    margin-left: 0;
+    pointer-events: none; /* 确保在动画过程中无法点击 */
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .highlight-icon-button {

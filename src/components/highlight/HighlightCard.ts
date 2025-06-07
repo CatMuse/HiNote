@@ -348,7 +348,7 @@ export class HighlightCard {
         // 更多操作按钮（垂直省略号）
         const moreActionsBtn = moreActionsContainer.createEl("div", {
             cls: "highlight-title-btn highlight-more-btn",
-            attr: { 'aria-label': t('More Actions') }
+            attr: { 'aria-label': t('More') }
         });
         setIcon(moreActionsBtn, "ellipsis-vertical");
         

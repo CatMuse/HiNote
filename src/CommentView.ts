@@ -846,6 +846,15 @@ export class CommentView extends ItemView {
             }
         });
 
+        // 添加焦点和失焦事件
+        this.searchInput.addEventListener('focus', () => {
+            this.searchContainer.addClass('focused');
+        });
+
+        this.searchInput.addEventListener('blur', () => {
+            this.searchContainer.removeClass('focused');
+        });
+
         // 创建图标按钮容器
         const iconButtonsContainer = this.searchContainer.createEl("div", {
             cls: "highlight-search-icons"
@@ -1069,7 +1078,7 @@ export class CommentView extends ItemView {
                 // 添加点击提示
                 const textContent = cardElement.querySelector('.highlight-text-content');
                 if (textContent) {
-                    textContent.setAttribute('aria-label', 'Click to jump to the document position');
+                    textContent.setAttribute('aria-label', 'Jump to highlight');
                 }
             }
         });
