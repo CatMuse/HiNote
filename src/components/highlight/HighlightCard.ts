@@ -65,6 +65,7 @@ export class HighlightCard {
     private moreActionsDropdown: HTMLElement | null = null;
     private boundClickOutsideHandler: (e: MouseEvent) => void;
     private unfocusedInput: UnfocusedCommentInput | null = null;
+    private hasFlashcard: boolean = false; // 保存闪卡状态
 
     constructor(
         private container: HTMLElement,
@@ -382,10 +383,11 @@ export class HighlightCard {
             return isActivated && isFeatureEnabled;
         };
         
-        // 创建 HiCard 菜单项
+        // 创建 HiCard 菜单项（使用保存的闪卡状态）
+        this.hasFlashcard = hasFlashcard; // 保存初始状态
         const createHiCardItem = moreActionsDropdown.createEl("div", {
             cls: "highlight-more-dropdown-item create-hicard-btn",
-            text: hasFlashcard ? t('Delete HiCard') : t('Create HiCard')
+            text: this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard')
         });
         
         // 异步检查许可证状态并设置菜单项样式
@@ -728,6 +730,14 @@ export class HighlightCard {
      */
     private toggleMoreActionsDropdown(dropdown: HTMLElement, button: HTMLElement) {
         if (dropdown.hasClass("hi-note-hidden")) {
+            // 每次打开菜单前，重新检查闪卡状态
+            this.hasFlashcard = this.checkHasFlashcard();
+            
+            // 更新菜单项文本
+            const createHiCardItem = dropdown.querySelector('.create-hicard-btn');
+            if (createHiCardItem) {
+                createHiCardItem.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
+            }
             // 关闭其他所有下拉菜单
             document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((otherDropdown) => {
                 if (otherDropdown !== dropdown) {
@@ -819,6 +829,7 @@ export class HighlightCard {
 
             // 检查是否已经存在闪卡
             const hasFlashcard = this.checkHasFlashcard();
+            this.hasFlashcard = hasFlashcard; // 更新状态
             
             if (hasFlashcard) {
                 // 删除闪卡逻辑
@@ -827,6 +838,9 @@ export class HighlightCard {
                 // 创建闪卡逻辑
                 await this.handleCreateNewHiCard();
             }
+            
+            // 立即更新所有下拉菜单中的按钮文本
+            this.updateAllMenuItems();
         } catch (error) {
             console.error('处理闪卡操作时出错:', error);
             new Notice(t(`操作失败: ${error.message}`));
@@ -863,7 +877,8 @@ export class HighlightCard {
             const deletedCount = fsrsManager.deleteCardsBySourceId(this.highlight.id || '', 'highlight');
             
             if (deletedCount > 0) {
-
+                // 更新闪卡状态
+                this.hasFlashcard = false;
                 
                 // 清理可能残留的无效卡片引用
                 const cleanedCount = fsrsManager.cleanupInvalidCardReferences();
@@ -883,8 +898,9 @@ export class HighlightCard {
                     new Notice(t('闪卡已删除，高亮和批注已保留'));
                 }
                 
-                // 更新按钮显示
+                // 更新闪卡状态和所有相关显示
                 this.updateIconsAfterCardDeletion();
+                this.updateAllMenuItems();
                 
                 // 触发闪卡变化事件
                 this.plugin.eventManager.emitFlashcardChanged();
@@ -1050,10 +1066,12 @@ export class HighlightCard {
         // 显示成功消息
         new Notice(t('闪卡创建成功！'));
         
-
+        // 更新闪卡状态
+        this.hasFlashcard = true;
         
-        // 更新图标显示
+        // 更新闪卡状态和所有相关显示
         this.updateIconsAfterCardCreation();
+        this.updateAllMenuItems();
     }
 
     /**
@@ -1068,9 +1086,6 @@ export class HighlightCard {
             setIcon(icon as HTMLElement, 'file-text');
             (icon as HTMLElement).removeClass('has-flashcard');
         });
-        
-        // 更新按钮文本
-        this.updateCreateHiCardButtonText();
     }
 
     /**
@@ -1085,19 +1100,43 @@ export class HighlightCard {
             setIcon(icon as HTMLElement, 'book-heart');
             (icon as HTMLElement).addClass('has-flashcard');
         });
-        
-        // 更新按钮文本
-        this.updateCreateHiCardButtonText();
     }
 
     /**
      * 更新创建闪卡按钮的文本
+     * 注意：这个方法只更新卡片上的按钮，不更新下拉菜单中的按钮
      */
     private updateCreateHiCardButtonText() {
+        // 查找当前可见的创建闪卡按钮
         const createButton = this.card.querySelector('.create-hicard-btn');
         if (createButton) {
-            const hasFlashcard = this.checkHasFlashcard();
-            createButton.textContent = hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
+            createButton.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
         }
+    }
+    
+    /**
+     * 更新所有下拉菜单中的闪卡按钮文本
+     * 这个方法会查找所有可能的下拉菜单并更新其中的按钮文本
+     */
+    private updateAllMenuItems() {
+        // 更新当前闪卡状态
+        this.hasFlashcard = this.checkHasFlashcard();
+        
+        // 如果当前下拉菜单存在，更新其中的按钮
+        if (this.moreActionsDropdown) {
+            const menuItem = this.moreActionsDropdown.querySelector('.create-hicard-btn');
+            if (menuItem) {
+                menuItem.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
+            }
+        }
+        
+        // 查找文档中所有可能与此卡片相关的下拉菜单
+        document.querySelectorAll('.highlight-more-dropdown').forEach(dropdown => {
+            // 尝试找到与当前高亮相关的下拉菜单
+            const menuItem = dropdown.querySelector('.create-hicard-btn');
+            if (menuItem) {
+                menuItem.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
+            }
+        });
     }
 }
