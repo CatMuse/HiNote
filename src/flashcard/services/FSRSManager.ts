@@ -1156,7 +1156,6 @@ export class FSRSManager {
      * @private
      */
     private handleHighlightDelete(filePath: string, text: string, sourceId: string): void {
-        
         const deletedCount = this.deleteCardsBySourceId(sourceId, 'highlight');
     }
     
@@ -1169,19 +1168,80 @@ export class FSRSManager {
      * @private
      */
     private handleCommentUpdate(filePath: string, oldComment: string, newComment: string, sourceId: string): void {
-
-        
-        // 测试：直接调用 updateCardsBySourceId 看看是否有问题
-
-        
         // 查找关联的卡片
         const foundCards = this.findCardsBySourceId(sourceId, 'highlight');
         
-        // 批注更新时，需要查找所有关联到该高亮的卡片（sourceType为highlight）
-        const updatedCount = this.updateCardsBySourceId(sourceId, 'highlight', undefined, newComment);
+        // 如果没有找到卡片，直接返回
+        if (!foundCards || foundCards.length === 0) {
+            return;
+        }
         
-        // 验证更新结果
-        const updatedCards = this.findCardsBySourceId(sourceId, 'highlight');
+        let updatedCount = 0;
+        
+        // 遍历所有找到的卡片
+        for (const card of foundCards) {
+            // 保存原始答案
+            const originalAnswer = card.answer || '';
+            
+            // 检查卡片文本是否包含挖空格式
+            const clozeRegex = /\{\{([^{}]+)\}\}/g;
+            let clozeAnswers: string[] = [];
+            let match;
+            
+            // 提取挖空内容
+            while ((match = clozeRegex.exec(card.text)) !== null) {
+                clozeAnswers.push(match[1]);
+            }
+            
+            // 尝试从原始答案中提取其他批注内容
+            // 首先将原始答案按行分割
+            const answerLines = originalAnswer.split('\n');
+            
+            // 过滤掉旧的批注内容和空行
+            const otherComments = answerLines.filter(line => 
+                line.trim() !== '' && 
+                line.trim() !== oldComment.trim() && 
+                !clozeAnswers.includes(line.trim())
+            );
+            
+            // 收集所有答案部分
+            let answerParts: string[] = [];
+            
+            // 如果有挖空内容，添加到答案部分
+            if (clozeAnswers.length > 0) {
+                answerParts.push(clozeAnswers.join('\n'));
+            }
+            
+            // 添加其他批注内容
+            if (otherComments.length > 0) {
+                answerParts.push(otherComments.join('\n'));
+            }
+            
+            // 添加新的批注内容
+            if (newComment && newComment.trim() !== '') {
+                answerParts.push(newComment);
+            }
+            
+            // 合并所有答案部分
+            const newAnswer = answerParts.length > 0 ? answerParts.join('\n\n') : '';
+            
+            // 更新卡片答案
+            if (newAnswer !== originalAnswer) {
+                card.answer = newAnswer;
+                card.updatedAt = Date.now();
+                updatedCount++;
+            }
+        }
+        
+        // 如果有卡片被更新，保存并触发事件
+        if (updatedCount > 0) {
+            this.saveStorageDebounced();
+            
+            // 触发闪卡变化事件，确保UI和其他组件能够感知到变化
+            if (this.plugin.eventManager) {
+                this.plugin.eventManager.emitFlashcardChanged();
+            }
+        }
     }
     
     /**
