@@ -776,15 +776,22 @@ export class HighlightCard {
      * @param e 鼠标事件
      */
     private handleClickOutside(e: MouseEvent) {
-        // 如果点击的不是卡片内的元素，关闭所有下拉菜单
-        if (!this.card.contains(e.target as Node)) {
-            // 关闭所有下拉菜单
-            document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((dropdown) => {
+        // 如果点击的是卡片内的元素，不处理
+        if (this.card.contains(e.target as Node)) {
+            return;
+        }
+
+        // 关闭所有非隐藏的下拉菜单
+        document.querySelectorAll('.highlight-more-dropdown').forEach((dropdown) => {
+            if (!dropdown.hasClass("hi-note-hidden")) {
                 dropdown.addClass("hi-note-hidden");
-            });
-            
-            // 如果 AI 按钮实例存在，也关闭其下拉菜单
-            if (this.aiButtonInstance) {
+            }
+        });
+        
+        // 关闭 AI 按钮的下拉菜单（如果存在且可见）
+        if (this.aiButtonInstance) {
+            const aiDropdown = this.aiButtonInstance.getDropdownElement();
+            if (aiDropdown && !aiDropdown.hasClass("hi-note-hidden")) {
                 this.aiButtonInstance.closeDropdown();
             }
         }

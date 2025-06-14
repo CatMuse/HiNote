@@ -100,8 +100,6 @@ export class CommentStore {
                 }
             }
         }
-        
-        // 已删除不必要的日志输出
     }
 
     async saveComments() {

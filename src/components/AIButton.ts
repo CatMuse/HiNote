@@ -71,7 +71,7 @@ export class AIButton {
 
         // 添加全局点击事件来关闭下拉菜单
         this.boundClickHandler = (e) => {
-            if (!this.container.contains(e.target as Node)) {
+            if (!this.container.contains(e.target as Node) && !this.dropdown.hasClass("hi-note-hidden")) {
                 this.closeDropdown();
             }
         };
@@ -267,7 +267,7 @@ export class AIButton {
      * 关闭下拉菜单
      */
     public closeDropdown() {
-        if (!this.dropdown) return;
+        if (!this.dropdown || this.dropdown.hasClass("hi-note-hidden")) return;
         this.dropdown.addClass("hi-note-hidden");
         // 强制更新 DOM
         requestAnimationFrame(() => {

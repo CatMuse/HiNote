@@ -26,12 +26,12 @@ export class CommentWidget extends WidgetType {
         this.textSimilarityService = new TextSimilarityService(this.plugin.app);
     }
 
-    /**
-     * 比较两个小部件是否相等
-     * 用于 CodeMirror 的优化，避免不必要的 DOM 更新
-     * @param widget 要比较的另一个小部件
-     * @returns 如果两个小部件内容相同则返回 true
-     */
+    // /**
+    //  * 比较两个小部件是否相等
+    //  * 用于 CodeMirror 的优化，避免不必要的 DOM 更新
+    //  * @param widget 要比较的另一个小部件
+    //  * @returns 如果两个小部件内容相同则返回 true
+    //  */
     eq(widget: WidgetType): boolean {
         if (!(widget instanceof CommentWidget)) return false;
         
@@ -66,14 +66,6 @@ export class CommentWidget extends WidgetType {
     }
 
     /**
-     * 获取小部件在指定位置的坐标
-     * 返回 null 因为我们不需要这个功能
-     */
-    coordsAt(dom: HTMLElement, pos: number, side: number): { top: number, bottom: number, left: number, right: number } | null {
-        return null;
-    }
-
-    /**
      * 创建小部件的 DOM 结构
      * @returns 包含评论按钮和预览的 HTML 元素
      */
@@ -84,25 +76,25 @@ export class CommentWidget extends WidgetType {
         // 添加高亮 ID 作为数据属性，确保每个 Widget 都有唯一标识
         wrapper.setAttribute('data-highlight-id', this.highlight.id);
         
-        // 优先使用 blockId，如果没有则使用 paragraphId
-        if (this.highlight.blockId) {
-            wrapper.setAttribute('data-block-id', this.highlight.blockId);
-        }
+        // // 优先使用 blockId，如果没有则使用 paragraphId
+        // if (this.highlight.blockId) {
+        //     wrapper.setAttribute('data-block-id', this.highlight.blockId);
+        // }
         
-        // 保留 paragraphId 以保持兼容性
-        if (this.highlight.paragraphId) {
-            wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
-        }
+        // // 保留 paragraphId 以保持兼容性
+        // if (this.highlight.paragraphId) {
+        //     wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
+        // }
         
-        wrapper.setAttribute('data-highlight-text', this.highlight.text);
+        // wrapper.setAttribute('data-highlight-text', this.highlight.text);
         
         // 检查是否有评论
         const hasComments = (this.highlight.comments || []).length > 0;
         
         // 如果没有评论，添加一个额外的类，但不完全隐藏
-        if (!hasComments) {
-            wrapper.addClass("hi-note-widget-no-comments");
-        }
+        // if (!hasComments) {
+        //     wrapper.addClass("hi-note-widget-no-comments");
+        // }
         
         this.createButton(wrapper);
         return wrapper;
