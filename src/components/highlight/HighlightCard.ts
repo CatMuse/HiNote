@@ -772,7 +772,15 @@ export class HighlightCard {
     }
 
     /**
-     * 处理点击外部事件，关闭所有下拉菜单
+     * 检查是否有可见的更多操作下拉菜单
+     */
+    private hasVisibleMoreDropdown(): boolean {
+        return Array.from(document.querySelectorAll('.highlight-more-dropdown'))
+            .some(dropdown => !dropdown.hasClass("hi-note-hidden"));
+    }
+
+    /**
+     * 处理点击外部事件，关闭更多操作下拉菜单
      * @param e 鼠标事件
      */
     private handleClickOutside(e: MouseEvent) {
@@ -781,20 +789,17 @@ export class HighlightCard {
             return;
         }
 
-        // 关闭所有非隐藏的下拉菜单
+        // 如果没有可见的更多操作下拉菜单，不处理
+        if (!this.hasVisibleMoreDropdown()) {
+            return;
+        }
+
+        // 关闭所有非隐藏的更多操作下拉菜单
         document.querySelectorAll('.highlight-more-dropdown').forEach((dropdown) => {
             if (!dropdown.hasClass("hi-note-hidden")) {
                 dropdown.addClass("hi-note-hidden");
             }
         });
-        
-        // 关闭 AI 按钮的下拉菜单（如果存在且可见）
-        if (this.aiButtonInstance) {
-            const aiDropdown = this.aiButtonInstance.getDropdownElement();
-            if (aiDropdown && !aiDropdown.hasClass("hi-note-hidden")) {
-                this.aiButtonInstance.closeDropdown();
-            }
-        }
     }
     
     /**
