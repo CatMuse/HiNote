@@ -711,11 +711,11 @@ export class HighlightCard {
                 new Notice('已复制高亮内容');
             }).catch(err => {
                 console.error('复制内容失败:', err);
-                new Notice('复制内容失败');
+                new Notice('Failed to copy content');
             });
         } catch (error) {
             console.error('复制高亮内容时出错:', error);
-            new Notice('复制内容时出错');
+            new Notice('Failed to copy content');
         }
     }
 
@@ -917,10 +917,10 @@ export class HighlightCard {
                 if (!hasComments) {
                     // 没有批注，删除整个高亮
                     await this.deleteHighlightCompletely();
-                    new Notice(t('闪卡和高亮已删除'));
+                    new Notice(t('Flashcard and highlight deleted'));
                 } else {
                     // 有批注，只删除闪卡，保留高亮和批注
-                    new Notice(t('闪卡已删除，高亮和批注已保留'));
+                    new Notice(t('Flashcard deleted, highlight and comments preserved'));
                 }
                 
                 // 更新闪卡状态和所有相关显示
@@ -930,11 +930,11 @@ export class HighlightCard {
                 // 触发闪卡变化事件
                 this.plugin.eventManager.emitFlashcardChanged();
             } else {
-                new Notice(t('未找到要删除的闪卡'));
+                new Notice(t('Flashcard not found'));
             }
         } catch (error) {
             console.error('删除闪卡时出错:', error);
-            new Notice(t(`删除闪卡失败: ${error.message}`));
+            new Notice(t(`Failed to delete flashcard: ${error.message}`));
         }
     }
 
@@ -1069,7 +1069,7 @@ export class HighlightCard {
         }
         
         // 合并所有答案部分，如果没有内容则使用默认文本
-        answer = answerParts.length > 0 ? answerParts.join('\n\n') : t('请添加答案');
+        answer = answerParts.length > 0 ? answerParts.join('\n\n') : t('Add answer');
         
         // 创建闪卡
         const card = fsrsManager.addCard(
@@ -1081,7 +1081,7 @@ export class HighlightCard {
         );
         
         if (!card) {
-            new Notice(t('创建闪卡失败，请检查高亮内容'));
+            new Notice(t('Failed to create flashcard, please check highlight content'));
             return;
         }
         
@@ -1089,7 +1089,7 @@ export class HighlightCard {
         this.plugin.eventManager.emitFlashcardChanged();
         
         // 显示成功消息
-        new Notice(t('闪卡创建成功！'));
+        new Notice(t('Flashcard created successfully!'));
         
         // 更新闪卡状态
         this.hasFlashcard = true;

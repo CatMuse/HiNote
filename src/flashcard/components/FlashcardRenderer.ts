@@ -624,7 +624,7 @@ export class FlashcardRenderer {
         // 检查content是否为空
         if (!content) {
             console.warn('renderMarkdownContent: content is empty or undefined');
-            containerEl.textContent = '请添加答案';
+            containerEl.textContent = 'Add answer';
             return;
         }
         
