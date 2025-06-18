@@ -692,23 +692,27 @@ export class HighlightCard {
      */
     private copyHighlightContent(): void {
         try {
-            // 构建要复制的内容
-            let content = `> ${this.highlight.text}\n\n`;
+            // 构建 Callout 格式的内容
+            let content = '> [!quote] HiNote\n';
+            content += `> ${this.highlight.text}`;
             
             // 添加文件名信息（如果有）
             if (this.highlight.filePath) {
                 // 获取文件名，优先使用已存储的文件名，否则从路径中提取
                 const displayName = this.fileName || this.highlight.filePath.split('/').pop() || this.highlight.filePath;
                 
-                // 使用 Obsidian 的内部链接格式 [[filename]]
-                content += `From: [[${displayName}]]`;
-                content += '\n\n';
+                // 在 Callout 内添加文件名信息
+                content += '\n> \n';
+                content += `> From: [[${displayName}]]`;
             }
+            
+            // 添加最后的换行
+            content += '\n\n';
             
             // 复制到剪贴板
             navigator.clipboard.writeText(content).then(() => {
                 // 显示成功提示
-                new Notice('已复制高亮内容');
+                new Notice('Copied');
             }).catch(err => {
                 console.error('复制内容失败:', err);
                 new Notice('Failed to copy content');
