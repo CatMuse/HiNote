@@ -63,7 +63,6 @@ export class HighlightCard {
     private isEditing = false;
     private aiButtonInstance: AIButton | null = null;
     private moreActionsDropdown: HTMLElement | null = null;
-    private boundClickOutsideHandler: (e: MouseEvent) => void;
     private unfocusedInput: UnfocusedCommentInput | null = null;
     private hasFlashcard: boolean = false; // 保存闪卡状态
 
@@ -90,10 +89,7 @@ export class HighlightCard {
         // 注册卡片实例
         HighlightCard.cardInstances.add(this);
         
-        // 创建点击外部关闭下拉菜单的处理函数
-        this.boundClickOutsideHandler = this.handleClickOutside.bind(this);
-        // 添加全局点击事件监听
-        document.addEventListener('click', this.boundClickOutsideHandler);
+        // 全局点击事件现在由静态方法处理
         
         this.render();
     }
@@ -771,37 +767,54 @@ export class HighlightCard {
         }
     }
 
+    // 缓存可见的下拉菜单列表
+    private static visibleDropdowns: Set<HTMLElement> = new Set();
+    // 跟踪是否已添加全局点击事件监听
+    private static isGlobalListenerAdded = false;
+
     /**
      * 检查是否有可见的更多操作下拉菜单
      */
     private hasVisibleMoreDropdown(): boolean {
-        return Array.from(document.querySelectorAll('.highlight-more-dropdown'))
-            .some(dropdown => !dropdown.hasClass("hi-note-hidden"));
+        return HighlightCard.visibleDropdowns.size > 0;
     }
 
     /**
-     * 处理点击外部事件，关闭更多操作下拉菜单
-     * @param e 鼠标事件
+     * 添加可见的下拉菜单
+     * @param dropdown 下拉菜单元素
      */
-    private handleClickOutside(e: MouseEvent) {
-        // 如果点击的是卡片内的元素，不处理
-        if (this.card.contains(e.target as Node)) {
-            return;
+    public static addVisibleDropdown(dropdown: HTMLElement): void {
+        if (!HighlightCard.isGlobalListenerAdded) {
+            document.addEventListener('click', HighlightCard.handleDocumentClick, true);
+            HighlightCard.isGlobalListenerAdded = true;
         }
-
-        // 如果没有可见的更多操作下拉菜单，不处理
-        if (!this.hasVisibleMoreDropdown()) {
-            return;
-        }
-
-        // 关闭所有非隐藏的更多操作下拉菜单
-        document.querySelectorAll('.highlight-more-dropdown').forEach((dropdown) => {
-            if (!dropdown.hasClass("hi-note-hidden")) {
-                dropdown.addClass("hi-note-hidden");
-            }
-        });
+        HighlightCard.visibleDropdowns.add(dropdown);
     }
-    
+
+    /**
+     * 移除可见的下拉菜单
+     * @param dropdown 下拉菜单元素
+     */
+    public static removeVisibleDropdown(dropdown: HTMLElement): void {
+        HighlightCard.visibleDropdowns.delete(dropdown);
+    }
+
+    /**
+     * 文档级点击事件处理（静态方法，只会在文档上添加一次）
+     */
+    private static handleDocumentClick = (e: MouseEvent): void => {
+        // 遍历所有可见的下拉菜单
+        for (const dropdown of HighlightCard.visibleDropdowns) {
+            const card = dropdown.closest('.highlight-card');
+            // 如果点击的不是当前下拉菜单或其关联卡片，则隐藏该下拉菜单
+            if (card && !card.contains(e.target as Node) && !dropdown.contains(e.target as Node)) {
+                dropdown.classList.add('hi-note-hidden');
+                HighlightCard.visibleDropdowns.delete(dropdown);
+            }
+        }
+    };
+
+
     /**
      * 检查高亮是否已经创建了闪卡
      * @returns 是否已创建闪卡
