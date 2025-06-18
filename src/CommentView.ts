@@ -523,14 +523,13 @@ export class CommentView extends ItemView {
     
     // 设置框选功能
     private setupSelectionBox() {
-        // 移除之前的事件监听器
+        // 移除现有的事件监听器
         this.highlightContainer.removeEventListener('mousedown', this.handleSelectionStart);
         
         // 添加新的事件监听器
         this.highlightContainer.addEventListener('mousedown', this.handleSelectionStart);
     }
     
-    // 处理框选开始
     private handleSelectionStart = (e: MouseEvent) => {
         // 如果点击的是卡片内部元素、HiCard页面元素或AI对话浮动按钮，不启动框选
         if ((e.target as HTMLElement).closest('.highlight-card') ||
@@ -540,7 +539,44 @@ export class CommentView extends ItemView {
             (e.target as HTMLElement).closest('.highlight-floating-button')) {
             return;
         }
+    
+        // 记录起始位置
+        this.selectionStartX = e.clientX;
+        this.selectionStartY = e.clientY;
+        this.mouseMoved = false; // 重置移动标志
+    
+        // 添加移动和结束事件监听器
+        document.addEventListener('mousemove', this.handleMouseMove);
+        document.addEventListener('mouseup', this.handleMouseUp);
+    }
+    
+    private handleMouseMove = (e: MouseEvent) => {
+        // 检查鼠标移动距离是否超过阈值
+        const dx = e.clientX - this.selectionStartX;
+        const dy = e.clientY - this.selectionStartY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
         
+        if (distance >= this.mouseMoveThreshold) {
+            this.mouseMoved = true;
+            // 移除鼠标移动事件监听器
+            document.removeEventListener('mousemove', this.handleMouseMove);
+            // 开始框选
+            this.startSelection(e);
+        }
+    }
+    
+    private handleMouseUp = (e: MouseEvent) => {
+        // 移除事件监听器
+        document.removeEventListener('mousemove', this.handleMouseMove);
+        document.removeEventListener('mouseup', this.handleMouseUp);
+        
+        // 如果没有移动，则认为是点击空白区域
+        if (!this.mouseMoved) {
+            this.clearSelection();
+        }
+    }
+    
+    private startSelection(e: MouseEvent) {
         // 检查 DOM 中是否有带有 selected 类的卡片
         const hasSelectedCards = this.highlightContainer.querySelectorAll('.highlight-card.selected').length > 0;
         
@@ -548,15 +584,10 @@ export class CommentView extends ItemView {
         const HighlightCardClass = (window as any).HighlightCard;
         const hasSelectedCardsInSet = HighlightCardClass && HighlightCardClass.selectedCards && HighlightCardClass.selectedCards.size > 0;
         
-        // 如果已经有选中的卡片，点击空白区域取消选择
+        // 如果已经有选中的卡片，清除选择
         if (this.selectedHighlights.size > 0 || hasSelectedCards || hasSelectedCardsInSet) {
             this.clearSelection();
-            return;
         }
-        
-        // 记录起始位置
-        this.selectionStartX = e.clientX;
-        this.selectionStartY = e.clientY;
         
         // 创建选择框
         this.selectionBox = document.createElement('div');
@@ -572,7 +603,7 @@ export class CommentView extends ItemView {
         document.addEventListener('mousemove', this.handleSelectionMove);
         document.addEventListener('mouseup', this.handleSelectionEnd);
     }
-    
+
     // 处理框选移动
     private handleSelectionMove = (e: MouseEvent) => {
         if (!this.isSelectionMode || !this.selectionBox) return;
@@ -693,6 +724,9 @@ export class CommentView extends ItemView {
     private selectionBox: HTMLElement | null = null;
     private selectionStartX: number = 0;
     private selectionStartY: number = 0;
+
+    private mouseMoveThreshold = 5; // 鼠标移动阈值，超过此值才认为是拖拽
+    private mouseMoved = false; // 标记鼠标是否移动
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
