@@ -423,19 +423,37 @@ export class ExportService {
                     }
                     // 如果模板同时包含高亮和评论变量
                     else if (hasHighlightVars && hasCommentVars) {
-                        // 对每个评论，使用完整的模板进行处理
-                        for (const comment of highlight.comments) {
-                            // 使用用户自定义的模板格式，直接替换所有变量
-                            let processedTemplate = this.replaceVariables(template, {
-                                sourceFile: file.basename,
-                                highlightText: highlightText,
-                                highlightBlockRef: blockIdRef,
-                                highlightType: 'HiNote',
-                                commentContent: comment.content || '',
-                                commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss")
-                            });
-                            content.push(processedTemplate.trim());
+                        // 创建一个包含所有评论的字符串
+                        let allCommentsContent = '';
+                        let allCommentsDate = '';
+                        
+                        // 处理所有评论
+                        for (let i = 0; i < highlight.comments.length; i++) {
+                            const comment = highlight.comments[i];
+                            const commentDate = window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss");
+                            
+                            // 添加评论内容和日期，每个评论之间添加分隔符
+                            if (i > 0) {
+                                allCommentsContent += '\n\n---\n\n'; // 添加分隔符
+                            }
+                            allCommentsContent += comment.content || '';
+                            
+                            // 保存最新的评论日期
+                            if (i === 0 || (comment.updatedAt && (!allCommentsDate || comment.updatedAt > new Date(allCommentsDate).getTime()))) {
+                                allCommentsDate = commentDate;
+                            }
                         }
+                        
+                        // 使用用户自定义的模板格式，只替换一次所有变量
+                        let processedTemplate = this.replaceVariables(template, {
+                            sourceFile: file.basename,
+                            highlightText: highlightText,
+                            highlightBlockRef: blockIdRef,
+                            highlightType: 'HiNote',
+                            commentContent: allCommentsContent,
+                            commentDate: allCommentsDate
+                        });
+                        content.push(processedTemplate.trim());
                     }
                     // 如果模板只包含高亮变量（没有评论变量）
                     else if (hasHighlightVars && !hasCommentVars) {

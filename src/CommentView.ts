@@ -19,30 +19,32 @@ import { IdGenerator } from './utils/IdGenerator'; // 导入 IdGenerator
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
-/**
- * 将高亮笔记转换为闪卡状态
- * @param highlights 高亮笔记数组
- * @returns 闪卡状态数组
- */
-function convertToFlashcardState(highlights: HiNote[]): FlashcardState[] {
-    return highlights.map(highlight => ({
-        id: highlight.id,
-        difficulty: 0.3,  // 默认难度
-        stability: 0.5,   // 默认稳定性
-        retrievability: 0.9, // 默认可提取性
-        lastReview: Date.now(), // 当前时间作为上次复习时间
-        nextReview: Date.now() + 86400000, // 默认一天后复习
-        reviewHistory: [],
-        text: highlight.text,
-        answer: highlight.comments?.map(c => c.content).join("\n") || "", // 使用评论作为答案
-        filePath: highlight.filePath,
-        createdAt: highlight.createdAt,
-        reviews: 0,
-        lapses: 0
-    }));
-}
+// /**
+//  * 将高亮笔记转换为闪卡状态
+//  * @param highlights 高亮笔记数组
+//  * @returns 闪卡状态数组
+//  */
+// function convertToFlashcardState(highlights: HiNote[]): FlashcardState[] {
+//     return highlights.map(highlight => ({
+//         id: highlight.id,
+//         difficulty: 0.3,  // 默认难度
+//         stability: 0.5,   // 默认稳定性
+//         retrievability: 0.9, // 默认可提取性
+//         lastReview: Date.now(), // 当前时间作为上次复习时间
+//         nextReview: Date.now() + 86400000, // 默认一天后复习
+//         reviewHistory: [],
+//         text: highlight.text,
+//         answer: highlight.comments?.map(c => c.content).join("\n") || "", // 使用评论作为答案
+//         filePath: highlight.filePath,
+//         createdAt: highlight.createdAt,
+//         reviews: 0,
+//         lapses: 0
+//     }));
+// }
 
 export class CommentView extends ItemView {
+    // 添加活动视图变化的事件处理器
+    private activeLeafChangeHandler: (() => void) | undefined;
     // 清除所有选中状态的方法
     private clearSelection() {
         // 清除DOM中的选中状态
@@ -1948,6 +1950,9 @@ export class CommentView extends ItemView {
         });
         
         document.body.appendChild(this.floatingButton);
+        
+        // 注册活动叶子变化的事件处理器
+        this.registerActiveLeafChangeHandler();
     }
 
     // 添加移除浮动按钮的方法
@@ -1956,11 +1961,54 @@ export class CommentView extends ItemView {
             this.floatingButton.remove();
             this.floatingButton = null;
         }
+        
+        // 移除活动叶子变化的事件处理器
+        this.unregisterActiveLeafChangeHandler();
+    }
+    
+    // 注册活动叶子变化的事件处理器
+    private registerActiveLeafChangeHandler() {
+        // 如果已经注册过，先移除
+        this.unregisterActiveLeafChangeHandler();
+        
+        // 创建事件处理器
+        this.activeLeafChangeHandler = () => {
+            this.updateFloatingButtonVisibility();
+        };
+        
+        // 注册事件
+        this.app.workspace.on('active-leaf-change', this.activeLeafChangeHandler);
+        
+        // 初始化按钮可见性
+        this.updateFloatingButtonVisibility();
+    }
+    
+    // 移除活动叶子变化的事件处理器
+    private unregisterActiveLeafChangeHandler() {
+        if (this.activeLeafChangeHandler) {
+            this.app.workspace.off('active-leaf-change', this.activeLeafChangeHandler);
+            this.activeLeafChangeHandler = undefined;
+        }
+    }
+    
+    // 更新浮动按钮的可见性
+    private updateFloatingButtonVisibility() {
+        if (!this.floatingButton) return;
+        
+        const activeLeaf = this.app.workspace.activeLeaf;
+        if (activeLeaf && activeLeaf.view && activeLeaf.view.getViewType() === VIEW_TYPE_COMMENT) {
+            // 如果当前活动视图是 CommentView，显示浮动按钮
+            this.floatingButton.style.display = 'flex';
+        } else {
+            // 否则隐藏浮动按钮
+            this.floatingButton.style.display = 'none';
+        }
     }
 
     // 在 onunload 方法中确保清理
     onunload() {
         this.removeFloatingButton();
+        this.unregisterActiveLeafChangeHandler();
     }
 
     // Update AI-related dropdowns

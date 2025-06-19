@@ -663,7 +663,7 @@ export class HighlightCard {
         
         // 显示菜单在按钮下方
         const rect = button.getBoundingClientRect();
-        menu.showAtPosition({ x: rect.left, y: rect.bottom });
+        menu.showAtPosition({ x: rect.left - 100, y: rect.bottom + 8 });
     }
 
     // 缓存可见的下拉菜单列表

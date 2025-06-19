@@ -19,14 +19,13 @@ export interface AIButtonOptions {
     /** AI 响应后的回调函数 */
     onResponse: (content: string) => Promise<void>;
     /** 按钮的 CSS 类名 */
-    buttonClass?: string;
+    buttonClass: string;
     /** 按钮的图标名称 */
-    buttonIcon?: string;
+    buttonIcon: string;
     /** 按钮的 aria-label 属性 */
-    buttonLabel?: string;
+    buttonLabel: string;
     /** 按钮的位置 */
-    position?: 'left' | 'right' | 'titlebar';
-
+    position: 'left' | 'right' | 'titlebar';
 }
 
 /**
@@ -57,11 +56,8 @@ export class AIButton {
         this.plugin = plugin;
         this.container = container;
         this.contentProvider = contentProvider;
+        // 合并选项，使用传入的选项覆盖默认值
         this.options = {
-            buttonClass: "highlight-action-btn highlight-ai-btn",
-            buttonIcon: "bot-message-square",
-            buttonLabel: t('AI 分析'),
-            position: 'left',
             ...options
         };
 
@@ -107,10 +103,10 @@ export class AIButton {
 
         // AI 按钮
         const aiButton = aiContainer.createEl("div", {
-            cls: this.options.buttonClass || "",
-            attr: { 'aria-label': this.options.buttonLabel || t('AI 分析') }
+            cls: this.options.buttonClass,
+            attr: { 'aria-label': this.options.buttonLabel }
         });
-        setIcon(aiButton, this.options.buttonIcon || "bot");
+        setIcon(aiButton, this.options.buttonIcon);
 
         // 创建下拉菜单，添加到 document.body
         // 移除自定义dropdown创建代码
@@ -149,7 +145,7 @@ export class AIButton {
         }
 
         const rect = this.aiButton.getBoundingClientRect();
-        menu.showAtPosition({ x: rect.left, y: rect.bottom });
+        menu.showAtPosition({ x: rect.left - 92, y: rect.bottom + 8 });
     }
 
     /**
@@ -210,19 +206,9 @@ export class AIButton {
     }
 
     /**
-     * 关闭下拉菜单
-     */
-    // 移除closeDropdown方法
-
-    /**
      * 获取按钮元素
      */
     public getButtonElement(): HTMLElement {
         return this.aiButton;
     }
-
-    /**
-     * 获取下拉菜单元素
-     */
-    // 移除getDropdownElement方法
 }
