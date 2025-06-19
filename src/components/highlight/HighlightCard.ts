@@ -651,7 +651,7 @@ export class HighlightCard {
         
         // 添加复制菜单项
         menu.addItem((item: MenuItem) => item
-            .setTitle(t('Copy'))
+            .setTitle(t('Copy Highlight'))
             .onClick(() => this.copyHighlightContent())
         );
         
