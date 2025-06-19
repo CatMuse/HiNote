@@ -3,7 +3,7 @@ import type CommentPlugin from "../../../main";
 import { HighlightContent } from "./HighlightContent";
 import { CommentList } from "./CommentList";
 import { UnfocusedCommentInput } from "../comment/UnfocusedCommentInput";
-import { MarkdownView, Notice, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView, setIcon } from "obsidian";
+import { MarkdownView, Notice, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView, setIcon, Menu, MenuItem } from "obsidian";
 import { DragPreview } from './DragPreview';
 import { VIEW_TYPE_COMMENT } from '../../CommentView';
 import { t } from "../../i18n";
@@ -333,7 +333,7 @@ export class HighlightCard {
                 buttonIcon: "sparkles",
                 buttonLabel: t('AI comment'),
                 position: 'titlebar',
-                dropdownClass: "highlight-ai-dropdown"
+
             }
         );
         
@@ -349,108 +349,10 @@ export class HighlightCard {
         });
         setIcon(moreActionsBtn, "ellipsis-vertical");
         
-        // 创建下拉菜单，添加到 document.body
-        const moreActionsDropdown = document.body.createEl("div", {
-            cls: "highlight-more-dropdown hi-note-hidden"
-        });
-        
-        // 保存下拉菜单引用
-        this.moreActionsDropdown = moreActionsDropdown;
-        
-        // 防止下拉菜单的点击事件冒泡
-        moreActionsDropdown.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
-        
         // 添加按钮点击事件
         moreActionsBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            this.toggleMoreActionsDropdown(moreActionsDropdown, moreActionsBtn);
-        });
-        
-        // 添加创建 HiCard 选项到下拉菜单
-        const hasFlashcard = this.checkHasFlashcard();
-        
-        // 创建一个异步函数来检查许可证状态
-        const checkLicenseStatus = async () => {
-            const licenseManager = new LicenseManager(this.plugin);
-            const isActivated = await licenseManager.isActivated();
-            const isFeatureEnabled = isActivated ? await licenseManager.isFeatureEnabled('flashcard') : false;
-            return isActivated && isFeatureEnabled;
-        };
-        
-        // 创建 HiCard 菜单项（使用保存的闪卡状态）
-        this.hasFlashcard = hasFlashcard; // 保存初始状态
-        const createHiCardItem = moreActionsDropdown.createEl("div", {
-            cls: "highlight-more-dropdown-item create-hicard-btn",
-            text: this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard')
-        });
-        
-        // 异步检查许可证状态并设置菜单项样式
-        checkLicenseStatus().then(isLicensed => {
-            if (!isLicensed && !hasFlashcard) {
-                // 如果没有许可证且没有闪卡，置灰菜单项
-                createHiCardItem.addClass("disabled-menu-item");
-                // 添加提示信息
-                createHiCardItem.setAttribute("aria-label", t('Only HiNote Pro'));
-            }
-        });
-        
-        // 添加点击事件
-        createHiCardItem.addEventListener("click", async (e) => {
-            e.stopPropagation();
-            moreActionsDropdown.addClass("hi-note-hidden");
-            
-            // 如果菜单项被禁用，不执行操作
-            if (createHiCardItem.hasClass("disabled-menu-item") && !hasFlashcard) {
-                new Notice(t('Only HiNote Pro'));
-                return;
-            }
-            
-            // 调用创建 HiCard 的逻辑
-            this.handleCreateHiCard();
-        });
-        
-        // 添加分隔线
-        moreActionsDropdown.createEl("div", {
-            cls: "highlight-more-dropdown-divider"
-        });
-        
-        // 添加复制功能选项到下拉菜单
-        const copyItem = moreActionsDropdown.createEl("div", {
-            cls: "highlight-more-dropdown-item",
-            text: t('Copy Highlight')
-        });
-        
-        // 添加复制功能的点击事件
-        copyItem.addEventListener("click", (e) => {
-            e.stopPropagation();
-            moreActionsDropdown.addClass("hi-note-hidden");
-            
-            // 复制高亮和批注内容
-            this.copyHighlightContent();
-        });
-        
-        // 添加分隔线
-        moreActionsDropdown.createEl("div", {
-            cls: "highlight-more-dropdown-divider"
-        });
-        
-        // 添加导出图片选项到下拉菜单
-        const exportItem = moreActionsDropdown.createEl("div", {
-            cls: "highlight-more-dropdown-item",
-            text: t('Export as Image')
-        });
-        
-        // 添加点击事件
-        exportItem.addEventListener("click", (e) => {
-            e.stopPropagation();
-            moreActionsDropdown.addClass("hi-note-hidden");
-            
-            // 调用导出图片的选项
-            if (this.options.onExport) {
-                this.options.onExport(this.highlight);
-            }
+            this.toggleMoreActionsDropdown(moreActionsBtn);
         });
 
         // 在主视图中预先生成 Block ID
@@ -722,53 +624,46 @@ export class HighlightCard {
             new Notice('Failed to copy content');
         }
     }
+    
+    /**
+     * 处理导出为图片功能
+     */
+    private handleExportAsImage(): void {
+        this.options.onExport(this.highlight);
+    }
 
     /**
      * 切换更多操作下拉菜单的显示/隐藏状态
      * @param dropdown 下拉菜单元素
      * @param button 触发菜单的按钮元素
      */
-    private toggleMoreActionsDropdown(dropdown: HTMLElement, button: HTMLElement) {
-        if (dropdown.hasClass("hi-note-hidden")) {
-            // 每次打开菜单前，重新检查闪卡状态
-            this.hasFlashcard = this.checkHasFlashcard();
-            
-            // 更新菜单项文本
-            const createHiCardItem = dropdown.querySelector('.create-hicard-btn');
-            if (createHiCardItem) {
-                createHiCardItem.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
-            }
-            // 关闭其他所有下拉菜单
-            document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((otherDropdown) => {
-                if (otherDropdown !== dropdown) {
-                    otherDropdown.addClass("hi-note-hidden");
-                }
-            });
-            
-            // 获取按钮的位置信息
-            const rect = button.getBoundingClientRect();
-            
-            // 计算下拉菜单的宽度和位置
-            const dropdownWidth = 160; // 菜单宽度
-            
-            // 计算合适的左侧位置，确保菜单不会超出屏幕右侧
-            let leftPos = rect.right - dropdownWidth;
-            const viewportWidth = window.innerWidth;
-            
-            // 确保菜单不会超出屏幕右侧
-            if (leftPos + dropdownWidth > viewportWidth - 10) {
-                leftPos = viewportWidth - dropdownWidth - 10; // 保留 10px 的边距
-            }
-            
-            // 设置下拉菜单的位置
-            dropdown.style.position = "fixed";
-            dropdown.style.top = (rect.bottom + 5) + "px"; // 按钮下方5px
-            dropdown.style.left = leftPos + "px"; // 右对齐，并防止超出屏幕
-            
-            dropdown.removeClass("hi-note-hidden");
-        } else {
-            dropdown.addClass("hi-note-hidden");
-        }
+    private toggleMoreActionsDropdown(button: HTMLElement) {
+        const menu = new Menu();
+        
+        // 检查闪卡状态
+        this.hasFlashcard = this.checkHasFlashcard();
+        
+        // 添加创建/删除闪卡菜单项
+        menu.addItem((item: MenuItem) => item
+            .setTitle(this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard'))
+            .onClick(() => this.handleCreateHiCard())
+        );
+        
+        // 添加复制菜单项
+        menu.addItem((item: MenuItem) => item
+            .setTitle(t('Copy'))
+            .onClick(() => this.copyHighlightContent())
+        );
+        
+        // 添加导出图片菜单项
+        menu.addItem((item: MenuItem) => item
+            .setTitle(t('Export as Image'))
+            .onClick(() => this.handleExportAsImage())
+        );
+        
+        // 显示菜单在按钮下方
+        const rect = button.getBoundingClientRect();
+        menu.showAtPosition({ x: rect.left, y: rect.bottom });
     }
 
     // 缓存可见的下拉菜单列表
@@ -869,7 +764,7 @@ export class HighlightCard {
             }
             
             // 立即更新所有下拉菜单中的按钮文本
-            this.updateAllMenuItems();
+    
         } catch (error) {
             console.error('处理闪卡操作时出错:', error);
             new Notice(t(`操作失败: ${error.message}`));
@@ -929,7 +824,7 @@ export class HighlightCard {
                 
                 // 更新闪卡状态和所有相关显示
                 this.updateIconsAfterCardDeletion();
-                this.updateAllMenuItems();
+        
                 
                 // 触发闪卡变化事件
                 this.plugin.eventManager.emitFlashcardChanged();
@@ -1100,7 +995,7 @@ export class HighlightCard {
         
         // 更新闪卡状态和所有相关显示
         this.updateIconsAfterCardCreation();
-        this.updateAllMenuItems();
+
     }
 
     /**
@@ -1147,25 +1042,5 @@ export class HighlightCard {
      * 更新所有下拉菜单中的闪卡按钮文本
      * 这个方法会查找所有可能的下拉菜单并更新其中的按钮文本
      */
-    private updateAllMenuItems() {
-        // 更新当前闪卡状态
-        this.hasFlashcard = this.checkHasFlashcard();
-        
-        // 如果当前下拉菜单存在，更新其中的按钮
-        if (this.moreActionsDropdown) {
-            const menuItem = this.moreActionsDropdown.querySelector('.create-hicard-btn');
-            if (menuItem) {
-                menuItem.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
-            }
-        }
-        
-        // 查找文档中所有可能与此卡片相关的下拉菜单
-        document.querySelectorAll('.highlight-more-dropdown').forEach(dropdown => {
-            // 尝试找到与当前高亮相关的下拉菜单
-            const menuItem = dropdown.querySelector('.create-hicard-btn');
-            if (menuItem) {
-                menuItem.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
-            }
-        });
-    }
+    // 移除updateAllMenuItems方法
 }

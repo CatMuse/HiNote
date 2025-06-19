@@ -1967,7 +1967,7 @@ export class CommentView extends ItemView {
     updateAIDropdowns(): void {
         // 更新所有 AIButton 实例的下拉菜单
         this.aiButtons.forEach(button => {
-            button.updateDropdownContent();
+
         });
         // 触发事件以便其他组件也能更新
         this.app.workspace.trigger('comment-view:update-ai-dropdowns');

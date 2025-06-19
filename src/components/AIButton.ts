@@ -1,4 +1,4 @@
-import { setIcon, Notice, ItemView } from "obsidian";
+import { setIcon, Notice, ItemView, Menu, MenuItem } from "obsidian";
 import { AIService } from "../services/AIService";
 import type CommentPlugin from "../../main";
 import { t } from "../i18n";
@@ -26,8 +26,7 @@ export interface AIButtonOptions {
     buttonLabel?: string;
     /** 按钮的位置 */
     position?: 'left' | 'right' | 'titlebar';
-    /** 下拉菜单的 CSS 类名 */
-    dropdownClass?: string;
+
 }
 
 /**
@@ -35,7 +34,7 @@ export interface AIButtonOptions {
  */
 export class AIButton {
     private container: HTMLElement;
-    private dropdown: HTMLElement;
+    // 移除dropdown属性
     private aiButton: HTMLElement;
     private plugin: CommentPlugin;
     private boundClickHandler: (e: MouseEvent) => void;
@@ -63,19 +62,11 @@ export class AIButton {
             buttonIcon: "bot-message-square",
             buttonLabel: t('AI 分析'),
             position: 'left',
-            dropdownClass: "highlight-ai-dropdown",
             ...options
         };
 
         this.initButton();
 
-        // 添加全局点击事件来关闭下拉菜单
-        this.boundClickHandler = (e) => {
-            if (!this.container.contains(e.target as Node) && !this.dropdown.hasClass("hi-note-hidden")) {
-                this.closeDropdown();
-            }
-        };
-        document.addEventListener('click', this.boundClickHandler);
 
         // 注册到 CommentView
         const view = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view;
@@ -122,17 +113,7 @@ export class AIButton {
         setIcon(aiButton, this.options.buttonIcon || "bot");
 
         // 创建下拉菜单，添加到 document.body
-        this.dropdown = document.body.createEl("div", {
-            cls: `${this.options.dropdownClass || "highlight-ai-dropdown"} hi-note-hidden`
-        });
-
-        // 防止下拉菜单的点击事件冒泡
-        this.dropdown.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
-
-        // 初始化下拉菜单内容
-        this.updateDropdownContent();
+        // 移除自定义dropdown创建代码
 
         // 添加按钮点击事件
         aiButton.addEventListener("click", (e) => {
@@ -148,68 +129,33 @@ export class AIButton {
      * 切换下拉菜单的显示/隐藏状态
      */
     private toggleDropdown() {
-        if (this.dropdown.hasClass("hi-note-hidden")) {
-            // 关闭所有下拉菜单，包括 AI 和 More 按钮的菜单
-            document.querySelectorAll('.highlight-ai-dropdown, .highlight-more-dropdown').forEach((dropdown) => {
-                if (dropdown !== this.dropdown) {
-                    dropdown.addClass("hi-note-hidden");
-                }
+        const menu = new Menu();
+        const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
+
+        if (prompts.length > 0) {
+            prompts.forEach(([promptName]) => {
+                menu.addItem((item: MenuItem) => item
+                    .setTitle(promptName)
+                    .onClick(async () => {
+                        await this.handleAIAnalysis(promptName);
+                    })
+                );
             });
-            
-            // 获取按钮的位置信息
-            const rect = this.aiButton.getBoundingClientRect();
-            
-            // 计算下拉菜单的宽度和位置
-            const dropdownWidth = 160; // 菜单宽度，保持与 More 按钮一致
-            
-            // 计算合适的左侧位置，确保菜单不会超出屏幕右侧
-            let leftPos = rect.right - dropdownWidth;
-            const viewportWidth = window.innerWidth;
-            
-            // 确保菜单不会超出屏幕右侧
-            if (leftPos + dropdownWidth > viewportWidth - 10) {
-                leftPos = viewportWidth - dropdownWidth - 10; // 保留 10px 的边距
-            }
-            
-            // 设置下拉菜单的位置
-            this.dropdown.style.position = "fixed";
-            this.dropdown.style.top = (rect.bottom + 5) + "px"; // 按钮下方5px
-            this.dropdown.style.left = leftPos + "px"; // 右对齐，并防止超出屏幕
-            
-            this.dropdown.removeClass("hi-note-hidden");
         } else {
-            this.dropdown.addClass("hi-note-hidden");
+            menu.addItem((item: MenuItem) => item
+                .setTitle(t("请在设置中添加 Prompt"))
+                .setDisabled(true)
+            );
         }
+
+        const rect = this.aiButton.getBoundingClientRect();
+        menu.showAtPosition({ x: rect.left, y: rect.bottom });
     }
 
     /**
      * 更新下拉菜单内容
      */
-    public updateDropdownContent() {
-        // 清空所有内容
-        this.dropdown.empty();
-
-        // 获取所有可用的 prompts
-        const prompts = Object.entries(this.plugin.settings.ai.prompts || {});
-        if (prompts.length > 0) {
-            prompts.forEach(([promptName, promptContent]) => {
-                const promptItem = this.dropdown.createEl("div", {
-                    cls: "highlight-ai-dropdown-item",
-                    text: promptName || ""
-                });
-                promptItem.addEventListener("click", async () => {
-                    this.dropdown.addClass("hi-note-hidden");
-                    await this.handleAIAnalysis(promptName);
-                });
-            });
-        } else {
-            // 如果没有可用的 prompts，显示提示信息
-            this.dropdown.createEl("div", {
-                cls: "highlight-ai-dropdown-item",
-                text: t("请在设置中添加 Prompt")
-            });
-        }
-    }
+    // 移除updateDropdownContent方法
 
     /**
      * 处理 AI 分析
@@ -266,17 +212,7 @@ export class AIButton {
     /**
      * 关闭下拉菜单
      */
-    public closeDropdown() {
-        if (!this.dropdown || this.dropdown.hasClass("hi-note-hidden")) return;
-        this.dropdown.addClass("hi-note-hidden");
-        // 强制更新 DOM
-        requestAnimationFrame(() => {
-            this.dropdown.addClass('highlight-dropdown-hidden');
-            requestAnimationFrame(() => {
-                this.dropdown.removeClass('highlight-dropdown-hidden');
-            });
-        });
-    }
+    // 移除closeDropdown方法
 
     /**
      * 获取按钮元素
@@ -288,7 +224,5 @@ export class AIButton {
     /**
      * 获取下拉菜单元素
      */
-    public getDropdownElement(): HTMLElement {
-        return this.dropdown;
-    }
+    // 移除getDropdownElement方法
 }
