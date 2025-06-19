@@ -423,37 +423,51 @@ export class ExportService {
                     }
                     // 如果模板同时包含高亮和评论变量
                     else if (hasHighlightVars && hasCommentVars) {
-                        // 创建一个包含所有评论的字符串
-                        let allCommentsContent = '';
-                        let allCommentsDate = '';
+                        // 首先处理高亮部分
+                        let highlightTemplate = template;
                         
-                        // 处理所有评论
-                        for (let i = 0; i < highlight.comments.length; i++) {
-                            const comment = highlight.comments[i];
-                            const commentDate = window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss");
-                            
-                            // 添加评论内容和日期，每个评论之间添加分隔符
-                            if (i > 0) {
-                                allCommentsContent += '\n\n---\n\n'; // 添加分隔符
-                            }
-                            allCommentsContent += comment.content || '';
-                            
-                            // 保存最新的评论日期
-                            if (i === 0 || (comment.updatedAt && (!allCommentsDate || comment.updatedAt > new Date(allCommentsDate).getTime()))) {
-                                allCommentsDate = commentDate;
-                            }
+                        // 分离模板中的高亮部分和批注部分
+                        const commentSectionStart = this.findCommentSectionStart(template);
+                        let commentTemplate = '';
+                        
+                        if (commentSectionStart !== -1) {
+                            // 分离高亮和批注部分
+                            highlightTemplate = template.substring(0, commentSectionStart);
+                            commentTemplate = template.substring(commentSectionStart);
                         }
                         
-                        // 使用用户自定义的模板格式，只替换一次所有变量
-                        let processedTemplate = this.replaceVariables(template, {
+                        // 处理高亮部分（只处理一次）
+                        let processedHighlightTemplate = this.replaceVariables(highlightTemplate, {
                             sourceFile: file.basename,
                             highlightText: highlightText,
                             highlightBlockRef: blockIdRef,
                             highlightType: 'HiNote',
-                            commentContent: allCommentsContent,
-                            commentDate: allCommentsDate
+                            // 空的评论变量
+                            commentContent: '',
+                            commentDate: ''
                         });
-                        content.push(processedTemplate.trim());
+                        
+                        // 添加高亮部分
+                        content.push(processedHighlightTemplate.trim());
+                        
+                        // 处理批注部分（每个批注单独处理）
+                        if (commentTemplate && highlight.comments && highlight.comments.length > 0) {
+                            for (const comment of highlight.comments) {
+                                const commentDate = window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss");
+                                
+                                // 为每个批注生成内容
+                                let processedCommentTemplate = this.replaceVariables(commentTemplate, {
+                                    sourceFile: file.basename,
+                                    highlightText: '',  // 批注部分不需要高亮内容
+                                    highlightBlockRef: '',
+                                    highlightType: 'HiNote',
+                                    commentContent: comment.content || '',
+                                    commentDate: commentDate
+                                });
+                                
+                                content.push(processedCommentTemplate.trim());
+                            }
+                        }
                     }
                     // 如果模板只包含高亮变量（没有评论变量）
                     else if (hasHighlightVars && !hasCommentVars) {
@@ -487,6 +501,37 @@ export class ExportService {
             result = result.replace(new RegExp(`{{${key}}}`, 'g'), value || '');
         }
         return result;
+    }
+    
+    /**
+     * 在模板中查找批注部分的起始位置
+     * 通过判断模板中第一个批注相关变量的位置来确定批注部分的起始
+     */
+    private findCommentSectionStart(template: string): number {
+        // 批注相关变量
+        const commentVars = ['commentContent', 'commentDate'];
+        
+        // 找到所有批注变量的位置
+        let firstCommentVarPos = -1;
+        
+        for (const varName of commentVars) {
+            const varPos = template.indexOf(`{{${varName}}}`);
+            if (varPos !== -1 && (firstCommentVarPos === -1 || varPos < firstCommentVarPos)) {
+                firstCommentVarPos = varPos;
+            }
+        }
+        
+        // 如果找到批注变量，则向前查找该变量所在行的起始位置
+        if (firstCommentVarPos !== -1) {
+            // 向前查找最近的换行符
+            const beforeText = template.substring(0, firstCommentVarPos);
+            const lastNewlinePos = beforeText.lastIndexOf('\n');
+            
+            // 如果找到换行符，则返回该位置，否则返回0（模板开头）
+            return lastNewlinePos !== -1 ? lastNewlinePos : 0;
+        }
+        
+        return -1; // 没有找到批注变量
     }
     
     /**
