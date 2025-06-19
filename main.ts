@@ -201,8 +201,8 @@ export default class CommentPlugin extends Plugin {
 					// 先分离当前叶子
 					workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
 					
-					// 然后在主视图区域创建新的叶子
-					const newLeaf = workspace.getLeaf('split');
+					// 然后在主视图区域创建新的叶子（使用tab而不是split避免分屏）
+					const newLeaf = workspace.getLeaf('tab');
 					await newLeaf.setViewState({
 						type: VIEW_TYPE_COMMENT,
 						active: true,
@@ -219,7 +219,7 @@ export default class CommentPlugin extends Plugin {
 				}
 
 				// 如果评论面板未打开，在主视图区域创建新标签页
-				const leaf = workspace.getLeaf('split');
+				const leaf = workspace.getLeaf('tab');
 				if (leaf) {
 					await leaf.setViewState({
 						type: VIEW_TYPE_COMMENT,
