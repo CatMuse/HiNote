@@ -1,5 +1,6 @@
 import { CommentItem, HighlightInfo } from "../../types";
 import { t } from "../../i18n";
+import { Platform } from "obsidian";
 
 // 标签格式的正则表达式
 const TAG_REGEX = /#[\w\u4e00-\u9fa5]+/g;
@@ -70,11 +71,47 @@ export class CommentInput {
             cls: 'hi-note-actions-hint'
         });
 
-        // 快捷键提示
-        this.actionHint.createEl('span', {
-            cls: 'hi-note-hint',
-            text: t('Shift + Enter Wrap, Enter Save')
-        });
+        // 快捷键提示 - 只在非移动端显示
+        if (!Platform.isMobile) {
+            this.actionHint.createEl('span', {
+                cls: 'hi-note-hint',
+                text: t('Shift + Enter Wrap, Enter Save')
+            });
+        } 
+        // 移动端上显示保存按钮
+        else {
+            const saveButton = this.actionHint.createEl('button', {
+                cls: 'hi-note-save-button',
+                text: t('Submit')
+            });
+            
+            saveButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                
+                if (this.isProcessing) return;
+                
+                const content = this.textarea.value.trim();
+                if (!content) return;
+                
+                this.isProcessing = true;
+                this.textarea.disabled = true;
+                saveButton.disabled = true;
+                
+                try {
+                    await this.options.onSave(content);
+                    // 保存成功后清理
+                    requestAnimationFrame(() => {
+                        document.removeEventListener('click', this.boundHandleOutsideClick);
+                        this.isProcessing = false;
+                        this.textarea.disabled = false;
+                    });
+                } catch (error) {
+                    this.isProcessing = false;
+                    this.textarea.disabled = false;
+                    saveButton.disabled = false;
+                }
+            });
+        }
 
         // 删除按钮
         if (this.options.onDelete) {
@@ -111,11 +148,47 @@ export class CommentInput {
             this.autoResizeTextarea();
         });
 
-        // 添加快捷键提示
-        inputSection.createEl('div', {
-            cls: 'hi-note-hint',
-            text: t('Shift + Enter Wrap, Enter Save')
-        });
+        // 添加快捷键提示 - 只在非移动端显示
+        if (!Platform.isMobile) {
+            inputSection.createEl('div', {
+                cls: 'hi-note-hint',
+                text: t('Shift + Enter Wrap, Enter Save')
+            });
+        }
+        // 移动端上显示保存按钮
+        else {
+            const saveButton = inputSection.createEl('button', {
+                cls: 'hi-note-save-button',
+                text: t('Submit')
+            });
+            
+            saveButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                
+                if (this.isProcessing) return;
+                
+                const content = this.textarea.value.trim();
+                if (!content) return;
+                
+                this.isProcessing = true;
+                this.textarea.disabled = true;
+                saveButton.disabled = true;
+                
+                try {
+                    await this.options.onSave(content);
+                    // 保存成功后清理
+                    requestAnimationFrame(() => {
+                        document.removeEventListener('click', this.boundHandleOutsideClick);
+                        this.isProcessing = false;
+                        this.textarea.disabled = false;
+                    });
+                } catch (error) {
+                    this.isProcessing = false;
+                    this.textarea.disabled = false;
+                    saveButton.disabled = false;
+                }
+            });
+        }
 
         // 添加到评论区域
         let commentsSection = this.card.querySelector('.hi-notes-section');
@@ -166,10 +239,17 @@ export class CommentInput {
         };
 
         this.textarea.onkeydown = async (e: KeyboardEvent) => {
+            // 移动端上 Enter 键为换行，非移动端上 Enter 键为保存
             if (e.key === 'Enter') {
-                if (e.shiftKey) {
-                    return; // 保持 Shift+Enter 换行功能
+                if (Platform.isMobile) {
+                    // 移动端上不拦截 Enter 键，允许正常换行
+                    return;
+                } else if (e.shiftKey) {
+                    // 非移动端上保持 Shift+Enter 换行功能
+                    return;
                 }
+                
+                // 非移动端上 Enter 键为保存
                 e.preventDefault();
                 
                 if (this.isProcessing) return;
