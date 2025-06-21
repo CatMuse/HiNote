@@ -1,4 +1,4 @@
-import { MarkdownRenderer, Component, setIcon, Notice, TFile } from "obsidian";
+import { MarkdownRenderer, Component, setIcon, Notice, TFile, Platform } from "obsidian";
 import { CardGroup, FlashcardProgress, FlashcardState, FSRS_RATING } from "../types/FSRSTypes";
 import { t } from "../../i18n";
 import { FlashcardStatsPanel } from "./FlashcardStatsPanel";
@@ -8,9 +8,22 @@ import { FlashcardStatsPanel } from "./FlashcardStatsPanel";
  */
 export class FlashcardRenderer {
     private component: any;
+    private isMobileView: boolean = false;
+    private isSmallScreen: boolean = false;
+    private showingSidebar: boolean = true; // 在移动端默认先显示侧边栏
+    private isInFlashcardMode: boolean = false; // 是否在闪卡模式中
     
     constructor(component: any) {
         this.component = component;
+        // 检测设备类型和屏幕大小
+        this.isMobileView = Platform.isMobile;
+        this.isSmallScreen = window.innerWidth < 768;
+        
+        // 在移动端默认显示侧边栏，在桌面端默认显示卡片内容
+        this.showingSidebar = this.isMobileView;
+        
+        // 初始化时设置为闪卡模式
+        this.isInFlashcardMode = true;
     }
     
     /**
@@ -68,19 +81,97 @@ export class FlashcardRenderer {
     }
     
     /**
+     * 切换侧边栏和内容区域的显示状态
+     */
+    public toggleSidebar() {
+        this.showingSidebar = !this.showingSidebar;
+        this.render();
+    }
+    
+    /**
+     * 获取当前侧边栏的显示状态
+     */
+    public isShowingSidebar(): boolean {
+        return this.showingSidebar;
+    }
+    
+    /**
+     * 显示侧边栏
+     */
+    public showSidebar() {
+        // 设置状态变量
+        this.showingSidebar = true;
+        
+        // 直接操作 DOM 添加/移除类，确保立即生效
+        const container = this.component.getContainer();
+        if (this.isMobileView && this.isSmallScreen) {
+            container.addClass('show-sidebar');
+            container.removeClass('show-content');
+        }
+        
+        // 重新渲染
+        this.render();
+    }
+    
+    /**
+     * 返回上一级
+     * 在卡片内容页面时，返回到分组列表
+     * 在分组列表页面时，返回到文件列表
+     */
+    public goBack() {
+        if (this.isMobileView && this.isSmallScreen) {
+            if (!this.showingSidebar) {
+                // 如果当前显示卡片内容，返回到分组列表
+                this.showingSidebar = true;
+                this.render();
+            } else {
+                // 如果当前显示分组列表，返回到文件列表
+                // 调用 CommentView 中的方法返回到文件列表
+                if (this.component && this.component.commentView) {
+                    // 设置 CommentView 中的状态
+                    this.component.commentView.isFlashcardMode = false;
+                    this.component.commentView.isShowingFileList = true;
+                    // 更新视图布局
+                    this.component.commentView.updateViewLayout();
+                }
+            }
+        }
+    }
+    
+    /**
      * 渲染主界面
      */
     public render() {
         const container = this.component.getContainer();
         container.empty();
         container.addClass('flashcard-mode');
-
-        // 创建进度指示器
-        const progressContainer = container.createEl("div", { cls: "flashcard-progress-container" });
-        this.component.setProgressContainer(progressContainer);
         
-        // 更新进度显示（这将由 FlashcardProgress.ts 中的 updateProgress 方法处理）
-        this.component.updateProgress();
+        // 根据设备类型添加相应的类
+        if (this.isMobileView) {
+            container.addClass('is-mobile');
+            if (this.isSmallScreen) {
+                container.addClass('is-small-screen');
+            }
+            
+            // 根据当前显示状态添加类
+            if (this.showingSidebar) {
+                container.addClass('show-sidebar');
+            } else {
+                container.addClass('show-content');
+            }
+            
+
+        }
+
+        // 创建进度指示器 - 在移动端显示侧边栏时不显示进度信息
+        // 只有在非移动端或者移动端不显示侧边栏时才显示进度信息
+        if (!this.isMobileView || (this.isMobileView && !this.showingSidebar)) {
+            const progressContainer = container.createEl("div", { cls: "flashcard-progress-container" });
+            this.component.setProgressContainer(progressContainer);
+            
+            // 更新进度显示（这将由 FlashcardProgress.ts 中的 updateProgress 方法处理）
+            this.component.updateProgress();
+        }
 
         // 创建主容器
         const mainContainer = container.createEl("div", { cls: "flashcard-main-container" });
@@ -251,6 +342,11 @@ export class FlashcardRenderer {
                     this.component.setCardFlipped(false);
                 }
                 
+                // 在移动端上，点击分组后切换到卡片内容区域
+                if (this.isMobileView) {
+                    this.showingSidebar = false;
+                }
+                
                 this.component.saveState();
                 this.render();
             });
@@ -259,6 +355,8 @@ export class FlashcardRenderer {
         // 创建右侧内容区域
         const contentArea = mainContainer.createEl("div", { cls: "flashcard-content-area" });
 
+
+        
         // 创建闪卡容器
         const cardContainer = contentArea.createEl("div", { cls: "flashcard-container" });
         

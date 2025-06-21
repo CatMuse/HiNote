@@ -881,13 +881,28 @@ export class CommentView extends ItemView {
         });
         setIcon(backButton, "arrow-left");
         backButton.createEl("span", {
-            text: t("Back"),
+            text: t("BACK"),
             cls: "highlight-back-button-text"
         });
         
         // 添加返回按钮点击事件
         backButton.addEventListener("click", () => {
             if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                // 如果在闪卡模式下，实现逐级返回
+                if (this.isFlashcardMode && this.flashcardComponent) {
+                    // 检查闪卡渲染器的状态
+                    const renderer = this.flashcardComponent.getRenderer();
+                    if (renderer) {
+                        // 如果在卡片内容页面，先返回到分组列表
+                        if (!renderer.isShowingSidebar()) {
+                            renderer.showSidebar();
+                            return;
+                        }
+                        // 如果已经在分组列表页面，才返回到文件列表
+                    }
+                }
+                
+                // 如果不是闪卡模式或者已经在闪卡分组列表页面，返回到文件列表
                 this.isShowingFileList = true;
                 this.updateViewLayout();
             }

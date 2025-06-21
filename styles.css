@@ -1320,6 +1320,8 @@ settings:
     margin-top: 20px;
     opacity: 0;
     transition: opacity 0.3s ease;
+    flex-wrap: wrap; /* 允许按钮在小屏幕上换行 */
+    gap: 10px; /* 按钮之间的间距 */
 }
 
 /* 当卡片翻转时显示评分按钮 */
@@ -3728,8 +3730,16 @@ textarea.flashcard-modal-input {
 
 /* 返回按钮样式 */
 .highlight-back-button-container {
-    padding: 8px;
+    padding: 13.25px 8px;
     display: none;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
 }
 
 /* 只在小屏幕移动端主视图模式下显示返回按钮 */
@@ -3767,8 +3777,12 @@ textarea.flashcard-modal-input {
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 4px 6px;
     border-radius: 4px;
+}
+
+.highlight-back-button svg {
+    color: var(--text-muted);
 }
 
 .highlight-back-button:hover {
@@ -3777,4 +3791,76 @@ textarea.flashcard-modal-input {
 
 .highlight-back-button-text {
     margin-left: 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 闪卡移动端样式 */
+.is-mobile.is-small-screen.flashcard-mode {
+    position: relative;
+}
+
+/* 移动端闪卡评分按钮自适应样式 */
+@media (max-width: 480px) {
+    .flashcard-rating {
+        margin-top: 15px;
+    }
+    
+    .flashcard-rating-button {
+        width: 60px;
+        height: 60px;
+        margin: 0 5px;
+        font-size: 0.9em;
+    }
+    
+    .flashcard-rating-button .days {
+        font-size: 0.75em;
+    }
+}
+
+/* 超小屏幕设备的闪卡评分按钮样式 */
+@media (max-width: 360px) {
+    .flashcard-rating-button {
+        width: 50px;
+        height: 50px;
+        margin: 0 4px;
+        font-size: 0.85em;
+    }
+}
+
+/* 移动端闪卡主容器 */
+.is-mobile.is-small-screen .flashcard-main-container {
+    flex-direction: column;
+}
+
+/* 移动端闪卡侧边栏 */
+.is-mobile.is-small-screen .flashcard-sidebar {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* 移动端闪卡内容区域 */
+.is-mobile.is-small-screen .flashcard-content-area {
+    width: 100%;
+}
+
+/* 移动端显示侧边栏时隐藏内容区域 */
+.is-mobile.is-small-screen.show-sidebar .flashcard-sidebar {
+    display: flex;
+}
+
+.is-mobile.is-small-screen.show-sidebar .flashcard-content-area {
+    display: none;
+}
+
+/* 移动端显示内容区域时隐藏侧边栏 */
+.is-mobile.is-small-screen.show-content .flashcard-sidebar {
+    display: none;
+}
+
+.is-mobile.is-small-screen.show-content .flashcard-content-area {
+    display: flex;
 }
