@@ -109,8 +109,9 @@ export class CommentWidget extends WidgetType {
         const hasComments = (this.highlight.comments || []).length > 0;
         
         // 创建按钮，如果没有评论，添加隐藏类
+        // 添加 clickable-icon 类以避免在平板模式下被拉伸
         const button = wrapper.createEl("button", {
-            cls: `hi-note-button ${!hasComments ? 'hi-note-button-hidden' : ''}`
+            cls: `hi-note-button clickable-icon ${!hasComments ? 'hi-note-button-hidden' : ''}`
         });
 
         const iconContainer = this.createIconContainer(button);

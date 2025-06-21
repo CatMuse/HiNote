@@ -1251,6 +1251,22 @@ settings:
     transition: transform 0.1s;
 }
 
+/* 移动端闪卡高度自适应 */
+@media (max-width: 768px) {
+    .flashcard {
+        height: 100%;
+        min-height: 350px;
+        flex: 1;
+    }
+    
+    .flashcard-container {
+        height: 100%;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+}
+
 .flashcard-side {
     position: absolute;
     top: 0;
@@ -2324,6 +2340,14 @@ justify-content: center;
     background-color: var(--background-secondary-alt);
     border-radius: 4px;
 }
+
+/* 确保 CommentWidget 始终可见 */
+/* .hi-note-widget {
+    display: inline-flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+} */
 
 /* 当没有评论时，最小化 widget 的空间占用 */
 .hi-note-widget-no-comments {
@@ -3427,14 +3451,6 @@ textarea.flashcard-modal-input {
     color: var(--text-faint);
 }
 
-/* 确保 CommentWidget 始终可见 */
-.hi-note-widget {
-    display: inline-flex !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-}
-
 /* 高亮卡片标题栏样式 */
 .highlight-card-title-bar {
     display: flex;
@@ -3731,14 +3747,13 @@ textarea.flashcard-modal-input {
 /* 返回按钮样式 */
 .highlight-back-button-container {
     padding: 13.25px 8px;
-    display: none;
+    display: none; /* 默认不显示 */
     border-bottom: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     position: sticky;
     top: 0;
     z-index: 10;
     backdrop-filter: blur(10px);
-    display: flex;
     align-items: center;
 }
 
