@@ -1591,7 +1591,7 @@ export class CommentView extends ItemView {
         const allIcon = allFilesLeft.createEl("span", {
             cls: "highlight-file-item-icon"
         });
-        setIcon(allIcon, 'documents');
+        setIcon(allIcon, 'square-library');
 
         // 创建"全部"文本
         allFilesLeft.createEl("span", {
