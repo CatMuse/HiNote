@@ -712,6 +712,9 @@ export class CommentView extends ItemView {
     private highlightService: HighlightService;
     private licenseManager: LicenseManager;
     private isDraggedToMainView: boolean = false;
+    private isMobileView: boolean = false;
+    private isSmallScreen: boolean = false; // 是否为小屏幕设备
+    private isShowingFileList: boolean = true; // 在移动端主视图中是否显示文件列表
     private currentBatch: number = 0;
     private isLoading: boolean = false;
     private loadingIndicator: HTMLElement;
@@ -866,6 +869,28 @@ export class CommentView extends ItemView {
         // 创建右侧内容区域
         this.mainContentContainer = mainContainer.createEl("div", {
             cls: "highlight-content-container"
+        });
+        
+        // 创建返回按钮（仅在移动端显示）
+        const backButtonContainer = this.mainContentContainer.createEl("div", {
+            cls: "highlight-back-button-container"
+        });
+        
+        const backButton = backButtonContainer.createEl("div", {
+            cls: "highlight-back-button"
+        });
+        setIcon(backButton, "arrow-left");
+        backButton.createEl("span", {
+            text: t("Back"),
+            cls: "highlight-back-button-text"
+        });
+        
+        // 添加返回按钮点击事件
+        backButton.addEventListener("click", () => {
+            if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                this.isShowingFileList = true;
+                this.updateViewLayout();
+            }
         });
         
         // 创建搜索区域
@@ -1346,13 +1371,22 @@ export class CommentView extends ItemView {
 
     // 添加新方法来检查视图位置
     private async checkViewPosition() {
+        // 获取根布局
         const root = this.app.workspace.rootSplit;
+        if (!root) return;
+        
+        // 检查当前视图是否在主区域
         const isInMainView = this.isViewInMainArea(this.leaf, root);
         
         if (this.isDraggedToMainView !== isInMainView) {
             this.isDraggedToMainView = isInMainView;
 
             if (isInMainView) {
+                // 在小屏幕移动端，拖拽到主视图时默认显示文件列表
+                if (this.checkIfMobile() && this.checkIfSmallScreen()) {
+                    this.isShowingFileList = true;
+                }
+                
                 // 拖拽到主视图时，若有激活文档则显示该文档高亮，否则显示全部高亮
                 const activeFile = this.app.workspace.getActiveFile();
                 if (activeFile) {
@@ -1406,17 +1440,69 @@ export class CommentView extends ItemView {
         return false;
     }
     
+    // 检测是否为移动设备
+    private checkIfMobile(): boolean {
+        return Platform.isMobile;
+    }
+    
+    // 检测是否为小屏幕设备（宽度小于768px）
+    private checkIfSmallScreen(): boolean {
+        return window.innerWidth < 768;
+    }
+
     // 添加新方法来更新视图布局
     private async updateViewLayout() {
+        // 检测设备类型和屏幕大小
+        this.isMobileView = this.checkIfMobile();
+        this.isSmallScreen = this.checkIfSmallScreen();
+        
         // 先清除所有显示相关的类
         this.fileListContainer.removeClass('highlight-display-block');
         this.fileListContainer.removeClass('highlight-display-none');
+        this.mainContentContainer.removeClass('highlight-display-none');
+        
+        // 添加或移除主视图标记类
+        const container = this.containerEl.children[1];
+        if (this.isDraggedToMainView) {
+            container.addClass('is-in-main-view');
+        } else {
+            container.removeClass('is-in-main-view');
+        }
+        
+        // 添加或移除小屏幕标记类
+        if (this.isSmallScreen) {
+            container.addClass('is-small-screen');
+        } else {
+            container.removeClass('is-small-screen');
+        }
         
         if (this.isDraggedToMainView) {
-            // 在主视图中显示文件列表
-            this.fileListContainer.addClass('highlight-display-block');
+            // 更新文件列表
             await this.updateFileList();
             this.createFloatingButton();
+            
+            if (this.isMobileView && this.isSmallScreen) {
+                // 小屏幕移动设备主视图模式（手机）
+                if (this.isShowingFileList) {
+                    // 显示文件列表，隐藏内容区域
+                    this.fileListContainer.addClass('highlight-display-block');
+                    this.mainContentContainer.addClass('highlight-display-none');
+                    // 添加全宽类，使文件列表占据全部宽度
+                    this.fileListContainer.addClass('highlight-full-width');
+                } else {
+                    // 显示内容区域，隐藏文件列表
+                    this.fileListContainer.addClass('highlight-display-none');
+                    this.mainContentContainer.removeClass('highlight-display-none');
+                    // 移除全宽类
+                    this.fileListContainer.removeClass('highlight-full-width');
+                }
+            } else {
+                // 大屏幕设备主视图模式（平板、桌面）- 同时显示文件列表和内容
+                this.fileListContainer.addClass('highlight-display-block');
+                this.mainContentContainer.removeClass('highlight-display-none');
+                // 确保移除全宽类
+                this.fileListContainer.removeClass('highlight-full-width');
+            }
         } else {
             // 在侧边栏中隐藏文件列表
             this.fileListContainer.addClass('highlight-display-none');
@@ -1521,6 +1607,12 @@ export class CommentView extends ItemView {
                 this.flashcardComponent.setLicenseManager(this.licenseManager);
             }
             
+            // 在小屏幕移动端主视图模式下，点击闪卡后切换到内容视图
+            if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                this.isShowingFileList = false;
+                this.updateViewLayout();
+            }
+            
             // 激活闪卡组件
             await this.flashcardComponent.activate();
         });
@@ -1616,6 +1708,13 @@ export class CommentView extends ItemView {
                 this.flashcardComponent = null;
             }
             this.updateFileListSelection();
+            
+            // 在小屏幕移动端主视图模式下，点击"全部"后切换到内容视图
+            if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                this.isShowingFileList = false;
+                this.updateViewLayout();
+            }
+            
             await this.updateAllHighlights();
         });
 
@@ -1685,6 +1784,13 @@ export class CommentView extends ItemView {
                 if (iconButtons) {
                     iconButtons.removeClass('highlight-display-none');
                 }
+                
+                // 在小屏幕移动端主视图模式下，点击文件后切换到内容视图
+                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                    this.isShowingFileList = false;
+                    this.updateViewLayout();
+                }
+                
                 await this.updateHighlights();
             });
         }

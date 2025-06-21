@@ -593,16 +593,15 @@ settings:
 }
 
 /* 新样式：没有评论的按钮半透明显示 */
-.hi-note-button-no-comments {
+/* .hi-note-button-no-comments {
     opacity: 0.5; /* 半透明而不是完全隐藏 */
-}
 
 /* 鼠标悬停时显示没有评论的按钮 */
-.cm-line:hover .hi-note-button-no-comments,
+/* .cm-line:hover .hi-note-button-no-comments,
 .cm-highlight:hover + .hi-note-widget .hi-note-button-no-comments,
 .hi-note-widget:hover .hi-note-button-no-comments {
     opacity: 1;
-}
+} */
 
 .hi-note-icon-container {
     display: inline-flex;
@@ -2305,11 +2304,6 @@ justify-content: center;
     background-color: var(--background-modifier-hover);
 }
 
-/* AI 下拉菜单显示/隐藏状态 */
-.highlight-dropdown-hidden {
-    display: none !important;
-}
-
 /* 聊天窗口隐藏样式 */
 .highlight-chat-hidden {
     display: none !important;
@@ -2366,48 +2360,6 @@ justify-content: center;
     100% {
         transform: rotate(360deg);
     }
-}
-
-/* AI 下拉菜单样式 */
-.highlight-ai-dropdown,
-.highlight-more-dropdown {
-    position: fixed; /* 使用fixed定位，相对于视口 */
-    /* 位置将通过JavaScript动态设置 */
-    background-color: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    padding: 4px 0;
-    min-width: 160px;
-    max-width: 200px;
-    max-height: 300px;
-    overflow-y: auto;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 999999; /* 使用更高的z-index */
-    transform: translateZ(0); /* 强制确保元素在自己的层台上 */
-}
-
-.highlight-ai-dropdown.hidden,
-.highlight-more-dropdown.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-.highlight-ai-dropdown-item,
-.highlight-more-dropdown-item {
-    padding: 6px 12px;
-    font-size: 12px;
-    color: var(--text-normal);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
-}
-
-.highlight-ai-dropdown-item:hover,
-.highlight-more-dropdown-item:hover {
-    background-color: var(--background-modifier-hover);
-    color: var(--text-accent);
 }
 
 /* 更多操作容器样式 */
@@ -3411,32 +3363,6 @@ textarea.flashcard-modal-input {
     background-color: var(--background-modifier-hover);
 }
 
-/* 下拉菜单项样式 */
-.highlight-more-dropdown-item,
-.highlight-ai-dropdown-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 14px;
-    color: var(--text-normal);
-}
-
-.highlight-more-dropdown-item:hover,
-.highlight-ai-dropdown-item:hover {
-    background-color: var(--background-modifier-hover);
-}
-
-/* 禁用的菜单项样式 */
-.disabled-menu-item {
-    color: var(--text-muted);
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-.disabled-menu-item:hover {
-    background-color: transparent;
-}
-
 /* 禁用的按钮样式 */
 .disabled-button {
     color: var(--text-muted);
@@ -3796,4 +3722,59 @@ textarea.flashcard-modal-input {
     padding: 4px 10px;
     border-radius: 4px;
     cursor: pointer;
+}
+
+/* 移动端视图样式 */
+
+/* 返回按钮样式 */
+.highlight-back-button-container {
+    padding: 8px;
+    display: none;
+}
+
+/* 只在小屏幕移动端主视图模式下显示返回按钮 */
+.is-mobile .comment-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
+    display: flex;
+}
+
+/* 小屏幕移动端主视图中的全宽文件列表 */
+.is-mobile .is-small-screen .highlight-file-list-container.highlight-full-width {
+    width: 100% !important;
+    flex: 1 !important;
+}
+
+/* 小屏幕移动端主视图中调整主容器布局 */
+.is-mobile .comment-view-container.is-in-main-view.is-small-screen .highlight-main-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 大屏幕设备（如iPad）保持原来的布局 */
+@media (min-width: 768px) {
+    .is-mobile .highlight-file-list-container {
+        width: 250px !important;
+        min-width: 200px;
+        max-width: 300px;
+    }
+    
+    .is-mobile .comment-view-container .highlight-main-container {
+        display: flex;
+        flex-direction: row;
+    }
+}
+
+.highlight-back-button {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.highlight-back-button:hover {
+    background-color: var(--background-secondary);
+}
+
+.highlight-back-button-text {
+    margin-left: 4px;
 }
