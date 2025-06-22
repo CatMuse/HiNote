@@ -126,8 +126,8 @@ export class HighlightCard {
             cls: "highlight-card-title-right"
         });
         
-        // 在主视图下显示文件名
-        if (this.isInMainView && this.fileName) {
+        // 在主视图或全局搜索模式下显示文件名
+        if ((this.isInMainView || this.highlight.isGlobalSearch) && this.fileName) {
             // 添加文件图标
             const fileIcon = titleBarLeft.createEl("div", {
                 cls: "highlight-card-icon",
@@ -287,28 +287,34 @@ export class HighlightCard {
                 // 获取文件
                 const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
                 if (file instanceof TFile) {
-                    // 尝试打开文件并获取编辑器实例
-                    const cachedLeaf = this.plugin.app.workspace.getLeavesOfType('markdown').find(leaf => {
-                        const view = leaf.view;
-                        return view instanceof MarkdownView && view.file && view.file.path === file.path;
-                    });
-                    
-                    if (cachedLeaf) {
-                        const view = cachedLeaf.view as MarkdownView;
-                        if (view.editor) {
-                            // 计算行号
-                            const pos = view.editor.offsetToPos(this.highlight.position);
-                            const lineNumber = pos.line + 1; // 行号从0开始，显示时+1
-                            
-                            // 创建行号标签
-                            const lineNumberBadge = titleBarLeft.createEl("div", {
-                                cls: "highlight-line-number-badge",
-                            });
-                            
-                            lineNumberBadge.createEl("span", {
-                                text: `L${lineNumber}`,
-                                cls: "highlight-line-number"
-                            });
+                    // 如果是全局搜索模式，显示文件名而不是行号
+                    if (this.highlight.isGlobalSearch) {
+                        // 显示文件名已经在前面实现，这里不需要重复显示
+                        // 不显示行号标签
+                    } else {
+                        // 尝试打开文件并获取编辑器实例
+                        const cachedLeaf = this.plugin.app.workspace.getLeavesOfType('markdown').find(leaf => {
+                            const view = leaf.view;
+                            return view instanceof MarkdownView && view.file && view.file.path === file.path;
+                        });
+                        
+                        if (cachedLeaf) {
+                            const view = cachedLeaf.view as MarkdownView;
+                            if (view.editor) {
+                                // 计算行号
+                                const pos = view.editor.offsetToPos(this.highlight.position);
+                                const lineNumber = pos.line + 1; // 行号从0开始，显示时+1
+                                
+                                // 创建行号标签
+                                const lineNumberBadge = titleBarLeft.createEl("div", {
+                                    cls: "highlight-line-number-badge",
+                                });
+                                
+                                lineNumberBadge.createEl("span", {
+                                    text: `L${lineNumber}`,
+                                    cls: "highlight-line-number"
+                                });
+                            }
                         }
                     }
                 }

@@ -25,6 +25,7 @@ export interface HighlightInfo {
     fileType?: string;    // 文件类型
     originalLength?: number;  // 原始匹配文本的长度，包括标签
     isCloze?: boolean;    // 标记是否为挖空格式
+    isGlobalSearch?: boolean; // 标记是否为全局搜索结果
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';

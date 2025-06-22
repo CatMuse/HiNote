@@ -1086,9 +1086,14 @@ export class CommentView extends ItemView {
         }
 
         if (highlightsToRender.length === 0) {
+            // 检查是否有搜索内容
+            const hasSearchTerm = this.searchInput && this.searchInput.value.trim() !== '';
+            
             const emptyMessage = this.highlightContainer.createEl("div", {
                 cls: "highlight-empty-state",
-                text: t("The current document has no highlighted content.")
+                text: hasSearchTerm 
+                    ? t("No matching highlights found for your search.")
+                    : t("The current document has no highlighted content.")
             });
             return;
         }
@@ -2161,11 +2166,13 @@ export class CommentView extends ItemView {
     }
     
     // 添加方法来更新高亮列表显示（搜索筛选）
-    private updateHighlightsList() {
-        const searchTerm = this.searchInput.value.toLowerCase().trim();
-        
-        // 过滤并显示高亮评论
-        const filteredHighlights = this.highlights.filter(highlight => {
+    /**
+     * 根据搜索词过滤高亮列表
+     * @param searchTerm 搜索词
+     * @returns 过滤后的高亮列表
+     */
+    private filterHighlightsByTerm(searchTerm: string): HighlightInfo[] {
+        return this.highlights.filter(highlight => {
             // 搜索高亮文本
             if (highlight.text.toLowerCase().includes(searchTerm)) {
                 return true;
@@ -2182,9 +2189,57 @@ export class CommentView extends ItemView {
             }
             return false;
         });
+    }
 
-        // 更新显示
-        this.renderHighlights(filteredHighlights);
+    /**
+     * 更新高亮列表，支持使用 all: 前缀进行跨文件搜索
+     */
+    private async updateHighlightsList() {
+        // 获取搜索词并检查是否包含 all: 前缀
+        const searchInput = this.searchInput.value.toLowerCase().trim();
+        const isGlobalSearch = searchInput.startsWith('all:');
+        const searchTerm = isGlobalSearch ? searchInput.substring(4).trim() : searchInput;
+        
+        // 如果是全局搜索且不在全局视图中
+        if (isGlobalSearch && this.currentFile !== null) {
+            // 显示加载指示器
+            this.highlightContainer.empty();
+            this.highlightContainer.appendChild(this.loadingIndicator);
+            
+            // 保存当前文件引用
+            const originalFile = this.currentFile;
+            
+            try {
+                // 临时设置为 null 以启用全局搜索
+                this.currentFile = null;
+                
+                // 获取所有高亮
+                await this.updateAllHighlights();
+                
+                // 标记所有高亮为全局搜索结果
+                this.highlights.forEach(highlight => {
+                    highlight.isGlobalSearch = true;
+                });
+                
+                // 使用实际搜索词过滤
+                const filteredHighlights = this.filterHighlightsByTerm(searchTerm);
+                
+                // 更新显示
+                this.renderHighlights(filteredHighlights);
+            } finally {
+                // 恢复原始文件引用
+                this.currentFile = originalFile;
+            }
+        } else {
+            // 常规搜索逻辑
+            // 确保非全局搜索结果不会标记为全局搜索
+            this.highlights.forEach(highlight => {
+                highlight.isGlobalSearch = false;
+            });
+            
+            const filteredHighlights = this.filterHighlightsByTerm(searchTerm);
+            this.renderHighlights(filteredHighlights);
+        }
     }
 
     // 修改更新视图的方法
@@ -2326,8 +2381,14 @@ export class CommentView extends ItemView {
             }
         }
         
-        // 渲染高亮列表
-        this.renderHighlights(this.highlights);
+        // 检查搜索框是否有内容
+        if (this.searchInput && this.searchInput.value.trim() !== '') {
+            // 如果有搜索内容，调用搜索过滤方法
+            this.updateHighlightsList();
+        } else {
+            // 如果没有搜索内容，直接渲染所有高亮
+            this.renderHighlights(this.highlights);
+        }
     }
 
     // 添加页面预览功能
