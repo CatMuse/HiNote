@@ -1,5 +1,6 @@
 import { setIcon, MarkdownRenderer, Component, App, TFile } from "obsidian";
 import { HighlightInfo } from "../../types";
+import { t } from "../../i18n";
 import { DragPreview } from './DragPreview';
 
 export class HighlightContent extends Component {
@@ -95,16 +96,30 @@ export class HighlightContent extends Component {
             });
         }
 
-        // 只保留点击事件
-        textContent.addEventListener("mousedown", async (e) => {
-            // 如果点击的是链接，不触发高亮点击事件
-            if ((e.target as HTMLElement).closest('a')) {
-                return;
-            }
-            e.preventDefault();
-            e.stopPropagation();
-            await this.onHighlightClick(this.highlight);
-        });
+        // 如果不是全局搜索结果，添加点击事件
+        if (!this.highlight.isGlobalSearch) {
+            // 设置提示文本为“跳转到高亮”
+            textContent.setAttribute('aria-label', t('Jump to highlight'));
+            
+            textContent.addEventListener("mousedown", async (e) => {
+                // 如果点击的是链接，不触发高亮点击事件
+                if ((e.target as HTMLElement).closest('a')) {
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                await this.onHighlightClick(this.highlight);
+            });
+        } else {
+            // 全局搜索结果添加特殊样式类
+            textContent.addClass('global-search-highlight');
+            
+            // 移除可能存在的提示文本
+            textContent.removeAttribute('aria-label');
+            
+            // 添加提示性鼠标样式
+            textContent.style.cursor = 'default';
+        }
     }
     
     /**

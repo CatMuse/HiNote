@@ -1337,6 +1337,11 @@ export class CommentView extends ItemView {
             return;
         }
 
+        // 如果是全局搜索结果，静默禁止跳转
+        if (highlight.isGlobalSearch) {
+            return;
+        }
+
         if (!this.currentFile) {
             new Notice(t("No corresponding file found."));
             return;
