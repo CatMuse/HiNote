@@ -2172,11 +2172,94 @@ export class CommentView extends ItemView {
     
     // 添加方法来更新高亮列表显示（搜索筛选）
     /**
-     * 根据搜索词过滤高亮列表
+     * 根据搜索词和搜索类型过滤高亮列表
      * @param searchTerm 搜索词
+     * @param searchType 搜索类型（hicard 表示搜索闪卡）
      * @returns 过滤后的高亮列表
      */
-    private filterHighlightsByTerm(searchTerm: string): HighlightInfo[] {
+    private filterHighlightsByTerm(searchTerm: string, searchType: string = ''): HighlightInfo[] {
+        // 如果是搜索闪卡，需要先过滤出已转化为闪卡的高亮
+        if (searchType === 'hicard') {
+            // 获取 FSRS 管理器
+            const fsrsManager = this.plugin.fsrsManager;
+            if (!fsrsManager) {
+                return [];
+            }
+            
+            // 过滤出已转化为闪卡的高亮
+            return this.highlights.filter(highlight => {
+                // 检查高亮是否已转化为闪卡
+                const hasFlashcard = highlight.id ? 
+                    fsrsManager.findCardsBySourceId(highlight.id, 'highlight').length > 0 : 
+                    false;
+                
+                // 如果没有转化为闪卡，直接过滤掉
+                if (!hasFlashcard) {
+                    return false;
+                }
+                
+                // 如果有搜索词，还需要匹配搜索词
+                if (searchTerm) {
+                    // 搜索高亮文本
+                    if (highlight.text.toLowerCase().includes(searchTerm)) {
+                        return true;
+                    }
+                    // 搜索评论内容
+                    if (highlight.comments?.some(comment => 
+                        comment.content.toLowerCase().includes(searchTerm)
+                    )) {
+                        return true;
+                    }
+                    // 在全部视图中也搜索文件名
+                    if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
+                        return true;
+                    }
+                    return false;
+                }
+                
+                // 如果没有搜索词，返回所有已转化为闪卡的高亮
+                return true;
+            });
+        }
+        
+        // 如果是搜索批注，需要先过滤出包含批注的高亮
+        if (searchType === 'comment') {
+            // 过滤出包含批注的高亮
+            return this.highlights.filter(highlight => {
+                // 检查高亮是否包含批注
+                const hasComments = highlight.comments && highlight.comments.length > 0;
+                
+                // 如果没有批注，直接过滤掉
+                if (!hasComments) {
+                    return false;
+                }
+                
+                // 如果有搜索词，还需要匹配搜索词
+                if (searchTerm) {
+                    // 搜索高亮文本
+                    if (highlight.text.toLowerCase().includes(searchTerm)) {
+                        return true;
+                    }
+                    // 搜索评论内容
+                    // 由于我们已经检查了 hasComments，所以 highlight.comments 一定存在
+                    if (highlight.comments && highlight.comments.some(comment => 
+                        comment.content.toLowerCase().includes(searchTerm)
+                    )) {
+                        return true;
+                    }
+                    // 在全部视图中也搜索文件名
+                    if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
+                        return true;
+                    }
+                    return false;
+                }
+                
+                // 如果没有搜索词，返回所有包含批注的高亮
+                return true;
+            });
+        }
+        
+        // 常规搜索逻辑
         return this.highlights.filter(highlight => {
             // 搜索高亮文本
             if (highlight.text.toLowerCase().includes(searchTerm)) {
@@ -2197,13 +2280,37 @@ export class CommentView extends ItemView {
     }
 
     /**
-     * 更新高亮列表，支持使用 all: 前缀进行跨文件搜索
+     * 更新高亮列表，支持多种前缀搜索
+     * - all: 前缀进行跨文件搜索
+     * - hicard: 前缀搜索已转化为闪卡的高亮
+     * - comment: 前缀搜索包含批注的高亮
      */
     private async updateHighlightsList() {
-        // 获取搜索词并检查是否包含 all: 前缀
+        // 获取搜索词并检查是否包含前缀
         const searchInput = this.searchInput.value.toLowerCase().trim();
         const isGlobalSearch = searchInput.startsWith('all:');
-        const searchTerm = isGlobalSearch ? searchInput.substring(4).trim() : searchInput;
+        const isHiCardSearch = searchInput.startsWith('hicard:');
+        const isCommentSearch = searchInput.startsWith('comment:');
+        
+        // 确定搜索类型
+        let searchType = '';
+        if (isGlobalSearch) {
+            searchType = 'all';
+        } else if (isHiCardSearch) {
+            searchType = 'hicard';
+        } else if (isCommentSearch) {
+            searchType = 'comment';
+        }
+        
+        // 提取搜索词（去掉前缀）
+        let searchTerm = searchInput;
+        if (isGlobalSearch) {
+            searchTerm = searchInput.substring(4).trim();
+        } else if (isHiCardSearch) {
+            searchTerm = searchInput.substring(7).trim();
+        } else if (isCommentSearch) {
+            searchTerm = searchInput.substring(8).trim();
+        }
         
         // 如果是全局搜索且不在全局视图中
         if (isGlobalSearch && this.currentFile !== null) {
@@ -2227,7 +2334,7 @@ export class CommentView extends ItemView {
                 });
                 
                 // 使用实际搜索词过滤
-                const filteredHighlights = this.filterHighlightsByTerm(searchTerm);
+                const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
                 
                 // 更新显示
                 this.renderHighlights(filteredHighlights);
@@ -2242,7 +2349,7 @@ export class CommentView extends ItemView {
                 highlight.isGlobalSearch = false;
             });
             
-            const filteredHighlights = this.filterHighlightsByTerm(searchTerm);
+            const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
             this.renderHighlights(filteredHighlights);
         }
     }
