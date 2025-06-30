@@ -780,11 +780,12 @@ export class HighlightCard {
     /**
      * 公共方法：为高亮删除闪卡
      * 可以被外部调用，用于批量删除闪卡
+     * @param silent 是否静默模式（不显示通知，不触发事件）
      * @returns 删除是否成功
      */
-    public async deleteHiCardForHighlight(): Promise<boolean> {
+    public async deleteHiCardForHighlight(silent: boolean = false): Promise<boolean> {
         try {
-            await this.handleDeleteHiCard();
+            await this.handleDeleteHiCard(silent);
             return true;
         } catch (error) {
             console.error('删除闪卡时出错:', error);
@@ -794,12 +795,13 @@ export class HighlightCard {
 
     /**
      * 处理删除闪卡的逻辑
+     * @param silent 是否静默模式（不显示通知，不触发事件）
      */
-    private async handleDeleteHiCard() {
+    private async handleDeleteHiCard(silent: boolean = false) {
         try {
             const fsrsManager = this.plugin.fsrsManager;
             if (!fsrsManager) {
-                new Notice(t('FSRS 管理器未初始化'));
+                if (!silent) new Notice(t('FSRS 管理器未初始化'));
                 return;
             }
 
@@ -812,18 +814,15 @@ export class HighlightCard {
                 
                 // 清理可能残留的无效卡片引用
                 const cleanedCount = fsrsManager.cleanupInvalidCardReferences();
-                if (cleanedCount > 0) {
-
-                }
                 
                 // 检查是否有批注，决定是否删除高亮
                 const hasComments = this.highlight.comments && this.highlight.comments.length > 0;
                 
-                if (!hasComments) {
-                    // 没有批注，删除整个高亮
+                if (!hasComments && !silent) {
+                    // 没有批注，删除整个高亮（在批量删除时不执行此操作）
                     await this.deleteHighlightCompletely();
-                    new Notice(t('Flashcard and highlight deleted'));
-                } else {
+                    if (!silent) new Notice(t('Flashcard and highlight deleted'));
+                } else if (!silent) {
                     // 有批注，只删除闪卡，保留高亮和批注
                     new Notice(t('Flashcard deleted, highlight and comments preserved'));
                 }
@@ -831,15 +830,14 @@ export class HighlightCard {
                 // 更新闪卡状态和所有相关显示
                 this.updateIconsAfterCardDeletion();
         
-                
-                // 触发闪卡变化事件
-                this.plugin.eventManager.emitFlashcardChanged();
-            } else {
+                // 触发闪卡变化事件（在批量删除时不触发）
+                if (!silent) this.plugin.eventManager.emitFlashcardChanged();
+            } else if (!silent) {
                 new Notice(t('Flashcard not found'));
             }
         } catch (error) {
             console.error('删除闪卡时出错:', error);
-            new Notice(t(`Failed to delete flashcard: ${error.message}`));
+            if (!silent) new Notice(t(`Failed to delete flashcard: ${error.message}`));
         }
     }
 
@@ -879,9 +877,9 @@ export class HighlightCard {
      * 可以被外部调用，用于批量创建闪卡
      * @returns 创建是否成功
      */
-    public async createHiCardForHighlight(): Promise<boolean> {
+    public async createHiCardForHighlight(silent: boolean = false): Promise<boolean> {
         try {
-            await this.handleCreateNewHiCard();
+            await this.handleCreateNewHiCard(silent);
             return true;
         } catch (error) {
             console.error('创建闪卡时出错:', error);
@@ -891,8 +889,9 @@ export class HighlightCard {
 
     /**
      * 处理创建新闪卡的逻辑（原有逻辑）
+     * @param silent 是否静默模式，如果为 true 则不显示通知
      */
-    private async handleCreateNewHiCard() {
+    private async handleCreateNewHiCard(silent: boolean = false) {
         const fsrsManager = this.plugin.fsrsManager;
         if (!fsrsManager) {
             new Notice(t('FSRS 管理器未初始化'));
@@ -993,8 +992,10 @@ export class HighlightCard {
         // 触发事件，让 FSRSManager 来处理保存
         this.plugin.eventManager.emitFlashcardChanged();
         
-        // 显示成功消息
-        new Notice(t('Flashcard created successfully!'));
+        // 只在非静默模式下显示成功消息
+        if (!silent) {
+            new Notice(t('Flashcard created successfully!'));
+        }
         
         // 更新闪卡状态
         this.hasFlashcard = true;

@@ -330,8 +330,8 @@ export class CommentView extends ItemView {
                     let result = false;
                     
                     if (highlightCard) {
-                        // 如果找到了实例，直接使用该实例的创建方法
-                        result = await highlightCard.createHiCardForHighlight();
+                        // 如果找到了实例，直接使用该实例的创建方法（静默模式）
+                        result = await highlightCard.createHiCardForHighlight(true);
                     } else {
                         // 如果没有找到实例，创建一个临时容器元素
                         const tempContainer = document.createElement('div');
@@ -350,7 +350,7 @@ export class CommentView extends ItemView {
                             },
                             false
                         );
-                        result = await highlightCard.createHiCardForHighlight();
+                        result = await highlightCard.createHiCardForHighlight(true);
                     }
                     
                     if (result) {
@@ -384,6 +384,9 @@ export class CommentView extends ItemView {
         
         // 清除选中状态
         this.clearSelection();
+        
+        // 重新渲染高亮列表，确保闪卡图标状态更新
+        this.renderHighlights(this.highlights);
     }
     
     // 导出选中的高亮内容
@@ -467,13 +470,13 @@ export class CommentView extends ItemView {
                     let result = false;
                     
                     if (highlightCard) {
-                        // 如果找到了实例，直接使用该实例的删除方法
-                        result = await highlightCard.deleteHiCardForHighlight();
+                        // 如果找到了实例，直接使用该实例的删除方法（静默模式）
+                        result = await highlightCard.deleteHiCardForHighlight(true);
                     } else {
                         // 如果没有找到实例，创建一个临时容器元素
                         const tempContainer = document.createElement('div');
                         
-                        // 创建一个临时实例并使用它的删除方法
+                        // 创建一个临时实例并使用它的删除方法（静默模式）
                         highlightCard = new HighlightCard(
                             tempContainer,
                             highlight,
@@ -487,7 +490,7 @@ export class CommentView extends ItemView {
                             },
                             false
                         );
-                        result = await highlightCard.deleteHiCardForHighlight();
+                        result = await highlightCard.deleteHiCardForHighlight(true);
                     }
                     
                     if (result) {
@@ -521,6 +524,8 @@ export class CommentView extends ItemView {
         
         // 清除选中状态
         this.clearSelection();
+        // 重新渲染高亮列表，确保闪卡图标状态更新
+        this.renderHighlights(this.highlights);
     }
     
     // 设置框选功能
