@@ -110,10 +110,40 @@ export class HighlightService {
         file: TFile, 
         backgroundColor: string
     ): void {
+        // 优先用 Obsidian 的 metadataCache.sections 获取代码块区间
+        let codeBlockRanges: Array<[number, number]> = [];
+        if (file) {
+            const cache = this.app.metadataCache.getFileCache(file);
+            if (cache?.sections) {
+                const codeSections = cache.sections.filter(sec =>
+                    ["code", "codeblock", "fenced_code", "pre"].includes(sec.type)
+                );
+                codeBlockRanges = codeSections.map(sec => [
+                    sec.position.start.offset,
+                    sec.position.end.offset
+                ]);
+            }
+        }
+        
+        // 判断高亮区间是否与任意代码块区间有重叠
+        function isInCodeBlockRange(start: number, end: number, ranges: Array<[number, number]>): boolean {
+            return ranges.some(([blockStart, blockEnd]) =>
+                Math.max(start, blockStart) < Math.min(end, blockEnd)
+            );
+        }
+        
         let match: RegExpExecArray | null;
         while ((match = pattern.exec(content)) !== null) {
             const safeMatch = match as RegExpExecArray; // 类型断言，因为在循环中 match 一定不为 null
             const fullMatch = safeMatch[0];
+            const matchStart = safeMatch.index;
+            const matchEnd = matchStart + fullMatch.length;
+            
+            // 检查当前高亮是否在代码块内
+            if (isInCodeBlockRange(matchStart, matchEnd, codeBlockRanges)) {
+                continue; // 跳过代码块内的高亮
+            }
+            
             // 找到第一个非空的捕获组作为文本内容
             // 如果没有捕获组，则使用全部匹配内容
             let text = safeMatch.slice(1).find(group => group !== undefined);
