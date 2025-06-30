@@ -18,6 +18,14 @@ export class HighlightCard {
         return HighlightCard.selectedCards;
     }
     
+    // 为了让 CommentInput 能够访问到 findCardInstanceByHighlightId 方法
+    static {
+        // @ts-ignore - 添加到 window 对象上，忽略类型检查
+        window.HighlightCard = {
+            findCardInstanceByHighlightId: HighlightCard.findCardInstanceByHighlightId
+        };
+    }
+    
     // 静态方法：清除所有选中状态
     public static clearSelection(): void {
         HighlightCard.selectedCards.forEach(card => {
@@ -65,6 +73,7 @@ export class HighlightCard {
     private moreActionsDropdown: HTMLElement | null = null;
     private unfocusedInput: UnfocusedCommentInput | null = null;
     private hasFlashcard: boolean = false; // 保存闪卡状态
+    private isShowingRealInput: boolean = false; // 是否正在显示真正的输入框
 
     constructor(
         private container: HTMLElement,
@@ -89,9 +98,43 @@ export class HighlightCard {
         // 注册卡片实例
         HighlightCard.cardInstances.add(this);
         
-        // 全局点击事件现在由静态方法处理
+        // 监听 CommentInput 组件发出的自定义事件
+        this.setupCommentInputEventListeners();
         
         this.render();
+    }
+    
+    // 设置 CommentInput 相关的事件监听
+    private setupCommentInputEventListeners() {
+        // 监听输入框显示事件
+        const handleInputShown = (e: CustomEvent) => {
+            if (e.detail?.highlightId === this.highlight.id) {
+                this.isShowingRealInput = true;
+                // 如果有未聚焦输入框，移除它
+                if (this.unfocusedInput) {
+                    this.unfocusedInput.remove();
+                    this.unfocusedInput = null;
+                }
+            }
+        };
+        
+        // 监听输入框关闭事件
+        const handleInputClosed = (e: CustomEvent) => {
+            if (e.detail?.highlightId === this.highlight.id) {
+                this.isShowingRealInput = false;
+            }
+        };
+        
+        // 添加自定义事件监听
+        document.addEventListener('comment-input-shown', handleInputShown as EventListener);
+        document.addEventListener('comment-input-closed', handleInputClosed as EventListener);
+        
+        // 确保在插件卸载时移除事件监听
+        // 使用 addEventListener 而不是 registerDomEvent，因为自定义事件不在 DocumentEventMap 中
+        this.plugin.register(() => {
+            document.removeEventListener('comment-input-shown', handleInputShown as EventListener);
+            document.removeEventListener('comment-input-closed', handleInputClosed as EventListener);
+        });
     }
 
     private render() {
@@ -104,10 +147,17 @@ export class HighlightCard {
 
         // 添加点击事件用于切换选中状态，支持多选
         this.card.addEventListener("click", (e: MouseEvent) => {
-            // 如果正在编辑，不触发选中状态切换
-            if (this.isEditing) {
+            // 如果正在编辑或显示真正的输入框，不触发选中状态切换
+            if (this.isEditing || this.isShowingRealInput) {
                 return;
             }
+            
+            // 检查点击的目标是否是输入框相关元素
+            const target = e.target as HTMLElement;
+            if (target.closest('.hi-note-input') || target.closest('.hi-note-actions-hint')) {
+                return;
+            }
+            
             this.selectCard(e);
         });
         
@@ -400,8 +450,6 @@ export class HighlightCard {
         );
     }
     
-
-    
     // 显示不聚焦的批注输入框
     private showUnfocusedCommentInput() {
         // 如果已经有不聚焦的输入框，先移除
@@ -410,8 +458,8 @@ export class HighlightCard {
             this.unfocusedInput = null;
         }
         
-        // 如果正在编辑，不显示不聚焦的输入框
-        if (this.isEditing) {
+        // 如果正在编辑或显示真正的输入框，不显示不聚焦的输入框
+        if (this.isEditing || this.isShowingRealInput) {
             return;
         }
         

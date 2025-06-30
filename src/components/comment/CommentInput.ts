@@ -12,6 +12,20 @@ export class CommentInput {
     private cancelEdit: () => void = () => {};
     private isProcessing = false;
     private boundHandleOutsideClick: (e: MouseEvent) => void;
+    
+    // 查找对应的 HighlightCard 实例
+    private findHighlightCardInstance(): any {
+        // 这里使用 any 类型，因为我们没有直接引入 HighlightCard 类型
+        // 在实际代码中可能需要调整导入和类型
+        try {
+            // 尝试使用全局方法查找卡片实例
+            // @ts-ignore - 忽略类型检查
+            return window.HighlightCard?.findCardInstanceByHighlightId?.(this.highlight.id);
+        } catch (e) {
+            console.log('无法找到对应的 HighlightCard 实例');
+            return null;
+        }
+    }
 
     constructor(
         private card: HTMLElement,
@@ -25,6 +39,16 @@ export class CommentInput {
     ) {
         this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
         document.addEventListener('click', this.boundHandleOutsideClick);
+        
+        // 设置标记，通知 HighlightCard 当前正在显示真正的输入框
+        const cardInstance = this.findHighlightCardInstance();
+        if (cardInstance) {
+            // 使用自定义事件通知 HighlightCard 实例
+            const event = new CustomEvent('comment-input-shown', {
+                detail: { highlightId: this.highlight.id }
+            });
+            document.dispatchEvent(event);
+        }
     }
 
     public show() {
@@ -56,6 +80,11 @@ export class CommentInput {
             this.processTagsInInput();
             this.autoResizeTextarea();
         });
+        
+        // 阻止文本框的点击事件冒泡
+        this.textarea.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
 
         // 替换内容为编辑框
         contentEl.replaceWith(this.textarea);
@@ -69,6 +98,11 @@ export class CommentInput {
         // 添加快捷键提示和删除按钮
         this.actionHint = commentEl.createEl('div', {
             cls: 'hi-note-actions-hint'
+        });
+        
+        // 阻止操作提示区域的点击事件冒泡
+        this.actionHint.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
 
         // 快捷键提示 - 只在非移动端显示
@@ -147,48 +181,16 @@ export class CommentInput {
             this.processTagsInInput();
             this.autoResizeTextarea();
         });
-
-        // 添加快捷键提示 - 只在非移动端显示
-        if (!Platform.isMobile) {
-            inputSection.createEl('div', {
-                cls: 'hi-note-hint',
-                text: t('Shift + Enter Wrap, Enter Save')
-            });
-        }
-        // 移动端上显示保存按钮
-        else {
-            const saveButton = inputSection.createEl('button', {
-                cls: 'hi-note-save-button',
-                text: t('Submit')
-            });
-            
-            saveButton.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                
-                if (this.isProcessing) return;
-                
-                const content = this.textarea.value.trim();
-                if (!content) return;
-                
-                this.isProcessing = true;
-                this.textarea.disabled = true;
-                saveButton.disabled = true;
-                
-                try {
-                    await this.options.onSave(content);
-                    // 保存成功后清理
-                    requestAnimationFrame(() => {
-                        document.removeEventListener('click', this.boundHandleOutsideClick);
-                        this.isProcessing = false;
-                        this.textarea.disabled = false;
-                    });
-                } catch (error) {
-                    this.isProcessing = false;
-                    this.textarea.disabled = false;
-                    saveButton.disabled = false;
-                }
-            });
-        }
+        
+        // 阻止点击事件冒泡，防止触发高亮卡片的点击事件
+        inputSection.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        // 阻止文本框的点击事件冒泡
+        this.textarea.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
 
         // 添加到评论区域
         let commentsSection = this.card.querySelector('.hi-notes-section');
@@ -376,5 +378,11 @@ export class CommentInput {
     public destroy() {
         document.removeEventListener('click', this.boundHandleOutsideClick);
         this.isProcessing = false;
+        
+        // 通知 HighlightCard 输入框已关闭
+        const event = new CustomEvent('comment-input-closed', {
+            detail: { highlightId: this.highlight.id }
+        });
+        document.dispatchEvent(event);
     }
 } 
