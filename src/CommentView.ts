@@ -2355,12 +2355,12 @@ export class CommentView extends ItemView {
         // 获取搜索框的位置和尺寸
         const searchRect = this.searchInput.getBoundingClientRect();
         
-        // 设置提示容器的定位和尺寸
-        hintsContainer.style.position = 'fixed';
+        // 添加 CSS 类并设置位置相关的样式
+        hintsContainer.addClass('search-hints-container');
+        // 只设置位置相关的样式，其他样式通过 CSS 类控制
         hintsContainer.style.top = (searchRect.bottom + 4) + 'px';
         hintsContainer.style.left = searchRect.left + 'px';
         hintsContainer.style.width = searchRect.width + 'px';
-        hintsContainer.style.zIndex = '9999'; // 确保在最顶层
     }
     
     /**

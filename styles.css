@@ -284,6 +284,12 @@ settings:
     display: none;
 }
 
+/* 搜索提示容器定位样式 */
+.search-hints-container {
+    position: fixed;
+    z-index: 9999; /* 确保在最顶层 */
+}
+
 /* 搜索前缀提示显示 */
 .search-prefix-hints.show {
     display: block;
