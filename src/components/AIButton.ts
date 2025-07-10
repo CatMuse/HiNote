@@ -139,7 +139,7 @@ export class AIButton {
             });
         } else {
             menu.addItem((item: MenuItem) => item
-                .setTitle(t("请在设置中添加 Prompt"))
+                .setTitle(t("Please add Prompt in the settings first"))
                 .setDisabled(true)
             );
         }
@@ -165,7 +165,7 @@ export class AIButton {
             const prompt = this.plugin.settings.ai.prompts[promptName];
             
             if (!prompt) {
-                throw new Error(t(`未找到名为 "${promptName}" 的 Prompt`));
+                throw new Error(t(`Not found named "${promptName}" Prompt`));
             }
 
             // 从内容提供者获取文本和评论
@@ -182,10 +182,10 @@ export class AIButton {
             // 添加 AI 分析结果
             await this.options.onResponse(response);
 
-            new Notice(t('AI 评论已添加'));
+            new Notice(t('AI comments added'));
 
         } catch (error) {
-            new Notice(t(`AI 评论失败: ${error.message}`));
+            new Notice(t(`AI comments failed: ${error.message}`));
         } finally {
             this.setLoading(false);
         }

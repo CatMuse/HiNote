@@ -91,7 +91,7 @@ export default {
 
     "Select Prompt": "选择 Prompt",
     "Please add Prompt in the settings first": "请先在设置中添加 Prompt",
-    "AI comments have been added": "AI 评论已添加",
+    "AI comments added ": "AI 评论已添加",
     "AI comments failed:": "AI 评论失败：",
 
     //ChatView

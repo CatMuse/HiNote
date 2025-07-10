@@ -608,6 +608,11 @@ settings:
 
 .hi-note-button-hidden {
     opacity: 0;
+    visibility: hidden; /* 隐藏按钮但保留空间位置 */
+    width: 0; /* 减少占用的空间 */
+    margin: 0; /* 移除外边距 */
+    padding: 0; /* 移除内边距 */
+    overflow: hidden; /* 隐藏溢出内容 */
 }
 
 /* 鼠标悬停时显示按钮 */
@@ -615,6 +620,11 @@ settings:
 .cm-highlight:hover + .hi-note-widget .hi-note-button-hidden,
 .hi-note-widget:hover .hi-note-button-hidden {
     opacity: 1;
+    visibility: visible;
+    width: auto;
+    margin: 0;
+    padding: 0px 2px; /* 恢复原来的内边距 */
+    overflow: visible;
 }
 
 /* 新样式：没有评论的按钮半透明显示 */
