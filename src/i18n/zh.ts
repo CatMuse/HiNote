@@ -242,6 +242,11 @@ export default {
     "确定要删除分组 \"": "确定要删除分组 \"",
     "\" 吗？": "\" 吗？",
     "分组删除成功": "分组删除成功",
+    
+    // 搜索前缀提示
+    "search-prefix-all": "跨文件搜索所有高亮",
+    "search-prefix-hicard": "只搜索闪卡高亮",
+    "search-prefix-comment": "只搜索带批注的高亮",
     "删除分组失败": "删除分组失败",
     "支持以下格式：\n- 文件夹：folder1, folder1/folder2\n- 笔记：[[note1]], [[note2]]\n- 标签：#tag1, #tag2\n- 通配符：*.excalidraw.md\n- 内容：直接输入要搜索的文本": "支持以下格式：\n- 文件夹：folder1, folder1/folder2\n- 笔记：[[note1]], [[note2]]\n- 标签：#tag1, #tag2\n- 通配符：*.excalidraw.md\n- 内容：直接输入要搜索的文本",
     "反转卡片（使用评论作为问题）": "反转卡片（使用评论作为问题）",

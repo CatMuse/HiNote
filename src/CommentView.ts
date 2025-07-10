@@ -2310,9 +2310,9 @@ export class CommentView extends ItemView {
         
         // 定义可用的搜索前缀
         const prefixes = [
-            { prefix: 'all:', description: '跨文件搜索所有高亮' },
-            { prefix: 'hicard:', description: '搜索已转化为闪卡的高亮' },
-            { prefix: 'comment:', description: '搜索包含批注的高亮' }
+            { prefix: 'all:', description: t('search-prefix-all') },
+            { prefix: 'hicard:', description: t('search-prefix-hicard') },
+            { prefix: 'comment:', description: t('search-prefix-comment') }
         ];
         
         // 创建提示项
@@ -2394,6 +2394,30 @@ export class CommentView extends ItemView {
             searchTerm = searchInput.substring(7).trim();
         } else if (isCommentSearch) {
             searchTerm = searchInput.substring(8).trim();
+        }
+        
+        // 检查是否需要恢复到当前文件视图
+        // 如果之前是全局搜索，但现在不是，则需要恢复
+        const wasGlobalSearch = this.highlights.some(h => h.isGlobalSearch);
+        if (wasGlobalSearch && !isGlobalSearch && this.currentFile) {
+            // 恢复到当前文件视图
+            this.highlightContainer.empty();
+            this.highlightContainer.appendChild(this.loadingIndicator);
+            
+            // 重新加载当前文件的高亮
+            await this.updateHighlights();
+            
+            // 标记所有高亮为非全局搜索结果
+            this.highlights.forEach(highlight => {
+                highlight.isGlobalSearch = false;
+            });
+            
+            // 使用实际搜索词过滤
+            const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
+            
+            // 更新显示
+            this.renderHighlights(filteredHighlights);
+            return;
         }
         
         // 如果是全局搜索且不在全局视图中

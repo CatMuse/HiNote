@@ -237,6 +237,11 @@ export default {
     "确定要删除分组 \"": "Are you sure you want to delete group \"",
     "\" 吗？": "\"?",
     "分组删除成功": "Group deleted successfully",
+    
+    // 搜索前缀提示
+    "search-prefix-all": "match all file highlights",
+    "search-prefix-hicard": "match flashcards only",
+    "search-prefix-comment": "match with comments only",
     "删除分组失败": "Failed to delete group",
     "支持以下格式：\n- 文件夹：folder1, folder1/folder2\n- 笔记：[[note1]], [[note2]]\n- 标签：#tag1, #tag2\n- 通配符：*.excalidraw.md\n- 内容：直接输入要搜索的文本": "Supports the following formats:\n- Folders: folder1, folder1/folder2\n- Notes: [[note1]], [[note2]]\n- Tags: #tag1, #tag2\n- Wildcards: *.excalidraw.md\n- Content: directly enter text to search for",
     "Reverse cards (use comments as questions)": "Reverse cards (use comments as questions)",
