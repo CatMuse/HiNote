@@ -930,10 +930,18 @@ export class CommentView extends ItemView {
         // 添加焦点和失焦事件
         this.searchInput.addEventListener('focus', () => {
             this.searchContainer.addClass('focused');
+            this.showSearchPrefixHints();
         });
 
-        this.searchInput.addEventListener('blur', () => {
+        this.searchInput.addEventListener('blur', (e) => {
             this.searchContainer.removeClass('focused');
+            // 延迟隐藏提示，以便点击提示项时能正确处理点击事件
+            setTimeout(() => {
+                const hintsEl = document.querySelector('.search-prefix-hints');
+                if (hintsEl) {
+                    hintsEl.remove();
+                }
+            }, 200);
         });
 
         // 创建图标按钮容器
@@ -2284,6 +2292,77 @@ export class CommentView extends ItemView {
         });
     }
 
+    /**
+     * 显示搜索前缀提示
+     * 当搜索框获得焦点时显示可用的搜索前缀提示
+     */
+    private showSearchPrefixHints() {
+        // 移除可能已存在的提示元素
+        const existingHints = document.querySelector('.search-prefix-hints');
+        if (existingHints) {
+            existingHints.remove();
+        }
+        
+        // 使用 Obsidian 的 createDiv 方法创建提示容器
+        const hintsContainer = document.body.createDiv({
+            cls: 'search-prefix-hints show'
+        });
+        
+        // 定义可用的搜索前缀
+        const prefixes = [
+            { prefix: 'all:', description: '跨文件搜索所有高亮' },
+            { prefix: 'hicard:', description: '搜索已转化为闪卡的高亮' },
+            { prefix: 'comment:', description: '搜索包含批注的高亮' }
+        ];
+        
+        // 创建提示项
+        prefixes.forEach(({ prefix, description }) => {
+            const hintItem = hintsContainer.createDiv({
+                cls: 'search-prefix-hint-item'
+            });
+            
+            const prefixTag = hintItem.createSpan({
+                cls: 'search-prefix-tag',
+                text: prefix
+            });
+            
+            const descriptionEl = hintItem.createSpan({
+                cls: 'search-prefix-description',
+                text: description
+            });
+            
+            // 添加点击事件
+            hintItem.addEventListener('click', () => {
+                this.searchInput.value = prefix + ' ';
+                this.searchInput.focus();
+                hintsContainer.remove();
+                
+                // 触发搜索
+                const inputEvent = new Event('input', { bubbles: true });
+                this.searchInput.dispatchEvent(inputEvent);
+            });
+        });
+        
+        // 定位提示容器
+        this.positionSearchHints(hintsContainer);
+    }
+    
+    /**
+     * 定位搜索提示容器
+     * @param hintsContainer 提示容器元素
+     */
+    private positionSearchHints(hintsContainer: HTMLElement) {
+        // 获取搜索框的位置和尺寸
+        const searchRect = this.searchInput.getBoundingClientRect();
+        
+        // 设置提示容器的定位和尺寸
+        hintsContainer.style.position = 'fixed';
+        hintsContainer.style.top = (searchRect.bottom + 4) + 'px';
+        hintsContainer.style.left = searchRect.left + 'px';
+        hintsContainer.style.width = searchRect.width + 'px';
+        hintsContainer.style.zIndex = '9999'; // 确保在最顶层
+    }
+    
     /**
      * 更新高亮列表，支持多种前缀搜索
      * - all: 前缀进行跨文件搜索

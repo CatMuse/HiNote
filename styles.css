@@ -244,6 +244,7 @@ settings:
     color: var(--text-normal);
     font-size: 13px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
 .highlight-search-container.focused .highlight-search-input {
@@ -265,6 +266,64 @@ settings:
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
                 opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     transform-origin: right center;
+}
+
+/* 搜索前缀提示容器 */
+.search-prefix-hints {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    margin-top: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    padding: 8px;
+    display: none;
+}
+
+/* 搜索前缀提示显示 */
+.search-prefix-hints.show {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+/* 搜索前缀提示项 */
+.search-prefix-hint-item {
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.search-prefix-hint-item:last-child {
+    margin-bottom: 0;
+}
+
+.search-prefix-hint-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+/* 前缀标签 */
+.search-prefix-tag {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-right: 8px;
+}
+
+/* 前缀描述 */
+.search-prefix-description {
+    font-size: 12px;
+    color: var(--text-normal);
 }
 
 /* 搜索框获得焦点时的图标状态 */
