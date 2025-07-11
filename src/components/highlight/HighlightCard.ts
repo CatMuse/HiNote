@@ -35,6 +35,23 @@ export class HighlightCard {
         HighlightCard.lastSelectedCard = null;
     }
     
+    // 静态方法：清理所有卡片实例
+    public static clearAllInstances(): void {
+        // 清理所有实例
+        HighlightCard.cardInstances.forEach(instance => {
+            // 如果有销毁方法，调用它
+            if (typeof instance.destroy === 'function') {
+                instance.destroy();
+            }
+        });
+        
+        // 清空实例集合
+        HighlightCard.cardInstances.clear();
+        // 清空选中状态
+        HighlightCard.selectedCards.clear();
+        HighlightCard.lastSelectedCard = null;
+    }
+    
     // 静态方法：根据高亮ID查找HighlightCard实例
     public static findCardInstanceByHighlightId(highlightId: string): HighlightCard | null {
         for (const instance of HighlightCard.cardInstances) {
@@ -1351,4 +1368,24 @@ export class HighlightCard {
      * 这个方法会查找所有可能的下拉菜单并更新其中的按钮文本
      */
     // 移除updateAllMenuItems方法
+    
+    /**
+     * 销毁方法，用于清理事件监听器和从静态集合中移除实例
+     */
+    public destroy(): void {
+        // 移除事件监听器
+        if (this.unfocusedInput) {
+            this.unfocusedInput.remove();
+            this.unfocusedInput = null;
+        }
+        
+        // 关闭下拉菜单
+        if (this.moreActionsDropdown) {
+            this.moreActionsDropdown.remove();
+            this.moreActionsDropdown = null;
+        }
+        
+        // 从静态集合中移除
+        HighlightCard.cardInstances.delete(this);
+    }
 }

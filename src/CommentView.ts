@@ -1210,6 +1210,14 @@ export class CommentView extends ItemView {
 
     private renderHighlights(highlightsToRender: HighlightInfo[], append = false) {
         if (!append) {
+            // 在清空容器前清理静态实例集合
+            if (typeof HighlightCard.clearAllInstances === 'function') {
+                HighlightCard.clearAllInstances();
+            } else {
+                // 兼容性处理，如果 clearAllInstances 方法不存在
+                HighlightCard.clearSelection();
+            }
+            
             this.highlightContainer.empty();
             this.currentBatch = 0;
             
@@ -2261,6 +2269,14 @@ export class CommentView extends ItemView {
         // 创建事件处理器
         this.activeLeafChangeHandler = () => {
             this.updateFloatingButtonVisibility();
+            
+            // 清理高亮卡片实例
+            if (typeof HighlightCard.clearAllInstances === 'function') {
+                HighlightCard.clearAllInstances();
+            }
+            
+            // 重新加载高亮
+            this.updateHighlights();
         };
         
         // 注册事件
@@ -2839,18 +2855,24 @@ export class CommentView extends ItemView {
         });
 
         // 添加虚拟高亮到列表最前面，但只添加那些还没有被使用过的
-        const virtualHighlights = storedComments
-            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id)); // 只保留有评论且未被使用的虚拟高亮
-        
-        // 将这些虚拟高亮添加到列表并标记为已使用
-        virtualHighlights.forEach(vh => usedCommentIds.add(vh.id));
-        this.highlights.unshift(...virtualHighlights);
+    const virtualHighlights = storedComments
+        .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id)); // 只保留有评论且未被使用的虚拟高亮
+    
+    // 检查是否已经存在相同内容的虚拟高亮
+    const uniqueVirtualHighlights = virtualHighlights.filter(vh => {
+        // 检查是否已经存在相同文本的高亮
+        return !this.highlights.some(h => h.text === vh.text);
+    });
+    
+    // 将这些虚拟高亮添加到列表并标记为已使用
+    uniqueVirtualHighlights.forEach(vh => usedCommentIds.add(vh.id));
+    this.highlights.unshift(...uniqueVirtualHighlights);
 
         // 创建一个映射来记录哪些高亮已经创建了闪卡
         // 这避免了直接在 HighlightInfo 上添加属性
         this.highlightsWithFlashcards = new Set<string>();
         
-        if (this.plugin && this.plugin.fsrsManager) {
+    if (this.plugin && this.plugin.fsrsManager) {
             const fsrsManager = this.plugin.fsrsManager;
             // 遍历所有高亮，记录已创建闪卡的高亮 ID
             for (const highlight of this.highlights) {
