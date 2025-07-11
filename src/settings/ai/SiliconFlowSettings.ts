@@ -120,7 +120,7 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
             
             return {
                 isValid: true,
-                message: t('API Key and the current model are both available!')
+                message: t('API Key and model available.')
             };
         } catch (error) {
 
@@ -156,7 +156,7 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
         // API Key 设置
         const apiKeySetting = new Setting(siliconflowSection)
             .setName(t('API key'))
-            .setDesc(t('Enter your SiliconFlow API key.'))
+            .setDesc(t('Please enter your API Key.'))
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.modelState.apiKey)
@@ -189,7 +189,7 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
         // Model 设置
         const modelSetting = new Setting(siliconflowSection)
             .setName(t('Model'))
-            .setDesc(t('Select the SiliconFlow model to use'))
+            .setDesc(t('Select a model or enter a custom one.'))
             .addDropdown(dropdown => {
                 // 添加预设模型
                 DEFAULT_SILICONFLOW_MODELS.forEach(model => {
@@ -257,7 +257,7 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
                     }
                     
                     if (!/^[a-zA-Z0-9-_./]+$/.test(trimmedValue)) {
-                        new Notice('模型 ID 只能包含字母、数字、下划线、点、短杠和斜杠');
+                        new Notice('Model ID can only contain letters, numbers, underscores, dots and hyphens.');
                         text.setValue(this.modelState.selectedModel.id);
                         return;
                     }
@@ -285,8 +285,8 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
 
         // Custom API Address 设置
         new Setting(siliconflowSection)
-            .setName(t('Custom API address'))
-            .setDesc(t('If using a custom API proxy, please enter the full API address'))
+            .setName(t('Provider URL'))
+            .setDesc(t('Leave it blank, unless you are using a proxy.'))
             .addText(text => {
                 const defaultUrl = 'https://api.siliconflow.cn/v1';
                 const currentValue = this.plugin.settings.ai.siliconflow?.baseUrl;

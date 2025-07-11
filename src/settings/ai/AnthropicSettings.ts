@@ -95,13 +95,13 @@ export class AnthropicSettings extends BaseAIServiceSettings {
 
         // 添加标题
         new Setting(settingsContainer)
-            .setName(t('Anthropic Settings'))
+            .setName(t('Anthropic service'))
             .setHeading();
 
         // API Key 设置
         new Setting(settingsContainer)
             .setName(t('API Key'))
-            .setDesc(t('Enter your Anthropic API Key.'))
+            .setDesc(t('Please enter your API Key.'))
             .addText(text => text
                 .setPlaceholder('sk-ant-...')
                 .setValue(this.modelState.apiKey)
@@ -151,7 +151,7 @@ export class AnthropicSettings extends BaseAIServiceSettings {
         // 模型选择设置
         const modelSetting = new Setting(settingsContainer)
             .setName(t('Model'))
-            .setDesc(t('Select a model or use a custom one'))
+            .setDesc(t('Select a model or enter a custom one.'))
             .addDropdown(dropdown => {
                 // 添加预设模型选项
                 DEFAULT_ANTHROPIC_MODELS.forEach(model => {
@@ -215,7 +215,7 @@ export class AnthropicSettings extends BaseAIServiceSettings {
                     
                     // 检查模型 ID 格式
                     if (!/^[a-zA-Z0-9-_.]+$/.test(trimmedValue)) {
-                        new Notice(t('Model ID can only contain letters, numbers, underscores, dots and hyphens'));
+                        new Notice(t('Model ID can only contain letters, numbers, underscores, dots and hyphens.'));
                         text.setValue(this.modelState.selectedModel.id);
                         return;
                     }
@@ -243,8 +243,8 @@ export class AnthropicSettings extends BaseAIServiceSettings {
 
         // 自定义 API 地址
         new Setting(settingsContainer)
-            .setName(t('Custom API Address'))
-            .setDesc(t('If using a custom API proxy, please enter the full API address'))
+            .setName(t('Provider URL'))
+            .setDesc(t('Leave it blank, unless you are using a proxy.'))
             .addText(text => text
                 .setPlaceholder('https://api.anthropic.com')
                 .setValue(this.plugin.settings.ai.anthropic?.apiAddress || '')

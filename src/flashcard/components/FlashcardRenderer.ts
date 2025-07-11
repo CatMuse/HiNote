@@ -255,7 +255,7 @@ export class FlashcardRenderer {
                                     this.component.setCurrentGroupName('');
                                 }
                             }
-                            new Notice(t('Group deleted successfully'));
+                            new Notice(t('Group deleted'));
                             this.render();
                         } else {
                             new Notice(t('Delete group failed'));

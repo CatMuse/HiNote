@@ -11,7 +11,7 @@ export class OllamaSettings extends BaseAIServiceSettings {
 
         // 添加标题
         new Setting(settingsContainer)
-            .setName(t('Ollama Settings'))
+            .setName(t('Ollama service'))
             .setHeading();
 
         // Set default host if not configured
@@ -24,8 +24,8 @@ export class OllamaSettings extends BaseAIServiceSettings {
 
         // Host setting with test connection button
         const hostSetting = new Setting(settingsContainer)
-            .setName(t('Server Address'))
-            .setDesc(t('Ollama server address (default: http://localhost:11434)'))
+            .setName(t('Server URL'))
+            .setDesc(t('Ollama server URL (default: http://localhost:11434)'))
             .addText(text => {
                 text
                     .setPlaceholder(defaultHost)
@@ -100,7 +100,7 @@ export class OllamaSettings extends BaseAIServiceSettings {
         // 创建新的设置项，并添加特定的类名以便后续识别
         const modelSetting = new Setting(container)
             .setName(t('Model'))
-            .setDesc(t('Select the Ollama model to use'))
+            .setDesc(t('Select a Ollama model.'))
             .addDropdown(dropdown => {
                 const options = Object.fromEntries(
                     models.map((modelName: string) => [modelName, modelName])

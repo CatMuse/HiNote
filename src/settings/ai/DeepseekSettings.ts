@@ -133,7 +133,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             const isValid = !!(data && data.id);
             
             if (isValid) {
-                new Notice(t('API Key and the current model are both available!'));
+                new Notice(t('API Key and model available.'));
             }
             
             return isValid;
@@ -150,13 +150,13 @@ export class DeepseekSettings extends BaseAIServiceSettings {
 
         // 添加标题
         new Setting(settingsContainer)
-            .setName(t('Deepseek Settings'))
+            .setName(t('Deepseek service'))
             .setHeading();
 
         // API Key 设置
         new Setting(settingsContainer)
             .setName(t('API Key'))
-            .setDesc(t('Enter your Deepseek API Key'))
+            .setDesc(t('Please enter your API Key.'))
             .addText(text => text
                 .setPlaceholder('dsk-...')
                 .setValue(this.modelState.apiKey)
@@ -188,7 +188,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
         // 模型选择设置
         const modelSetting = new Setting(settingsContainer)
             .setName(t('Model'))
-            .setDesc(t('Select a model or use a custom one'))
+            .setDesc(t('Select a model or enter a custom one.'))
             .addDropdown(dropdown => {
                 // 添加预设模型
                 DEFAULT_DEEPSEEK_MODELS.forEach(model => {
@@ -244,8 +244,8 @@ export class DeepseekSettings extends BaseAIServiceSettings {
 
         // 自定义 API 地址
         new Setting(settingsContainer)
-            .setName(t('Custom API Address'))
-            .setDesc(t('If using a custom API proxy, enter the full API address'))
+            .setName(t('Provider URL'))
+            .setDesc(t('Leave it blank, unless you are using a proxy.'))
             .addText(text => text
                 .setPlaceholder('https://api.deepseek.com/v1')
                 .setValue(this.plugin.settings.ai.deepseek?.apiAddress || '')
@@ -280,7 +280,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             
             // 检查模型 ID 格式
             if (!/^[a-zA-Z0-9-_.]+$/.test(trimmedValue)) {
-                new Notice(t('模型 ID 只能包含字母、数字、下划线、点和短杠'));
+                new Notice(t('Model ID can only contain letters, numbers, underscores, dots and hyphens.'));
                 input.value = this.modelState.selectedModel.id;
                 return;
             }

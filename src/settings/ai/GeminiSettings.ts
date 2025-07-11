@@ -110,14 +110,14 @@ export class GeminiSettings extends BaseAIServiceSettings {
                         new Notice(t('API Key 有效，但无法访问实验性模型。请确保你有权限访问此模型，或等待模型正式发布。'));
                         throw new Error(`Experimental model not accessible: ${modelId}`);
                     } else {
-                        new Notice(t('API Key 无效。请检查你的 API Key 是否正确。'));
+                        new Notice(t('Invalid API Key or server error. Please verify your API Key.'));
                         throw new Error('Invalid API Key');
                     }
                 }
                 
                 // 如果是自定义模型
                 if (this.modelState.selectedModel.isCustom) {
-                    new Notice(t('自定义模型不可用。请检查模型 ID 是否正确，以及你是否有权限访问此模型。'));
+                    new Notice(t('Custom model unavailable. Please check the model ID and your access permissions.'));
                     throw new Error(`Custom model not available: ${modelId}`);
                 }
                 
@@ -135,7 +135,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
                 }
                 
                 // 其他情况，API Key 无效
-                new Notice(t('API Key is invalid or there is a server error. Please check if your API Key is correct.'));
+                new Notice(t('Invalid API Key or server error. Please verify your API Key.'));
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
@@ -159,13 +159,13 @@ export class GeminiSettings extends BaseAIServiceSettings {
 
         // 添加标题
         new Setting(settingsContainer)
-            .setName(t('Gemini Settings'))
+            .setName(t('Gemini service'))
             .setHeading();
 
         // API Key 设置
         new Setting(settingsContainer)
             .setName(t('API Key'))
-            .setDesc(t('Enter your Gemini API Key'))
+            .setDesc(t('Please enter your API Key.'))
             .addText(text => text
                 .setPlaceholder('Enter your API key')
                 .setValue(this.modelState.apiKey)
@@ -197,7 +197,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
         // 模型选择设置
         const modelSetting = new Setting(settingsContainer)
             .setName(t('Model'))
-            .setDesc(t('Select a model or use a custom one'))
+            .setDesc(t('Select a model or enter a custom one.'))
             .addDropdown(dropdown => {
                 // 添加预设模型选项
                 DEFAULT_GEMINI_MODELS.forEach(model => {
@@ -262,7 +262,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
                     
                     // 检查模型 ID 格式
                     if (!/^[a-zA-Z0-9-_.]+$/.test(trimmedValue)) {
-                        new Notice(t('模型 ID 只能包含字母、数字、下划线、点和短杠'));
+                        new Notice(t('Model ID can only contain letters, numbers, underscores, dots and hyphens.'));
                         text.setValue(this.modelState.selectedModel.id);
                         return;
                     }
@@ -290,8 +290,8 @@ export class GeminiSettings extends BaseAIServiceSettings {
 
         // Custom API Address 设置
         new Setting(settingsContainer)
-            .setName(t('Custom API Address'))
-            .setDesc(t('Enter your custom API endpoint'))
+            .setName(t('Provider URL'))
+            .setDesc(t('Leave it blank, unless you are using a proxy.'))
             .addText(text => {
                 const defaultUrl = 'https://generativelanguage.googleapis.com';
                 const currentValue = this.plugin.settings.ai.gemini?.baseUrl;

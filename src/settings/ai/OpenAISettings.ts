@@ -91,13 +91,13 @@ export class OpenAISettings extends BaseAIServiceSettings {
 
         // 添加标题
         new Setting(openAISettingsContainer)
-            .setName(t('OpenAI Settings'))
+            .setName(t('OpenAI service'))
             .setHeading();
 
         // API Key 设置
         new Setting(openAISettingsContainer)
             .setName(t('API Key'))
-            .setDesc(t('Enter your OpenAI API Key.'))
+            .setDesc(t('Please enter your API Key.'))
             .addText(text => text
                 .setPlaceholder('sk-...')
                 .setValue(this.modelState.apiKey)
@@ -120,7 +120,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
                     try {
                         const models = await this.fetchAvailableModels(this.modelState.apiKey);
                         if (models.length > 0) {
-                            new Notice(t('API Key validated successfully!'));
+                            new Notice(t('API Key is valid!'));
                         } else {
                             new Notice(t('No models available. Please check your API Key.'));
                         }
@@ -136,7 +136,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
         // 模型选择设置
         const modelSetting = new Setting(openAISettingsContainer)
             .setName(t('Model'))
-            .setDesc(t('Select a model or use a custom one'))
+            .setDesc(t('Select a model or enter a custom one.'))
             .addDropdown(dropdown => {
                 // 添加预设模型选项
                 DEFAULT_OPENAI_MODELS.forEach(model => {
@@ -200,7 +200,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
                     
                     // 检查模型 ID 格式
                     if (!/^[a-zA-Z0-9-_.]+$/.test(trimmedValue)) {
-                        new Notice(t('模型 ID 只能包含字母、数字、下划线、点和短杠'));
+                        new Notice(t('Model ID can only contain letters, numbers, underscores, dots and hyphens.'));
                         text.setValue(this.modelState.selectedModel.id);
                         return;
                     }
@@ -228,8 +228,8 @@ export class OpenAISettings extends BaseAIServiceSettings {
 
         // 自定义 API 地址
         new Setting(openAISettingsContainer)
-            .setName(t('Custom API Address'))
-            .setDesc(t('If using a custom API proxy, please enter the full API address'))
+            .setName(t('Provider URL'))
+            .setDesc(t('Leave it blank, unless you are using a proxy.'))
             .addText(text => text
                 .setPlaceholder('https://api.openai.com/v1')
                 .setValue(this.plugin.settings.ai.openai?.apiAddress || '')
@@ -257,7 +257,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
             if (modelResponse.status !== 200) {
                 const errorData = await modelResponse.json.catch(() => null);
 
-                new Notice(t('自定义模型不可用。请检查模型 ID 是否正确，以及你是否有权限访问此模型。'));
+                new Notice(t('Custom model unavailable. Please check the model ID and your access permissions.'));
                 return false;
             }
 
