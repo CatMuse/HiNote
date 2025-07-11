@@ -43,6 +43,12 @@ export const VIEW_TYPE_COMMENT = "comment-view";
 // }
 
 export class CommentView extends ItemView {
+    // 搜索提示事件处理器引用
+    private searchHintsEventHandlers: {
+        input: (e: Event) => void;
+        blur: (e: FocusEvent) => void;
+        click: (e: MouseEvent) => void;
+    } | null = null;
     // 添加活动视图变化的事件处理器
     private activeLeafChangeHandler: (() => void) | undefined;
     // 清除所有选中状态的方法
@@ -711,6 +717,11 @@ export class CommentView extends ItemView {
     private highlightsWithFlashcards: Set<string> = new Set<string>();
     private commentStore: CommentStore;
     private searchInput: HTMLInputElement;
+    private searchLoadingIndicator: HTMLElement;
+    private searchDebounceTimer: number | null = null;
+    private readonly localSearchDebounceTime = 200; // 本地搜索防抖时间（毫秒）
+    private readonly globalSearchDebounceTime = 500; // 全局搜索防抖时间（毫秒）
+    private isSearching: boolean = false;
     private plugin: CommentPlugin;
     private locationService: LocationService;
     private exportService: ExportService;
@@ -944,6 +955,13 @@ export class CommentView extends ItemView {
             }, 200);
         });
 
+        // 创建搜索加载指示器
+        this.searchLoadingIndicator = this.searchContainer.createEl("div", {
+            cls: "highlight-search-loading"
+        });
+        this.searchLoadingIndicator.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="loading-spinner"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>`;
+        this.searchLoadingIndicator.style.display = "none";
+        
         // 创建图标按钮容器
         const iconButtonsContainer = this.searchContainer.createEl("div", {
             cls: "highlight-search-icons"
@@ -1030,10 +1048,8 @@ export class CommentView extends ItemView {
             }
         });
 
-        // 添加搜索事件监听
-        this.searchInput.addEventListener("input", debounce(() => {
-            this.updateHighlightsList();
-        }, 300));
+        // 添加搜索事件监听，使用防抖函数避免频繁触发搜索
+        this.searchInput.addEventListener("input", this.handleSearchInputWithDebounce);
 
         // 创建高亮容器
         this.highlightContainer = this.mainContentContainer.createEl("div", {
@@ -1128,6 +1144,8 @@ export class CommentView extends ItemView {
                 highlight.filePath = this.currentFile.path;
             }
 
+
+            
             highlightCard = new HighlightCard(
                 highlightList,
                 highlight,
@@ -2207,8 +2225,10 @@ export class CommentView extends ItemView {
     }
     
     // 添加方法来更新高亮列表显示（搜索筛选）
+
+    
     /**
-     * 根据搜索词和搜索类型过滤高亮列表
+     * 根据搜索词和搜索类型过滤高亮
      * @param searchTerm 搜索词
      * @param searchType 搜索类型（hicard 表示搜索闪卡）
      * @returns 过滤后的高亮列表
@@ -2368,6 +2388,67 @@ export class CommentView extends ItemView {
         
         // 定位提示容器
         this.positionSearchHints(hintsContainer);
+        
+        // 添加输入事件监听器，处理输入变化
+        const handleInputChange = () => {
+            // 获取当前搜索框的值
+            const inputValue = this.searchInput.value.trim();
+            
+            // 如果搜索框为空，则显示提示框
+            if (inputValue === '') {
+                // 如果提示框已经被移除，重新显示
+                if (!document.body.contains(hintsContainer)) {
+                    // 重新显示提示框
+                    document.body.appendChild(hintsContainer);
+                    this.positionSearchHints(hintsContainer);
+                }
+            } else {
+                // 如果搜索框不为空，则隐藏提示框
+                if (hintsContainer && document.body.contains(hintsContainer)) {
+                    hintsContainer.remove();
+                }
+            }
+        };
+        
+        // 添加输入事件监听器
+        this.searchInput.addEventListener('input', handleInputChange);
+        
+        // 点击其他区域隐藏提示框
+        const hideHintsOnClickOutside = (e: MouseEvent) => {
+            if (hintsContainer && !hintsContainer.contains(e.target as Node) && 
+                e.target !== this.searchInput) {
+                hintsContainer.remove();
+                document.removeEventListener('click', hideHintsOnClickOutside);
+            }
+        };
+        
+        // 在搜索框失去焦点时清理输入事件监听器
+        const handleBlur = () => {
+            // 不立即隐藏，允许点击提示项
+            setTimeout(() => {
+                // 检查提示框是否仍然存在，如果用户点击了其他区域
+                if (!document.activeElement || 
+                    (document.activeElement !== this.searchInput && 
+                     !hintsContainer.contains(document.activeElement as Node))) {
+                    hintsContainer.remove();
+                }
+            }, 200);
+        };
+        
+        // 添加失去焦点事件监听器
+        this.searchInput.addEventListener('blur', handleBlur);
+        
+        // 添加点击事件监听器，使用延时确保当前点击不触发隐藏
+        setTimeout(() => {
+            document.addEventListener('click', hideHintsOnClickOutside);
+        }, 10);
+        
+        // 存储事件监听器引用，便于组件销毁时清理
+        this.searchHintsEventHandlers = {
+            input: handleInputChange,
+            blur: handleBlur,
+            click: hideHintsOnClickOutside
+        };
     }
     
     /**
@@ -2392,93 +2473,155 @@ export class CommentView extends ItemView {
      * - hicard: 前缀搜索已转化为闪卡的高亮
      * - comment: 前缀搜索包含批注的高亮
      */
-    private async updateHighlightsList() {
-        // 获取搜索词并检查是否包含前缀
+    /**
+     * 搜索输入防抖处理函数
+     * 根据搜索类型使用不同的防抖时间
+     */
+    private handleSearchInputWithDebounce = (e: Event) => {
+        // 清除之前的定时器
+        if (this.searchDebounceTimer !== null) {
+            window.clearTimeout(this.searchDebounceTimer);
+            this.searchDebounceTimer = null;
+        }
+        
+        // 获取搜索输入值
         const searchInput = this.searchInput.value.toLowerCase().trim();
+        
+        // 根据搜索类型决定防抖时间
         const isGlobalSearch = searchInput.startsWith('all:');
-        const isHiCardSearch = searchInput.startsWith('hicard:');
-        const isCommentSearch = searchInput.startsWith('comment:');
+        const debounceTime = isGlobalSearch ? this.globalSearchDebounceTime : this.localSearchDebounceTime;
         
-        // 确定搜索类型
-        let searchType = '';
-        if (isGlobalSearch) {
-            searchType = 'all';
-        } else if (isHiCardSearch) {
-            searchType = 'hicard';
-        } else if (isCommentSearch) {
-            searchType = 'comment';
+        // 如果是全局搜索且搜索词不为空，显示加载指示器
+        if (isGlobalSearch && searchInput.length > 4) {
+            this.showSearchLoadingIndicator();
         }
         
-        // 提取搜索词（去掉前缀）
-        let searchTerm = searchInput;
-        if (isGlobalSearch) {
-            searchTerm = searchInput.substring(4).trim();
-        } else if (isHiCardSearch) {
-            searchTerm = searchInput.substring(7).trim();
-        } else if (isCommentSearch) {
-            searchTerm = searchInput.substring(8).trim();
+        // 设置防抖定时器
+        this.searchDebounceTimer = window.setTimeout(() => {
+            console.log(`[搜索防抖] 执行${isGlobalSearch ? '全局' : '本地'}搜索，防抖时间: ${debounceTime}ms`);
+            this.updateHighlightsList();
+            this.searchDebounceTimer = null;
+        }, debounceTime);
+    };
+    
+    /**
+     * 显示搜索加载指示器
+     */
+    private showSearchLoadingIndicator(): void {
+        if (!this.isSearching) {
+            this.isSearching = true;
+            this.searchLoadingIndicator.style.display = "flex";
         }
-        
-        // 检查是否需要恢复到当前文件视图
-        // 如果之前是全局搜索，但现在不是，则需要恢复
-        const wasGlobalSearch = this.highlights.some(h => h.isGlobalSearch);
-        if (wasGlobalSearch && !isGlobalSearch && this.currentFile) {
-            // 恢复到当前文件视图
-            this.highlightContainer.empty();
-            this.highlightContainer.appendChild(this.loadingIndicator);
-            
-            // 重新加载当前文件的高亮
-            await this.updateHighlights();
-            
-            // 标记所有高亮为非全局搜索结果
-            this.highlights.forEach(highlight => {
-                highlight.isGlobalSearch = false;
-            });
-            
-            // 使用实际搜索词过滤
-            const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
-            
-            // 更新显示
-            this.renderHighlights(filteredHighlights);
-            return;
+    }
+    
+    /**
+     * 隐藏搜索加载指示器
+     */
+    private hideSearchLoadingIndicator(): void {
+        if (this.isSearching) {
+            this.isSearching = false;
+            this.searchLoadingIndicator.style.display = "none";
         }
-        
-        // 如果是全局搜索且不在全局视图中
-        if (isGlobalSearch && this.currentFile !== null) {
-            // 显示加载指示器
-            this.highlightContainer.empty();
-            this.highlightContainer.appendChild(this.loadingIndicator);
+    }
+    
+    private async updateHighlightsList() {
+        try {
+            // 获取搜索词并检查是否包含前缀
+            const searchInput = this.searchInput.value.toLowerCase().trim();
+            const isGlobalSearch = searchInput.startsWith('all:');
+            const isHiCardSearch = searchInput.startsWith('hicard:');
+            const isCommentSearch = searchInput.startsWith('comment:');
             
-            // 保存当前文件引用
-            const originalFile = this.currentFile;
+            // 确定搜索类型
+            let searchType = '';
+            if (isGlobalSearch) {
+                searchType = 'all';
+            } else if (isHiCardSearch) {
+                searchType = 'hicard';
+            } else if (isCommentSearch) {
+                searchType = 'comment';
+            }
             
-            try {
-                // 临时设置为 null 以启用全局搜索
-                this.currentFile = null;
+            // 提取搜索词（去掉前缀）
+            let searchTerm = searchInput;
+            if (isGlobalSearch) {
+                searchTerm = searchInput.substring(4).trim();
+            } else if (isHiCardSearch) {
+                searchTerm = searchInput.substring(7).trim();
+            } else if (isCommentSearch) {
+                searchTerm = searchInput.substring(8).trim();
+            }
+            
+            // 检查是否需要恢复到当前文件视图
+            // 如果之前是全局搜索，但现在不是，则需要恢复
+            const wasGlobalSearch = this.highlights.some(h => h.isGlobalSearch);
+            if (wasGlobalSearch && !isGlobalSearch && this.currentFile) {
+                // 恢复到当前文件视图
+                this.highlightContainer.empty();
+                this.highlightContainer.appendChild(this.loadingIndicator);
                 
-                // 直接使用索引搜索，将搜索词传递给 updateAllHighlights 方法
-                await this.updateAllHighlights(searchTerm);
+                // 重新加载当前文件的高亮
+                await this.updateHighlights();
                 
-                // 标记所有高亮为全局搜索结果
+                // 标记所有高亮为非全局搜索结果
                 this.highlights.forEach(highlight => {
-                    highlight.isGlobalSearch = true;
+                    highlight.isGlobalSearch = false;
                 });
                 
-                // 直接渲染索引搜索结果，因为索引搜索已经过滤了结果
-                this.renderHighlights(this.highlights);
-            } finally {
-                // 恢复原始文件引用
-                this.currentFile = originalFile;
+                // 使用实际搜索词过滤
+                const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
+                
+                // 更新显示
+                this.renderHighlights(filteredHighlights);
+                return;
             }
-        } else {
-            // 常规搜索逻辑
-            // 确保非全局搜索结果不会标记为全局搜索
-            this.highlights.forEach(highlight => {
-                highlight.isGlobalSearch = false;
-            });
             
-            const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
-            this.renderHighlights(filteredHighlights);
+            // 如果是全局搜索且不在全局视图中
+            if (isGlobalSearch && this.currentFile !== null) {
+                // 显示加载指示器
+                this.highlightContainer.empty();
+                this.highlightContainer.appendChild(this.loadingIndicator);
+                
+                // 保存当前文件引用
+                const originalFile = this.currentFile;
+                
+                try {
+                    // 临时设置为 null 以启用全局搜索
+                    this.currentFile = null;
+                    
+                    // 直接使用索引搜索，将搜索词传递给 updateAllHighlights 方法
+                    await this.updateAllHighlights(searchTerm);
+                    
+                    // 标记所有高亮为全局搜索结果
+                    this.highlights.forEach(highlight => {
+                        highlight.isGlobalSearch = true;
+                    });
+                    
+                    // 直接渲染索引搜索结果，因为索引搜索已经过滤了结果
+                    this.renderHighlights(this.highlights);
+                } finally {
+                    // 恢复原始文件引用
+                    this.currentFile = originalFile;
+                    // 隐藏搜索加载指示器
+                    this.hideSearchLoadingIndicator();
+                }
+            } else {
+                // 常规搜索逻辑
+                // 确保非全局搜索结果不会标记为全局搜索
+                this.highlights.forEach(highlight => {
+                    highlight.isGlobalSearch = false;
+                });
+                
+                const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
+                this.renderHighlights(filteredHighlights);
+                
+                // 隐藏加载指示器（如果有的话）
+                this.hideSearchLoadingIndicator();
+            }
+        } catch (error) {
+            // 错误处理
+            console.error('[高亮搜索] 搜索过程中出错:', error);
+            this.hideSearchLoadingIndicator();
         }
     }
 

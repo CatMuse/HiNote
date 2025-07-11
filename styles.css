@@ -257,6 +257,32 @@ settings:
     box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
 }
 
+/* 搜索加载指示器 */
+.highlight-search-loading {
+    position: absolute;
+    right: 50px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.loading-spinner {
+    animation: spin 1.5s linear infinite;
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+
 /* 搜索框图标容器 */
 .highlight-search-icons {
     display: flex;
