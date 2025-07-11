@@ -140,16 +140,6 @@ export class CommentView extends ItemView {
             this.exportSelectedHighlights();
         });
         
-        // 添加操作按钮 - 删除按钮
-        const deleteButton = this.multiSelectActionsContainer.createEl('div', {
-            cls: 'multi-select-action-button'
-        });
-        deleteButton.setAttribute('aria-label', t('Delete'));
-        setIcon(deleteButton, 'trash');
-        deleteButton.addEventListener('click', () => {
-            this.deleteSelectedHighlights();
-        });
-        
         // 检查选中高亮的闪卡状态
         const fsrsManager = this.plugin.fsrsManager;
         if (!fsrsManager) {
@@ -224,6 +214,16 @@ export class CommentView extends ItemView {
                 this.showFlashcardManageMenu(event);
             });
         }
+        
+        // 添加操作按钮 - 删除按钮（放在最后）
+        const deleteButton = this.multiSelectActionsContainer.createEl('div', {
+            cls: 'multi-select-action-button'
+        });
+        deleteButton.setAttribute('aria-label', t('Delete'));
+        setIcon(deleteButton, 'trash');
+        deleteButton.addEventListener('click', () => {
+            this.deleteSelectedHighlights();
+        });
     }
     
     // 隐藏多选操作按钮
@@ -530,8 +530,8 @@ export class CommentView extends ItemView {
                 let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
                 
                 if (highlightCard) {
-                    // 如果找到了实例，直接使用该实例的删除方法（跳过确认对话框）
-                    await highlightCard.handleDeleteHighlight(true);
+                    // 如果找到了实例，直接使用该实例的删除方法（跳过确认对话框和单个通知）
+                    await highlightCard.handleDeleteHighlight(true, true);
                     successCount++;
                 } else {
                     // 如果没有找到实例，可能是因为卡片不在视图中或其他原因

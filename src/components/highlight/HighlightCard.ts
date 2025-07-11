@@ -1103,8 +1103,9 @@ export class HighlightCard {
      * 处理删除高亮的逻辑
      * 这个方法会删除编辑器中的高亮格式和批注数据
      * @param skipConfirmation 是否跳过确认对话框，默认为 false
+     * @param skipNotice 是否跳过成功通知，默认为 false
      */
-    public async handleDeleteHighlight(skipConfirmation: boolean = false) {
+    public async handleDeleteHighlight(skipConfirmation: boolean = false, skipNotice: boolean = false) {
         try {
             // 显示确认对话框
             if (!skipConfirmation) {
@@ -1140,8 +1141,10 @@ export class HighlightCard {
                         this.highlight.id || ''
                     );
                     
-                    // 4. 显示成功通知
-                    new Notice(t('Successfully deleted'));
+                    // 4. 显示成功通知（如果不跳过通知）
+                    if (!skipNotice) {
+                        new Notice(t('Successfully deleted'));
+                    }
                     
                     // 5. 移除卡片
                     this.card.remove();
