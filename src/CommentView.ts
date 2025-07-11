@@ -140,6 +140,16 @@ export class CommentView extends ItemView {
             this.exportSelectedHighlights();
         });
         
+        // 添加操作按钮 - 删除按钮
+        const deleteButton = this.multiSelectActionsContainer.createEl('div', {
+            cls: 'multi-select-action-button'
+        });
+        deleteButton.setAttribute('aria-label', t('Delete'));
+        setIcon(deleteButton, 'trash');
+        deleteButton.addEventListener('click', () => {
+            this.deleteSelectedHighlights();
+        });
+        
         // 检查选中高亮的闪卡状态
         const fsrsManager = this.plugin.fsrsManager;
         if (!fsrsManager) {
@@ -451,6 +461,100 @@ export class CommentView extends ItemView {
         });
         
         modal.open();
+    }
+    
+    // 删除选中的高亮
+    private deleteSelectedHighlights() {
+        if (this.selectedHighlights.size === 0) {
+            new Notice(t('No highlights selected'));
+            return;
+        }
+        
+        // 创建确认对话框
+        const modal = new Modal(this.app);
+        modal.titleEl.setText(t('Confirm delete highlights'));
+        
+        const contentEl = modal.contentEl;
+        contentEl.empty();
+        
+        contentEl.createEl('p', {
+            text: t(`Are you sure you want to delete ${this.selectedHighlights.size} highlights and all their data, including Comments and HiCards? This action cannot be undone.`)
+        });
+        
+        const buttonContainer = contentEl.createEl('div', {
+            cls: 'modal-button-container'
+        });
+        
+        const cancelButton = buttonContainer.createEl('button', {
+            text: t('Cancel')
+        });
+        cancelButton.addEventListener('click', () => {
+            modal.close();
+        });
+        
+        const confirmButton = buttonContainer.createEl('button', {
+            cls: 'mod-warning',
+            text: t('Delete')
+        });
+        confirmButton.addEventListener('click', async () => {
+            modal.close();
+            await this.performDeleteSelectedHighlights();
+        });
+        
+        modal.open();
+    }
+    
+    // 执行删除选中高亮的操作
+    private async performDeleteSelectedHighlights() {
+        if (this.selectedHighlights.size === 0) {
+            new Notice(t('No highlights selected'));
+            return;
+        }
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        // 获取所有高亮卡片元素
+        const highlightCards = Array.from(this.highlightContainer.querySelectorAll('.highlight-card.selected'));
+        
+        for (const card of highlightCards) {
+            try {
+                // 获取高亮数据
+                const highlightData = card.getAttribute('data-highlight');
+                if (!highlightData) continue;
+                
+                const highlight = JSON.parse(highlightData);
+                if (!highlight.id) continue;
+                
+                // 查找当前高亮对应的 HighlightCard 实例
+                let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
+                
+                if (highlightCard) {
+                    // 如果找到了实例，直接使用该实例的删除方法（跳过确认对话框）
+                    await highlightCard.handleDeleteHighlight(true);
+                    successCount++;
+                } else {
+                    // 如果没有找到实例，可能是因为卡片不在视图中或其他原因
+                    failCount++;
+                    console.error(`无法找到高亮卡片实例: ${highlight.id}`);
+                }
+            } catch (error) {
+                console.error('删除高亮时出错:', error);
+                failCount++;
+            }
+        }
+        
+        // 清除选中状态
+        this.clearSelection();
+        
+        // 显示结果通知
+        if (successCount > 0 && failCount === 0) {
+            new Notice(t(`成功删除 ${successCount} 个高亮`));
+        } else if (successCount > 0 && failCount > 0) {
+            new Notice(t(`成功删除 ${successCount} 个高亮，${failCount} 个删除失败`));
+        } else if (successCount === 0 && failCount > 0) {
+            new Notice(t('删除高亮失败'));
+        }
     }
     
     // 删除选中高亮的闪卡

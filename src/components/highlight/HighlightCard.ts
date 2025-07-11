@@ -1102,13 +1102,16 @@ export class HighlightCard {
     /**
      * 处理删除高亮的逻辑
      * 这个方法会删除编辑器中的高亮格式和批注数据
+     * @param skipConfirmation 是否跳过确认对话框，默认为 false
      */
-    private async handleDeleteHighlight() {
+    public async handleDeleteHighlight(skipConfirmation: boolean = false) {
         try {
             // 显示确认对话框
-            const confirmDelete = confirm(t('Delete this highlight and all its data, including Comments and HiCards? Can\'t undo.'));
-            if (!confirmDelete) {
-                return;
+            if (!skipConfirmation) {
+                const confirmDelete = confirm(t('Delete this highlight and all its data, including Comments and HiCards? Can\'t undo.'));
+                if (!confirmDelete) {
+                    return;
+                }
             }
             
             // 如果有闪卡，先删除闪卡
