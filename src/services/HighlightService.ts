@@ -78,15 +78,12 @@ export class HighlightService {
      * 初始化高亮服务，包括构建索引和注册文件事件监听器
      */
     async initialize(): Promise<void> {
-        console.log('[HighlightService] 正在初始化高亮服务...');
-        
         // 注册文件事件监听器，实现索引的自动更新
         this.registerFileEventHandlers();
         
         // 异步构建索引，不阻塞插件加载
         setTimeout(() => {
             this.buildFileIndex().then(() => {
-                console.log('[HighlightService] 索引构建完成');
             });
         }, 3000); // 等待 3 秒再构建索引，避免影响插件加载速度
     }
@@ -95,8 +92,6 @@ export class HighlightService {
      * 销毁高亮服务，清理资源
      */
     destroy(): void {
-        console.log('[HighlightService] 正在销毁高亮服务...');
-        
         // 注销文件事件监听器
         this.unregisterFileEventHandlers();
         
@@ -106,8 +101,6 @@ export class HighlightService {
             fileToHighlights: new Map(),
             lastUpdated: 0
         };
-        
-        console.log('[HighlightService] 高亮服务已销毁');
     }
     
     /**
@@ -117,7 +110,6 @@ export class HighlightService {
         // 文件创建事件
         this.fileCreateEventRef = this.app.vault.on('create', (file) => {
             if (file instanceof TFile && file.extension === 'md') {
-                console.log(`[HighlightService] 文件创建: ${file.path}`);
                 this.updateFileInIndex(file);
             }
         });
@@ -125,7 +117,6 @@ export class HighlightService {
         // 文件修改事件
         this.fileModifyEventRef = this.app.vault.on('modify', (file) => {
             if (file instanceof TFile && file.extension === 'md') {
-                console.log(`[HighlightService] 文件修改: ${file.path}`);
                 this.updateFileInIndex(file);
             }
         });
@@ -133,7 +124,6 @@ export class HighlightService {
         // 文件删除事件
         this.fileDeleteEventRef = this.app.vault.on('delete', (file) => {
             if (file instanceof TFile && file.extension === 'md') {
-                console.log(`[HighlightService] 文件删除: ${file.path}`);
                 this.removeFileFromIndex(file.path);
             }
         });
@@ -141,15 +131,10 @@ export class HighlightService {
         // 文件重命名事件
         this.fileRenameEventRef = this.app.vault.on('rename', (file, oldPath) => {
             if (file instanceof TFile && file.extension === 'md') {
-                console.log(`[HighlightService] 文件重命名: ${oldPath} -> ${file.path}`);
-                // 先从索引中移除旧路径
                 this.removeFileFromIndex(oldPath);
-                // 然后添加新路径
                 this.updateFileInIndex(file);
             }
         });
-        
-        console.log('[HighlightService] 文件事件监听器已注册');
     }
     
     /**
@@ -161,8 +146,6 @@ export class HighlightService {
         this.app.vault.offref(this.fileModifyEventRef);
         this.app.vault.offref(this.fileDeleteEventRef);
         this.app.vault.offref(this.fileRenameEventRef);
-        
-        console.log('[HighlightService] 文件事件监听器已注销');
     }
 
     /**
@@ -408,13 +391,11 @@ export class HighlightService {
     async buildFileIndex(): Promise<void> {
         // 如果已经在构建索引，则跳过
         if (this.isIndexing) {
-            console.log('索引正在构建中，跳过此次请求');
             return;
         }
         
         this.isIndexing = true;
         const startTime = Date.now();
-        console.log('开始构建文件级高亮索引...');
         
         try {
             // 获取所有高亮
@@ -470,9 +451,7 @@ export class HighlightService {
                 wordToFiles: newWordToFiles,
                 fileToHighlights: newFileToHighlights,
                 lastUpdated: Date.now()
-            };
-            
-            console.log(`索引构建完成，耗时 ${Date.now() - startTime}ms，索引了 ${newFileToHighlights.size} 个文件`);
+            };            
         } catch (error) {
             console.error('构建索引时出错:', error);
         } finally {
@@ -523,7 +502,6 @@ export class HighlightService {
                 
                 // 从文件到高亮的映射中移除
                 this.fileIndex.fileToHighlights.delete(filePath);
-                console.log(`[HighlightService] 已从索引中移除文件: ${filePath}`);
             }
         } catch (error) {
             console.error(`[HighlightService] 移除文件 ${filePath} 索引时出错:`, error);

@@ -1903,12 +1903,10 @@ export class CommentView extends ItemView {
         try {
             // 如果有搜索词，使用文件级索引系统进行搜索
             if (searchTerm) {
-                console.log(`使用索引搜索: "${searchTerm}"`);
                 const startTime = Date.now();
                 
                 // 使用索引搜索高亮
                 const searchResults = await this.highlightService.searchHighlightsFromIndex(searchTerm);
-                console.log(`索引搜索完成，耗时 ${Date.now() - startTime}ms，找到 ${searchResults.length} 个结果`);
                 
                 // 处理搜索结果
                 this.highlights = searchResults.map(highlight => ({
@@ -2498,7 +2496,6 @@ export class CommentView extends ItemView {
         
         // 设置防抖定时器
         this.searchDebounceTimer = window.setTimeout(() => {
-            console.log(`[搜索防抖] 执行${isGlobalSearch ? '全局' : '本地'}搜索，防抖时间: ${debounceTime}ms`);
             this.updateHighlightsList();
             this.searchDebounceTimer = null;
         }, debounceTime);

@@ -22,7 +22,6 @@ export class CommentInput {
             // @ts-ignore - 忽略类型检查
             return window.HighlightCard?.findCardInstanceByHighlightId?.(this.highlight.id);
         } catch (e) {
-            console.log('无法找到对应的 HighlightCard 实例');
             return null;
         }
     }

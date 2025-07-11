@@ -3,7 +3,7 @@ import type CommentPlugin from "../../../main";
 import { HighlightContent } from "./HighlightContent";
 import { CommentList } from "./CommentList";
 import { UnfocusedCommentInput } from "../comment/UnfocusedCommentInput";
-import { MarkdownView, Notice, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView, setIcon, Menu, MenuItem } from "obsidian";
+import { MarkdownView, Notice, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView, setIcon, Menu, MenuItem, Editor } from "obsidian";
 import { DragPreview } from './DragPreview';
 import { VIEW_TYPE_COMMENT } from '../../CommentView';
 import { t } from "../../i18n";
@@ -715,6 +715,12 @@ export class HighlightCard {
             .onClick(() => this.handleExportAsImage())
         );
         
+        // 添加删除高亮菜单项
+        menu.addItem((item: MenuItem) => item
+            .setTitle(t('Delete'))
+            .onClick(() => this.handleDeleteHighlight())
+        );
+        
         // 显示菜单在按钮下方
         const rect = button.getBoundingClientRect();
         menu.showAtPosition({ x: rect.left - 100, y: rect.bottom + 8 });
@@ -1091,6 +1097,247 @@ export class HighlightCard {
         if (createButton) {
             createButton.textContent = this.hasFlashcard ? t('Delete HiCard') : t('Create HiCard');
         }
+    }
+    
+    /**
+     * 处理删除高亮的逻辑
+     * 这个方法会删除编辑器中的高亮格式和批注数据
+     */
+    private async handleDeleteHighlight() {
+        try {
+            // 显示确认对话框
+            const confirmDelete = confirm(t('Delete this highlight and all its data, including Comments and HiCards? Can\'t undo.'));
+            if (!confirmDelete) {
+                return;
+            }
+            
+            // 如果有闪卡，先删除闪卡
+            if (this.hasFlashcard) {
+                await this.handleDeleteHiCard(true); // 静默模式，不显示通知
+            }
+            
+            if (this.highlight.filePath) {
+                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
+                if (file instanceof TFile) {
+                    // 1. 从 CommentStore 中删除高亮
+                    const plugin = (window as any).app.plugins.plugins['hi-note'];
+                    if (plugin && plugin.commentStore) {
+                        await plugin.commentStore.removeComment(file, this.highlight as any);
+                    } else {
+                        console.warn('无法访问 commentStore');
+                    }
+                    
+                    // 2. 从编辑器中删除高亮格式
+                    await this.removeHighlightFormatFromEditor(file);
+                    
+                    // 3. 触发高亮删除事件
+                    this.plugin.eventManager.emitHighlightDelete(
+                        this.highlight.filePath, 
+                        this.highlight.text || '', 
+                        this.highlight.id || ''
+                    );
+                    
+                    // 4. 显示成功通知
+                    new Notice(t('Successfully deleted'));
+                    
+                    // 5. 移除卡片
+                    this.card.remove();
+                    
+                    // 6. 从卡片实例集合中移除
+                    HighlightCard.cardInstances.delete(this);
+                }
+            } else {
+                console.warn('高亮对象缺少文件路径');
+                new Notice(t('删除高亮失败：缺少文件路径'));
+            }
+        } catch (error) {
+            console.error('删除高亮时出错:', error);
+            new Notice(t(`删除高亮失败: ${error.message}`));
+        }
+    }
+    
+    /**
+     * 从编辑器中删除高亮格式
+     * @param file 文件对象
+     */
+    private async removeHighlightFormatFromEditor(file: TFile) {
+        // 获取编辑器实例
+        let editor: Editor | null = null;
+        let fileContent: string = '';
+        
+        // 尝试获取当前打开的编辑器
+        const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView && activeView.file && activeView.file.path === file.path) {
+            editor = activeView.editor;
+        }
+        
+        // 如果找不到编辑器，直接读取文件内容
+        if (!editor) {
+            fileContent = await this.plugin.app.vault.read(file);
+        } else {
+            fileContent = editor.getValue();
+        }
+        
+        // 查找高亮文本在文件中的位置
+        if (typeof this.highlight.position === 'number') {
+            // 使用位置信息定位高亮
+            const position = this.highlight.position;
+            const highlightText = this.highlight.text;
+            
+            // 获取高亮周围的文本上下文
+            const contextBefore = fileContent.substring(Math.max(0, position - 100), position);
+            const contextAfter = fileContent.substring(position + highlightText.length, Math.min(fileContent.length, position + highlightText.length + 100));
+            
+            // 尝试匹配可能的高亮格式
+            // 支持多种常见的高亮格式：==text==, <mark>text</mark>, <span class="highlight">text</span> 等
+            const possibleFormats = [
+                new RegExp(`==\\s*(${this.escapeRegExp(highlightText)})\\s*==`, 'g'),
+                new RegExp(`<mark[^>]*>(${this.escapeRegExp(highlightText)})</mark>`, 'g'),
+                new RegExp(`<span[^>]*>(${this.escapeRegExp(highlightText)})</span>`, 'g')
+            ];
+            
+            // 尝试使用位置信息和文本内容定位高亮
+            let newContent = fileContent;
+            let replaced = false;
+            
+            // 尝试在整个文件中查找高亮格式并替换
+            const searchRange = fileContent;
+            
+            // 首先尝试使用常见的高亮格式
+            for (const format of possibleFormats) {
+                const matches = searchRange.match(format);
+                if (matches) {
+                    // 找到匹配的格式，替换为纯文本
+                    newContent = searchRange.replace(format, highlightText);
+                    replaced = true;
+                    break;
+                }
+            }
+            
+            // 如果没有找到匹配的格式，尝试使用插件设置中的自定义正则表达式
+            if (!replaced) {
+                // 获取插件设置中的高亮正则表达式
+                const plugin = (window as any).app.plugins.plugins['hi-note'];
+                if (plugin && plugin.settings && plugin.settings.customHighlightRegex) {
+                    try {
+                        const customRegex = new RegExp(plugin.settings.customHighlightRegex, 'g');
+                        // 在整个文件中搜索自定义格式
+                        const matches = searchRange.match(customRegex);
+                        if (matches) {
+                            // 替换所有匹配项
+                            for (const match of matches) {
+                                // 检查匹配项是否包含高亮文本
+                                if (match.includes(highlightText)) {
+                                    newContent = newContent || searchRange;
+                                    newContent = newContent.replace(match, highlightText);
+                                    replaced = true;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('自定义正则表达式错误:', error);
+                    }
+                }
+            }
+            
+            // 如果仍然没有找到匹配的格式，使用最简单的方法：直接替换各种高亮格式
+            if (!replaced) {
+                // 尝试多种高亮格式的替换
+                const escapedText = this.escapeRegExp(highlightText);
+                
+                // ==text== 格式
+                const markdownHighlightRegex = new RegExp(`==\\s*(${escapedText})\\s*==`, 'g');
+                newContent = fileContent.replace(markdownHighlightRegex, highlightText);
+                
+                // <mark>text</mark> 格式
+                const markTagRegex = new RegExp(`<mark[^>]*>(${escapedText})</mark>`, 'g');
+                newContent = newContent.replace(markTagRegex, highlightText);
+                
+                // <span class="highlight">text</span> 格式
+                const spanTagRegex = new RegExp(`<span[^>]*>(${escapedText})</span>`, 'g');
+                newContent = newContent.replace(spanTagRegex, highlightText);
+            }
+            
+            // 更新文件内容
+            if (editor) {
+                editor.setValue(newContent);
+            } else {
+                await this.plugin.app.vault.modify(file, newContent);
+            }
+        } else {
+            // 如果没有位置信息，尝试通过文本内容查找高亮
+            const highlightText = this.highlight.text;
+            const escapedText = this.escapeRegExp(highlightText);
+            
+            // 尝试匹配可能的高亮格式
+            const possibleFormats = [
+                new RegExp(`==\\s*(${escapedText})\\s*==`, 'g'),
+                new RegExp(`<mark[^>]*>(${escapedText})</mark>`, 'g'),
+                new RegExp(`<span[^>]*>(${escapedText})</span>`, 'g')
+            ];
+            
+            // 尝试替换所有匹配的高亮格式
+            let newContent = fileContent;
+            let replaced = false;
+            
+            for (const format of possibleFormats) {
+                const updatedContent = newContent.replace(format, highlightText);
+                if (updatedContent !== newContent) {
+                    newContent = updatedContent;
+                    replaced = true;
+                    break;
+                }
+            }
+            
+            // 如果没有找到匹配的格式，尝试使用插件设置中的自定义正则表达式
+            if (!replaced) {
+                // 获取插件设置中的高亮正则表达式
+                const plugin = (window as any).app.plugins.plugins['hi-note'];
+                if (plugin && plugin.settings && plugin.settings.customHighlightRegex) {
+                    try {
+                        const customRegex = new RegExp(plugin.settings.customHighlightRegex, 'g');
+                        const updatedContent = newContent.replace(customRegex, (match, ...groups) => {
+                            // 检查匹配的文本是否包含我们要查找的高亮文本
+                            for (const group of groups) {
+                                if (typeof group === 'string' && group.includes(highlightText)) {
+                                    return highlightText;
+                                }
+                            }
+                            return match; // 如果没有找到匹配的组，保持原样
+                        });
+                        
+                        if (updatedContent !== newContent) {
+                            newContent = updatedContent;
+                            replaced = true;
+                        }
+                    } catch (error) {
+                        console.error('自定义正则表达式错误:', error);
+                    }
+                }
+            }
+            
+            // 如果仍然没有找到匹配的格式，使用最简单的方法：直接替换 ==text== 格式
+            if (!replaced) {
+                const simpleHighlightRegex = new RegExp(`==\\s*${escapedText}\\s*==`, 'g');
+                newContent = fileContent.replace(simpleHighlightRegex, highlightText);
+            }
+            
+            // 更新文件内容
+            if (editor) {
+                editor.setValue(newContent);
+            } else {
+                await this.plugin.app.vault.modify(file, newContent);
+            }
+        }
+    }
+    
+    /**
+     * 转义正则表达式中的特殊字符
+     * @param string 要转义的字符串
+     * @returns 转义后的字符串
+     */
+    private escapeRegExp(string: string): string {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
     
     /**
