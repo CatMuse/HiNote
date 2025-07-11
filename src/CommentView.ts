@@ -1873,7 +1873,7 @@ export class CommentView extends ItemView {
     }
 
     // 添加新方法来更新全部高亮
-    private async updateAllHighlights() {
+    private async updateAllHighlights(searchTerm: string = '') {
         // 重置批次计数
         this.currentBatch = 0;
         this.highlights = [];
@@ -1883,7 +1883,30 @@ export class CommentView extends ItemView {
         this.highlightContainer.appendChild(this.loadingIndicator);
 
         try {
-            // 获取所有高亮
+            // 如果有搜索词，使用文件级索引系统进行搜索
+            if (searchTerm) {
+                console.log(`使用索引搜索: "${searchTerm}"`);
+                const startTime = Date.now();
+                
+                // 使用索引搜索高亮
+                const searchResults = await this.highlightService.searchHighlightsFromIndex(searchTerm);
+                console.log(`索引搜索完成，耗时 ${Date.now() - startTime}ms，找到 ${searchResults.length} 个结果`);
+                
+                // 处理搜索结果
+                this.highlights = searchResults.map(highlight => ({
+                    ...highlight,
+                    comments: highlight.comments || [],
+                    fileName: highlight.fileName || (highlight.filePath ? highlight.filePath.split('/').pop()?.replace('.md', '') : ''),
+                    filePath: highlight.filePath || '',
+                    fileIcon: 'file-text'
+                }));
+                
+                // 初始加载
+                await this.loadMoreHighlights();
+                return;
+            }
+            
+            // 如果没有搜索词，使用传统方法获取所有高亮
             const allHighlights = await this.highlightService.getAllHighlights();
             
             // 创建所有文件的批注映射
@@ -2433,19 +2456,16 @@ export class CommentView extends ItemView {
                 // 临时设置为 null 以启用全局搜索
                 this.currentFile = null;
                 
-                // 获取所有高亮
-                await this.updateAllHighlights();
+                // 直接使用索引搜索，将搜索词传递给 updateAllHighlights 方法
+                await this.updateAllHighlights(searchTerm);
                 
                 // 标记所有高亮为全局搜索结果
                 this.highlights.forEach(highlight => {
                     highlight.isGlobalSearch = true;
                 });
                 
-                // 使用实际搜索词过滤
-                const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
-                
-                // 更新显示
-                this.renderHighlights(filteredHighlights);
+                // 直接渲染索引搜索结果，因为索引搜索已经过滤了结果
+                this.renderHighlights(this.highlights);
             } finally {
                 // 恢复原始文件引用
                 this.currentFile = originalFile;
