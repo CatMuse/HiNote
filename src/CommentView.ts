@@ -3115,7 +3115,7 @@ if (isInCanvas && this.currentFile) {
                 this.highlightContainer.empty();
                 const emptyMessage = this.highlightContainer.createDiv({
                     cls: 'no-highlights-message',
-                    text: '当前 Canvas 文件中没有文件节点'
+                    text: 'There are no file nodes in the current Canvas.'
                 });
                 return;
             }
