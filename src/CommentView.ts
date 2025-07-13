@@ -878,7 +878,14 @@ export class CommentView extends ItemView {
                 // 只在非主视图时同步文件
                 if (file && !this.isDraggedToMainView) {
                     this.currentFile = file;
-                    this.updateHighlights();
+                    
+                    // 检查是否是在 Canvas 中选中的文件节点
+                    const activeLeaf = this.app.workspace.activeLeaf;
+                    const isInCanvas = activeLeaf?.getViewState()?.state?.file !== file.path && 
+                                      activeLeaf?.view?.getViewType() === 'canvas';
+                    
+                    // 更新高亮，并传递额外信息
+                    this.updateHighlights(isInCanvas);
                 }
             })
         );
@@ -888,7 +895,12 @@ export class CommentView extends ItemView {
             this.app.vault.on('modify', (file) => {
                 // 只在非主视图时同步文件
                 if (file === this.currentFile && !this.isDraggedToMainView) {
-                    this.updateHighlights();
+                    // 检查是否是在 Canvas 中选中的文件节点
+                    const activeLeaf = this.app.workspace.activeLeaf;
+                    const isInCanvas = activeLeaf?.getViewState()?.state?.file !== file.path && 
+                                      activeLeaf?.view?.getViewType() === 'canvas';
+                    
+                    this.updateHighlights(isInCanvas);
                 }
             })
         );
@@ -2924,7 +2936,7 @@ export class CommentView extends ItemView {
     }
     
     // 更新单个文件的高亮
-    private async updateHighlights() {
+    private async updateHighlights(isInCanvas: boolean = false) {
         // 如果在全部高亮视图，使用 updateAllHighlights
         if (this.isInAllHighlightsView()) {
             await this.updateAllHighlights();
@@ -3047,7 +3059,16 @@ export class CommentView extends ItemView {
     uniqueVirtualHighlights.forEach(vh => usedCommentIds.add(vh.id));
     this.highlights.unshift(...uniqueVirtualHighlights);
 
-        // 创建一个映射来记录哪些高亮已经创建了闪卡
+        // 如果是在 Canvas 中选中的文件节点，添加必要的标记
+if (isInCanvas && this.currentFile) {
+    this.highlights.forEach(highlight => {
+        highlight.isFromCanvas = true;
+        highlight.isGlobalSearch = true; // 这会让卡片显示文件名
+        highlight.fileName = this.currentFile?.name; // 确保设置文件名
+    });
+}
+
+// 创建一个映射来记录哪些高亮已经创建了闪卡
         // 这避免了直接在 HighlightInfo 上添加属性
         this.highlightsWithFlashcards = new Set<string>();
         
