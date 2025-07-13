@@ -2029,7 +2029,7 @@ export class CommentView extends ItemView {
     }
 
     // 添加新方法来更新全部高亮
-    private async updateAllHighlights(searchTerm: string = '') {
+    private async updateAllHighlights(searchTerm: string = '', searchType: string = '') {
         // 重置批次计数
         this.currentBatch = 0;
         this.highlights = [];
@@ -2039,6 +2039,115 @@ export class CommentView extends ItemView {
         this.highlightContainer.appendChild(this.loadingIndicator);
 
         try {
+            // 如果是路径搜索，先获取所有高亮然后按路径过滤
+            if (searchType === 'path') {
+                // 获取所有高亮
+                const allHighlights = await this.highlightService.getAllHighlights();
+                
+                // 创建所有文件的批注映射
+                const fileCommentsMap = new Map<string, HiNote[]>();
+                
+                // 获取所有文件
+                const allFiles = this.app.vault.getMarkdownFiles();
+                
+                // 预先加载所有文件的批注
+                for (const file of allFiles) {
+                    const fileComments = this.commentStore.getFileComments(file);
+                    if (fileComments && fileComments.length > 0) {
+                        fileCommentsMap.set(file.path, fileComments);
+                    }
+                }
+                
+                // 处理所有高亮
+                this.highlights = [];
+                
+                for (const { file, highlights } of allHighlights) {
+                    // 如果有搜索词，先检查文件路径是否匹配
+                    if (searchTerm && !file.path.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        continue; // 跳过不匹配的文件
+                    }
+                    
+                    // 获取当前文件的所有批注
+                    const fileComments = fileCommentsMap.get(file.path) || [];
+                    
+                    // 创建一个集合来跟踪已使用的批注ID，防止重复匹配
+                    const usedCommentIds = new Set<string>();
+                    
+                    // 处理每个高亮
+                    const processedHighlights = highlights.map(highlight => {
+                        // 匹配批注的逻辑保持不变
+                        let storedComment = fileComments.find(c => 
+                            !usedCommentIds.has(c.id) && c.id === highlight.id
+                        );
+                        
+                        if (!storedComment) {
+                            storedComment = fileComments.find(c => {
+                                if (usedCommentIds.has(c.id)) return false;
+                                
+                                const textMatch = c.text === highlight.text;
+                                if (textMatch && highlight.position !== undefined && c.position !== undefined) {
+                                    return Math.abs(c.position - highlight.position) < 1000;
+                                }
+                                return textMatch;
+                            });
+                        }
+                        
+                        if (!storedComment && highlight.position !== undefined) {
+                            const highlightPos = highlight.position;
+                            storedComment = fileComments.find(c => 
+                                !usedCommentIds.has(c.id) && 
+                                c.position !== undefined && 
+                                Math.abs(c.position - highlightPos) < 50
+                            );
+                        }
+                        
+                        if (storedComment) {
+                            usedCommentIds.add(storedComment.id);
+                            
+                            return {
+                                ...highlight,
+                                id: storedComment.id,
+                                comments: storedComment.comments || [],
+                                createdAt: storedComment.createdAt,
+                                updatedAt: storedComment.updatedAt,
+                                fileName: file.basename,
+                                filePath: file.path,
+                                fileIcon: 'file-text'
+                            };
+                        }
+                        
+                        return {
+                            ...highlight,
+                            comments: highlight.comments || [],
+                            fileName: file.basename,
+                            filePath: file.path,
+                            fileIcon: 'file-text'
+                        };
+                    });
+                    
+                    this.highlights.push(...processedHighlights);
+                    
+                    // 添加虚拟高亮（只有批注的高亮）
+                    const virtualHighlights = fileComments
+                        .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
+                    
+                    virtualHighlights.forEach(vh => {
+                        usedCommentIds.add(vh.id);
+                        this.highlights.push({
+                            ...vh,
+                            fileName: file.basename,
+                            filePath: file.path,
+                            fileIcon: 'file-text',
+                            position: vh.position || 0
+                        });
+                    });
+                }
+                
+                // 初始加载
+                await this.loadMoreHighlights();
+                return;
+            }
+            
             // 如果有搜索词，使用文件级索引系统进行搜索
             if (searchTerm) {
                 const startTime = Date.now();
@@ -2378,6 +2487,34 @@ export class CommentView extends ItemView {
      * @returns 过滤后的高亮列表
      */
     private filterHighlightsByTerm(searchTerm: string, searchType: string = ''): HighlightInfo[] {
+        // 如果是按路径搜索，需要过滤出路径匹配的高亮
+        if (searchType === 'path') {
+            // 确保所有高亮都有文件名和路径信息
+            this.highlights.forEach(highlight => {
+                if (highlight.filePath && !highlight.fileName) {
+                    // 从路径中提取文件名
+                    const pathParts = highlight.filePath.split('/');
+                    highlight.fileName = pathParts[pathParts.length - 1];
+                }
+            });
+            
+            // 如果搜索词为空，返回所有有文件路径的高亮
+            if (!searchTerm || searchTerm.trim() === '') {
+                return this.highlights.filter(highlight => !!highlight.filePath);
+            }
+            
+            // 如果有搜索词，过滤出路径匹配的高亮
+            return this.highlights.filter(highlight => {
+                if (!highlight.filePath) {
+                    return false;
+                }
+                
+                // 将路径转换为小写进行不区分大小写的匹配
+                const filePath = highlight.filePath.toLowerCase();
+                return filePath.includes(searchTerm.toLowerCase());
+            });
+        }
+        
         // 如果是搜索闪卡，需要先过滤出已转化为闪卡的高亮
         if (searchType === 'hicard') {
             // 获取 FSRS 管理器
@@ -2498,6 +2635,7 @@ export class CommentView extends ItemView {
         // 定义可用的搜索前缀
         const prefixes = [
             { prefix: 'all:', description: t('search-prefix-all') },
+            { prefix: 'path:', description: t('search-prefix-path') },
             { prefix: 'hicard:', description: t('search-prefix-hicard') },
             { prefix: 'comment:', description: t('search-prefix-comment') }
         ];
@@ -2674,6 +2812,7 @@ export class CommentView extends ItemView {
             const isGlobalSearch = searchInput.startsWith('all:');
             const isHiCardSearch = searchInput.startsWith('hicard:');
             const isCommentSearch = searchInput.startsWith('comment:');
+            const isPathSearch = searchInput.startsWith('path:'); // 添加 path: 前缀检查
             
             // 确定搜索类型
             let searchType = '';
@@ -2683,6 +2822,8 @@ export class CommentView extends ItemView {
                 searchType = 'hicard';
             } else if (isCommentSearch) {
                 searchType = 'comment';
+            } else if (isPathSearch) {
+                searchType = 'path'; // 设置搜索类型为 path
             }
             
             // 提取搜索词（去掉前缀）
@@ -2693,6 +2834,8 @@ export class CommentView extends ItemView {
                 searchTerm = searchInput.substring(7).trim();
             } else if (isCommentSearch) {
                 searchTerm = searchInput.substring(8).trim();
+            } else if (isPathSearch) {
+                searchTerm = searchInput.substring(5).trim(); // 去掉 'path:' 前缀
             }
             
             // 检查是否需要恢复到当前文件视图
@@ -2719,8 +2862,8 @@ export class CommentView extends ItemView {
                 return;
             }
             
-            // 如果是全局搜索且不在全局视图中
-            if (isGlobalSearch && this.currentFile !== null) {
+            // 如果是全局搜索或路径搜索，且不在全局视图中
+            if ((isGlobalSearch || isPathSearch) && this.currentFile !== null) {
                 // 显示加载指示器
                 this.highlightContainer.empty();
                 this.highlightContainer.appendChild(this.loadingIndicator);
@@ -2732,8 +2875,8 @@ export class CommentView extends ItemView {
                     // 临时设置为 null 以启用全局搜索
                     this.currentFile = null;
                     
-                    // 直接使用索引搜索，将搜索词传递给 updateAllHighlights 方法
-                    await this.updateAllHighlights(searchTerm);
+                    // 直接使用索引搜索，将搜索词和搜索类型传递给 updateAllHighlights 方法
+                    await this.updateAllHighlights(searchTerm, searchType);
                     
                     // 标记所有高亮为全局搜索结果
                     this.highlights.forEach(highlight => {

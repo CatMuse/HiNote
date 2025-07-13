@@ -213,6 +213,7 @@ export default {
     "search-prefix-all": "match all file highlights",
     "search-prefix-hicard": "match flashcards only",
     "search-prefix-comment": "match with comments only",
+    "search-prefix-path": "match path of the file",
 
 // 其他
 

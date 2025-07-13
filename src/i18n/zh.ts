@@ -220,6 +220,7 @@ export default {
     "search-prefix-all": "跨文件搜索所有高亮",
     "search-prefix-hicard": "只搜索闪卡高亮",
     "search-prefix-comment": "只搜索带批注的高亮",
+    "search-prefix-path": "按文件路径搜索高亮",
 
     // 其他
 
