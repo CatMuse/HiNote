@@ -1547,6 +1547,11 @@ export class CommentView extends ItemView {
         const isInMainView = this.isViewInMainArea(this.leaf, root);
         
         if (this.isDraggedToMainView !== isInMainView) {
+            // 记录切换前的状态
+            const wasInAllHighlightsView = this.isInAllHighlightsView();
+            const previousHighlights = [...this.highlights]; // 保存当前高亮列表
+            
+            // 更新视图位置状态
             this.isDraggedToMainView = isInMainView;
 
             if (isInMainView) {
@@ -1580,8 +1585,24 @@ export class CommentView extends ItemView {
                 // 重新同步当前文件
                 const activeFile = this.app.workspace.getActiveFile();
                 if (activeFile) {
-                    this.currentFile = activeFile;
-                    this.updateHighlights();
+                    // 如果之前是全部高亮视图，需要切换到当前文件视图
+                    if (wasInAllHighlightsView) {
+                        // 先设置当前文件，避免触发全文件扫描
+                        this.currentFile = activeFile;
+                        
+                        // 先显示加载指示器
+                        this.highlightContainer.empty();
+                        this.highlightContainer.appendChild(this.loadingIndicator);
+                        
+                        // 延迟加载当前文件的高亮，提高响应速度
+                        setTimeout(() => {
+                            this.updateHighlights();
+                        }, 10);
+                    } else {
+                        // 如果之前已经是单文件视图，只需更新当前文件
+                        this.currentFile = activeFile;
+                        this.updateHighlights();
+                    }
                 } else {
                     // 没有激活文档，手动清空高亮，显示空提示
                     this.highlights = [];
@@ -1589,8 +1610,13 @@ export class CommentView extends ItemView {
                 }
             }
 
-            this.updateViewLayout();  // 更新视图布局
-            this.updateHighlightsList();
+            // 更新视图布局
+            this.updateViewLayout();
+            
+            // 只有在搜索框有内容时才更新高亮列表
+            if (this.searchInput && this.searchInput.value.trim() !== '') {
+                this.updateHighlightsList();
+            }
         }
     }
 
