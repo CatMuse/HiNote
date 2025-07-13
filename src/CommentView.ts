@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, Menu, setIcon, getIcon, debounce } from "obsidian";
+import { CanvasService } from './services/CanvasService';
 import { FlashcardComponent } from './flashcard/components/FlashcardComponent';
 import { FlashcardState } from './flashcard/types/FSRSTypes';
 import { CommentStore, HiNote, CommentItem } from './CommentStore';
@@ -843,6 +844,7 @@ export class CommentView extends ItemView {
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
     private currentEditingHighlightId: string | null | undefined = null;
     private flashcardComponent: FlashcardComponent | null = null;
+    private canvasService: CanvasService;
     
     // 多选相关属性
     private isSelectionMode: boolean = false;
@@ -868,6 +870,7 @@ export class CommentView extends ItemView {
         this.exportService = new ExportService(this.app, this.commentStore);
         this.highlightService = new HighlightService(this.app);
         this.licenseManager = new LicenseManager(this.plugin);
+        this.canvasService = new CanvasService(this.app.vault);
         
         // 监听文档切换
         this.registerEvent(
@@ -2933,6 +2936,13 @@ export class CommentView extends ItemView {
             this.renderHighlights([]);
             return;
         }
+        
+        // 检查是否是 Canvas 文件
+        if (this.currentFile.extension === 'canvas') {
+            // 如果是 Canvas 文件，使用专门的处理方法
+            await this.handleCanvasFile(this.currentFile);
+            return;
+        }
 
         // 检查文件是否应该被排除
         if (!this.highlightService.shouldProcessFile(this.currentFile)) {
@@ -3063,6 +3073,64 @@ export class CommentView extends ItemView {
         } else {
             // 如果没有搜索内容，直接渲染所有高亮
             this.renderHighlights(this.highlights);
+        }
+    }
+
+    // 处理 Canvas 文件的方法
+    private async handleCanvasFile(file: TFile): Promise<void> {
+        // 显示加载指示器
+        this.highlightContainer.empty();
+        if (this.loadingIndicator) {
+            this.highlightContainer.appendChild(this.loadingIndicator);
+            this.loadingIndicator.removeClass('highlight-display-none');
+        }
+        
+        try {
+            // 解析 Canvas 文件，获取所有文件路径
+            const filePaths = await this.canvasService.parseCanvasFile(file);
+            
+            if (filePaths.length === 0) {
+                // 如果没有文件节点，显示提示
+                this.highlightContainer.empty();
+                const emptyMessage = this.highlightContainer.createDiv({
+                    cls: 'no-highlights-message',
+                    text: '当前 Canvas 文件中没有文件节点'
+                });
+                return;
+            }
+            
+            // 使用现有的 path: 搜索前缀功能来显示所有相关文件的高亮
+            // 先获取所有高亮
+            await this.updateAllHighlights('', 'path');
+            
+            // 然后只保留在 Canvas 文件中引用的文件的高亮
+            this.highlights = this.highlights.filter(highlight => {
+                if (!highlight.filePath) return false;
+                return filePaths.includes(highlight.filePath);
+            });
+            
+            // 添加来源信息并标记为全局搜索结果，以便显示文件名
+            this.highlights.forEach(highlight => {
+                highlight.isFromCanvas = true;
+                highlight.canvasSource = file.path;
+                highlight.isGlobalSearch = true; // 标记为全局搜索结果，这样会显示文件名
+            });
+            
+            // 渲染高亮
+            this.renderHighlights(this.highlights);
+            
+        } catch (error) {
+            console.error('处理 Canvas 文件失败:', error);
+            this.highlightContainer.empty();
+            const errorMessage = this.highlightContainer.createDiv({
+                cls: 'error-message',
+                text: '处理 Canvas 文件时出错'
+            });
+        } finally {
+            // 隐藏加载指示器
+            if (this.loadingIndicator) {
+                this.loadingIndicator.addClass('highlight-display-none');
+            }
         }
     }
 

@@ -26,6 +26,8 @@ export interface HighlightInfo {
     originalLength?: number;  // 原始匹配文本的长度，包括标签
     isCloze?: boolean;    // 标记是否为挖空格式
     isGlobalSearch?: boolean; // 标记是否为全局搜索结果
+    isFromCanvas?: boolean; // 标记是否来自 Canvas 文件
+    canvasSource?: string; // Canvas 文件的路径
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';
