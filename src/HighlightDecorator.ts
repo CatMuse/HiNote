@@ -12,12 +12,33 @@ export class HighlightDecorator {
     private highlightPlugin: any;
     private highlightService: HighlightService;
     private textSimilarityService: TextSimilarityService;
+    private currentViewPlugin: any; // 保存当前的 ViewPlugin 实例
 
     constructor(plugin: Plugin, commentStore: CommentStore) {
         this.plugin = plugin;
         this.commentStore = commentStore;
         this.highlightService = new HighlightService(this.plugin.app);
         this.textSimilarityService = new TextSimilarityService(this.plugin.app);
+    }
+
+    /**
+     * 强制刷新装饰器
+     * 当评论数据发生变化时调用此方法来更新 CommentWidget 的显示
+     */
+    private refreshDecorations() {
+        const view = this.getActiveMarkdownView();
+        if (!view?.editor) return;
+        
+        // 获取 CodeMirror 编辑器视图
+        const editorView = (view.editor as any).cm;
+        if (!editorView) return;
+        
+        // 通过触发一个空的文档更新来强制重新构建装饰器
+        // 这会导致 ViewPlugin 的 update 方法被调用，进而重新构建装饰器
+        editorView.dispatch({
+            changes: [],
+            effects: []
+        });
     }
 
 
@@ -88,49 +109,30 @@ export class HighlightDecorator {
         const textSimilarityService = this.textSimilarityService;
         const findMatchingHighlightMethod = this.findMatchingHighlight.bind(this);
 
-        // 监听评论更新事件
-        this.plugin.registerDomEvent(window, 'comment-updated', (e: CustomEvent) => {
-            const buttons = document.querySelectorAll('.hi-note-widget');
-            const updatedText = e.detail.text;
-            
-            // 获取当前文档和评论
-            const view = this.getActiveMarkdownView();
-            if (!view || !view.file) return;
-            
-            const fileComments = this.commentStore.getFileComments(view.file);
-            if (!fileComments) return;
-
-            buttons.forEach(button => {
-                const highlightText = button.getAttribute('data-highlight-text');
-                
-                // 如果这个高亮文本是更新的文本
-                if (highlightText === updatedText) {
-                    // 获取当前高亮的评论
-                    const highlight = fileComments.find(h => h.text === highlightText);
-                    const allComments = highlight?.comments || [];
-
-                    // 更新评论数量
-                    const countEl = button.querySelector('.hi-note-count');
-                    if (countEl) {
-                        const commentCount = allComments.length;
-                        countEl.textContent = commentCount.toString();
-                        
-                        const commentButton = button.querySelector('.hi-note-button');
-                        if (commentCount === 0) {
-                            commentButton?.addClass('hi-note-button-hidden');
-                        } else {
-                            commentButton?.removeClass('hi-note-button-hidden');
-                        }
-                    }
-
-                    // 更新预览内容
-                    const tooltip = button.querySelector('.hi-note-tooltip');
-                    if (tooltip) {
-                        this.updateTooltipContent(tooltip, allComments);
-                    }
-                }
-            });
-        });
+        // 监听评论相关事件，当评论增删时刷新装饰器
+        this.plugin.registerEvent(
+            (this.plugin as any).eventManager.on('comment:update', () => {
+                this.refreshDecorations();
+            })
+        );
+        
+        this.plugin.registerEvent(
+            (this.plugin as any).eventManager.on('comment:delete', () => {
+                this.refreshDecorations();
+            })
+        );
+        
+        this.plugin.registerEvent(
+            (this.plugin as any).eventManager.on('highlight:update', () => {
+                this.refreshDecorations();
+            })
+        );
+        
+        this.plugin.registerEvent(
+            (this.plugin as any).eventManager.on('highlight:delete', () => {
+                this.refreshDecorations();
+            })
+        );
 
         const highlightPlugin = ViewPlugin.fromClass(class {
             decorations: DecorationSet;
@@ -353,7 +355,8 @@ export class HighlightDecorator {
             }
 
             update(update: any) {
-                if (update.docChanged || update.viewportChanged) {
+                // 当文档变化、视口变化或接收到刷新信号时重新构建装饰器
+                if (update.docChanged || update.viewportChanged || update.transactions.length > 0) {
                     this.decorations = this.buildDecorations(update.view);
                 }
             }
