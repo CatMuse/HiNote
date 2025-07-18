@@ -85,6 +85,12 @@ export class ChatView extends Component {
 
         this.setupChatInput(inputContainer);
 
+        // 添加调整大小的手柄
+        const resizeHandle = this.containerEl.createEl("div", {
+            cls: "highlight-chat-resize-handle"
+        });
+        this.setupResizeHandle(resizeHandle);
+
         // 创建一个临时的 HighlightInfo 对象
         const dummyHighlight: HighlightInfo = {
             text: "",
@@ -435,6 +441,57 @@ export class ChatView extends Component {
             // 如果渲染失败，回退到纯文本渲染
             containerEl.textContent = content;
         }
+    }
+
+    // 添加调整大小手柄的设置方法
+    private setupResizeHandle(resizeHandle: HTMLElement) {
+        let isResizing = false;
+        let startX = 0;
+        let startY = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+
+        resizeHandle.addEventListener('mousedown', (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            const rect = this.containerEl.getBoundingClientRect();
+            startWidth = rect.width;
+            startHeight = rect.height;
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            this.containerEl.addClass('resizing');
+        });
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isResizing) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            const newWidth = Math.max(300, startWidth + deltaX); // 最小宽度 300px
+            const newHeight = Math.max(300, startHeight + deltaY); // 最小高度 300px
+            
+            // 限制最大尺寸
+            const maxWidth = Math.min(newWidth, window.innerWidth * 0.9);
+            const maxHeight = Math.min(newHeight, window.innerHeight * 0.9);
+            
+            this.containerEl.style.width = `${maxWidth}px`;
+            this.containerEl.style.height = `${maxHeight}px`;
+        };
+
+        const handleMouseUp = () => {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            this.containerEl.removeClass('resizing');
+        };
     }
 
     // 添加新的输入框实现

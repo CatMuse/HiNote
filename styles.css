@@ -4007,3 +4007,31 @@ textarea.flashcard-modal-input {
 .is-mobile.is-small-screen.show-content .flashcard-content-area {
     display: flex;
 }
+
+/* 聊天窗口调整大小手柄样式 */
+.highlight-chat-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: nw-resize;
+    background: linear-gradient(-45deg, transparent 0%, transparent 40%, var(--background-modifier-border) 40%, var(--background-modifier-border) 60%, transparent 60%, transparent 100%);
+    background-size: 4px 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.highlight-chat-resize-handle:hover {
+    opacity: 1;
+}
+
+.highlight-chat-window.resizing {
+    user-select: none;
+    pointer-events: none;
+}
+
+.highlight-chat-window.resizing .highlight-chat-resize-handle {
+    pointer-events: auto;
+    opacity: 1;
+}
