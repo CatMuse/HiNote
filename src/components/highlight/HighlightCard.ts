@@ -265,70 +265,8 @@ export class HighlightCard {
                 cls: "highlight-card-title-text"
             });
             
-            // 添加拖拽属性
-            titleBarLeft.setAttribute("draggable", "true");
-            
-            // 预先生成 Block ID，确保拖拽时可以使用
-            if (this.highlight && this.highlight.filePath && typeof this.highlight.position === 'number') {
-                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
-                if (file instanceof TFile) {
-                    // 异步预生成 Block ID，但不阻塞界面
-                    this.generateDragContent().catch(error => {
-                        console.error('[HighlightCard] Error pre-generating block ID:', error);
-                    });
-                }
-            }
-            
-            // 添加拖拽事件
-            titleBarLeft.addEventListener("dragstart", async (e: DragEvent) => {
-                try {
-                    // 首先确保 highlight 对象存在并且有所需的属性
-                    if (!this.highlight || !this.highlight.text) {
-                        throw new Error('Invalid highlight data');
-                    }
-
-                    // 尝试异步生成带有 Block ID 的内容
-                    // 设置一个超时，避免拖拽操作等待太久
-                    let formattedContent;
-                    try {
-                        const timeoutPromise = new Promise<string>((_, reject) => {
-                            setTimeout(() => reject(new Error('Block ID generation timeout')), 300);
-                        });
-                        
-                        // 使用 Promise.race 确保不会等待太久
-                        formattedContent = await Promise.race([
-                            this.generateDragContent(),
-                            timeoutPromise
-                        ]);
-                    } catch (timeoutError) {
-                        // 如果超时或出错，回退到同步方法
-                        console.debug('[HighlightCard] Using sync fallback for drag content:', timeoutError);
-                        formattedContent = this.generateDragContentSync();
-                    }
-                    
-                    // 使用 text/plain 格式来确保编辑器能正确识别 Markdown 格式
-                    e.dataTransfer?.setData("text/plain", formattedContent);
-                    
-                    // 保存原始数据以供其他用途
-                    const highlightData = JSON.stringify(this.highlight);
-                    e.dataTransfer?.setData("application/highlight", highlightData);
-                    
-                    titleBarLeft.addClass("dragging");
-                    
-                    // 使用 DragPreview 替代原来的预览处理
-                    DragPreview.start(e, this.highlight.text);
-                } catch (error) {
-                    console.error('[HighlightCard] Error during drag start:', error);
-                    // 防止错误时的拖拽
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            });
-
-            titleBarLeft.addEventListener("dragend", () => {
-                titleBarLeft.removeClass("dragging");
-                DragPreview.clear();
-            });
+            // 添加拖拽功能
+            this.setupDragFunctionality(titleBarLeft);
             
             // 添加页面预览功能
             this.addPagePreview(fileNameText, this.highlight.filePath || this.fileName);
@@ -386,6 +324,9 @@ export class HighlightCard {
                     }
                 }
             }
+            
+            // 为非主视图也添加拖拽功能
+            this.setupDragFunctionality(titleBarLeft);
         }
         
         // 在标题栏右侧添加操作按钮
@@ -658,6 +599,78 @@ export class HighlightCard {
     private async generateDragContent(): Promise<string> {
         const generator = new DragContentGenerator(this.highlight, this.plugin);
         return generator.generate();
+    }
+    
+    /**
+     * 为指定元素设置拖拽功能
+     * @param element 要设置拖拽功能的元素
+     */
+    private setupDragFunctionality(element: HTMLElement): void {
+        // 添加拖拽属性
+        element.setAttribute("draggable", "true");
+        
+        // 预先生成 Block ID，确保拖拽时可以使用
+        if (this.highlight && this.highlight.filePath && typeof this.highlight.position === 'number') {
+            const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
+            if (file instanceof TFile) {
+                // 异步预生成 Block ID，但不阻塞界面
+                this.generateDragContent().catch(error => {
+                    console.error('[HighlightCard] Error pre-generating block ID:', error);
+                });
+            }
+        }
+        
+        // 添加拖拽开始事件
+        element.addEventListener("dragstart", async (e: DragEvent) => {
+            try {
+                // 首先确保 highlight 对象存在并且有所需的属性
+                if (!this.highlight || !this.highlight.text) {
+                    throw new Error('Invalid highlight data');
+                }
+
+                // 尝试异步生成带有 Block ID 的内容
+                // 设置一个超时，避免拖拽操作等待太久
+                let formattedContent;
+                try {
+                    const timeoutPromise = new Promise<string>((_, reject) => {
+                        setTimeout(() => reject(new Error('Block ID generation timeout')), 300);
+                    });
+                    
+                    // 使用 Promise.race 确保不会等待太久
+                    formattedContent = await Promise.race([
+                        this.generateDragContent(),
+                        timeoutPromise
+                    ]);
+                } catch (timeoutError) {
+                    // 如果超时或出错，回退到同步方法
+                    console.debug('[HighlightCard] Using sync fallback for drag content:', timeoutError);
+                    formattedContent = this.generateDragContentSync();
+                }
+                
+                // 使用 text/plain 格式来确保编辑器能正确识别 Markdown 格式
+                e.dataTransfer?.setData("text/plain", formattedContent);
+                
+                // 保存原始数据以供其他用途
+                const highlightData = JSON.stringify(this.highlight);
+                e.dataTransfer?.setData("application/highlight", highlightData);
+                
+                element.addClass("dragging");
+                
+                // 使用 DragPreview 替代原来的预览处理
+                DragPreview.start(e, this.highlight.text);
+            } catch (error) {
+                console.error('[HighlightCard] Error during drag start:', error);
+                // 防止错误时的拖拽
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        // 添加拖拽结束事件
+        element.addEventListener("dragend", () => {
+            element.removeClass("dragging");
+            DragPreview.clear();
+        });
     }
     
     /**

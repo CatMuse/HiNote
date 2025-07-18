@@ -1,11 +1,13 @@
 import { ItemView, App, setIcon, Menu, MenuItem, Notice, MarkdownRenderer, Component } from "obsidian";
 import { ChatService, ChatMessage } from '../services/ChatService';
 import { HighlightInfo, ChatViewState, AIModel, DEFAULT_SILICONFLOW_MODELS } from '../types';
+import { ContextService, ContextOptions } from '../services/ContextService';
 import { t } from "src/i18n";
 
 export class ChatView extends Component {
     public static instance: ChatView | null = null;
     private chatService: ChatService;
+    private contextService: ContextService;
     private isProcessing: boolean = false;
     private containerEl: HTMLElement;
     private draggedContents: HighlightInfo[] = [];
@@ -13,8 +15,9 @@ export class ChatView extends Component {
     private floatingButton: HTMLElement | null;
     private currentPreviewContainer: HTMLElement | null = null;
     private static savedState: ChatViewState | null = null;
-    private textarea: HTMLTextAreaElement | null = null;  // 添加输入框引用
+    private textarea: HTMLTextAreaElement | null = null;  // Add textarea reference
     private app: App;
+    private contextOptions: ContextOptions;
 
     constructor(app: App, private plugin: any) {
         super();
@@ -25,18 +28,27 @@ export class ChatView extends Component {
 
         this.app = app;
         this.chatService = new ChatService(this.plugin);
+        this.contextService = new ContextService(app);
+        
+        // Initialize context options from plugin settings
+        this.contextOptions = {
+            strategy: this.plugin.settings.contextOptions?.strategy || 'smart',
+            includeTitle: this.plugin.settings.contextOptions?.includeTitle ?? true,
+            maxLength: this.plugin.settings.contextOptions?.maxLength || 2000,
+            surroundingLines: this.plugin.settings.contextOptions?.surroundingLines || 3
+        };
         this.floatingButton = document.querySelector('.highlight-floating-button');
         
-        // 创建容器
+        // Create container
         this.containerEl = document.createElement('div');
         this.containerEl.addClass("highlight-chat-window");
         
-        // 添加标题栏
+        // Add title bar
         const header = this.containerEl.createEl("div", {
             cls: "highlight-chat-header"
         });
 
-        // 添加标题和模型名称
+        // Add title and model name
         const titleContainer = header.createEl("div", {
             cls: "highlight-chat-title"
         });
@@ -50,25 +62,25 @@ export class ChatView extends Component {
             text: this.getCurrentModelName()
         });
 
-        // 添加点击事件处理
+        // Add click event handler
         modelSelector.addEventListener('click', (e: MouseEvent) => {
             e.stopPropagation();
             this.showModelSelector(modelSelector, e);
         });
 
-        // 添加按钮容器
+        // Add button container
         const buttonsContainer = header.createEl("div", {
             cls: "highlight-chat-buttons"
         });
 
-        // 添加清空按钮
+        // Add clear button
         const clearButton = buttonsContainer.createEl("div", {
             cls: "highlight-chat-clear"
         });
         setIcon(clearButton, "eraser");
         clearButton.addEventListener("click", () => this.clearChat());
 
-        // 添加关闭按钮
+        // Add close button
         const closeButton = buttonsContainer.createEl("div", {
             cls: "highlight-chat-close"
         });
@@ -85,13 +97,13 @@ export class ChatView extends Component {
 
         this.setupChatInput(inputContainer);
 
-        // 添加调整大小的手柄
+        // Add resize handle
         const resizeHandle = this.containerEl.createEl("div", {
             cls: "highlight-chat-resize-handle"
         });
         this.setupResizeHandle(resizeHandle);
 
-        // 创建一个临时的 HighlightInfo 对象
+        // Create a temporary HighlightInfo object
         const dummyHighlight: HighlightInfo = {
             text: "",
             position: 0,
@@ -101,7 +113,7 @@ export class ChatView extends Component {
             updatedAt: Date.now()
         };
 
-        // 将拖拽事件处理器添加到整个历史区域
+        // Add drag event handlers to the entire history area
         chatHistory.addEventListener("dragenter", (e: DragEvent) => {
             e.preventDefault();
             chatHistory.addClass("drag-over");
@@ -112,17 +124,17 @@ export class ChatView extends Component {
             e.stopPropagation();
             chatHistory.addClass("drag-over");
 
-            // 计算聊天历史区域的可视区域位置
+            // Calculate visible area position of chat history
             const chatHistoryRect = chatHistory.getBoundingClientRect();
-            const visibleTop = chatHistory.scrollTop;  // 当前滚动位置
-            const visibleHeight = chatHistoryRect.height;  // 可视区域高度
+            const visibleTop = chatHistory.scrollTop;  // Current scroll position
+            const visibleHeight = chatHistoryRect.height;  // Visible area height
             
-            // 设置虚线框的位置，使其始终在可视区域内
+            // Set dashed box position to always stay within visible area
             chatHistory.addClass('highlight-chat-history-drag-guide');
-            chatHistory.style.setProperty('--drag-guide-top', `${visibleTop + 12}px`);  // 顶部留出16px边距
-            chatHistory.style.setProperty('--drag-guide-height', `${visibleHeight - 24}px`);  // 高度减去上下边距
+            chatHistory.style.setProperty('--drag-guide-top', `${visibleTop + 12}px`);  // Leave 12px margin at top
+            chatHistory.style.setProperty('--drag-guide-height', `${visibleHeight - 24}px`);  // Height minus top/bottom margins
 
-            // 更新预览元素位置
+            // Update preview element position
             const preview = document.querySelector('.highlight-dragging') as HTMLElement;
             if (preview) {
                 preview.addClass('highlight-chat-preview');
@@ -242,6 +254,20 @@ export class ChatView extends Component {
 
         ChatView.instance = this;
     }
+    
+    // Save context options to plugin settings
+    private async saveContextOptions() {
+        if (!this.plugin.settings.contextOptions) {
+            this.plugin.settings.contextOptions = {};
+        }
+        
+        this.plugin.settings.contextOptions.strategy = this.contextOptions.strategy;
+        this.plugin.settings.contextOptions.includeTitle = this.contextOptions.includeTitle;
+        this.plugin.settings.contextOptions.maxLength = this.contextOptions.maxLength;
+        this.plugin.settings.contextOptions.surroundingLines = this.contextOptions.surroundingLines;
+        
+        await this.plugin.saveSettings();
+    }
 
     private showDraggedPreviewsInChat(container: HTMLElement) {
         // 如果没有当前预览容器，创建一个新的
@@ -259,13 +285,35 @@ export class ChatView extends Component {
                 cls: "highlight-chat-preview-header"
             });
 
-            headerEl.createEl("span", {
+            // 左侧：计数和标题
+            const headerLeft = headerEl.createEl("div", {
+                cls: "highlight-chat-preview-header-left"
+            });
+
+            headerLeft.createEl("span", {
                 cls: "highlight-chat-preview-count",
                 text: String(this.draggedContents.length)
             });
 
-            headerEl.createSpan({
+            headerLeft.createSpan({
                 text: t("highlighted notes")
+            });
+
+            // 右侧：预览按钮
+            const headerRight = headerEl.createEl("div", {
+                cls: "highlight-chat-preview-header-right"
+            });
+
+            const previewBtn = headerRight.createEl("div", {
+                cls: "highlight-chat-preview-btn",
+                attr: {
+                    title: "Preview"
+                }
+            });
+            setIcon(previewBtn, "eye");
+
+            previewBtn.addEventListener('click', () => {
+                this.showContextPreviewWithSettings();
             });
 
             // 创建卡片容器
@@ -548,18 +596,49 @@ export class ChatView extends Component {
             let userMessage = content;
 
             if (this.draggedContents.length > 0) {
-                const textsToAnalyze = this.draggedContents
-                    .map(h => h.text)
-                    .join('\n\n---\n\n');
+                // 获取所有高亮内容的上下文
+                const contextsPromises = this.draggedContents.map(highlight => 
+                    this.contextService.getContextForHighlight(highlight, this.contextOptions)
+                );
+                
+                const contexts = await Promise.all(contextsPromises);
+                
+                // 构建包含上下文的消息
+                const contextualContents = contexts.map((context, index) => {
+                    const highlight = this.draggedContents[index];
+                    if (!context) {
+                        return `**高亮内容 ${index + 1}:**\n${highlight.text}`;
+                    }
+                    
+                    let contextMessage = `**Highlight ${index + 1}** (from: ${context.fileName}):\n`;
+                    
+                    // 添加章节标题（如果有）
+                    if (context.sectionTitle) {
+                        contextMessage += `**Section:** ${context.sectionTitle}\n\n`;
+                    }
+                    
+                    // 添加上下文
+                    if (context.beforeContext.trim()) {
+                        contextMessage += `**Before:**\n${context.beforeContext.trim()}\n\n`;
+                    }
+                    
+                    contextMessage += `**Highlight:**\n${highlight.text}\n\n`;
+                    
+                    if (context.afterContext.trim()) {
+                        contextMessage += `**After:**\n${context.afterContext.trim()}`;
+                    }
+                    
+                    return contextMessage;
+                }).join('\n\n---\n\n');
                 
                 this.chatHistory.push({ 
                     role: "user", 
-                    content: `以下是需要分析的内容：\n\n${textsToAnalyze}`
+                    content: `以下是需要分析的内容（包含上下文）：\n\n${contextualContents}`
                 });
-                
+
                 messageToSend = content;
                 userMessage = `用户提示：${content}`;
-                
+
                 // 标记当前容器为已发送
                 if (this.currentPreviewContainer) {
                     const previewMessage = this.currentPreviewContainer.closest('.highlight-chat-message-preview');
@@ -599,7 +678,8 @@ export class ChatView extends Component {
             }
 
         } catch (error) {
-
+            console.error('发送消息时出错:', error);
+            new Notice('Failed to send message, please try again');
         } finally {
             this.isProcessing = false;
         }
@@ -621,6 +701,633 @@ export class ChatView extends Component {
                 }
             }
         }
+    }
+
+    // 设置上下文控制功能
+    private setupContextControls(container: HTMLElement) {
+        // 上下文策略选择器
+        const strategySelector = container.createEl("select", {
+            cls: "highlight-chat-context-strategy",
+            attr: {
+                title: "选择上下文获取策略"
+            }
+        });
+
+        const strategies = [
+            { value: 'smart', label: '智能上下文' },
+            { value: 'paragraph', label: '段落上下文' },
+            { value: 'section', label: '章节上下文' },
+            { value: 'surrounding', label: '邻近行数' }
+        ];
+
+        strategies.forEach(strategy => {
+            const option = strategySelector.createEl("option", {
+                value: strategy.value,
+                text: strategy.label
+            });
+            if (strategy.value === this.contextOptions.strategy) {
+                option.selected = true;
+            }
+        });
+
+        strategySelector.addEventListener('change', () => {
+            this.contextOptions.strategy = strategySelector.value as any;
+        });
+
+        // 上下文长度控制
+        const lengthControl = container.createEl("div", {
+            cls: "highlight-chat-context-length"
+        });
+
+        const lengthLabel = lengthControl.createEl("span", {
+            cls: "highlight-chat-context-length-label",
+            text: "长度:"
+        });
+
+        const lengthSlider = lengthControl.createEl("input", {
+            type: "range",
+            cls: "highlight-chat-context-length-slider",
+            attr: {
+                min: "500",
+                max: "5000",
+                step: "500",
+                value: String(this.contextOptions.maxLength || 2000),
+                title: "调整上下文最大长度"
+            }
+        }) as HTMLInputElement;
+
+        const lengthValue = lengthControl.createEl("span", {
+            cls: "highlight-chat-context-length-value",
+            text: String(this.contextOptions.maxLength || 2000)
+        });
+
+        lengthSlider.addEventListener('input', () => {
+            const value = parseInt(lengthSlider.value);
+            this.contextOptions.maxLength = value;
+            lengthValue.textContent = String(value);
+        });
+
+        // 预览按钮
+        const previewBtn = container.createEl("button", {
+            cls: "highlight-chat-context-preview",
+            text: "预览",
+            attr: {
+                title: "预览将要发送给AI的内容"
+            }
+        });
+
+        previewBtn.addEventListener('click', () => {
+            this.showContextPreview();
+        });
+
+        // 设置按钮
+        const settingsBtn = container.createEl("button", {
+            cls: "highlight-chat-context-settings",
+            attr: {
+                title: "上下文设置"
+            }
+        });
+        setIcon(settingsBtn, "settings");
+
+        settingsBtn.addEventListener('click', (e) => {
+            this.showContextSettingsMenu(settingsBtn, e);
+        });
+    }
+
+    // 显示上下文预览和设置
+    private async showContextPreviewWithSettings() {
+        if (this.draggedContents.length === 0) {
+            new Notice('没有高亮内容可预览');
+            return;
+        }
+
+        // 创建主模态框
+        const modal = this.app.workspace.containerEl.createEl('div', {
+            cls: 'highlight-chat-context-modal'
+        });
+
+        const overlay = modal.createEl('div', {
+            cls: 'highlight-chat-context-overlay'
+        });
+
+        const content = modal.createEl('div', {
+            cls: 'highlight-chat-context-content'
+        });
+
+        // 标题栏
+        const header = content.createEl('div', {
+            cls: 'highlight-chat-context-header'
+        });
+
+        header.createEl('h3', {
+            text: 'Context Preview & Settings'
+        });
+
+        const closeBtn = header.createEl('div', {
+            cls: 'highlight-chat-context-close'
+        });
+        setIcon(closeBtn, 'x');
+
+        // 主体区域
+        const body = content.createEl('div', {
+            cls: 'highlight-chat-context-body'
+        });
+
+        // 防抖自动刷新功能
+        let refreshTimeout: NodeJS.Timeout;
+        const autoRefresh = () => {
+            clearTimeout(refreshTimeout);
+            refreshTimeout = setTimeout(() => {
+                updatePreview();
+            }, 300); // 300ms 防抖延迟
+        };
+
+        // 左侧：设置面板
+        const settingsPanel = body.createEl('div', {
+            cls: 'highlight-chat-context-settings-panel'
+        });
+
+        this.createSettingsPanel(settingsPanel, autoRefresh);
+
+        // 右侧：预览区域
+        const previewPanel = body.createEl('div', {
+            cls: 'highlight-chat-context-preview-panel'
+        });
+
+        const previewHeader = previewPanel.createEl('div', {
+            cls: 'highlight-chat-context-preview-panel-header'
+        });
+
+        previewHeader.createEl('h4', {
+            text: 'Preview Content (Auto-update)'
+        });
+
+        const previewContent = previewPanel.createEl('div', {
+            cls: 'highlight-chat-context-preview-content'
+        });
+
+        // 底部按钮
+        const footer = content.createEl('div', {
+            cls: 'highlight-chat-context-footer'
+        });
+
+        const statsDiv = footer.createEl('div', {
+            cls: 'highlight-chat-context-stats'
+        });
+
+        const buttonsDiv = footer.createEl('div', {
+            cls: 'highlight-chat-context-buttons'
+        });
+
+        const cancelBtn = buttonsDiv.createEl('button', {
+            cls: 'highlight-chat-context-cancel',
+            text: 'Cancel'
+        });
+
+        const confirmBtn = buttonsDiv.createEl('button', {
+            cls: 'highlight-chat-context-confirm',
+            text: 'Apply'
+        });
+
+        // 初始化预览内容
+        const updatePreview = async () => {
+            try {
+                previewContent.empty();
+                previewContent.createEl('div', {
+                    cls: 'highlight-chat-context-loading',
+                    text: 'Generating preview...'
+                });
+
+                const contexts = await this.generateContextPreview();
+                previewContent.empty();
+                this.renderMarkdownContent(previewContent, contexts.content);
+                
+                statsDiv.textContent = `Characters: ${contexts.content.length} | Highlights: ${this.draggedContents.length}`;
+            } catch (error) {
+                previewContent.empty();
+                previewContent.createEl('div', {
+                    cls: 'highlight-chat-context-error',
+                    text: 'Preview generation failed'
+                });
+            }
+        };
+        
+        const closeModal = () => {
+            modal.remove();
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', closeModal);
+        
+        confirmBtn.addEventListener('click', () => {
+            // 使用当前设置，不做额外操作
+            closeModal();
+            new Notice('Context settings applied');
+        });
+
+        // ESC 键关闭
+        const handleKeydown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+
+        // 初始化预览
+        await updatePreview();
+    }
+
+    // 创建设置面板
+    private createSettingsPanel(container: HTMLElement, autoRefresh: () => void) {
+        // 策略设置
+        const strategySection = container.createEl('div', {
+            cls: 'highlight-chat-settings-section'
+        });
+
+        strategySection.createEl('h5', {
+            text: 'Context Strategy'
+        });
+
+        const strategySelector = strategySection.createEl('select', {
+            cls: 'highlight-chat-settings-select'
+        });
+
+        const strategies = [
+            { value: 'smart', label: 'Smart Context - Auto-select best strategy' },
+            { value: 'paragraph', label: 'Paragraph Context - Get complete paragraphs' },
+            { value: 'section', label: 'Section Context - Get entire sections' },
+            { value: 'surrounding', label: 'Surrounding Lines - Specify before/after lines' }
+        ];
+
+        strategies.forEach(strategy => {
+            const option = strategySelector.createEl('option', {
+                value: strategy.value,
+                text: strategy.label
+            });
+            if (strategy.value === this.contextOptions.strategy) {
+                option.selected = true;
+            }
+        });
+
+        strategySelector.addEventListener('change', async () => {
+            this.contextOptions.strategy = strategySelector.value as any;
+            await this.saveContextOptions();
+            this.updateSurroundingLinesVisibility(container);
+            autoRefresh(); // 自动刷新预览
+        });
+
+        // 长度设置
+        const lengthSection = container.createEl('div', {
+            cls: 'highlight-chat-settings-section'
+        });
+
+        lengthSection.createEl('h5', {
+            text: 'Context Length'
+        });
+
+        const lengthContainer = lengthSection.createEl('div', {
+            cls: 'highlight-chat-settings-slider-container'
+        });
+
+        const lengthSlider = lengthContainer.createEl('input', {
+            type: 'range',
+            cls: 'highlight-chat-settings-slider',
+            attr: {
+                min: '500',
+                max: '5000',
+                step: '500',
+                value: String(this.contextOptions.maxLength || 2000)
+            }
+        }) as HTMLInputElement;
+
+        const lengthValue = lengthContainer.createEl('span', {
+            cls: 'highlight-chat-settings-value',
+            text: `${this.contextOptions.maxLength || 2000} chars`
+        });
+
+        lengthSlider.addEventListener('input', async () => {
+            const value = parseInt(lengthSlider.value);
+            this.contextOptions.maxLength = value;
+            lengthValue.textContent = `${value} chars`;
+            await this.saveContextOptions();
+            autoRefresh(); // 自动刷新预览
+        });
+
+        // 邻近行数设置（仅在 surrounding 策略下显示）
+        const surroundingSection = container.createEl('div', {
+            cls: 'highlight-chat-settings-section highlight-chat-surrounding-section'
+        });
+
+        surroundingSection.createEl('h5', {
+            text: 'Surrounding Lines'
+        });
+
+        const surroundingContainer = surroundingSection.createEl('div', {
+            cls: 'highlight-chat-settings-slider-container'
+        });
+
+        const surroundingSlider = surroundingContainer.createEl('input', {
+            type: 'range',
+            cls: 'highlight-chat-settings-slider',
+            attr: {
+                min: '1',
+                max: '10',
+                step: '1',
+                value: String(this.contextOptions.surroundingLines || 3)
+            }
+        }) as HTMLInputElement;
+
+        const surroundingValue = surroundingContainer.createEl('span', {
+            cls: 'highlight-chat-settings-value',
+            text: `${this.contextOptions.surroundingLines || 3} lines`
+        });
+
+        surroundingSlider.addEventListener('input', async () => {
+            const value = parseInt(surroundingSlider.value);
+            this.contextOptions.surroundingLines = value;
+            surroundingValue.textContent = `${value} lines`;
+            await this.saveContextOptions();
+            autoRefresh(); // 自动刷新预览
+        });
+
+        // 其他选项
+        const optionsSection = container.createEl('div', {
+            cls: 'highlight-chat-settings-section'
+        });
+
+        optionsSection.createEl('h5', {
+            text: 'Other Options'
+        });
+
+        const includeTitleCheckbox = optionsSection.createEl('label', {
+            cls: 'highlight-chat-settings-checkbox'
+        });
+
+        const titleInput = includeTitleCheckbox.createEl('input', {
+            type: 'checkbox'
+        }) as HTMLInputElement;
+        titleInput.checked = this.contextOptions.includeTitle || false;
+
+        includeTitleCheckbox.createSpan({
+            text: ' Include section titles'
+        });
+
+        titleInput.addEventListener('change', async () => {
+            this.contextOptions.includeTitle = titleInput.checked;
+            await this.saveContextOptions();
+            autoRefresh(); // 自动刷新预览
+        });
+
+        // 初始化显示状态
+        this.updateSurroundingLinesVisibility(container);
+
+        // 重置按钮
+        const resetBtn = container.createEl('button', {
+            cls: 'highlight-chat-settings-reset',
+            text: 'Reset to defaults'
+        });
+
+        resetBtn.addEventListener('click', async () => {
+            this.contextOptions = {
+                strategy: 'smart',
+                includeTitle: true,
+                maxLength: 2000,
+                surroundingLines: 3
+            };
+
+            // 更新 UI
+            strategySelector.value = 'smart';
+            lengthSlider.value = '2000';
+            lengthValue.textContent = '2000 chars';
+            surroundingSlider.value = '3';
+            surroundingValue.textContent = '3 lines';
+            titleInput.checked = true;
+            
+            await this.saveContextOptions();
+            this.updateSurroundingLinesVisibility(container);
+            new Notice('Reset to default settings');
+            autoRefresh(); // 自动刷新预览
+        });
+    }
+
+    // 更新邻近行数设置的显示状态
+    private updateSurroundingLinesVisibility(container: HTMLElement) {
+        const surroundingSection = container.querySelector('.highlight-chat-surrounding-section') as HTMLElement;
+        if (surroundingSection) {
+            if (this.contextOptions.strategy === 'surrounding') {
+                surroundingSection.style.display = 'block';
+            } else {
+                surroundingSection.style.display = 'none';
+            }
+        }
+    }
+
+    // 生成上下文预览
+    private async generateContextPreview(): Promise<{ content: string }> {
+        const contextsPromises = this.draggedContents.map(highlight => 
+            this.contextService.getContextForHighlight(highlight, this.contextOptions)
+        );
+        
+        const contexts = await Promise.all(contextsPromises);
+        
+        const contextualContents = contexts.map((context, index) => {
+            const highlight = this.draggedContents[index];
+            if (!context) {
+                return `**Highlight ${index + 1}:**\n${highlight.text}`;
+            }
+            
+            let contextMessage = `**Highlight ${index + 1}** (from: ${context.fileName}):\n`;
+            
+            if (context.sectionTitle) {
+                contextMessage += `**Section:** ${context.sectionTitle}\n\n`;
+            }
+            
+            if (context.beforeContext.trim()) {
+                contextMessage += `**Before:**\n${context.beforeContext.trim()}\n\n`;
+            }
+            
+            contextMessage += `**Highlight:**\n${highlight.text}\n\n`;
+            
+            if (context.afterContext.trim()) {
+                contextMessage += `**After:**\n${context.afterContext.trim()}`;
+            }
+            
+            return contextMessage;
+        }).join('\n\n---\n\n');
+
+        return { content: contextualContents };
+    }
+
+    // 显示上下文预览（旧版本，保留兼容）
+    private async showContextPreview() {
+        if (this.draggedContents.length === 0) {
+            new Notice('没有高亮内容可预览');
+            return;
+        }
+
+        try {
+            // 获取上下文
+            const contextsPromises = this.draggedContents.map(highlight => 
+                this.contextService.getContextForHighlight(highlight, this.contextOptions)
+            );
+            
+            const contexts = await Promise.all(contextsPromises);
+            
+            // 构建预览内容
+            const contextualContents = contexts.map((context, index) => {
+                const highlight = this.draggedContents[index];
+                if (!context) {
+                    return `**高亮内容 ${index + 1}:**\n${highlight.text}`;
+                }
+                
+                let contextMessage = `**高亮内容 ${index + 1}** (来自: ${context.fileName}):\n`;
+                
+                if (context.sectionTitle) {
+                    contextMessage += `**章节:** ${context.sectionTitle}\n\n`;
+                }
+                
+                if (context.beforeContext.trim()) {
+                    contextMessage += `**前文:**\n${context.beforeContext.trim()}\n\n`;
+                }
+                
+                contextMessage += `**高亮内容:**\n${highlight.text}\n\n`;
+                
+                if (context.afterContext.trim()) {
+                    contextMessage += `**后文:**\n${context.afterContext.trim()}`;
+                }
+                
+                return contextMessage;
+            }).join('\n\n---\n\n');
+
+            // 创建预览模态框
+            const modal = this.app.workspace.containerEl.createEl('div', {
+                cls: 'highlight-chat-context-preview-modal'
+            });
+
+            const overlay = modal.createEl('div', {
+                cls: 'highlight-chat-context-preview-overlay'
+            });
+
+            const content = modal.createEl('div', {
+                cls: 'highlight-chat-context-preview-content'
+            });
+
+            const header = content.createEl('div', {
+                cls: 'highlight-chat-context-preview-header'
+            });
+
+            header.createEl('h3', {
+                text: '上下文预览'
+            });
+
+            const closeBtn = header.createEl('button', {
+                cls: 'highlight-chat-context-preview-close'
+            });
+            setIcon(closeBtn, 'x');
+
+            const body = content.createEl('div', {
+                cls: 'highlight-chat-context-preview-body'
+            });
+
+            const previewContent = body.createEl('div', {
+                cls: 'highlight-chat-context-preview-text'
+            });
+
+            // 使用 Markdown 渲染器显示内容
+            this.renderMarkdownContent(previewContent, contextualContents);
+
+            const footer = content.createEl('div', {
+                cls: 'highlight-chat-context-preview-footer'
+            });
+
+            const stats = footer.createEl('div', {
+                cls: 'highlight-chat-context-preview-stats',
+                text: `字符数: ${contextualContents.length} | 高亮数: ${this.draggedContents.length}`
+            });
+
+            // 关闭事件
+            const closeModal = () => {
+                modal.remove();
+            };
+
+            closeBtn.addEventListener('click', closeModal);
+            overlay.addEventListener('click', closeModal);
+
+            // ESC 键关闭
+            const handleKeydown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    closeModal();
+                    document.removeEventListener('keydown', handleKeydown);
+                }
+            };
+            document.addEventListener('keydown', handleKeydown);
+
+        } catch (error) {
+            console.error('预览上下文时出错:', error);
+            new Notice('预览上下文失败');
+        }
+    }
+
+    // 显示上下文设置菜单
+    private showContextSettingsMenu(button: HTMLElement, event: MouseEvent) {
+        const menu = new Menu();
+
+        // 包含标题选项
+        menu.addItem((item) => {
+            item.setTitle('包含章节标题')
+                .setChecked(this.contextOptions.includeTitle || false)
+                .onClick(() => {
+                    this.contextOptions.includeTitle = !this.contextOptions.includeTitle;
+                });
+        });
+
+        menu.addSeparator();
+
+        // 邻近行数设置（仅在 surrounding 策略下显示）
+        if (this.contextOptions.strategy === 'surrounding') {
+            menu.addItem((item) => {
+                item.setTitle(`邻近行数: ${this.contextOptions.surroundingLines || 3}`)
+                    .onClick(() => {
+                        // 这里可以添加一个输入框来设置行数
+                        const lines = prompt('请输入邻近行数 (1-10):', String(this.contextOptions.surroundingLines || 3));
+                        if (lines) {
+                            const num = parseInt(lines);
+                            if (num >= 1 && num <= 10) {
+                                this.contextOptions.surroundingLines = num;
+                            }
+                        }
+                    });
+            });
+        }
+
+        // 重置为默认设置
+        menu.addSeparator();
+        menu.addItem((item) => {
+            item.setTitle('重置为默认设置')
+                .onClick(() => {
+                    this.contextOptions = {
+                        strategy: 'smart',
+                        includeTitle: true,
+                        maxLength: 2000
+                    };
+                    
+                    // 更新 UI 控件
+                    const strategySelector = button.parentElement?.querySelector('.highlight-chat-context-strategy') as HTMLSelectElement;
+                    const lengthSlider = button.parentElement?.querySelector('.highlight-chat-context-length-slider') as HTMLInputElement;
+                    const lengthValue = button.parentElement?.querySelector('.highlight-chat-context-length-value');
+                    
+                    if (strategySelector) strategySelector.value = 'smart';
+                    if (lengthSlider) lengthSlider.value = '2000';
+                    if (lengthValue) lengthValue.textContent = '2000';
+                    
+                    new Notice('已重置为默认设置');
+                });
+        });
+
+        const rect = button.getBoundingClientRect();
+        menu.showAtPosition({ x: rect.left, y: rect.bottom });
     }
 
     // 清空对话内容

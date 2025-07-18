@@ -123,6 +123,12 @@ export interface PluginSettings extends HighlightSettings {
     ai: AISettings;
     comments?: Record<string, Record<string, HighlightInfo>>;
     'flashcard-license'?: FlashcardLicense;
+    contextOptions?: {
+        strategy: 'paragraph' | 'section' | 'surrounding' | 'smart';
+        surroundingLines?: number;
+        includeTitle?: boolean;
+        maxLength?: number;
+    };
 }
 
 // FileComment 接口已移除
@@ -197,6 +203,12 @@ export const DEFAULT_SETTINGS: PluginSettings = {
     },
     export: {
         exportPath: ''  // 默认为空，表示保存在 vault 根目录
+    },
+    contextOptions: {
+        strategy: 'smart',
+        includeTitle: true,
+        maxLength: 2000,
+        surroundingLines: 3
     }
 };
 
