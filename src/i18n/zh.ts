@@ -71,6 +71,10 @@ export default {
     //CommentInput
 
     "Shift + Enter Wrap, Enter Save": "Shift + Enter 换行，Enter 保存",
+    "Tab AI, Shift + Enter Wrap, Enter Save": "Tab AI，Shift + Enter 换行，Enter 保存",
+    "Please enter AI instruction": "请输入AI指令",
+    "AI response generated": "AI响应已生成",
+    "AI generation failed": "AI生成失败",
     "Delete comment": "删除评论",
 
     //ActionButtons

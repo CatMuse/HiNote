@@ -71,6 +71,10 @@ export default {
 //CommentInput
 
     "Shift + Enter Wrap, Enter Save": "Shift + Enter Wrap, Enter Save",
+    "Tab AI, Shift + Enter Wrap, Enter Save": "Tab AI, Shift + Enter Wrap, Enter Save",
+    "Please enter AI instruction": "Please enter AI instruction",
+    "AI response generated": "AI response generated",
+    "AI generation failed": "AI generation failed",
     "Delete comment": "Delete",
 
 //ActionButtons

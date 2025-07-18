@@ -2579,6 +2579,51 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     color: var(--text-error);
 }
 
+/* AI内联生成功能样式 */
+.ai-loading-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-accent);
+    font-weight: 500;
+}
+
+.ai-loading-icon {
+    width: 12px;
+    height: 12px;
+    animation: spin 1s linear infinite;
+    transform-origin: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ai-loading-icon svg {
+    width: 100%;
+    height: 100%;
+    transform-origin: center;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* AI处理时的输入框样式 */
+.hi-note-input[disabled] {
+    cursor: not-allowed;
+    background-color: var(--background-modifier-form-field-highlighted);
+}
+
+/* 增强快捷键提示的可读性 */
+.hi-note-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 /* 特定样式 */
 .highlight-export-card {
     transition: all 0.3s ease;

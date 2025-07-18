@@ -1521,7 +1521,7 @@ export class CommentView extends ItemView {
 
     private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
         this.currentEditingHighlightId = highlight.id;
-        new CommentInput(card, highlight, existingComment, {
+        new CommentInput(card, highlight, existingComment, this.plugin, {
             onSave: async (content: string) => {
                 if (existingComment) {
                     await this.updateComment(highlight, existingComment.id, content);
