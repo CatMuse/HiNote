@@ -302,190 +302,11 @@ export class ExportService {
     private async generateContentFromTemplate(file: TFile, highlights: HighlightInfo[], template: string): Promise<string> {
         const content: string[] = [];
         
-        // 检查模板中是否包含高亮和评论变量
-        const hasHighlightVars = template.includes('{{highlightText}}') || template.includes('{{highlightBlockRef}}');
-        const hasCommentVars = template.includes('{{commentContent}}') || template.includes('{{commentDate}}');
-        
-        // 处理每个高亮和评论
+        // 使用新的结构化方法处理每个高亮
         for (const highlight of highlights) {
-            // 如果是虚拟高亮（文件评论），使用特殊处理
-            if (highlight.isVirtual) {
-                if (highlight.comments && highlight.comments.length > 0) {
-                    for (const comment of highlight.comments) {
-                        // 虚拟高亮只处理评论变量
-                        if (hasCommentVars) {
-                            let processedTemplate = this.replaceVariables(template, {
-                                sourceFile: file.basename,
-                                commentContent: comment.content || '',
-                                commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss"),
-                                // 空的高亮变量
-                                highlightText: '',
-                                highlightBlockRef: '',
-                                highlightType: 'HiNote'
-                            });
-                            content.push(processedTemplate.trim());
-                        } else {
-                            // 如果模板中没有评论变量，使用默认格式
-                            let virtualCommentTemplate = "> [!note] File Comment\n> {{commentContent}}\n> *{{commentDate}}*";
-                            let commentContent = this.replaceVariables(virtualCommentTemplate, {
-                                commentContent: comment.content || '',
-                                commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss")
-                            });
-                            content.push(commentContent);
-                        }
-                    }
-                }
-            } else {
-                // 普通高亮的处理
-                // 准备变量值
-                let blockIdRef = '';
-                let highlightText = highlight.text || '';
-                
-                // 获取 BlockID 引用（如果可能）
-                // 只有当模板中包含 highlightBlockRef 变量时，才创建 BlockID
-                if (typeof highlight.position === 'number' && template.includes('{{highlightBlockRef}}')) {
-                    try {
-                        const highlightLength = highlight.originalLength || highlight.text.length;
-                        blockIdRef = await this.highlightService.createBlockIdForHighlight(
-                            file, 
-                            highlight.position, 
-                            highlightLength
-                        ) || '';
-                    } catch (error) {
-                        console.error('[ExportService] Error creating block ID:', error);
-                    }
-                }
-                
-                // 如果没有评论
-                if (!highlight.comments || highlight.comments.length === 0) {
-                    // 如果模板只包含评论变量，没有高亮变量，则跳过该高亮
-                    if (hasCommentVars && !hasHighlightVars) {
-                        // 跳过该高亮，因为模板只包含评论变量但该高亮没有评论
-                        continue;
-                    }
-                    
-                    // 如果模板包含高亮变量，则处理高亮部分
-                    if (hasHighlightVars) {
-                        // 只处理高亮部分，移除评论相关的部分
-                        let highlightOnlyTemplate = template;
-                        
-                        // 如果模板中包含评论变量，移除这些部分
-                        if (hasCommentVars) {
-                            // 查找并移除所有与批注相关的部分
-                            
-                            // 先尝试匹配并移除带有分隔线的批注部分
-                            const commentWithSeparatorRegex = /\n>\s*\n>\s*---[\s\S]*?(?=\n\s*$|$)/g;
-                            highlightOnlyTemplate = highlightOnlyTemplate.replace(commentWithSeparatorRegex, '');
-                            
-                            // 匹配并移除所有的批注块
-                            const commentBlockRegex = /\n>>\s*\[!note\]\s*Comment[\s\S]*?(?=\n>\s*$|\n\s*$|$)/g;
-                            highlightOnlyTemplate = highlightOnlyTemplate.replace(commentBlockRegex, '');
-                            
-                            // 移除所有的批注变量
-                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentContent\}\}/g, '');
-                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\{\{commentDate\}\}/g, '');
-                            
-                            // 清理多余的空行和尾部空行
-                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\n{3,}/g, '\n\n');
-                            highlightOnlyTemplate = highlightOnlyTemplate.replace(/\n>\s*\n\s*$/g, '\n');
-                        }
-                        
-                        // 替换高亮变量
-                        let processedTemplate = this.replaceVariables(highlightOnlyTemplate, {
-                            sourceFile: file.basename,
-                            highlightText: highlightText,
-                            highlightBlockRef: blockIdRef,
-                            highlightType: 'HiNote',
-                            // 空的评论变量
-                            commentContent: '',
-                            commentDate: ''
-                        });
-                        content.push(processedTemplate.trim());
-                    }
-                }
-                // 如果有评论
-                else if (highlight.comments && highlight.comments.length > 0) {
-                    // 如果模板只包含评论变量（没有高亮变量）
-                    if (hasCommentVars && !hasHighlightVars) {
-                        // 对每个评论，使用完整的模板进行处理
-                        for (const comment of highlight.comments) {
-                            let processedTemplate = this.replaceVariables(template, {
-                                sourceFile: file.basename,
-                                commentContent: comment.content || '',
-                                commentDate: window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss"),
-                                // 空的高亮变量
-                                highlightText: '',
-                                highlightBlockRef: '',
-                                highlightType: 'HiNote'
-                            });
-                            content.push(processedTemplate.trim());
-                        }
-                    }
-                    // 如果模板同时包含高亮和评论变量
-                    else if (hasHighlightVars && hasCommentVars) {
-                        // 首先处理高亮部分
-                        let highlightTemplate = template;
-                        
-                        // 分离模板中的高亮部分和批注部分
-                        const commentSectionStart = this.findCommentSectionStart(template);
-                        let commentTemplate = '';
-                        
-                        if (commentSectionStart !== -1) {
-                            // 分离高亮和批注部分
-                            highlightTemplate = template.substring(0, commentSectionStart);
-                            commentTemplate = template.substring(commentSectionStart);
-                        }
-                        
-                        // 处理高亮部分（只处理一次）
-                        let processedHighlightTemplate = this.replaceVariables(highlightTemplate, {
-                            sourceFile: file.basename,
-                            highlightText: highlightText,
-                            highlightBlockRef: blockIdRef,
-                            highlightType: 'HiNote',
-                            // 空的评论变量
-                            commentContent: '',
-                            commentDate: ''
-                        });
-                        
-                        // 添加高亮部分
-                        content.push(processedHighlightTemplate.trim());
-                        
-                        // 处理批注部分（每个批注单独处理）
-                        if (commentTemplate && highlight.comments && highlight.comments.length > 0) {
-                            for (const comment of highlight.comments) {
-                                const commentDate = window.moment(comment.updatedAt || Date.now()).format("YYYY-MM-DD HH:mm:ss");
-                                
-                                // 为每个批注生成内容
-                                let processedCommentTemplate = this.replaceVariables(commentTemplate, {
-                                    sourceFile: file.basename,
-                                    highlightText: '',  // 批注部分不需要高亮内容
-                                    highlightBlockRef: '',
-                                    highlightType: 'HiNote',
-                                    commentContent: comment.content || '',
-                                    commentDate: commentDate
-                                });
-                                
-                                content.push(processedCommentTemplate.trim());
-                            }
-                        }
-                    }
-                    // 如果模板只包含高亮变量（没有评论变量）
-                    else if (hasHighlightVars && !hasCommentVars) {
-                        // 只处理高亮部分
-                        let processedTemplate = this.replaceVariables(template, {
-                            sourceFile: file.basename,
-                            highlightText: highlightText,
-                            highlightBlockRef: blockIdRef,
-                            highlightType: 'HiNote',
-                            // 空的评论变量
-                            commentContent: '',
-                            commentDate: ''
-                        });
-                        content.push(processedTemplate.trim());
-                    }
-                }
-            }
-            
+            // 为每个高亮生成结构化内容
+            const structuredLines = await this.generateStructuredContent(highlight, file, template);
+            content.push(...structuredLines);
             content.push(""); // 添加空行分隔
         }
         
@@ -504,34 +325,110 @@ export class ExportService {
     }
     
     /**
-     * 在模板中查找批注部分的起始位置
-     * 通过判断模板中第一个批注相关变量的位置来确定批注部分的起始
+     * 格式化批注内容 - 借鉴 DragContentGenerator 的优秀设计
      */
-    private findCommentSectionStart(template: string): number {
-        // 批注相关变量
-        const commentVars = ['commentContent', 'commentDate'];
-        
-        // 找到所有批注变量的位置
-        let firstCommentVarPos = -1;
-        
-        for (const varName of commentVars) {
-            const varPos = template.indexOf(`{{${varName}}}`);
-            if (varPos !== -1 && (firstCommentVarPos === -1 || varPos < firstCommentVarPos)) {
-                firstCommentVarPos = varPos;
+    private formatComment(comment: CommentItem, isVirtual: boolean = false): string[] {
+        const lines: string[] = [];
+        const indentation = isVirtual ? '>' : '>>';
+
+        if (!isVirtual) {
+            // 使用新的模板格式：时间戳在标题中
+            const date = comment.updatedAt ? window.moment(comment.updatedAt).format("YYYY-MM-DD HH:mm:ss") : '';
+            lines.push(`>> [!note]+ ${date}`);
+        }
+
+        // 处理多行内容，确保每行都有正确的缩进
+        const commentLines = comment.content
+            .split('\n')
+            .map(line => {
+                line = line.trim();
+                return line ? `${indentation} ${line}` : indentation;
+            })
+            .join('\n');
+        lines.push(commentLines);
+        lines.push(isVirtual ? ">" : ">");
+
+        return lines;
+    }
+
+    /**
+     * 为单个高亮生成结构化内容 - 借鉴 DragContentGenerator 的设计
+     */
+    private async generateStructuredContent(highlight: HighlightInfo, file: TFile, template?: string): Promise<string[]> {
+        const lines: string[] = [];
+
+        // 处理主体内容（高亮部分）
+        if (highlight.isVirtual) {
+            // 虚拟高亮（文件评论）
+            lines.push(`> [!note] [[${file.basename}]]`);
+            lines.push("> ");
+        } else {
+            // 普通高亮
+            if (template && (template.includes('{{highlightText}}') || template.includes('{{highlightBlockRef}}'))) {
+                // 使用模板处理高亮部分
+                const highlightTemplate = this.extractHighlightTemplate(template);
+                
+                // 获取 BlockID 引用（如果需要）
+                let blockIdRef = '';
+                if (typeof highlight.position === 'number' && template.includes('{{highlightBlockRef}}')) {
+                    try {
+                        const highlightLength = highlight.originalLength || highlight.text.length;
+                        blockIdRef = await this.highlightService.createBlockIdForHighlight(
+                            file, 
+                            highlight.position, 
+                            highlightLength
+                        ) || '';
+                    } catch (error) {
+                        console.error('[ExportService] Error creating block ID:', error);
+                    }
+                }
+                
+                const processedTemplate = this.replaceVariables(highlightTemplate, {
+                    sourceFile: file.basename,
+                    highlightText: highlight.text || '',
+                    highlightBlockRef: blockIdRef,
+                    highlightType: 'HiNote',
+                    commentContent: '',
+                    commentDate: ''
+                });
+                lines.push(...processedTemplate.split('\n'));
+            } else {
+                // 使用默认格式
+                lines.push("> [!quote] HiNote");
+                lines.push(`> ${highlight.text || ''}`);
+                lines.push("> ");
             }
         }
-        
-        // 如果找到批注变量，则向前查找该变量所在行的起始位置
-        if (firstCommentVarPos !== -1) {
-            // 向前查找最近的换行符
-            const beforeText = template.substring(0, firstCommentVarPos);
-            const lastNewlinePos = beforeText.lastIndexOf('\n');
-            
-            // 如果找到换行符，则返回该位置，否则返回0（模板开头）
-            return lastNewlinePos !== -1 ? lastNewlinePos : 0;
+
+        // 统一处理所有批注
+        if (highlight.comments && highlight.comments.length > 0) {
+            for (const comment of highlight.comments) {
+                lines.push(...this.formatComment(comment, highlight.isVirtual));
+            }
         }
+
+        return lines;
+    }
+
+    /**
+     * 从模板中提取高亮部分（移除批注相关内容）
+     */
+    private extractHighlightTemplate(template: string): string {
+        let highlightTemplate = template;
         
-        return -1; // 没有找到批注变量
+        // 移除批注块（>> [!note]+ 时间戳 及其后续内容）
+        const commentBlockRegex = /\n>>\s*\[!note\]\+[\s\S]*?(?=\n>\s*$|\n\s*$|$)/g;
+        highlightTemplate = highlightTemplate.replace(commentBlockRegex, '');
+        
+        // 移除批注变量
+        highlightTemplate = highlightTemplate.replace(/\{\{commentContent\}\}/g, '');
+        highlightTemplate = highlightTemplate.replace(/\{\{commentDate\}\}/g, '');
+        
+        // 清理多余的空行
+        highlightTemplate = highlightTemplate.replace(/\n{3,}/g, '\n\n');
+        highlightTemplate = highlightTemplate.replace(/\n>\s*\n\s*$/g, '\n');
+        
+        return highlightTemplate.trim();
     }
     
     /**
@@ -542,9 +439,8 @@ export class ExportService {
         const defaultTemplate = `> [!quote] HiNote
 > {{highlightText}}
 > 
->> [!note] Comment
->> {{commentContent}}
->> *{{commentDate}}*`;
+>> [!note]+ {{commentDate}}
+>> {{commentContent}}`;
         
         // 调用模板生成方法
         return this.generateContentFromTemplate(file, highlights, defaultTemplate);

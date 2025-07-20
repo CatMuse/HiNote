@@ -105,9 +105,8 @@ export class GeneralSettingsTab {
 `> [!quote] HiNote
 > {{highlightText}}
 > 
->> [!note] Comment
->> {{commentContent}}
->> *{{commentDate}}*`;
+>> [!note]+ {{commentDate}}
+>> {{commentContent}}`;
                 
                 text
                     .setPlaceholder(defaultTemplate)
@@ -118,7 +117,7 @@ export class GeneralSettingsTab {
                         await this.plugin.saveSettings();
                     });
                     
-                text.inputEl.rows = 6;
+                text.inputEl.rows = 5;
                 text.inputEl.cols = 40;
             });
 

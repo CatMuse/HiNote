@@ -103,7 +103,9 @@ export class DragContentGenerator {
         const indentation = isVirtual ? '>' : '>>';
 
         if (!isVirtual) {
-            lines.push(">> [!note] Comment");
+            // 使用新的模板格式：时间戳在标题中
+            const date = comment.updatedAt ? window.moment(comment.updatedAt).format("YYYY-MM-DD HH:mm:ss") : '';
+            lines.push(`>> [!note]+ ${date}`);
         }
 
         // 处理多行内容，确保每行都有正确的缩进
@@ -115,12 +117,6 @@ export class DragContentGenerator {
             })
             .join('\n');
         lines.push(commentLines);
-
-        // 添加时间戳
-        if (comment.updatedAt) {
-            const date = window.moment(comment.updatedAt);
-            lines.push(`${indentation} *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
-        }
         lines.push(isVirtual ? ">" : ">");
 
         return lines;
