@@ -146,6 +146,8 @@ export default {
     "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.": "Enter a custom regular expression for extracting text. Use capture groups () to specify the text to extract. The first non-empty capture group will be used as the extracted text.",
     "Default Color": "Default color",
     "Set the default color for decorators when no color is specified. Leave empty to use system default.": "Set the default color for decorators when no color is specified. Leave empty to use system default.",
+    "Show Comment Widget": "Show comment widget",
+    "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.": "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.",
     "Export template": "Export template",
     "Clean orphaned data": "Clean orphaned data",
     "Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.": "Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.",

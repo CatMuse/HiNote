@@ -25,7 +25,7 @@ export class HighlightDecorator {
      * 强制刷新装饰器
      * 当评论数据发生变化时调用此方法来更新 CommentWidget 的显示
      */
-    private refreshDecorations() {
+    public refreshDecorations() {
         const view = this.getActiveMarkdownView();
         if (!view?.editor) return;
         
@@ -398,10 +398,12 @@ export class HighlightDecorator {
             
                     // 检查文本是否在段落末尾
                     const isAtParagraphEnd = this.isAtParagraphEnd(text, highlightEndPos);
-            
-                    // 创建并添加 CommentWidget
-                    const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
-                    decorations.push(widget.range(highlightEndPos));
+
+                    // 只有在设置允许显示widget时才创建CommentWidget
+                    if ((this.plugin as any).settings.showCommentWidget !== false) {
+                        const widget = this.createCommentWidget(commentHighlight, [commentHighlight]);
+                        decorations.push(widget.range(highlightEndPos));
+                    }
             
                     // 添加背景色高亮
                     if (isHtmlTag) {

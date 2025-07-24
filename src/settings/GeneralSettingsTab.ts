@@ -56,6 +56,20 @@ export class GeneralSettingsTab {
         
         // 样式已移动到全局 styles.css 文件中
 
+        // Widget显示设置
+        new Setting(container)
+            .setName(t('Show Comment Widget'))
+            .setDesc(t('Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.showCommentWidget ?? true)
+                .onChange(async (value) => {
+                    this.plugin.settings.showCommentWidget = value;
+                    await this.plugin.saveSettings();
+                    // 刷新高亮装饰器以立即应用更改
+                    if (this.plugin.highlightDecorator) {
+                        this.plugin.highlightDecorator.refreshDecorations();
+                    }
+                }));
 
         // 导出路径设置
         new Setting(container)

@@ -129,6 +129,7 @@ export interface PluginSettings extends HighlightSettings {
         includeTitle?: boolean;
         maxLength?: number;
     };
+    showCommentWidget?: boolean;
 }
 
 // FileComment 接口已移除
@@ -209,7 +210,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         includeTitle: true,
         maxLength: 2000,
         surroundingLines: 3
-    }
+    },
+    showCommentWidget: true
 };
 
 // 添加自定义事件类型
