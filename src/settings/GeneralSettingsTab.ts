@@ -56,21 +56,6 @@ export class GeneralSettingsTab {
         
         // 样式已移动到全局 styles.css 文件中
 
-        // Widget显示设置
-        new Setting(container)
-            .setName(t('Show Comment Widget'))
-            .setDesc(t('Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.'))
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.showCommentWidget ?? true)
-                .onChange(async (value) => {
-                    this.plugin.settings.showCommentWidget = value;
-                    await this.plugin.saveSettings();
-                    // 刷新高亮装饰器以立即应用更改
-                    if (this.plugin.highlightDecorator) {
-                        this.plugin.highlightDecorator.refreshDecorations();
-                    }
-                }));
-
         // 导出路径设置
         new Setting(container)
             .setName(t('Export Path'))
@@ -88,6 +73,29 @@ export class GeneralSettingsTab {
                     await this.plugin.saveSettings();
                 }));
                 
+        // 排除设置
+        new Setting(container)
+            .setName(t('Exclusions'))
+            .setDesc(t('Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md'))
+            .addTextArea(text => {
+                text
+                    .setPlaceholder('folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md')
+                    .setValue(this.plugin.settings.excludePatterns || '')
+                    .onChange(async (value) => {
+                        // 将输入的文本分割成数组并处理
+                        const patterns = value
+                            .split(',')
+                            .map(pattern => pattern.trim())
+                            .filter(pattern => pattern.length > 0);
+                        
+                        this.plugin.settings.excludePatterns = value;
+                        await this.plugin.saveSettings();
+                    });
+                    
+                text.inputEl.rows = 4;
+                text.inputEl.cols = 40;
+            });
+
         // 导出模板设置
         new Setting(container)
             .setName(t('Export template'))
@@ -114,28 +122,20 @@ export class GeneralSettingsTab {
                 text.inputEl.cols = 40;
             });
 
-            // 排除设置
-            new Setting(container)
-            .setName(t('Exclusions'))
-            .setDesc(t('Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md'))
-            .addTextArea(text => {
-                text
-                    .setPlaceholder('folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md')
-                    .setValue(this.plugin.settings.excludePatterns || '')
-                    .onChange(async (value) => {
-                        // 将输入的文本分割成数组并处理
-                        const patterns = value
-                            .split(',')
-                            .map(pattern => pattern.trim())
-                            .filter(pattern => pattern.length > 0);
-                        
-                        this.plugin.settings.excludePatterns = value;
-                        await this.plugin.saveSettings();
-                    });
-                    
-                text.inputEl.rows = 4;
-                text.inputEl.cols = 40;
-            });
+        // Widget显示设置
+        new Setting(container)
+            .setName(t('Show Comment Widget'))
+            .setDesc(t('Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.showCommentWidget ?? true)
+                .onChange(async (value) => {
+                    this.plugin.settings.showCommentWidget = value;
+                    await this.plugin.saveSettings();
+                    // 刷新高亮装饰器以立即应用更改
+                    if (this.plugin.highlightDecorator) {
+                        this.plugin.highlightDecorator.refreshDecorations();
+                    }
+                }));
 
         // 高亮提取设置组
         new Setting(container)
