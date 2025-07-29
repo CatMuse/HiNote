@@ -339,6 +339,6 @@ export class CommentWidget extends WidgetType {
      * 返回 false 表示我们要处理所有事件
      */
     ignoreEvent(): boolean {
-        return false;
+        return true; // 返回 true 以阻止事件冒泡到编辑器，避免激活源码模式
     }
 }
