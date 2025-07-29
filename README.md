@@ -74,7 +74,7 @@ AI can assist you in thinking and add the generated content as a comment below t
 
 Next, configure your custom Prompt. Here, you can use two fields to obtain the highlighted text and comment content: `{{highlight}}` and `{{Comment}}` .
 
-Finally, you can use your custom Prompt in the AI button on the highlighted card.
+Finally, you can use your custom Prompt in the AI button on the highlighted card. Or you can input your custom Prompt in the comment input box and directly click the Tab key to trigger the AI service.
 
 ![AI comment](./doc/ai-comment.jpg)
 
@@ -84,7 +84,7 @@ Finally, you can use your custom Prompt in the AI button on the highlighted card
 
 In the bottom right corner of the main view, you can click the conversation icon or use the shortcut command (`Ctrl/Cmd+P`) to open the AI conversation window. This window can be freely dragged and resized. Within the conversation window, you can switch the AI service model and clear the current conversation content (note that once cleared, it cannot be restored, and exporting or saving is not supported at this time).
 
-Additionally, you can drag highlighted cards into the conversation window as part of the dialogue, and it supports dragging in multiple highlighted items simultaneously.
+Additionally, you can drag highlighted cards into the conversation window as part of the dialogue, and it supports dragging in multiple highlighted items simultaneously. You can also set the context of the highlighted text in the conversation window.
 
 ![AI chat](./doc/ai-chat.jpg)
 
@@ -107,6 +107,15 @@ To access these premium features, you'll need to [obtain a license](https://hino
 ![HiCard](./doc/hi-card.jpg)
 
 [![HiNote Pro](./doc/hinote-pro.jpg)](https://www.hinote.vip/en.html)
+
+---
+
+Support
+
+If you find this plugin useful and would like to support its development:
+
+- [Buy me a coffee on Ko-fi](https://ko-fi.com/catmuse)
+- Give the project a ⭐ star to show your support!
 
 ---
 
