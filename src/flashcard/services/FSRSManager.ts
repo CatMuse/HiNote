@@ -14,6 +14,7 @@ import { FlashcardFactory } from './FlashcardFactory';
 import { CardGroupRepository } from './CardGroupRepository';
 // import { FlashcardDataService } from './FlashcardDataService';
 import { debounce } from 'obsidian';
+import { HiNoteDataManager } from '../../storage/HiNoteDataManager';
 
 export class FSRSManager {
     public fsrsService: FSRSService;
@@ -22,11 +23,19 @@ export class FSRSManager {
     // private dataService: FlashcardDataService;
     private storage: FSRSStorage;
     private plugin: any; // CommentPlugin type
+    private dataManager: HiNoteDataManager;
+    private useNewStorage: boolean = false;
 
-    constructor(plugin: any) {
+    constructor(plugin: any, dataManager?: HiNoteDataManager) {
         this.plugin = plugin;
         this.fsrsService = new FSRSService();
         this.cardFactory = new FlashcardFactory(plugin, this.fsrsService);
+        
+        // 如果传入了dataManager，说明要使用新存储层
+        if (dataManager) {
+            this.dataManager = dataManager;
+            this.useNewStorage = true;
+        }
         
         // 初始化为空对象，稍后会被加载的数据替换
         this.storage = {
@@ -92,50 +101,37 @@ export class FSRSManager {
                 completionMessage: null,
                 groupProgress: {}
             },
-            dailyStats: []
+            dailyStats: [] // 初始化每日学习统计数据
         };
 
         try {
-            const data = await this.plugin.loadData();
-
-
-            if (!data?.fsrs) {
-
-                return defaultStorage;
-            }
-
-
-
-            // 检查 cardGroups 是否存在并且是数组
-            if (data.fsrs.cardGroups) {
-
-                if (Array.isArray(data.fsrs.cardGroups)) {
-
-                    if (data.fsrs.cardGroups.length > 0) {
-
-                    }
-                }
+            if (this.useNewStorage && this.dataManager) {
+                // 使用新存储层加载数据
+                const data = await this.dataManager.getFlashcardData();
+                return data || defaultStorage;
             } else {
+                // 使用旧存储方式
+                const data = await this.plugin.loadData();
 
+                if (!data?.fsrs) {
+                    return defaultStorage;
+                }
+
+                // 确保 cardGroups 正确初始化
+                const cardGroups = Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [];
+
+                // 创建新的存储对象，确保 cardGroups 不会被覆盖
+                const storage: FSRSStorage = {
+                    version: data.fsrs.version || defaultStorage.version,
+                    cards: data.fsrs.cards || {},
+                    globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
+                    cardGroups: cardGroups, // 确保使用我们检查过的 cardGroups
+                    uiState: data.fsrs.uiState || defaultStorage.uiState,
+                    dailyStats: data.fsrs.dailyStats || []
+                };
+
+                return storage;
             }
-
-            // 确保 cardGroups 正确初始化
-            const cardGroups = Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [];
-
-            // 创建新的存储对象，确保 cardGroups 不会被覆盖
-            const storage: FSRSStorage = {
-                version: data.fsrs.version || defaultStorage.version,
-                cards: data.fsrs.cards || {},
-                globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
-                cardGroups: cardGroups, // 确保使用我们检查过的 cardGroups
-                uiState: data.fsrs.uiState || defaultStorage.uiState,
-                dailyStats: data.fsrs.dailyStats || []
-            };
-
-
-
-
-            return storage;
         } catch (error) {
             console.error('Loading storage data failed:', error);
             return defaultStorage;
@@ -144,11 +140,6 @@ export class FSRSManager {
 
     private async saveStorage() {
         try {
-
-            
-            // 加载当前数据
-            const currentData = await this.plugin.loadData() || {};
-            
             // 确保 cardGroups 在保存前正确初始化
             if (!Array.isArray(this.storage.cardGroups)) {
                 this.storage.cardGroups = [];
@@ -159,17 +150,22 @@ export class FSRSManager {
                 this.storage.cards = {};
             }
 
+            if (this.useNewStorage && this.dataManager) {
+                // 使用新存储层保存数据
+                await this.dataManager.saveFlashcardData(this.storage);
+            } else {
+                // 使用旧存储方式
+                // 加载当前数据
+                const currentData = await this.plugin.loadData() || {};
+                
+                // 更新 FSRS 数据，保持其他数据不变
+                const dataToSave = {
+                    ...currentData,
+                    fsrs: this.storage
+                };
 
-            
-            // 更新 FSRS 数据，保持其他数据不变
-            const dataToSave = {
-                ...currentData,
-                fsrs: this.storage
-            };
-
-            await this.plugin.saveData(dataToSave);
-
-
+                await this.plugin.saveData(dataToSave);
+            }
         } catch (error) {
             console.error('Saving data failed:', error);
             throw error;

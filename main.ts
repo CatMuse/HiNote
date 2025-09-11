@@ -1,4 +1,4 @@
-import { App, Plugin } from 'obsidian';
+import { Plugin, TAbstractFile, TFile, WorkspaceLeaf, Notice } from 'obsidian';
 import { CommentView, VIEW_TYPE_COMMENT } from './src/CommentView';
 import { CommentStore } from './src/CommentStore';
 import { HighlightDecorator } from './src/HighlightDecorator';
@@ -10,6 +10,7 @@ import { t } from './src/i18n';
 import { FSRSManager } from './src/flashcard/services/FSRSManager';
 import { HighlightMatchingService } from './src/services/HighlightMatchingService';
 import { HighlightService } from './src/services/HighlightService';
+import { HiNoteDataManager } from './src/storage/HiNoteDataManager';
 
 import { EventManager } from './src/services/EventManager';
 
@@ -31,6 +32,7 @@ export default class CommentPlugin extends Plugin {
 	public eventManager: EventManager;
 	public highlightMatchingService: HighlightMatchingService;
 	public highlightService: HighlightService;
+	public dataManager: HiNoteDataManager;
 
 	async onload() {
 
@@ -42,15 +44,18 @@ export default class CommentPlugin extends Plugin {
 		// 安全地扩展 Window 接口并添加 html2canvas
 		(window as Window & typeof globalThis & { html2canvas?: typeof html2canvas }).html2canvas = html2canvas;
 
-		// 初始化评论存储
+		// 初始化数据管理器
+		this.dataManager = new HiNoteDataManager(this.app);
+
+		// 初始化评论存储（会自动处理数据迁移）
 		this.commentStore = new CommentStore(this);
 		await this.commentStore.loadComments();
 
 		// 初始化事件管理器
 		this.eventManager = new EventManager(this.app);
 
-		// 初始化 FSRS 管理器
-		this.fsrsManager = new FSRSManager(this);
+		// 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
+		this.fsrsManager = new FSRSManager(this, this.dataManager);
 
 		// 初始化高亮匹配服务
 		this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
@@ -170,6 +175,47 @@ export default class CommentPlugin extends Plugin {
 				this.commentStore.updateFilePath(oldPath, file.path);
 			})
 		);
+
+		// 添加检查迁移状态的命令
+		this.addCommand({
+			id: 'check-migration-status',
+			name: '检查数据迁移状态',
+			callback: async () => {
+				const migrationManager = (this.commentStore as any).migrationManager;
+				if (migrationManager) {
+					const status = await migrationManager.getMigrationStatus();
+					const needsMigration = await migrationManager.needsMigration();
+					
+					console.log('=== HiNote 数据迁移状态 ===');
+					console.log('需要迁移:', needsMigration);
+					console.log('迁移状态:', status);
+					
+					new Notice(`迁移状态: ${status.isCompleted ? '已完成' : '未完成'}`);
+				}
+			}
+		});
+
+
+		// 添加数据恢复命令
+		this.addCommand({
+			id: 'recover-data',
+			name: '从备份恢复数据',
+			callback: async () => {
+				const { DataRecovery } = await import('./src/storage/DataRecovery');
+				const recovery = new DataRecovery(this);
+				
+				new Notice('开始从备份恢复数据，请查看控制台输出');
+				const success = await recovery.autoRecover();
+				
+				if (success) {
+					new Notice('数据恢复成功！请重新加载插件查看效果');
+					// 重新加载CommentStore以显示恢复的数据
+					await this.commentStore.loadComments();
+				} else {
+					new Notice('数据恢复失败，请查看控制台错误信息');
+				}
+			}
+		});
 
 		// 添加打开对话窗口的命令
 		this.addCommand({

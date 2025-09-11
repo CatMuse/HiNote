@@ -1,6 +1,8 @@
 import { Plugin, TFile, MarkdownView, Editor, App } from "obsidian";
 import { BlockIdService } from './services/BlockIdService';
 import { IdGenerator } from './utils/IdGenerator'; // 导入 IdGenerator
+import { HiNoteDataManager } from './storage/HiNoteDataManager';
+import { DataMigrationManager } from './storage/DataMigrationManager';
 
 export interface CommentItem {
     id: string;           // 评论的唯一ID
@@ -48,15 +50,81 @@ export class CommentStore {
     private commentCache: Map<string, HiNote[]> = new Map();
     private maxCacheSize: number = 100;
     private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
+    
+    // 新的存储层
+    private dataManager: HiNoteDataManager;
+    private migrationManager: DataMigrationManager;
+    private useNewStorage: boolean = false;
 
     constructor(plugin: Plugin) {
         this.plugin = plugin;
         this.eventManager = new EventManager(plugin.app);
         this.blockIdService = new BlockIdService(plugin.app);
         this.highlightService = new HighlightService(plugin.app);
+        
+        // 初始化新存储层
+        this.dataManager = new HiNoteDataManager(plugin.app);
+        this.migrationManager = new DataMigrationManager(plugin, this.dataManager);
     }
 
     async loadComments() {
+        // 检查是否需要数据迁移
+        const needsMigration = await this.migrationManager.needsMigration();
+        
+        if (needsMigration) {
+            console.log('检测到需要数据迁移，开始迁移...');
+            try {
+                const stats = await this.migrationManager.migrate();
+                console.log('数据迁移完成:', stats);
+                this.useNewStorage = true;
+            } catch (error) {
+                console.error('数据迁移失败，回退到旧存储方式:', error);
+                this.useNewStorage = false;
+            }
+        } else {
+            // 检查迁移状态
+            const status = await this.migrationManager.getMigrationStatus();
+            this.useNewStorage = status.isCompleted;
+        }
+        
+        if (this.useNewStorage) {
+            // 使用新存储层
+            await this.dataManager.initialize();
+            await this.loadCommentsFromNewStorage();
+        } else {
+            // 使用旧存储方式
+            await this.loadCommentsFromLegacyStorage();
+        }
+    }
+    
+    /**
+     * 从新存储层加载数据
+     */
+    private async loadCommentsFromNewStorage() {
+        this.data = {};
+        this.comments = new Map();
+        
+        const highlightFiles = await this.dataManager.getAllHighlightFiles();
+        
+        for (const filePath of highlightFiles) {
+            const highlights = await this.dataManager.getFileHighlights(filePath);
+            if (highlights.length > 0) {
+                // 转换为旧格式以保持兼容性
+                const fileComments: FileComments = {};
+                highlights.forEach(highlight => {
+                    fileComments[highlight.id] = highlight;
+                });
+                
+                this.data[filePath] = fileComments;
+                this.comments.set(filePath, highlights);
+            }
+        }
+    }
+    
+    /**
+     * 从旧存储方式加载数据
+     */
+    private async loadCommentsFromLegacyStorage() {
         const data = await this.plugin.loadData();
 
         this.data = data?.comments || {};
@@ -103,6 +171,29 @@ export class CommentStore {
     }
 
     async saveComments() {
+        if (this.useNewStorage) {
+            // 使用新存储层保存
+            await this.saveCommentsToNewStorage();
+        } else {
+            // 使用旧存储方式保存
+            await this.saveCommentsToLegacyStorage();
+        }
+    }
+    
+    /**
+     * 保存到新存储层
+     */
+    private async saveCommentsToNewStorage() {
+        // 按文件分别保存
+        for (const [filePath, highlights] of this.comments.entries()) {
+            await this.dataManager.saveFileHighlights(filePath, highlights);
+        }
+    }
+    
+    /**
+     * 保存到旧存储方式
+     */
+    private async saveCommentsToLegacyStorage() {
         // 先加载当前的数据
         const currentData = await this.plugin.loadData() || {};
 
@@ -258,18 +349,38 @@ export class CommentStore {
      * @param newPath 文件的新路径
      */
     async updateFilePath(oldPath: string, newPath: string) {
-        if (this.data[oldPath]) {
-            this.data[newPath] = this.data[oldPath];
-            delete this.data[oldPath];
+        if (this.useNewStorage) {
+            // 使用新存储层处理文件重命名
+            await this.dataManager.handleFileRename(oldPath, newPath);
+            
+            // 更新内存中的数据
+            if (this.data[oldPath]) {
+                this.data[newPath] = this.data[oldPath];
+                delete this.data[oldPath];
+            }
+            
+            const oldPathComments = this.comments.get(oldPath) || [];
+            // 更新文件路径字段
+            oldPathComments.forEach(comment => {
+                comment.filePath = newPath;
+            });
+            this.comments.set(newPath, oldPathComments);
+            this.comments.delete(oldPath);
+        } else {
+            // 旧存储方式
+            if (this.data[oldPath]) {
+                this.data[newPath] = this.data[oldPath];
+                delete this.data[oldPath];
+            }
+
+            // 更新评论中的文件路径
+            const oldPathComments = this.comments.get(oldPath) || [];
+            this.comments.set(newPath, oldPathComments);
+            this.comments.delete(oldPath);
+
+            // 保存更新后的数据
+            await this.saveComments();
         }
-
-        // 更新评论中的文件路径
-        const oldPathComments = this.comments.get(oldPath) || [];
-        this.comments.set(newPath, oldPathComments);
-        this.comments.delete(oldPath);
-
-        // 保存更新后的数据
-        await this.saveComments();
     }
 
     /**
