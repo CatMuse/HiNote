@@ -8,7 +8,7 @@ export class AnthropicService {
     constructor(apiKey: string, apiAddress?: string, model?: string) {
         this.apiKey = apiKey;
         this.apiAddress = apiAddress || 'https://api.anthropic.com';
-        this.model = model || 'claude-3-opus-20240229'; // 默认使用最新模型
+        this.model = model || 'claude-opus-4-1-20250805'; // 默认使用最新模型
     }
 
     async generateResponse(prompt: string): Promise<string> {

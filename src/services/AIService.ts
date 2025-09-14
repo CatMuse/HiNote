@@ -325,9 +325,11 @@ export class AIService {
 
     async listOpenAIModels(): Promise<AIModel[]> {
         const models: AIModel[] = [
+            { id: 'gpt-4o', name: 'GPT-4o', isCustom: false },
+            { id: 'gpt-4o-mini', name: 'GPT-4o Mini', isCustom: false },
+            { id: 'gpt-o1', name: 'GPT-o1', isCustom: false },
             { id: 'gpt-4', name: 'GPT-4', isCustom: false },
-            { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', isCustom: false },
-            { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', isCustom: false }
+            { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', isCustom: false }
         ];
 
         // 如果有自定义模型，添加到列表中

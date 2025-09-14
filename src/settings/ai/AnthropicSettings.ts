@@ -4,11 +4,12 @@ import { t } from '../../i18n';
 import { AnthropicService } from '../../services/AnthropicService';
 
 const DEFAULT_ANTHROPIC_MODELS: AIModel[] = [
-    { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
-    { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet' },
-    { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
-    { id: 'claude-2', name: 'Claude 2' },
-    { id: 'claude-instant-1', name: 'Claude Instant' }
+    { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1' },
+    { id: 'claude-opus-4-20250514', name: 'Claude Opus 4' },
+    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
+    { id: 'claude-3-7-sonnet-20250219', name: 'Claude Sonnet 3.7' },
+    { id: 'claude-3-5-haiku-20241022', name: 'Claude Haiku 3.5' },
+    { id: 'claude-3-haiku-20240307', name: 'Claude Haiku 3' }
 ];
 
 interface AnthropicModelState {

@@ -31,8 +31,8 @@ export interface HighlightInfo {
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';
-export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini';
-export type AnthropicModel = 'claude-3-opus-20240229' | 'claude-3-sonnet-20240229' | 'claude-3-haiku-20240307' | 'claude-2' | 'claude-instant-1';
+export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini' | 'gpt-o1';
+export type AnthropicModel = 'claude-opus-4-1-20250805' | 'claude-opus-4-20250514' | 'claude-sonnet-4-20250514' | 'claude-3-7-sonnet-20250219' | 'claude-3-5-haiku-20241022' | 'claude-3-haiku-20240307';
 
 export interface AIModel {
     id: string;

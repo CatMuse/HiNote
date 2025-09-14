@@ -443,7 +443,7 @@ export default class CommentPlugin extends Plugin {
         if (!this.settings.ai.anthropic) {
             this.settings.ai.anthropic = {
                 apiKey: '',  // 提供默认值
-                model: 'claude-2',  // 提供默认值
+                model: 'claude-opus-4-1-20250805',  // 提供默认值
                 availableModels: DEFAULT_SETTINGS.ai.anthropic?.availableModels,
                 apiAddress: DEFAULT_SETTINGS.ai.anthropic?.apiAddress,
                 isCustomModel: false,  // 提供默认值
