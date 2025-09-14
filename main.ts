@@ -161,13 +161,6 @@ export default class CommentPlugin extends Plugin {
 		// 添加设置标签页
 		this.addSettingTab(new AISettingTab(this.app, this));
 
-		// 监控评论加载性能
-		const measureCommentPerformance = () => {
-			const start = performance.now();
-			
-			// 评论加载操作		
-			const end = performance.now();
-		}
 
 		// 监听文件重命名事件
 		this.registerEvent(
@@ -176,40 +169,23 @@ export default class CommentPlugin extends Plugin {
 			})
 		);
 
-		// 添加检查迁移状态的命令
-		this.addCommand({
-			id: 'check-migration-status',
-			name: '检查数据迁移状态',
-			callback: async () => {
-				const migrationManager = (this.commentStore as any).migrationManager;
-				if (migrationManager) {
-					const status = await migrationManager.getMigrationStatus();
-					const needsMigration = await migrationManager.needsMigration();
-					
-					
-					new Notice(`迁移状态: ${status.isCompleted ? '已完成' : '未完成'}`);
-				}
-			}
-		});
-
-
 		// 添加数据恢复命令
 		this.addCommand({
 			id: 'recover-data',
-			name: '从备份恢复数据',
+			name: t('Recover data from backup'),
 			callback: async () => {
 				const { DataRecovery } = await import('./src/storage/DataRecovery');
 				const recovery = new DataRecovery(this);
 				
-				new Notice('开始从备份恢复数据，请查看控制台输出');
+				new Notice(t('Starting data recovery from backup, please check console output'));
 				const success = await recovery.autoRecover();
 				
 				if (success) {
-					new Notice('数据恢复成功！请重新加载插件查看效果');
+					new Notice(t('Data recovery successful! Please reload the plugin to see the effects'));
 					// 重新加载CommentStore以显示恢复的数据
 					await this.commentStore.loadComments();
 				} else {
-					new Notice('数据恢复失败，请查看控制台错误信息');
+					new Notice(t('Data recovery failed, please check console error messages'));
 				}
 			}
 		});

@@ -221,7 +221,13 @@ export default {
     "search-prefix-comment": "match with comments only",
     "search-prefix-path": "match path of the file",
 
-// 其他
+    // Data Recovery
+    "Recover data from backup": "Recover data from backup",
+    "Starting data recovery from backup, please check console output": "Starting data recovery from backup, please check console output",
+    "Data recovery successful! Please reload the plugin to see the effects": "Data recovery successful! Please reload the plugin to see the effects",
+    "Data recovery failed, please check console error messages": "Data recovery failed, please check console error messages",
+
+    // 其他
 
     "Open (DoubleClick)": "Open (double-click)"
 
