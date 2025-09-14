@@ -1,11 +1,18 @@
 import { requestUrl } from 'obsidian';
 
+export interface GenerationConfig {
+    maxOutputTokens?: number;
+    temperature?: number;
+    responseMimeType?: string;
+    responseSchema?: object;
+}
+
 export class GeminiService {
     private apiKey: string;
     private baseUrl: string;
     private model: string;
 
-    constructor(apiKey: string, model: string = 'gemini-pro', baseUrl?: string) {
+    constructor(apiKey: string, model: string = 'gemini-2.5-flash', baseUrl?: string) {
         this.apiKey = apiKey;
         this.model = model;
         this.baseUrl = baseUrl || 'https://generativelanguage.googleapis.com';
@@ -16,9 +23,9 @@ export class GeminiService {
         this.model = model;
     }
 
-    async generateResponse(prompt: string): Promise<string> {
+    async generateResponse(prompt: string, config?: GenerationConfig): Promise<string> {
         try {
-            const url = `${this.baseUrl}/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+            const url = `${this.baseUrl}/v1/models/${this.model}:generateContent?key=${this.apiKey}`;
             const requestBody = {
                 contents: [{
                     parts: [{
@@ -26,8 +33,10 @@ export class GeminiService {
                     }]
                 }],
                 generationConfig: {
-                    maxOutputTokens: 2048,
-                    temperature: 0.7
+                    maxOutputTokens: config?.maxOutputTokens || 2048,
+                    temperature: config?.temperature || 0.7,
+                    ...(config?.responseMimeType && { responseMimeType: config.responseMimeType }),
+                    ...(config?.responseSchema && { responseSchema: config.responseSchema })
                 }
             };
 
@@ -61,9 +70,9 @@ export class GeminiService {
         }
     }
 
-    async chat(messages: { role: string, content: string }[]): Promise<string> {
+    async chat(messages: { role: string, content: string }[], config?: GenerationConfig): Promise<string> {
         try {
-            const url = `${this.baseUrl}/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+            const url = `${this.baseUrl}/v1/models/${this.model}:generateContent?key=${this.apiKey}`;
             // 将 OpenAI 格式的消息转换为 Gemini 格式
             const contents = messages.map(msg => ({
                 role: msg.role === 'assistant' ? 'model' : 'user',
@@ -73,8 +82,10 @@ export class GeminiService {
             const requestBody = {
                 contents,
                 generationConfig: {
-                    maxOutputTokens: 2048,
-                    temperature: 0.7
+                    maxOutputTokens: config?.maxOutputTokens || 2048,
+                    temperature: config?.temperature || 0.7,
+                    ...(config?.responseMimeType && { responseMimeType: config.responseMimeType }),
+                    ...(config?.responseSchema && { responseSchema: config.responseSchema })
                 }
             };
 
@@ -108,9 +119,24 @@ export class GeminiService {
         }
     }
 
+    // 添加 JSON 输出的便捷方法
+    async generateJSONResponse(prompt: string, schema?: object): Promise<string> {
+        return this.generateResponse(prompt, {
+            responseMimeType: "application/json",
+            responseSchema: schema
+        });
+    }
+
+    async chatJSON(messages: { role: string, content: string }[], schema?: object): Promise<string> {
+        return this.chat(messages, {
+            responseMimeType: "application/json",
+            responseSchema: schema
+        });
+    }
+
     async testConnection(): Promise<boolean> {
         try {
-            const url = `${this.baseUrl}/v1beta/models/${this.model}?key=${this.apiKey}`;
+            const url = `${this.baseUrl}/v1/models/${this.model}?key=${this.apiKey}`;
             const response = await requestUrl({
                 url,
                 method: 'GET'

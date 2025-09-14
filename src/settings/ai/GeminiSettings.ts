@@ -87,68 +87,42 @@ export class GeminiSettings extends BaseAIServiceSettings {
             const modelId = this.modelState.selectedModel.id;
             const url = `${baseUrl}/v1/models/${modelId}?key=${apiKey}`;
 
-
             const response = await requestUrl({
-                url: url
+                url: url,
+                method: 'GET'
             });
-            if (!response.status || response.status < 200 || response.status >= 300) {
-                // 获取错误详情
-                const errorData = response.json || null;
 
-                // 检查是否是实验性模型
-                const isExperimentalModel = modelId.includes('-exp-');
+            if (response.status === 200) {
+                const data = response.json;
+                if (data && data.name) {
+                    new Notice(t('API Key and the current model are both available!'));
+                    return true;
+                }
+            }
+
+            // 如果当前模型不可用，尝试用默认模型验证 API Key
+            if (modelId !== 'gemini-2.5-flash') {
+                const fallbackUrl = `${baseUrl}/v1/models/gemini-2.5-flash?key=${apiKey}`;
+                const fallbackResponse = await requestUrl({
+                    url: fallbackUrl,
+                    method: 'GET'
+                });
                 
-                // 如果是实验性模型，提供更具体的错误信息
-                if (isExperimentalModel) {
-                    // 先验证 API Key 是否有效
-                    const checkUrl = `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`;
-                    const checkResponse = await requestUrl({
-                        url: checkUrl
-                    });
-                    
-                    if (checkResponse.status && checkResponse.status >= 200 && checkResponse.status < 300) {
-                        new Notice(t('API Key 有效，但无法访问实验性模型。请确保你有权限访问此模型，或等待模型正式发布。'));
-                        throw new Error(`Experimental model not accessible: ${modelId}`);
+                if (fallbackResponse.status === 200) {
+                    if (this.modelState.selectedModel.isCustom) {
+                        new Notice(t('API Key is valid, but the custom model is not available. Please check the model ID and your access permissions.'));
                     } else {
-                        new Notice(t('Invalid API Key or server error. Please verify your API Key.'));
-                        throw new Error('Invalid API Key');
+                        new Notice(t('API Key is valid, but the selected model is not available. The model may not be released yet or you may not have access permissions.'));
                     }
+                    return false;
                 }
-                
-                // 如果是自定义模型
-                if (this.modelState.selectedModel.isCustom) {
-                    new Notice(t('Custom model unavailable. Please check the model ID and your access permissions.'));
-                    throw new Error(`Custom model not available: ${modelId}`);
-                }
-                
-                // 如果是预设模型但不是 gemini-pro
-                if (modelId !== 'gemini-pro') {
-                    const checkUrl = `${baseUrl}/v1/models/gemini-pro?key=${apiKey}`;
-                    const checkResponse = await requestUrl({
-                        url: checkUrl
-                    });
-                    
-                    if (checkResponse.status && checkResponse.status >= 200 && checkResponse.status < 300) {
-                        new Notice(t('API Key 有效，但当前选择的模型不可用。可能是模型未发布或你没有访问权限。'));
-                        throw new Error(`Selected model not available: ${modelId}`);
-                    }
-                }
-                
-                // 其他情况，API Key 无效
-                new Notice(t('Invalid API Key or server error. Please verify your API Key.'));
-                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const data = await response.json();
-            const isValid = !!(data && data.name);
-            
-            if (isValid) {
-                new Notice(t('API Key and the current model are both available！'));
-            }
-            
-            return isValid;
+            // API Key 无效
+            new Notice(t('Invalid API Key or server error. Please verify your API Key.'));
+            return false;
         } catch (error) {
-
+            new Notice(t('Failed to validate API Key. Please check your key and try again.'));
             return false;
         }
     }
