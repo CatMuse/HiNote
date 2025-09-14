@@ -185,6 +185,8 @@ export default {
     // Flashcard UI
     "Activate HiCard": "激活 HiCard",
     "Enter your license key to activate HiCard feature.": "输入您的许可证密钥以激活 HiCard 功能。",
+    "Get your license key from": "从以下网站获取许可证密钥：",
+    "HiNote official website": "HiNote 官方网站",
     "Enter license key": "输入许可证密钥",
     "Activate": "激活",
     "Please enter a license key": "请输入许可证密钥",

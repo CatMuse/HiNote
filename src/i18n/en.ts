@@ -178,6 +178,8 @@ export default {
     // Flashcard UI
     "Activate HiCard": "Activate HiCard",
     "Enter your license key to activate HiCard feature.": "Enter your license key to activate HiCard feature.",
+    "Get your license key from": "Get your license key from",
+    "HiNote official website": "HiNote official website",
     "Enter license key": "Enter license key",
     "Activate": "Activate",
     "Please enter a license key": "Please enter a license key",

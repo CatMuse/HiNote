@@ -43,10 +43,25 @@ export class FlashcardRenderer {
             text: t('Activate HiCard')
         });
 
+        // 创建包含链接的描述文案
         const description = activationContainer.createEl('div', {
-            cls: 'flashcard-activation-description',
-            text: t('Enter your license key to activate HiCard feature.')
+            cls: 'flashcard-activation-description'
         });
+        description.createEl('span', { text: t('Enter your license key to activate HiCard feature.') + ' ' });
+        description.createEl('br');
+        description.createEl('span', { text: t('Get your license key from') + ' ' });
+        
+        // 根据语言设置不同的链接
+        const locale = (window as any).moment?.locale() || 'en';
+        const websiteUrl = locale.startsWith('zh') ? 'https://www.hinote.vip/index.html' : 'https://www.hinote.vip/en.html';
+        
+        const link = description.createEl('a', { 
+            text: t('HiNote official website'),
+            cls: 'external-link',
+            href: websiteUrl
+        });
+        link.setAttr('target', '_blank');
+        link.setAttr('rel', 'noopener noreferrer');
 
         const inputContainer = activationContainer.createEl('div', {
             cls: 'flashcard-activation-input-container'

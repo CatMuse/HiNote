@@ -78,7 +78,24 @@ export class AISettingTab extends PluginSettingTab {
                 // 显示激活输入框（结构更贴近主视图，含描述文案和 class）
                 const activationDiv = flashcardContent!.createEl('div', { cls: 'flashcard-activation-container' });
                 activationDiv.createEl('div', { cls: 'flashcard-activation-header', text: t('Activate HiCard') });
-                activationDiv.createEl('div', { cls: 'flashcard-activation-description', text: t('Enter your license key to activate HiCard feature.') });
+                
+                // 创建包含链接的描述文案
+                const descriptionDiv = activationDiv.createEl('div', { cls: 'flashcard-activation-description' });
+                descriptionDiv.createEl('span', { text: t('Enter your license key to activate HiCard feature.') + ' ' });
+                descriptionDiv.createEl('br');
+                descriptionDiv.createEl('span', { text: t('Get your license key from') + ' ' });
+                
+                // 根据语言设置不同的链接
+                const locale = (window as any).moment?.locale() || 'en';
+                const websiteUrl = locale.startsWith('zh') ? 'https://www.hinote.vip/index.html' : 'https://www.hinote.vip/en.html';
+                
+                const link = descriptionDiv.createEl('a', { 
+                    text: t('HiNote official website'),
+                    cls: 'external-link',
+                    href: websiteUrl
+                });
+                link.setAttr('target', '_blank');
+                link.setAttr('rel', 'noopener noreferrer');
                 const inputContainer = activationDiv.createEl('div', { cls: 'flashcard-activation-input-container' });
                 const input = inputContainer.createEl('input', { cls: 'flashcard-activation-input', type: 'text', placeholder: t('Enter license key') });
                 const btn = inputContainer.createEl('button', { cls: 'flashcard-activation-button', text: t('Activate') });
