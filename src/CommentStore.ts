@@ -72,10 +72,8 @@ export class CommentStore {
         const needsMigration = await this.migrationManager.needsMigration();
         
         if (needsMigration) {
-            console.log('检测到需要数据迁移，开始迁移...');
             try {
                 const stats = await this.migrationManager.migrate();
-                console.log('数据迁移完成:', stats);
                 this.useNewStorage = true;
             } catch (error) {
                 console.error('数据迁移失败，回退到旧存储方式:', error);

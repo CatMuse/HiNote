@@ -69,9 +69,6 @@ export class HighlightService {
         this.eventManager = new EventManager(app);
         this.blockIdService = new BlockIdService(app);
 
-        // 调试输出当前设置
-        console.debug('[HighlightService] Current settings:', this.settings);
-        console.debug('[HighlightService] Exclude patterns:', this.settings?.excludePatterns);
     }
     
     /**

@@ -20,13 +20,11 @@ export class DataRecovery {
      */
     async recoverFromBackup(backupFilePath: string): Promise<boolean> {
         try {
-            console.log('🔄 开始从备份恢复数据...');
 
             // 读取备份文件
             const backupContent = await this.plugin.app.vault.adapter.read(backupFilePath);
             const backupData = JSON.parse(backupContent);
 
-            console.log('📁 备份数据:', backupData);
 
             // 初始化数据管理器
             await this.dataManager.initialize();
@@ -41,7 +39,6 @@ export class DataRecovery {
                 await this.recoverFlashcards(backupData.fsrs);
             }
 
-            console.log('✅ 数据恢复完成');
             return true;
 
         } catch (error) {
@@ -54,10 +51,8 @@ export class DataRecovery {
      * 恢复高亮和评论数据
      */
     private async recoverHighlights(commentsData: any): Promise<void> {
-        console.log('📝 恢复高亮和评论数据...');
 
         for (const [filePath, highlights] of Object.entries(commentsData)) {
-            console.log(`处理文件: ${filePath}`);
             
             // 转换为新格式
             const optimizedData = {
@@ -89,7 +84,6 @@ export class DataRecovery {
             // 直接保存优化格式的数据
             const storagePath = `.hinote/highlights/${FilePathUtils.toSafeFileName(filePath)}.json`;
             await this.plugin.app.vault.adapter.write(storagePath, JSON.stringify(optimizedData, null, 2));
-            console.log(`✅ 已恢复文件 ${filePath} 的数据`);
         }
     }
 
@@ -97,7 +91,6 @@ export class DataRecovery {
      * 恢复闪卡数据
      */
     private async recoverFlashcards(fsrsData: any): Promise<void> {
-        console.log('🃏 恢复闪卡数据...');
 
         const flashcardData = {
             version: '2.0',
@@ -115,7 +108,6 @@ export class DataRecovery {
         // 直接保存闪卡数据
         const flashcardPath = '.hinote/flashcards/cards.json';
         await this.plugin.app.vault.adapter.write(flashcardPath, JSON.stringify(flashcardData, null, 2));
-        console.log('✅ 已恢复闪卡数据');
     }
 
     /**
@@ -138,7 +130,6 @@ export class DataRecovery {
     async autoRecover(): Promise<boolean> {
         try {
             const backupFiles = await this.listBackupFiles();
-            console.log('📋 可用备份文件:', backupFiles);
 
             // 找到包含数据最多的备份文件
             let bestBackup = '';
@@ -153,7 +144,6 @@ export class DataRecovery {
                     const cardsCount = Object.keys(data.fsrs?.cards || {}).length;
                     const totalData = commentsCount + cardsCount;
 
-                    console.log(`备份文件 ${file}: ${commentsCount} 个高亮文件, ${cardsCount} 个闪卡`);
 
                     if (totalData > maxDataSize) {
                         maxDataSize = totalData;
@@ -165,10 +155,8 @@ export class DataRecovery {
             }
 
             if (bestBackup && maxDataSize > 0) {
-                console.log(`🎯 选择最佳备份文件: ${bestBackup} (包含 ${maxDataSize} 项数据)`);
                 return await this.recoverFromBackup(bestBackup);
             } else {
-                console.log('❌ 没有找到有效的备份数据');
                 return false;
             }
 
@@ -185,7 +173,6 @@ export class DataRecovery {
         try {
             const statusPath = '.hinote/metadata/migration-status.json';
             await this.plugin.app.vault.adapter.remove(statusPath);
-            console.log('✅ 迁移状态已重置');
         } catch (error) {
             console.warn('重置迁移状态失败:', error);
         }

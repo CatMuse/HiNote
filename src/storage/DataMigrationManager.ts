@@ -104,7 +104,6 @@ export class DataMigrationManager {
             // 7. 标记迁移完成
             await this.markMigrationComplete(backupPath);
 
-            console.log('数据迁移完成:', stats);
             return stats;
 
         } catch (error) {
@@ -312,7 +311,6 @@ export class DataMigrationManager {
                 // 忽略删除错误
             }
 
-            console.log('迁移已回滚');
 
         } catch (error) {
             console.error('回滚迁移失败:', error);

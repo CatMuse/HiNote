@@ -186,9 +186,6 @@ export default class CommentPlugin extends Plugin {
 					const status = await migrationManager.getMigrationStatus();
 					const needsMigration = await migrationManager.needsMigration();
 					
-					console.log('=== HiNote 数据迁移状态 ===');
-					console.log('需要迁移:', needsMigration);
-					console.log('迁移状态:', status);
 					
 					new Notice(`迁移状态: ${status.isCompleted ? '已完成' : '未完成'}`);
 				}
