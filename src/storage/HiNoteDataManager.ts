@@ -261,16 +261,9 @@ export class HiNoteDataManager {
                             
                             // 检查是否有高亮数据
                             if (data.highlights && Object.keys(data.highlights).length > 0) {
-                                // 根据安全文件名推断原始路径
-                                if (baseName === 'why_write.md') {
-                                    detectedFiles.push('Why Write.md');
-                                } else if (baseName === 'obsidian_manifesto.md') {
-                                    detectedFiles.push('Obsidian Manifesto.md');
-                                } else {
-                                    // 通用转换逻辑
-                                    const originalPath = baseName.replace(/_/g, ' ').replace(/\.md$/, '.md');
-                                    detectedFiles.push(originalPath);
-                                }
+                                // 通用转换逻辑：将下划线转换为空格
+                                const originalPath = baseName.replace(/_/g, ' ');
+                                detectedFiles.push(originalPath);
                             }
                         } catch (error) {
                             console.warn(`无法读取高亮文件 ${file}:`, error);
