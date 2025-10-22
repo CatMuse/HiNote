@@ -49,8 +49,9 @@ export class HighlightService {
     private fileRenameEventRef: EventRef;
 
     // 默认的文本提取正则（可以被用户自定义替换）
+    // 使用更严格的模式：==后面和前面不能是=或换行符，避免匹配URL中的==
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
-        /==\s*([\s\S]*?)\s*==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
+        /==([^=\n](?:[^=\n]|=[^=\n])*?[^=\n])==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
     
     // 已移除挖空格式的正则表达式，现在使用 Create HiCard 按钮手动创建闪卡
 
@@ -241,6 +242,16 @@ export class HighlightService {
             // 检查当前高亮是否在代码块内
             if (isInCodeBlockRange(matchStart, matchEnd, codeBlockRanges)) {
                 continue; // 跳过代码块内的高亮
+            }
+            
+            // 额外检查：如果匹配的是 == 格式，确保前后没有额外的 = 符号
+            // 这可以防止 ===text=== 或 URL 中的 == 被误匹配
+            if (fullMatch.startsWith('==') && fullMatch.endsWith('==')) {
+                const beforeMatch = matchStart > 0 ? content.charAt(matchStart - 1) : '';
+                const afterMatch = matchEnd < content.length ? content.charAt(matchEnd) : '';
+                if (beforeMatch === '=' || afterMatch === '=') {
+                    continue; // 跳过被额外 = 符号包围的匹配
+                }
             }
             
             // 找到第一个非空的捕获组作为文本内容

@@ -152,7 +152,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         {
             id: 'default-md',
             name: 'Default Highlight',
-            pattern: '==\\s*([\\s\\S]*?)\\s*==',
+            pattern: '==([^=\\n](?:[^=\\n]|=[^=\\n])*?[^=\\n])==',
             color: '#ffeb3b',
             enabled: true
         },
