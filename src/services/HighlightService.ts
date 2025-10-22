@@ -6,15 +6,6 @@ import { ColorExtractorService } from './ColorExtractorService';
 import { EventManager } from './EventManager';
 import { BlockIdService } from './BlockIdService';
 
-type RegexMatch = [
-    string,      // 完整匹配
-    string,      // 双等号匹配
-    string,      // mark 背景色
-    string,      // mark 文本
-    string,      // span 背景色
-    string,      // span 文本
-] & { index: number };     // 匹配位置
-
 /**
  * 文件级高亮索引接口，用于加速全局搜索
  */
@@ -28,6 +19,12 @@ interface FileHighlightIndex {
 }
 
 export class HighlightService {
+    // 常量定义
+    private static readonly INDEX_EXPIRY_TIME = 3600000; // 1小时（毫秒）
+    private static readonly INDEX_BUILD_DELAY = 3000; // 3秒（毫秒）
+    private static readonly DUPLICATE_POSITION_THRESHOLD = 10; // 位置差异阈值
+    private static readonly MIN_WORD_LENGTH = 2; // 最小词长度
+    
     private colorExtractor: ColorExtractorService;
     private eventManager: EventManager;
     private blockIdService: BlockIdService;
@@ -53,15 +50,9 @@ export class HighlightService {
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
         /==([^=\n](?:[^=\n]|=[^=\n])*?[^=\n])==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
     
-    // 已移除挖空格式的正则表达式，现在使用 Create HiCard 按钮手动创建闪卡
-
-
     private settings: PluginSettings;
 
     constructor(private app: App) {
-        // 获取插件实例
-        // 使用类型安全的方式获取插件实例
-        // 通过类型断言访问内部属性
         const plugins = (app as any).plugins;
         const plugin = plugins && plugins.plugins ? 
             plugins.plugins['hi-note'] : undefined;
@@ -69,7 +60,6 @@ export class HighlightService {
         this.colorExtractor = new ColorExtractorService();
         this.eventManager = new EventManager(app);
         this.blockIdService = new BlockIdService(app);
-
     }
     
     /**
@@ -83,7 +73,7 @@ export class HighlightService {
         setTimeout(() => {
             this.buildFileIndex().then(() => {
             });
-        }, 3000); // 等待 3 秒再构建索引，避免影响插件加载速度
+        }, HighlightService.INDEX_BUILD_DELAY);
     }
     
     /**
@@ -146,11 +136,6 @@ export class HighlightService {
         this.app.vault.offref(this.fileRenameEventRef);
     }
 
-    /**
-     * 检查文本是否包含高亮
-     * @param content 要检查的文本内容
-     * @returns 是否包含高亮
-     */
     /**
      * 检查文件是否应该被处理（不在排除列表中）
      * @param file 要检查的文件
@@ -270,7 +255,7 @@ export class HighlightService {
             // 检查是否已存在相同位置的高亮
             const isDuplicate = highlights.some(h => 
                 typeof h.position === 'number' && 
-                Math.abs(h.position - safeMatch.index) < 10 && 
+                Math.abs(h.position - safeMatch.index) < HighlightService.DUPLICATE_POSITION_THRESHOLD && 
                 h.text === text
             );
 
@@ -321,17 +306,12 @@ export class HighlightService {
                         };
                         
                         highlights.push(highlight);
-                        
-                        // 挖空格式的自动处理已移除
-                        // 现在用户需要点击 "Create HiCard" 按钮才能创建闪卡
                     }
                 }
             }
         }
     }
     
-
-
     /**
      * 获取段落偏移量
      * @param content 完整文本内容
@@ -425,33 +405,9 @@ export class HighlightService {
                 // 添加到文件映射
                 newFileToHighlights.set(file.path, highlightsWithFileInfo);
                 
-                // 提取所有高亮中的关键词
-                const fileWords = new Set<string>();
-                for (const highlight of highlights) {
-                    // 从高亮文本中提取关键词
-                    const words = this.tokenizeText(highlight.text);
-                    for (const word of words) {
-                        fileWords.add(word);
-                    }
-                    
-                    // 从评论中提取关键词
-                    if (highlight.comments?.length) {
-                        for (const comment of highlight.comments) {
-                            const commentWords = this.tokenizeText(comment.content);
-                            for (const word of commentWords) {
-                                fileWords.add(word);
-                            }
-                        }
-                    }
-                }
-                
-                // 将文件与其包含的关键词关联
-                for (const word of fileWords) {
-                    if (!newWordToFiles.has(word)) {
-                        newWordToFiles.set(word, new Set());
-                    }
-                    newWordToFiles.get(word)?.add(file.path);
-                }
+                // 提取关键词并添加到索引
+                const fileWords = this.extractKeywordsFromHighlights(highlights);
+                this.addKeywordsToIndex(fileWords, file.path, newWordToFiles);
             }
             
             // 更新索引
@@ -480,9 +436,70 @@ export class HighlightService {
         
         // 过滤掉太短的词和标点符号
         return words
-            .filter(word => word.length >= 2) // 忽略太短的词
-            .map(word => word.replace(/[.,;:!?()\[\]{}'"`~]/g, '')) // 移除标点符号
-            .filter(word => word.length >= 2); // 再次过滤可能变短的词
+            .filter(word => word.length >= HighlightService.MIN_WORD_LENGTH)
+            .map(word => word.replace(/[.,;:!?()\[\]{}'"`~]/g, ''))
+            .filter(word => word.length >= HighlightService.MIN_WORD_LENGTH);
+    }
+    
+    /**
+     * 检查索引是否过期
+     * @returns 如果索引过期或未初始化则返回 true
+     */
+    private isIndexExpired(): boolean {
+        return this.fileIndex.lastUpdated === 0 || 
+               Date.now() - this.fileIndex.lastUpdated > HighlightService.INDEX_EXPIRY_TIME;
+    }
+    
+    /**
+     * 从索引中获取所有高亮
+     * @returns 所有高亮数组
+     */
+    private getAllHighlightsFromIndex(): HighlightInfo[] {
+        const allHighlights: HighlightInfo[] = [];
+        for (const highlights of this.fileIndex.fileToHighlights.values()) {
+            allHighlights.push(...highlights);
+        }
+        return allHighlights;
+    }
+    
+    /**
+     * 从高亮数组中提取所有关键词
+     * @param highlights 高亮数组
+     * @returns 关键词集合
+     */
+    private extractKeywordsFromHighlights(highlights: HighlightInfo[]): Set<string> {
+        const keywords = new Set<string>();
+        
+        for (const highlight of highlights) {
+            // 从高亮文本中提取关键词
+            const words = this.tokenizeText(highlight.text);
+            words.forEach(word => keywords.add(word));
+            
+            // 从评论中提取关键词
+            if (highlight.comments?.length) {
+                for (const comment of highlight.comments) {
+                    const commentWords = this.tokenizeText(comment.content);
+                    commentWords.forEach(word => keywords.add(word));
+                }
+            }
+        }
+        
+        return keywords;
+    }
+    
+    /**
+     * 将关键词添加到索引中
+     * @param keywords 关键词集合
+     * @param filePath 文件路径
+     * @param wordToFiles 词到文件的映射
+     */
+    private addKeywordsToIndex(keywords: Set<string>, filePath: string, wordToFiles: Map<string, Set<string>>): void {
+        for (const word of keywords) {
+            if (!wordToFiles.has(word)) {
+                wordToFiles.set(word, new Set());
+            }
+            wordToFiles.get(word)!.add(filePath);
+        }
     }
     
     /**
@@ -491,8 +508,7 @@ export class HighlightService {
      */
     removeFileFromIndex(filePath: string): void {
         // 如果索引未初始化或过期，则跳过
-        if (this.fileIndex.lastUpdated === 0 || 
-            Date.now() - this.fileIndex.lastUpdated > 3600000) { // 1小时
+        if (this.isIndexExpired()) {
             return;
         }
         
@@ -522,8 +538,7 @@ export class HighlightService {
      */
     async updateFileInIndex(file: TFile): Promise<void> {
         // 如果索引未初始化或过期，则跳过增量更新，等待完整重建
-        if (this.fileIndex.lastUpdated === 0 || 
-            Date.now() - this.fileIndex.lastUpdated > 3600000) { // 1小时
+        if (this.isIndexExpired()) {
             return;
         }
         
@@ -547,33 +562,9 @@ export class HighlightService {
                     // 添加到文件映射
                     this.fileIndex.fileToHighlights.set(file.path, highlightsWithFileInfo);
                     
-                    // 提取所有高亮中的关键词
-                    const fileWords = new Set<string>();
-                    for (const highlight of highlights) {
-                        // 从高亮文本中提取关键词
-                        const words = this.tokenizeText(highlight.text);
-                        for (const word of words) {
-                            fileWords.add(word);
-                        }
-                        
-                        // 从评论中提取关键词
-                        if (highlight.comments?.length) {
-                            for (const comment of highlight.comments) {
-                                const commentWords = this.tokenizeText(comment.content);
-                                for (const word of commentWords) {
-                                    fileWords.add(word);
-                                }
-                            }
-                        }
-                    }
-                    
-                    // 将文件与其包含的关键词关联
-                    for (const word of fileWords) {
-                        if (!this.fileIndex.wordToFiles.has(word)) {
-                            this.fileIndex.wordToFiles.set(word, new Set());
-                        }
-                        this.fileIndex.wordToFiles.get(word)?.add(file.path);
-                    }
+                    // 提取关键词并添加到索引
+                    const fileWords = this.extractKeywordsFromHighlights(highlights);
+                    this.addKeywordsToIndex(fileWords, file.path, this.fileIndex.wordToFiles);
                 }
             }
         } catch (error) {
@@ -588,28 +579,19 @@ export class HighlightService {
      */
     async searchHighlightsFromIndex(searchTerm: string): Promise<HighlightInfo[]> {
         // 检查索引是否需要重建
-        const indexAge = Date.now() - this.fileIndex.lastUpdated;
-        if (indexAge > 3600000 || this.fileIndex.fileToHighlights.size === 0) { // 1小时或索引为空
+        if (this.isIndexExpired() || this.fileIndex.fileToHighlights.size === 0) {
             await this.buildFileIndex();
         }
         
         // 如果搜索词为空，返回所有高亮
         if (!searchTerm.trim()) {
-            const allHighlights: HighlightInfo[] = [];
-            for (const highlights of this.fileIndex.fileToHighlights.values()) {
-                allHighlights.push(...highlights);
-            }
-            return allHighlights;
+            return this.getAllHighlightsFromIndex();
         }
         
         // 分词搜索
         const terms = this.tokenizeText(searchTerm);
         if (terms.length === 0) {
-            const allHighlights: HighlightInfo[] = [];
-            for (const highlights of this.fileIndex.fileToHighlights.values()) {
-                allHighlights.push(...highlights);
-            }
-            return allHighlights;
+            return this.getAllHighlightsFromIndex();
         }
         
         // 对每个词找到匹配的文件
@@ -664,8 +646,6 @@ export class HighlightService {
         
         return results;
     }
-
-     // 此处删除了未使用的 createBlockIdForPosition 方法
 
     /**
      * 为高亮创建 Block ID（用于拖拽和导出场景）
