@@ -16,806 +16,26 @@ import { CommentInput } from './components/comment/CommentInput';
 import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
 import { LicenseManager } from './services/LicenseManager';
-import { IdGenerator } from './utils/IdGenerator'; // 导入 IdGenerator
+import { IdGenerator } from './utils/IdGenerator';
+import { SearchManager } from './view/search/SearchManager';
+import { SelectionManager } from './view/selection/SelectionManager';
+import { BatchOperationsHandler } from './view/selection/BatchOperationsHandler';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
-// /**
-//  * 将高亮笔记转换为闪卡状态
-//  * @param highlights 高亮笔记数组
-//  * @returns 闪卡状态数组
-//  */
-// function convertToFlashcardState(highlights: HiNote[]): FlashcardState[] {
-//     return highlights.map(highlight => ({
-//         id: highlight.id,
-//         difficulty: 0.3,  // 默认难度
-//         stability: 0.5,   // 默认稳定性
-//         retrievability: 0.9, // 默认可提取性
-//         lastReview: Date.now(), // 当前时间作为上次复习时间
-//         nextReview: Date.now() + 86400000, // 默认一天后复习
-//         reviewHistory: [],
-//         text: highlight.text,
-//         answer: highlight.comments?.map(c => c.content).join("\n") || "", // 使用评论作为答案
-//         filePath: highlight.filePath,
-//         createdAt: highlight.createdAt,
-//         reviews: 0,
-//         lapses: 0
-//     }));
-// }
-
 export class CommentView extends ItemView {
-    // 搜索提示事件处理器引用
-    private searchHintsEventHandlers: {
-        input: (e: Event) => void;
-        blur: (e: FocusEvent) => void;
-        click: (e: MouseEvent) => void;
-    } | null = null;
+    // 搜索管理器
+    private searchManager: SearchManager | null = null;
+    // 多选管理器
+    private selectionManager: SelectionManager | null = null;
+    // 批量操作处理器
+    private batchOperationsHandler: BatchOperationsHandler | null = null;
     // 添加活动视图变化的事件处理器
     private activeLeafChangeHandler: (() => void) | undefined;
-    // 清除所有选中状态的方法
-    private clearSelection() {
-        // 清除DOM中的选中状态
-        this.highlightContainer.querySelectorAll('.highlight-card.selected').forEach(card => {
-            card.removeClass('selected');
-        });
-        
-        // 清除HighlightCard类中的选中状态
-        if (HighlightCard && typeof HighlightCard.clearSelection === 'function') {
-            HighlightCard.clearSelection();
-        }
-        
-        // 清空选中的高亮集合
-        this.selectedHighlights.clear();
-        
-        // 隐藏多选操作按钮
-        this.hideMultiSelectActions();
-        
-        // 重置选择模式
-        this.isSelectionMode = false;
-    }
-    
-    private handleMultiSelect(e: CustomEvent) {
-        const detail = e.detail;
-        if (detail && detail.selectedCards) {
-            // 更新选中的高亮列表
-            this.updateSelectedHighlights();
-        }
-    }
-    
-    // 更新选中的高亮列表
-    private updateSelectedHighlights() {
-        this.selectedHighlights.clear();
-        const selectedCards = Array.from(this.highlightContainer.querySelectorAll('.highlight-card.selected'));
-        
-        selectedCards.forEach(card => {
-            const highlightData = card.getAttribute('data-highlight');
-            if (highlightData) {
-                try {
-                    const highlight = JSON.parse(highlightData) as HighlightInfo;
-                    this.selectedHighlights.add(highlight);
-                } catch (e) {
-                    console.error('Error parsing highlight data:', e);
-                }
-            }
-        });
-        
-        // 只有在多选情况下才显示批量操作按钮
-        if (this.selectedHighlights.size > 1) {
-            this.showMultiSelectActions();
-        } else {
-            this.hideMultiSelectActions();
-        }
-    }
-    
-    // 显示多选操作按钮
-    private async showMultiSelectActions() {
-        // 如果已经存在，先移除
-        this.hideMultiSelectActions();
-        
-        // 如果没有创建过多选操作容器，则创建一个
-        if (!this.multiSelectActionsContainer) {
-            this.multiSelectActionsContainer = this.containerEl.createEl('div', {
-                cls: 'multi-select-actions'
-            });
-        }
-        
-        // 显示容器
-        this.multiSelectActionsContainer.show();
-        
-        // 清空容器
-        this.multiSelectActionsContainer.empty();
-        
-        // 添加操作按钮容器的标题
-        const titleEl = this.multiSelectActionsContainer.createEl('div', {
-            cls: 'selected-count',
-            text: `selected ${this.selectedHighlights.size}`
-        });
-        
-        // 添加操作按钮 - 导出按钮
-        const exportButton = this.multiSelectActionsContainer.createEl('div', {
-            cls: 'multi-select-action-button'
-        });
-        exportButton.setAttribute('aria-label', t('Export'));
-        setIcon(exportButton, 'file-input');
-        exportButton.addEventListener('click', () => {
-            this.exportSelectedHighlights();
-        });
-        
-        // 检查选中高亮的闪卡状态
-        const fsrsManager = this.plugin.fsrsManager;
-        if (!fsrsManager) {
-            // 如果FSRSManager未初始化，显示默认的创建闪卡按钮
-            this.createDefaultFlashcardButton(this.multiSelectActionsContainer);
-            return;
-        }
-        
-        // 检查选中的高亮中有多少已经创建了闪卡
-        let existingFlashcardCount = 0;
-        for (const highlight of this.selectedHighlights) {
-            if (highlight.id) {
-                const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
-                if (existingCards && existingCards.length > 0) {
-                    existingFlashcardCount++;
-                }
-            }
-        }
-        
-        // 根据已有闪卡的数量决定显示哪个按钮
-        if (existingFlashcardCount === 0) {
-            // 如果没有闪卡，显示创建按钮
-            const createButton = this.multiSelectActionsContainer.createEl('div', {
-                cls: 'multi-select-action-button'
-            });
-            createButton.setAttribute('aria-label', t('Create HiCard'));
-            setIcon(createButton, 'book-plus');
-            
-            // 检查许可证状态
-            const checkLicenseStatus = async () => {
-                const isActivated = await this.licenseManager.isActivated();
-                const isFeatureEnabled = isActivated ? await this.licenseManager.isFeatureEnabled('flashcard') : false;
-                return isActivated && isFeatureEnabled;
-            };
-            
-            // 异步检查许可证状态并设置按钮样式
-            checkLicenseStatus().then(isLicensed => {
-                if (!isLicensed) {
-                    // 如果没有许可证，置灰按钮
-                    createButton.addClass('disabled-button');
-                    createButton.setAttribute('aria-label', t('Only HiNote Pro'));
-                }
-            });
-            
-            createButton.addEventListener('click', async () => {
-                // 如果按钮被禁用，显示提示并不执行操作
-                if (createButton.hasClass('disabled-button')) {
-                    new Notice(t('Only HiNote Pro'));
-                    return;
-                }
-                
-                await this.createMissingFlashcards();
-            });
-        } else if (existingFlashcardCount === this.selectedHighlights.size) {
-            // 全部是已创建闪卡的高亮
-            const deleteButton = this.multiSelectActionsContainer.createEl('div', {
-                cls: 'multi-select-action-button delete-flashcard-button'
-            });
-            deleteButton.setAttribute('aria-label', t('Delete HiCard'));
-            setIcon(deleteButton, 'book-x');
-            deleteButton.addEventListener('click', () => {
-                this.deleteFlashcardsFromSelected();
-            });
-        } else {
-            // 如果部分有闪卡，显示管理按钮
-            const manageButton = this.multiSelectActionsContainer.createEl('div', {
-                cls: 'multi-select-action-button'
-            });
-            manageButton.setAttribute('aria-label', t('Manage HiCard'));
-            setIcon(manageButton, 'book-heart');
-            manageButton.addEventListener('click', (event) => {
-                this.showFlashcardManageMenu(event);
-            });
-        }
-        
-        // 添加操作按钮 - 删除按钮（放在最后）
-        const deleteButton = this.multiSelectActionsContainer.createEl('div', {
-            cls: 'multi-select-action-button'
-        });
-        deleteButton.setAttribute('aria-label', t('Delete'));
-        setIcon(deleteButton, 'trash');
-        deleteButton.addEventListener('click', () => {
-            this.deleteSelectedHighlights();
-        });
-    }
-    
-    // 隐藏多选操作按钮
-    private hideMultiSelectActions() {
-        // 清空容器
-        if (this.multiSelectActionsContainer) {
-            this.multiSelectActionsContainer.empty();
-            this.multiSelectActionsContainer.hide();
-        }
-    }
-    
-    // 处理全局点击事件，用于隐藏批量操作容器
-    private handleGlobalClick = (e: MouseEvent) => {
-        // 如果正在进行框选操作，不处理全局点击事件
-        if (this.isSelectionMode) {
-            return;
-        }
-        
-        // 如果没有选中的高亮或者没有显示批量操作容器，则不处理
-        if (this.selectedHighlights.size <= 1 || !this.multiSelectActionsContainer || this.multiSelectActionsContainer.style.display === 'none') {
-            return;
-        }
-        
-        // 检查点击的目标是否是批量操作容器本身或其子元素
-        const target = e.target as HTMLElement;
-        if (target.closest('.multi-select-actions')) {
-            return; // 点击的是批量操作容器，不隐藏
-        }
-        
-        // 检查点击的是否是已选中的卡片
-        if (target.closest('.highlight-card.selected')) {
-            return; // 点击的是已选中的卡片，不隐藏
-        }
-        
-        // 检查点击的是否是高亮容器，如果是，让原有的点击处理逻辑处理
-        if (target.closest('.highlight-container')) {
-            return;
-        }
-        
-        // 点击了其他区域，清除选择
-        this.clearSelection();
-    }
-    
-    // 创建默认的闪卡按钮（当FSRSManager未初始化时）
-    private createDefaultFlashcardButton(container: HTMLElement) {
-        const button = container.createEl('div', {
-            cls: 'multi-select-action-button'
-        });
-        button.setAttribute('aria-label', t('Create HiCard'));
-        setIcon(button, 'plus-circle');
-        button.addEventListener('click', () => {
-            new Notice(t('HiCard function is not initialized, please enable FSRS function'));
-        });
-    }
-    
-    // 显示闪卡管理菜单
-    private showFlashcardManageMenu(event: MouseEvent) {
-        const menu = new Menu();
-        
-        menu.addItem((item: any) => {
-            item.setTitle(t('Create missing HiCard'))
-                .setIcon('plus-circle')
-                .onClick(async () => {
-                    await this.createMissingFlashcards();
-                });
-        });
-        
-        menu.addItem((item: any) => {
-            item.setTitle(t('Delete existing HiCards'))
-                .setIcon('trash')
-                .onClick(() => {
-                    this.deleteFlashcardsFromSelected();
-                });
-        });
-        
-        // 获取触发事件的按钮元素
-        const targetElement = event.currentTarget as HTMLElement;
-        
-        // 计算菜单应该显示的位置
-        if (targetElement) {
-            const rect = targetElement.getBoundingClientRect();
-            // 在按钮上方显示菜单
-            menu.showAtPosition({ x: rect.left - 85, y: rect.top - 60 });
-        } else {
-            // 如果无法获取按钮位置，则在鼠标位置显示
-            menu.showAtMouseEvent(event);
-        }
-    }
-    
-    // 创建缺失的闪卡
-    private async createMissingFlashcards() {
-        // 检查许可证状态
-        const isActivated = await this.licenseManager.isActivated();
-        const isFeatureEnabled = isActivated ? await this.licenseManager.isFeatureEnabled('flashcard') : false;
-        
-        if (!isActivated || !isFeatureEnabled) {
-            // 未激活或未启用闪卡功能，显示提示
-            new Notice(t('Only HiNote Pro'));
-            return;
-        }
-        
-        const fsrsManager = this.plugin.fsrsManager;
-        if (!fsrsManager) {
-            new Notice(t('HiCard function is not initialized, please enable FSRS function'));
-            return;
-        }
-        
-        let successCount = 0;
-        let failCount = 0;
-        
-        for (const highlight of this.selectedHighlights) {
-            try {
-                if (highlight.id) {
-                    // 检查是否已存在闪卡
-                    const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
-                    if (existingCards && existingCards.length > 0) continue; // 跳过已有闪卡的高亮
-                    
-                    // 查找当前高亮对应的 HighlightCard 实例
-                    let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
-                    let result = false;
-                    
-                    if (highlightCard) {
-                        // 如果找到了实例，直接使用该实例的创建方法（静默模式）
-                        result = await highlightCard.createHiCardForHighlight(true);
-                    } else {
-                        // 如果没有找到实例，创建一个临时容器元素
-                        const tempContainer = document.createElement('div');
-                        
-                        // 创建一个临时实例并使用它的创建方法
-                        highlightCard = new HighlightCard(
-                            tempContainer,
-                            highlight,
-                            this.plugin,
-                            {
-                                onHighlightClick: async () => {},
-                                onCommentAdd: () => {},
-                                onExport: () => {},
-                                onCommentEdit: () => {},
-                                onAIResponse: async () => {}
-                            },
-                            false
-                        );
-                        result = await highlightCard.createHiCardForHighlight(true);
-                    }
-                    
-                    if (result) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                        console.error(`Create HiCard failed: ${highlight.text}`);
-                    }
-                }
-            } catch (error) {
-                failCount++;
-                console.error('Create HiCard failed:', error);
-            }
-        }
-
-        // 触发事件，让 FSRSManager 来处理保存
-        if (successCount > 0) {
-            this.plugin.eventManager.emitFlashcardChanged();
-        }
-
-        // 显示结果消息
-        if (successCount > 0 && failCount === 0) {
-            new Notice(t(`Successfully created ${successCount} HiCard`));
-        } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`Successfully created ${successCount} HiCard, ${failCount} failed`));
-        } else if (successCount === 0 && failCount === 0) {
-            new Notice(t(`No HiCard to create`));
-        } else {
-            new Notice(t(`Failed to create HiCard! Please check the selected highlight content`));
-        }
-        
-        // 清除选中状态
-        this.clearSelection();
-        
-        // 重新渲染高亮列表，确保闪卡图标状态更新
-        this.renderHighlights(this.highlights);
-    }
-    
-    // 导出选中的高亮内容
-    private async exportSelectedHighlights() {
-        if (this.selectedHighlights.size === 0) {
-            new Notice(t('Please select highlights to export'));
-            return;
-        }
-        try {
-            const selectedHighlightsArray = Array.from(this.selectedHighlights);
-            const newFile = await this.exportService.exportHighlightsAsMarkdown(selectedHighlightsArray);
-            
-            if (newFile) {
-                new Notice(t('Successfully exported selected highlights to: ') + newFile.path);
-                this.clearSelection();
-            } else {
-                new Notice(t('No highlights to export'));
-            }
-        } catch (error) {
-            console.error('Failed to export highlights:', error);
-            new Notice(t('Failed to export highlights: ') + (error instanceof Error ? error.message : String(error)));
-        }
-    }
-    
-    // 从选中的高亮删除闪卡
-    private deleteFlashcardsFromSelected() {
-        // 创建确认对话框
-        const modal = new Modal(this.app);
-        modal.titleEl.setText(t('Confirm delete HiCard'));
-        
-        const contentEl = modal.contentEl;
-        contentEl.empty();
-        
-        contentEl.createEl('p', {
-            text: t('Are you sure you want to delete the HiCards of the selected highlights? This action cannot be undone.')
-        });
-        
-        const buttonContainer = contentEl.createEl('div', {
-            cls: 'modal-button-container'
-        });
-        
-        const cancelButton = buttonContainer.createEl('button', {
-            text: t('Cancel')
-        });
-        cancelButton.addEventListener('click', () => {
-            modal.close();
-        });
-        
-        const confirmButton = buttonContainer.createEl('button', {
-            cls: 'mod-warning',
-            text: t('Delete')
-        });
-        confirmButton.addEventListener('click', async () => {
-            modal.close();
-            await this.deleteExistingFlashcards();
-        });
-        
-        modal.open();
-    }
-    
-    // 删除选中的高亮
-    private deleteSelectedHighlights() {
-        if (this.selectedHighlights.size === 0) {
-            new Notice(t('No highlights selected'));
-            return;
-        }
-        
-        // 创建确认对话框
-        const modal = new Modal(this.app);
-        modal.titleEl.setText(t('Confirm delete highlights'));
-        
-        const contentEl = modal.contentEl;
-        contentEl.empty();
-        
-        contentEl.createEl('p', {
-            text: t(`Are you sure you want to delete ${this.selectedHighlights.size} highlights and all their data, including Comments and HiCards? This action cannot be undone.`)
-        });
-        
-        const buttonContainer = contentEl.createEl('div', {
-            cls: 'modal-button-container'
-        });
-        
-        const cancelButton = buttonContainer.createEl('button', {
-            text: t('Cancel')
-        });
-        cancelButton.addEventListener('click', () => {
-            modal.close();
-        });
-        
-        const confirmButton = buttonContainer.createEl('button', {
-            cls: 'mod-warning',
-            text: t('Delete')
-        });
-        confirmButton.addEventListener('click', async () => {
-            modal.close();
-            await this.performDeleteSelectedHighlights();
-        });
-        
-        modal.open();
-    }
-    
-    // 执行删除选中高亮的操作
-    private async performDeleteSelectedHighlights() {
-        if (this.selectedHighlights.size === 0) {
-            new Notice(t('No highlights selected'));
-            return;
-        }
-        
-        let successCount = 0;
-        let failCount = 0;
-        
-        // 获取所有高亮卡片元素
-        const highlightCards = Array.from(this.highlightContainer.querySelectorAll('.highlight-card.selected'));
-        
-        for (const card of highlightCards) {
-            try {
-                // 获取高亮数据
-                const highlightData = card.getAttribute('data-highlight');
-                if (!highlightData) continue;
-                
-                const highlight = JSON.parse(highlightData);
-                if (!highlight.id) continue;
-                
-                // 查找当前高亮对应的 HighlightCard 实例
-                let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
-                
-                if (highlightCard) {
-                    // 如果找到了实例，直接使用该实例的删除方法（跳过确认对话框和单个通知）
-                    await highlightCard.handleDeleteHighlight(true, true);
-                    successCount++;
-                } else {
-                    // 如果没有找到实例，可能是因为卡片不在视图中或其他原因
-                    failCount++;
-                    console.error(`无法找到高亮卡片实例: ${highlight.id}`);
-                }
-            } catch (error) {
-                console.error('删除高亮时出错:', error);
-                failCount++;
-            }
-        }
-        
-        // 清除选中状态
-        this.clearSelection();
-        
-        // 显示结果通知
-        if (successCount > 0 && failCount === 0) {
-            new Notice(t(`成功删除 ${successCount} 个高亮`));
-        } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`成功删除 ${successCount} 个高亮，${failCount} 个删除失败`));
-        } else if (successCount === 0 && failCount > 0) {
-            new Notice(t('删除高亮失败'));
-        }
-    }
-    
-    // 删除选中高亮的闪卡
-    private async deleteExistingFlashcards() {
-        const fsrsManager = this.plugin.fsrsManager;
-        if (!fsrsManager) {
-            new Notice(t('HiCard function is not initialized, please enable FSRS function'));
-            return;
-        }
-        
-        let successCount = 0;
-        let failCount = 0;
-        
-        for (const highlight of this.selectedHighlights) {
-            try {
-                if (highlight.id) {
-                    // 检查是否存在闪卡
-                    const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
-                    if (!existingCards || existingCards.length === 0) continue; // 跳过没有闪卡的高亮
-                    
-                    // 查找当前高亮对应的 HighlightCard 实例
-                    let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
-                    let result = false;
-                    
-                    if (highlightCard) {
-                        // 如果找到了实例，直接使用该实例的删除方法（静默模式）
-                        result = await highlightCard.deleteHiCardForHighlight(true);
-                    } else {
-                        // 如果没有找到实例，创建一个临时容器元素
-                        const tempContainer = document.createElement('div');
-                        
-                        // 创建一个临时实例并使用它的删除方法（静默模式）
-                        highlightCard = new HighlightCard(
-                            tempContainer,
-                            highlight,
-                            this.plugin,
-                            {
-                                onHighlightClick: async () => {},
-                                onCommentAdd: () => {},
-                                onExport: () => {},
-                                onCommentEdit: () => {},
-                                onAIResponse: async () => {}
-                            },
-                            false
-                        );
-                        result = await highlightCard.deleteHiCardForHighlight(true);
-                    }
-                    
-                    if (result) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                        console.error(`Failed to delete HiCard: ${highlight.text}`);
-                    }
-                }
-            } catch (error) {
-                failCount++;
-                console.error('Failed to delete HiCard:', error);
-            }
-        }
-
-        // 触发事件，让 FSRSManager 来处理保存
-        if (successCount > 0) {
-            this.plugin.eventManager.emitFlashcardChanged();
-        }
-        
-        // 显示结果消息
-        if (successCount > 0 && failCount === 0) {
-            new Notice(t(`Successfully deleted ${successCount} HiCard`));
-        } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`Successfully deleted ${successCount} HiCard, ${failCount} failed`));
-        } else if (successCount === 0 && failCount === 0) {
-            new Notice(t(`No HiCard to delete`));
-        } else {
-            new Notice(t(`Failed to delete HiCard! Please check the selected highlight content`));
-        }
-        
-        // 清除选中状态
-        this.clearSelection();
-        // 重新渲染高亮列表，确保闪卡图标状态更新
-        this.renderHighlights(this.highlights);
-    }
-    
-    // 设置框选功能
-    private setupSelectionBox() {
-        // 移除现有的事件监听器
-        this.highlightContainer.removeEventListener('mousedown', this.handleSelectionStart);
-        
-        // 添加新的事件监听器
-        this.highlightContainer.addEventListener('mousedown', this.handleSelectionStart);
-    }
-    
-    private handleSelectionStart = (e: MouseEvent) => {
-        // 如果点击的是卡片内部元素、HiCard页面元素或AI对话浮动按钮，不启动框选
-        if ((e.target as HTMLElement).closest('.highlight-card') ||
-            (e.target as HTMLElement).closest('.flashcard-mode') ||
-            (e.target as HTMLElement).closest('.flashcard-add-group') ||
-            (e.target as HTMLElement).closest('.flashcard-group-action') ||
-            (e.target as HTMLElement).closest('.highlight-floating-button')) {
-            return;
-        }
-    
-        // 记录起始位置
-        this.selectionStartX = e.clientX;
-        this.selectionStartY = e.clientY;
-        this.mouseMoved = false; // 重置移动标志
-    
-        // 添加移动和结束事件监听器
-        document.addEventListener('mousemove', this.handleMouseMove);
-        document.addEventListener('mouseup', this.handleMouseUp);
-    }
-    
-    private handleMouseMove = (e: MouseEvent) => {
-        // 检查鼠标移动距离是否超过阈值
-        const dx = e.clientX - this.selectionStartX;
-        const dy = e.clientY - this.selectionStartY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance >= this.mouseMoveThreshold) {
-            this.mouseMoved = true;
-            // 移除鼠标移动事件监听器
-            document.removeEventListener('mousemove', this.handleMouseMove);
-            // 开始框选
-            this.startSelection(e);
-        }
-    }
-    
-    private handleMouseUp = (e: MouseEvent) => {
-        // 移除事件监听器
-        document.removeEventListener('mousemove', this.handleMouseMove);
-        document.removeEventListener('mouseup', this.handleMouseUp);
-        
-        // 如果没有移动，则认为是点击空白区域
-        if (!this.mouseMoved) {
-            this.clearSelection();
-        }
-    }
-    
-    private startSelection(e: MouseEvent) {
-        // 检查 DOM 中是否有带有 selected 类的卡片
-        const hasSelectedCards = this.highlightContainer.querySelectorAll('.highlight-card.selected').length > 0;
-        
-        // 检查 HighlightCard.selectedCards 集合
-        const HighlightCardClass = (window as any).HighlightCard;
-        const hasSelectedCardsInSet = HighlightCardClass && HighlightCardClass.selectedCards && HighlightCardClass.selectedCards.size > 0;
-        
-        // 如果已经有选中的卡片，清除选择
-        if (this.selectedHighlights.size > 0 || hasSelectedCards || hasSelectedCardsInSet) {
-            this.clearSelection();
-        }
-        
-        // 创建选择框
-        this.selectionBox = document.createElement('div');
-        this.selectionBox.className = 'selection-box';
-        this.selectionBox.style.left = `${this.selectionStartX}px`;
-        this.selectionBox.style.top = `${this.selectionStartY}px`;
-        document.body.appendChild(this.selectionBox);
-        
-        // 启动选择模式
-        this.isSelectionMode = true;
-        
-        // 添加移动和结束事件监听器
-        document.addEventListener('mousemove', this.handleSelectionMove);
-        document.addEventListener('mouseup', this.handleSelectionEnd);
-    }
-
-    // 处理框选移动
-    private handleSelectionMove = (e: MouseEvent) => {
-        if (!this.isSelectionMode || !this.selectionBox) return;
-        
-        // 计算选择框尺寸和位置
-        const width = e.clientX - this.selectionStartX;
-        const height = e.clientY - this.selectionStartY;
-        
-        // 根据拖动方向设置选择框位置和大小
-        if (width < 0) {
-            this.selectionBox.style.left = `${e.clientX}px`;
-            this.selectionBox.style.width = `${-width}px`;
-        } else {
-            this.selectionBox.style.width = `${width}px`;
-        }
-        
-        if (height < 0) {
-            this.selectionBox.style.top = `${e.clientY}px`;
-            this.selectionBox.style.height = `${-height}px`;
-        } else {
-            this.selectionBox.style.height = `${height}px`;
-        }
-        
-        // 实时选中框内的卡片
-        this.selectCardsInBox();
-    }
-    
-    // 处理框选结束
-    private handleSelectionEnd = (e: MouseEvent) => {
-        if (!this.isSelectionMode) return;
-        
-        // 移除选择框
-        if (this.selectionBox) {
-            this.selectionBox.remove();
-            this.selectionBox = null;
-        }
-        
-        // 结束选择模式
-        this.isSelectionMode = false;
-        
-        // 移除事件监听器
-        document.removeEventListener('mousemove', this.handleSelectionMove);
-        document.removeEventListener('mouseup', this.handleSelectionEnd);
-        
-        // 更新选中的高亮列表
-        this.updateSelectedHighlights();
-    }
-    
-    // 选中框内的卡片
-    private selectCardsInBox() {
-        if (!this.selectionBox) return;
-        
-        // 获取选择框的位置和尺寸
-        const boxRect = this.selectionBox.getBoundingClientRect();
-        
-        // 获取所有高亮卡片
-        const cards = this.highlightContainer.querySelectorAll('.highlight-card');
-        
-        // 获取 HighlightCard 类
-        const HighlightCardClass = (window as any).HighlightCard;
-        
-        // 检查每个卡片是否在选择框内
-        cards.forEach(card => {
-            const cardRect = card.getBoundingClientRect();
-            
-            // 检查卡片是否与选择框重叠
-            const overlap = !(boxRect.right < cardRect.left || 
-                            boxRect.left > cardRect.right || 
-                            boxRect.bottom < cardRect.top || 
-                            boxRect.top > cardRect.bottom);
-            
-            // 如果重叠，选中卡片
-            if (overlap) {
-                card.addClass('selected');
-                // 将卡片添加到 HighlightCard.selectedCards 集合中
-                if (HighlightCardClass && HighlightCardClass.selectedCards) {
-                    HighlightCardClass.selectedCards.add(card);
-                }
-            } else if (!document.querySelector('.multi-select-mode')) {
-                // 如果没有处于多选模式，取消选中框外的卡片
-                card.removeClass('selected');
-                // 从 HighlightCard.selectedCards 集合中移除
-                if (HighlightCardClass && HighlightCardClass.selectedCards) {
-                    HighlightCardClass.selectedCards.delete(card);
-                }
-            }
-        });
-    }
     private highlightContainer: HTMLElement;
-    private multiSelectActionsContainer: HTMLElement;
     private searchContainer: HTMLElement;
     private fileListContainer: HTMLElement;
     private mainContentContainer: HTMLElement;
-    private selectedHighlights: Set<HighlightInfo> = new Set<HighlightInfo>();
     private currentFile: TFile | null = null;
     private isFlashcardMode: boolean = false;
     private highlights: HighlightInfo[] = [];
@@ -823,10 +43,6 @@ export class CommentView extends ItemView {
     private commentStore: CommentStore;
     private searchInput: HTMLInputElement;
     private searchLoadingIndicator: HTMLElement;
-    private searchDebounceTimer: number | null = null;
-    private readonly localSearchDebounceTime = 200; // 本地搜索防抖时间（毫秒）
-    private readonly globalSearchDebounceTime = 500; // 全局搜索防抖时间（毫秒）
-    private isSearching: boolean = false;
     private plugin: CommentPlugin;
     private locationService: LocationService;
     private exportService: ExportService;
@@ -845,15 +61,6 @@ export class CommentView extends ItemView {
     private currentEditingHighlightId: string | null | undefined = null;
     private flashcardComponent: FlashcardComponent | null = null;
     private canvasService: CanvasService;
-    
-    // 多选相关属性
-    private isSelectionMode: boolean = false;
-    private selectionBox: HTMLElement | null = null;
-    private selectionStartX: number = 0;
-    private selectionStartY: number = 0;
-
-    private mouseMoveThreshold = 5; // 鼠标移动阈值，超过此值才认为是拖拽
-    private mouseMoved = false; // 标记鼠标是否移动
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -985,11 +192,10 @@ export class CommentView extends ItemView {
         
         // 监听多选事件
         container.addEventListener('highlight-multi-select', (e: CustomEvent) => {
-            this.handleMultiSelect(e);
+            if (this.selectionManager) {
+                this.selectionManager.updateSelectedHighlights();
+            }
         });
-
-        // 添加全局点击事件监听器
-        document.addEventListener('click', this.handleGlobalClick);
 
         // 创建主容器
         const mainContainer = container.createEl("div", {
@@ -1060,18 +266,10 @@ export class CommentView extends ItemView {
         // 添加焦点和失焦事件
         this.searchInput.addEventListener('focus', () => {
             this.searchContainer.addClass('focused');
-            this.showSearchPrefixHints();
         });
 
         this.searchInput.addEventListener('blur', (e) => {
             this.searchContainer.removeClass('focused');
-            // 延迟隐藏提示，以便点击提示项时能正确处理点击事件
-            setTimeout(() => {
-                const hintsEl = document.querySelector('.search-prefix-hints');
-                if (hintsEl) {
-                    hintsEl.remove();
-                }
-            }, 200);
         });
 
         // 创建搜索加载指示器
@@ -1167,13 +365,70 @@ export class CommentView extends ItemView {
             }
         });
 
-        // 添加搜索事件监听，使用防抖函数避免频繁触发搜索
-        this.searchInput.addEventListener("input", this.handleSearchInputWithDebounce);
+        // 初始化搜索管理器
+        this.searchManager = new SearchManager(
+            this.plugin,
+            this.searchInput,
+            this.searchLoadingIndicator,
+            this.searchContainer
+        );
+        
+        // 设置搜索管理器的回调函数
+        this.searchManager.setCallbacks(
+            async (searchTerm: string, searchType: string) => {
+                await this.handleSearch(searchTerm, searchType);
+            },
+            () => this.highlights,
+            () => this.currentFile
+        );
+        
+        // 初始化搜索功能
+        this.searchManager.initialize();
 
         // 创建高亮容器
         this.highlightContainer = this.mainContentContainer.createEl("div", {
             cls: "highlight-container"
         });
+        
+        // 初始化多选管理器
+        this.selectionManager = new SelectionManager(this.highlightContainer);
+        this.selectionManager.setOnSelectionChange((selectedCount) => {
+            if (this.batchOperationsHandler) {
+                this.batchOperationsHandler.showMultiSelectActions(selectedCount);
+            }
+        });
+        this.selectionManager.initialize();
+        
+        // 添加全局点击事件监听器（在 selectionManager 初始化后）
+        this.registerDomEvent(document, 'click', (e: MouseEvent) => {
+            if (this.selectionManager && !this.selectionManager.isInSelectionMode()) {
+                const selectedCount = this.selectionManager.getSelectedCount();
+                if (selectedCount <= 1) return;
+                
+                const target = e.target as HTMLElement;
+                if (!target.closest('.multi-select-actions') && 
+                    !target.closest('.highlight-card.selected') &&
+                    !target.closest('.highlight-container')) {
+                    this.selectionManager.clearSelection();
+                }
+            }
+        });
+
+        // 初始化批量操作处理器
+        this.batchOperationsHandler = new BatchOperationsHandler(
+            this.plugin,
+            this.exportService,
+            this.licenseManager,
+            this.containerEl
+        );
+
+        this.batchOperationsHandler.setCallbacks(
+            () => this.selectionManager!.getSelectedHighlights(),
+            () => this.selectionManager!.clearSelection(),
+            async () => {
+                await this.refreshView();
+            }
+        );
         
         // 添加键盘事件监听，支持按住 Shift 键进行多选
         this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
@@ -1237,8 +492,9 @@ export class CommentView extends ItemView {
             this.currentBatch = 0;
             
             // 清除多选状态
-            this.selectedHighlights.clear();
-            this.isSelectionMode = false;
+            if (this.selectionManager) {
+                this.selectionManager.clearSelection();
+            }
         }
 
         if (highlightsToRender.length === 0) {
@@ -1254,8 +510,10 @@ export class CommentView extends ItemView {
             return;
         }
         
-        // 添加框选功能
-        this.setupSelectionBox();
+        // 初始化选择功能
+        if (this.selectionManager && !append) {
+            this.selectionManager.initialize();
+        }
 
         let highlightList = this.highlightContainer.querySelector('.highlight-list') as HTMLElement;
         if (!highlightList) {
@@ -1629,8 +887,11 @@ export class CommentView extends ItemView {
             this.updateViewLayout();
             
             // 只有在搜索框有内容时才更新高亮列表
-            if (this.searchInput && this.searchInput.value.trim() !== '') {
-                this.updateHighlightsList();
+            if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchManager) {
+                // 触发搜索管理器重新搜索
+                const searchValue = this.searchInput.value;
+                const inputEvent = new Event('input', { bubbles: true });
+                this.searchInput.dispatchEvent(inputEvent);
             }
         }
     }
@@ -2462,6 +1723,24 @@ export class CommentView extends ItemView {
     onunload() {
         this.removeFloatingButton();
         this.unregisterActiveLeafChangeHandler();
+        
+        // 清理搜索管理器
+        if (this.searchManager) {
+            this.searchManager.destroy();
+            this.searchManager = null;
+        }
+        
+        // 清理多选管理器
+        if (this.selectionManager) {
+            this.selectionManager.destroy();
+            this.selectionManager = null;
+        }
+        
+        // 清理批量操作处理器
+        if (this.batchOperationsHandler) {
+            this.batchOperationsHandler.destroy();
+            this.batchOperationsHandler = null;
+        }
     }
 
     // Update AI-related dropdowns
@@ -2496,367 +1775,14 @@ export class CommentView extends ItemView {
 
     
     /**
-     * 根据搜索词和搜索类型过滤高亮
-     * @param searchTerm 搜索词
-     * @param searchType 搜索类型（hicard 表示搜索闪卡）
-     * @returns 过滤后的高亮列表
+     * 处理搜索请求
+     * 由 SearchManager 调用
      */
-    private filterHighlightsByTerm(searchTerm: string, searchType: string = ''): HighlightInfo[] {
-        // 如果是按路径搜索，需要过滤出路径匹配的高亮
-        if (searchType === 'path') {
-            // 确保所有高亮都有文件名和路径信息
-            this.highlights.forEach(highlight => {
-                if (highlight.filePath && !highlight.fileName) {
-                    // 从路径中提取文件名
-                    const pathParts = highlight.filePath.split('/');
-                    highlight.fileName = pathParts[pathParts.length - 1];
-                }
-            });
-            
-            // 如果搜索词为空，返回所有有文件路径的高亮
-            if (!searchTerm || searchTerm.trim() === '') {
-                return this.highlights.filter(highlight => !!highlight.filePath);
-            }
-            
-            // 如果有搜索词，过滤出路径匹配的高亮
-            return this.highlights.filter(highlight => {
-                if (!highlight.filePath) {
-                    return false;
-                }
-                
-                // 将路径转换为小写进行不区分大小写的匹配
-                const filePath = highlight.filePath.toLowerCase();
-                return filePath.includes(searchTerm.toLowerCase());
-            });
-        }
-        
-        // 如果是搜索闪卡，需要先过滤出已转化为闪卡的高亮
-        if (searchType === 'hicard') {
-            // 获取 FSRS 管理器
-            const fsrsManager = this.plugin.fsrsManager;
-            if (!fsrsManager) {
-                return [];
-            }
-            
-            // 过滤出已转化为闪卡的高亮
-            return this.highlights.filter(highlight => {
-                // 检查高亮是否已转化为闪卡
-                const hasFlashcard = highlight.id ? 
-                    fsrsManager.findCardsBySourceId(highlight.id, 'highlight').length > 0 : 
-                    false;
-                
-                // 如果没有转化为闪卡，直接过滤掉
-                if (!hasFlashcard) {
-                    return false;
-                }
-                
-                // 如果有搜索词，还需要匹配搜索词
-                if (searchTerm) {
-                    // 搜索高亮文本
-                    if (highlight.text.toLowerCase().includes(searchTerm)) {
-                        return true;
-                    }
-                    // 搜索评论内容
-                    if (highlight.comments?.some(comment => 
-                        comment.content.toLowerCase().includes(searchTerm)
-                    )) {
-                        return true;
-                    }
-                    // 在全部视图中也搜索文件名
-                    if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
-                        return true;
-                    }
-                    return false;
-                }
-                
-                // 如果没有搜索词，返回所有已转化为闪卡的高亮
-                return true;
-            });
-        }
-        
-        // 如果是搜索批注，需要先过滤出包含批注的高亮
-        if (searchType === 'comment') {
-            // 过滤出包含批注的高亮
-            return this.highlights.filter(highlight => {
-                // 检查高亮是否包含批注
-                const hasComments = highlight.comments && highlight.comments.length > 0;
-                
-                // 如果没有批注，直接过滤掉
-                if (!hasComments) {
-                    return false;
-                }
-                
-                // 如果有搜索词，还需要匹配搜索词
-                if (searchTerm) {
-                    // 搜索高亮文本
-                    if (highlight.text.toLowerCase().includes(searchTerm)) {
-                        return true;
-                    }
-                    // 搜索评论内容
-                    // 由于我们已经检查了 hasComments，所以 highlight.comments 一定存在
-                    if (highlight.comments && highlight.comments.some(comment => 
-                        comment.content.toLowerCase().includes(searchTerm)
-                    )) {
-                        return true;
-                    }
-                    // 在全部视图中也搜索文件名
-                    if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
-                        return true;
-                    }
-                    return false;
-                }
-                
-                // 如果没有搜索词，返回所有包含批注的高亮
-                return true;
-            });
-        }
-        
-        // 常规搜索逻辑
-        return this.highlights.filter(highlight => {
-            // 搜索高亮文本
-            if (highlight.text.toLowerCase().includes(searchTerm)) {
-                return true;
-            }
-            // 搜索评论内容
-            if (highlight.comments?.some(comment => 
-                comment.content.toLowerCase().includes(searchTerm)
-            )) {
-                return true;
-            }
-            // 在全部视图中也搜索文件名
-            if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
-                return true;
-            }
-            return false;
-        });
-    }
-
-    /**
-     * 显示搜索前缀提示
-     * 当搜索框获得焦点时显示可用的搜索前缀提示
-     */
-    private showSearchPrefixHints() {
-        // 移除可能已存在的提示元素
-        const existingHints = document.querySelector('.search-prefix-hints');
-        if (existingHints) {
-            existingHints.remove();
-        }
-        
-        // 使用 Obsidian 的 createDiv 方法创建提示容器
-        const hintsContainer = document.body.createDiv({
-            cls: 'search-prefix-hints show'
-        });
-        
-        // 定义可用的搜索前缀
-        const prefixes = [
-            { prefix: 'all:', description: t('search-prefix-all') },
-            { prefix: 'path:', description: t('search-prefix-path') },
-            { prefix: 'hicard:', description: t('search-prefix-hicard') },
-            { prefix: 'comment:', description: t('search-prefix-comment') }
-        ];
-        
-        // 创建提示项
-        prefixes.forEach(({ prefix, description }) => {
-            const hintItem = hintsContainer.createDiv({
-                cls: 'search-prefix-hint-item'
-            });
-            
-            const prefixTag = hintItem.createSpan({
-                cls: 'search-prefix-tag',
-                text: prefix
-            });
-            
-            const descriptionEl = hintItem.createSpan({
-                cls: 'search-prefix-description',
-                text: description
-            });
-            
-            // 添加点击事件
-            hintItem.addEventListener('click', () => {
-                this.searchInput.value = prefix + ' ';
-                this.searchInput.focus();
-                hintsContainer.remove();
-                
-                // 触发搜索
-                const inputEvent = new Event('input', { bubbles: true });
-                this.searchInput.dispatchEvent(inputEvent);
-            });
-        });
-        
-        // 定位提示容器
-        this.positionSearchHints(hintsContainer);
-        
-        // 添加输入事件监听器，处理输入变化
-        const handleInputChange = () => {
-            // 获取当前搜索框的值
-            const inputValue = this.searchInput.value.trim();
-            
-            // 如果搜索框为空，则显示提示框
-            if (inputValue === '') {
-                // 如果提示框已经被移除，重新显示
-                if (!document.body.contains(hintsContainer)) {
-                    // 重新显示提示框
-                    document.body.appendChild(hintsContainer);
-                    this.positionSearchHints(hintsContainer);
-                }
-            } else {
-                // 如果搜索框不为空，则隐藏提示框
-                if (hintsContainer && document.body.contains(hintsContainer)) {
-                    hintsContainer.remove();
-                }
-            }
-        };
-        
-        // 添加输入事件监听器
-        this.searchInput.addEventListener('input', handleInputChange);
-        
-        // 点击其他区域隐藏提示框
-        const hideHintsOnClickOutside = (e: MouseEvent) => {
-            if (hintsContainer && !hintsContainer.contains(e.target as Node) && 
-                e.target !== this.searchInput) {
-                hintsContainer.remove();
-                document.removeEventListener('click', hideHintsOnClickOutside);
-            }
-        };
-        
-        // 在搜索框失去焦点时清理输入事件监听器
-        const handleBlur = () => {
-            // 不立即隐藏，允许点击提示项
-            setTimeout(() => {
-                // 检查提示框是否仍然存在，如果用户点击了其他区域
-                if (!document.activeElement || 
-                    (document.activeElement !== this.searchInput && 
-                     !hintsContainer.contains(document.activeElement as Node))) {
-                    hintsContainer.remove();
-                }
-            }, 200);
-        };
-        
-        // 添加失去焦点事件监听器
-        this.searchInput.addEventListener('blur', handleBlur);
-        
-        // 添加点击事件监听器，使用延时确保当前点击不触发隐藏
-        setTimeout(() => {
-            document.addEventListener('click', hideHintsOnClickOutside);
-        }, 10);
-        
-        // 存储事件监听器引用，便于组件销毁时清理
-        this.searchHintsEventHandlers = {
-            input: handleInputChange,
-            blur: handleBlur,
-            click: hideHintsOnClickOutside
-        };
-    }
-    
-    /**
-     * 定位搜索提示容器
-     * @param hintsContainer 提示容器元素
-     */
-    private positionSearchHints(hintsContainer: HTMLElement) {
-        // 获取搜索框的位置和尺寸
-        const searchRect = this.searchInput.getBoundingClientRect();
-        
-        // 添加 CSS 类并设置位置相关的样式
-        hintsContainer.addClass('search-hints-container');
-        // 只设置位置相关的样式，其他样式通过 CSS 类控制
-        hintsContainer.style.top = (searchRect.bottom + 4) + 'px';
-        hintsContainer.style.left = searchRect.left + 'px';
-        hintsContainer.style.width = searchRect.width + 'px';
-    }
-    
-    /**
-     * 更新高亮列表，支持多种前缀搜索
-     * - all: 前缀进行跨文件搜索
-     * - hicard: 前缀搜索已转化为闪卡的高亮
-     * - comment: 前缀搜索包含批注的高亮
-     */
-    /**
-     * 搜索输入防抖处理函数
-     * 根据搜索类型使用不同的防抖时间
-     */
-    private handleSearchInputWithDebounce = (e: Event) => {
-        // 清除之前的定时器
-        if (this.searchDebounceTimer !== null) {
-            window.clearTimeout(this.searchDebounceTimer);
-            this.searchDebounceTimer = null;
-        }
-        
-        // 获取搜索输入值
-        const searchInput = this.searchInput.value.toLowerCase().trim();
-        
-        // 根据搜索类型决定防抖时间
-        const isGlobalSearch = searchInput.startsWith('all:');
-        const debounceTime = isGlobalSearch ? this.globalSearchDebounceTime : this.localSearchDebounceTime;
-        
-        // 如果是全局搜索且搜索词不为空，显示加载指示器
-        if (isGlobalSearch && searchInput.length > 4) {
-            this.showSearchLoadingIndicator();
-        }
-        
-        // 设置防抖定时器
-        this.searchDebounceTimer = window.setTimeout(() => {
-            this.updateHighlightsList();
-            this.searchDebounceTimer = null;
-        }, debounceTime);
-    };
-    
-    /**
-     * 显示搜索加载指示器
-     */
-    private showSearchLoadingIndicator(): void {
-        if (!this.isSearching) {
-            this.isSearching = true;
-            this.searchLoadingIndicator.style.display = "flex";
-        }
-    }
-    
-    /**
-     * 隐藏搜索加载指示器
-     */
-    private hideSearchLoadingIndicator(): void {
-        if (this.isSearching) {
-            this.isSearching = false;
-            this.searchLoadingIndicator.style.display = "none";
-        }
-    }
-    
-    private async updateHighlightsList() {
+    private async handleSearch(searchTerm: string, searchType: string) {
         try {
-            // 获取搜索词并检查是否包含前缀
-            const searchInput = this.searchInput.value.toLowerCase().trim();
-            const isGlobalSearch = searchInput.startsWith('all:');
-            const isHiCardSearch = searchInput.startsWith('hicard:');
-            const isCommentSearch = searchInput.startsWith('comment:');
-            const isPathSearch = searchInput.startsWith('path:'); // 添加 path: 前缀检查
-            
-            // 确定搜索类型
-            let searchType = '';
-            if (isGlobalSearch) {
-                searchType = 'all';
-            } else if (isHiCardSearch) {
-                searchType = 'hicard';
-            } else if (isCommentSearch) {
-                searchType = 'comment';
-            } else if (isPathSearch) {
-                searchType = 'path'; // 设置搜索类型为 path
-            }
-            
-            // 提取搜索词（去掉前缀）
-            let searchTerm = searchInput;
-            if (isGlobalSearch) {
-                searchTerm = searchInput.substring(4).trim();
-            } else if (isHiCardSearch) {
-                searchTerm = searchInput.substring(7).trim();
-            } else if (isCommentSearch) {
-                searchTerm = searchInput.substring(8).trim();
-            } else if (isPathSearch) {
-                searchTerm = searchInput.substring(5).trim(); // 去掉 'path:' 前缀
-            }
-            
             // 检查是否需要恢复到当前文件视图
-            // 如果之前是全局搜索，但现在不是，则需要恢复
             const wasGlobalSearch = this.highlights.some(h => h.isGlobalSearch);
-            if (wasGlobalSearch && !isGlobalSearch && this.currentFile) {
+            if (wasGlobalSearch && searchType !== 'all' && searchType !== 'path' && this.currentFile) {
                 // 恢复到当前文件视图
                 this.highlightContainer.empty();
                 this.highlightContainer.appendChild(this.loadingIndicator);
@@ -2870,7 +1796,7 @@ export class CommentView extends ItemView {
                 });
                 
                 // 使用实际搜索词过滤
-                const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
+                const filteredHighlights = this.searchManager!.filterHighlightsByTerm(searchTerm, searchType);
                 
                 // 更新显示
                 this.renderHighlights(filteredHighlights);
@@ -2878,7 +1804,7 @@ export class CommentView extends ItemView {
             }
             
             // 如果是全局搜索或路径搜索，且不在全局视图中
-            if ((isGlobalSearch || isPathSearch) && this.currentFile !== null) {
+            if ((searchType === 'all' || searchType === 'path') && this.currentFile !== null) {
                 // 显示加载指示器
                 this.highlightContainer.empty();
                 this.highlightContainer.appendChild(this.loadingIndicator);
@@ -2890,7 +1816,7 @@ export class CommentView extends ItemView {
                     // 临时设置为 null 以启用全局搜索
                     this.currentFile = null;
                     
-                    // 直接使用索引搜索，将搜索词和搜索类型传递给 updateAllHighlights 方法
+                    // 直接使用索引搜索
                     await this.updateAllHighlights(searchTerm, searchType);
                     
                     // 标记所有高亮为全局搜索结果
@@ -2898,31 +1824,23 @@ export class CommentView extends ItemView {
                         highlight.isGlobalSearch = true;
                     });
                     
-                    // 直接渲染索引搜索结果，因为索引搜索已经过滤了结果
+                    // 直接渲染索引搜索结果
                     this.renderHighlights(this.highlights);
                 } finally {
                     // 恢复原始文件引用
                     this.currentFile = originalFile;
-                    // 隐藏搜索加载指示器
-                    this.hideSearchLoadingIndicator();
                 }
             } else {
                 // 常规搜索逻辑
-                // 确保非全局搜索结果不会标记为全局搜索
                 this.highlights.forEach(highlight => {
                     highlight.isGlobalSearch = false;
                 });
                 
-                const filteredHighlights = this.filterHighlightsByTerm(searchTerm, searchType);
+                const filteredHighlights = this.searchManager!.filterHighlightsByTerm(searchTerm, searchType);
                 this.renderHighlights(filteredHighlights);
-                
-                // 隐藏加载指示器（如果有的话）
-                this.hideSearchLoadingIndicator();
             }
         } catch (error) {
-            // 错误处理
             console.error('[高亮搜索] 搜索过程中出错:', error);
-            this.hideSearchLoadingIndicator();
         }
     }
 
@@ -3088,9 +2006,11 @@ if (isInCanvas && this.currentFile) {
         }
         
         // 检查搜索框是否有内容
-        if (this.searchInput && this.searchInput.value.trim() !== '') {
-            // 如果有搜索内容，调用搜索过滤方法
-            this.updateHighlightsList();
+        if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchManager) {
+            // 如果有搜索内容，使用搜索管理器过滤
+            const searchValue = this.searchInput.value.toLowerCase().trim();
+            const filteredHighlights = this.searchManager.filterHighlightsByTerm(searchValue, '');
+            this.renderHighlights(filteredHighlights);
         } else {
             // 如果没有搜索内容，直接渲染所有高亮
             this.renderHighlights(this.highlights);

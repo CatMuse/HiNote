@@ -56,14 +56,19 @@ export class CommentStore {
     private migrationManager: DataMigrationManager;
     private useNewStorage: boolean = false;
 
-    constructor(plugin: Plugin) {
+    constructor(
+        plugin: Plugin,
+        eventManager?: EventManager,
+        dataManager?: HiNoteDataManager,
+        highlightService?: HighlightService
+    ) {
         this.plugin = plugin;
-        this.eventManager = new EventManager(plugin.app);
+        this.eventManager = eventManager || new EventManager(plugin.app);
         this.blockIdService = new BlockIdService(plugin.app);
-        this.highlightService = new HighlightService(plugin.app);
+        this.highlightService = highlightService || new HighlightService(plugin.app);
         
         // 初始化新存储层
-        this.dataManager = new HiNoteDataManager(plugin.app);
+        this.dataManager = dataManager || new HiNoteDataManager(plugin.app);
         this.migrationManager = new DataMigrationManager(plugin, this.dataManager);
     }
 

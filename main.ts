@@ -16,16 +16,6 @@ import { EventManager } from './src/services/EventManager';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
-	DEFAULT_SETTINGS = {
-		...DEFAULT_SETTINGS,
-		anthropic: {
-			apiKey: '',
-			model: 'claude-2',
-			apiAddress: '',
-			isCustomModel: false,
-			lastCustomModel: ''
-		}
-	};
 	private commentStore: CommentStore;
 	private highlightDecorator: HighlightDecorator;
 	public fsrsManager: FSRSManager;
@@ -44,24 +34,24 @@ export default class CommentPlugin extends Plugin {
 		// 安全地扩展 Window 接口并添加 html2canvas
 		(window as Window & typeof globalThis & { html2canvas?: typeof html2canvas }).html2canvas = html2canvas;
 
-		// 初始化数据管理器
+		// 初始化事件管理器（共享实例）
+		this.eventManager = new EventManager(this.app);
+
+		// 初始化数据管理器（共享实例）
 		this.dataManager = new HiNoteDataManager(this.app);
 
-		// 初始化评论存储（会自动处理数据迁移）
-		this.commentStore = new CommentStore(this);
-		await this.commentStore.loadComments();
+		// 初始化高亮服务（共享实例）
+		this.highlightService = new HighlightService(this.app);
 
-		// 初始化事件管理器
-		this.eventManager = new EventManager(this.app);
+		// 初始化评论存储（传入共享的服务实例）
+		this.commentStore = new CommentStore(this, this.eventManager, this.dataManager, this.highlightService);
+		await this.commentStore.loadComments();
 
 		// 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
 		this.fsrsManager = new FSRSManager(this, this.dataManager);
 
 		// 初始化高亮匹配服务
 		this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
-
-		// 初始化高亮服务
-		this.highlightService = new HighlightService(this.app);
 
 		// 初始化高亮装饰器
 		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
@@ -264,7 +254,6 @@ export default class CommentPlugin extends Plugin {
         // 保存最终状态
 		try {
 			await this.commentStore.saveComments();
-			const finalData = await this.loadData();
 		} catch (error) {
 
 		}
@@ -280,105 +269,7 @@ export default class CommentPlugin extends Plugin {
 		}
 	}
 
-	async loadSettings() {
-        const loadedData = await this.loadData();
-        
-        // 初始化设置
-        if (!this.settings) {
-            this.settings = {
-                excludePatterns: DEFAULT_SETTINGS.excludePatterns,
-                useCustomPattern: DEFAULT_SETTINGS.useCustomPattern,
-                regexRules: [...DEFAULT_SETTINGS.regexRules],
-                ai: {
-                    provider: DEFAULT_SETTINGS.ai.provider,
-                    openai: DEFAULT_SETTINGS.ai.openai ? { ...DEFAULT_SETTINGS.ai.openai } : undefined,
-                    anthropic: DEFAULT_SETTINGS.ai.anthropic ? { ...DEFAULT_SETTINGS.ai.anthropic } : undefined,
-                    gemini: DEFAULT_SETTINGS.ai.gemini ? { ...DEFAULT_SETTINGS.ai.gemini } : undefined,
-                    ollama: DEFAULT_SETTINGS.ai.ollama ? { ...DEFAULT_SETTINGS.ai.ollama } : undefined,
-                    deepseek: DEFAULT_SETTINGS.ai.deepseek ? { ...DEFAULT_SETTINGS.ai.deepseek } : undefined,
-                    prompts: { ...DEFAULT_SETTINGS.ai.prompts }
-                },
-                export: {
-                    exportPath: DEFAULT_SETTINGS.export.exportPath
-                }
-            };
-        }
-
-        // 加载排除模式设置
-        if (loadedData?.excludePatterns !== undefined) {
-            this.settings.excludePatterns = loadedData.excludePatterns;
-        }
-
-        if (loadedData?.ai) {
-            // 分别合并每个服务提供商的设置
-            if (loadedData.ai.provider) {
-                this.settings.ai.provider = loadedData.ai.provider;
-            }
-            if (loadedData.ai.openai && this.settings.ai.openai) {
-                this.settings.ai.openai = {
-                    apiKey: loadedData.ai.openai.apiKey || this.settings.ai.openai.apiKey,
-                    model: loadedData.ai.openai.model || this.settings.ai.openai.model,
-                    baseUrl: loadedData.ai.openai.baseUrl
-                };
-            }
-            if (loadedData.ai.anthropic && this.settings.ai.anthropic) {
-                this.settings.ai.anthropic = {
-                    apiKey: loadedData.ai.anthropic.apiKey || this.settings.ai.anthropic.apiKey,
-                    model: loadedData.ai.anthropic.model || this.settings.ai.anthropic.model,
-                    availableModels: loadedData.ai.anthropic.availableModels,
-                    apiAddress: loadedData.ai.anthropic.apiAddress || loadedData.ai.anthropic.baseUrl,
-                    isCustomModel: loadedData.ai.anthropic.isCustomModel || false,
-                    lastCustomModel: loadedData.ai.anthropic.lastCustomModel || ''
-                };
-            }
-            if (loadedData.ai.gemini && this.settings.ai.gemini) {
-                this.settings.ai.gemini = {
-                    apiKey: loadedData.ai.gemini.apiKey || this.settings.ai.gemini.apiKey,
-                    model: loadedData.ai.gemini.model || this.settings.ai.gemini.model,
-                    baseUrl: loadedData.ai.gemini.baseUrl,
-                    isCustomModel: loadedData.ai.gemini.isCustomModel || false
-                };
-            }
-            if (loadedData.ai.ollama && this.settings.ai.ollama) {
-                this.settings.ai.ollama = {
-                    host: loadedData.ai.ollama.host || this.settings.ai.ollama.host,
-                    model: loadedData.ai.ollama.model || this.settings.ai.ollama.model,
-                    availableModels: loadedData.ai.ollama.availableModels
-                };
-            }
-            if (loadedData.ai.deepseek && this.settings.ai.deepseek) {
-                this.settings.ai.deepseek = {
-                    apiKey: loadedData.ai.deepseek.apiKey || this.settings.ai.deepseek.apiKey,
-                    model: loadedData.ai.deepseek.model || this.settings.ai.deepseek.model,
-                    baseUrl: loadedData.ai.deepseek.baseUrl
-                };
-            }
-            if (loadedData.ai.prompts) {
-                this.settings.ai.prompts = {
-                    ...this.settings.ai.prompts,
-                    ...loadedData.ai.prompts
-                };
-            }
-        }
-
-        if (loadedData?.export) {
-            if (loadedData.export.exportPath) {
-                this.settings.export.exportPath = loadedData.export.exportPath;
-            }
-        }
-
-        // 保留评论数据
-        if (loadedData?.comments) {
-            this.settings.comments = loadedData.comments;
-        }
-        if (loadedData?.comments) {
-            this.settings.comments = loadedData.comments;
-        }
-
-        await this.saveSettings();
-    }
-
-    async saveSettings() {
+	async saveSettings() {
         // 确保基础设置存在
         if (!this.settings) {
             this.settings = { ...DEFAULT_SETTINGS };
@@ -390,76 +281,42 @@ export default class CommentPlugin extends Plugin {
             this.settings['flashcard-license'] = existingData['flashcard-license'];
         }
 
-        // 确保高亮相关设置存在并有默认值
+        // 确保高亮相关设置存在
         this.settings.excludePatterns = this.settings.excludePatterns ?? DEFAULT_SETTINGS.excludePatterns;
         this.settings.useCustomPattern = this.settings.useCustomPattern ?? DEFAULT_SETTINGS.useCustomPattern;
-        // 确保 regexRules 存在
         if (!this.settings.regexRules || !Array.isArray(this.settings.regexRules)) {
             this.settings.regexRules = [...DEFAULT_SETTINGS.regexRules];
         }
 
-        // 确保 AI 设置存在
-        if (!this.settings.ai) {
-            this.settings.ai = { ...DEFAULT_SETTINGS.ai };
-        }
+        // 确保 AI 和导出设置存在
+        this.settings.ai = this.settings.ai || { ...DEFAULT_SETTINGS.ai };
+        this.settings.export = this.settings.export || { ...DEFAULT_SETTINGS.export };
 
-        // 确保导出设置存在
-        if (!this.settings.export) {
-            this.settings.export = { ...DEFAULT_SETTINGS.export };
+        // 确保每个 AI 服务提供商的设置都存在
+        if (!this.settings.ai.openai && DEFAULT_SETTINGS.ai.openai) {
+            this.settings.ai.openai = { ...DEFAULT_SETTINGS.ai.openai };
         }
-
-        // 确保每个 AI 服务提供商的设置都存在并有默认值
-        if (!this.settings.ai.openai) {
-            this.settings.ai.openai = {
-                apiKey: '',
-                model: DEFAULT_SETTINGS.ai.openai?.model || 'gpt-4o',
-                baseUrl: DEFAULT_SETTINGS.ai.openai?.baseUrl
-            };
+        if (!this.settings.ai.anthropic && DEFAULT_SETTINGS.ai.anthropic) {
+            this.settings.ai.anthropic = { ...DEFAULT_SETTINGS.ai.anthropic };
         }
-        if (!this.settings.ai.anthropic) {
-            this.settings.ai.anthropic = {
-                apiKey: '',  // 提供默认值
-                model: 'claude-opus-4-1-20250805',  // 提供默认值
-                availableModels: DEFAULT_SETTINGS.ai.anthropic?.availableModels,
-                apiAddress: DEFAULT_SETTINGS.ai.anthropic?.apiAddress,
-                isCustomModel: false,  // 提供默认值
-                lastCustomModel: ''  // 提供默认值
-            };
+        if (!this.settings.ai.gemini && DEFAULT_SETTINGS.ai.gemini) {
+            this.settings.ai.gemini = { ...DEFAULT_SETTINGS.ai.gemini };
         }
-        if (!this.settings.ai.gemini) {
-            this.settings.ai.gemini = {
-                apiKey: '',  // 提供默认值
-                model: 'gemini-2.5-flash',  // 使用最新的默认模型
-                isCustomModel: false,  // 提供默认值
-                baseUrl: DEFAULT_SETTINGS.ai.gemini?.baseUrl
-            };
+        if (!this.settings.ai.ollama && DEFAULT_SETTINGS.ai.ollama) {
+            this.settings.ai.ollama = { ...DEFAULT_SETTINGS.ai.ollama };
         }
-        if (!this.settings.ai.ollama) {
-            this.settings.ai.ollama = {
-                host: 'http://localhost:11434',  // 提供默认值
-                model: '',  // 删除提供默认值
-                availableModels: DEFAULT_SETTINGS.ai.ollama?.availableModels
-            };
+        if (!this.settings.ai.deepseek && DEFAULT_SETTINGS.ai.deepseek) {
+            this.settings.ai.deepseek = { ...DEFAULT_SETTINGS.ai.deepseek };
         }
-        if (!this.settings.ai.deepseek) {
-            this.settings.ai.deepseek = {
-                apiKey: '',  // 提供默认值
-                model: 'deepseek-chat',  // 提供默认值
-                baseUrl: DEFAULT_SETTINGS.ai.deepseek?.baseUrl
-            };
+        if (!this.settings.ai.siliconflow && DEFAULT_SETTINGS.ai.siliconflow) {
+            this.settings.ai.siliconflow = { ...DEFAULT_SETTINGS.ai.siliconflow };
         }
         
         // 确保 prompts 对象存在
         if (!this.settings.ai.prompts) {
             this.settings.ai.prompts = { ...DEFAULT_SETTINGS.ai.prompts };
         }
-        
-        // 确保 export 对象存在
-        if (!this.settings.export) {
-            this.settings.export = {
-                exportPath: DEFAULT_SETTINGS.export.exportPath
-            };
-        }
+
         await this.saveData(this.settings);
     }
 }
