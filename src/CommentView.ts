@@ -25,6 +25,8 @@ import { HighlightRenderManager } from './view/highlight/HighlightRenderManager'
 import { HighlightDataManager } from './view/highlight/HighlightDataManager';
 import { CommentOperationManager } from './view/comment/CommentOperationManager';
 import { CommentInputManager } from './view/comment/CommentInputManager';
+import { LayoutManager } from './view/layout/LayoutManager';
+import { ViewPositionDetector } from './view/layout/ViewPositionDetector';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -45,6 +47,10 @@ export class CommentView extends ItemView {
     private commentOperationManager: CommentOperationManager | null = null;
     // 评论输入管理器
     private commentInputManager: CommentInputManager | null = null;
+    // 布局管理器
+    private layoutManager: LayoutManager | null = null;
+    // 视图位置检测器
+    private viewPositionDetector: ViewPositionDetector | null = null;
     // 添加活动视图变化的事件处理器
     private activeLeafChangeHandler: (() => void) | undefined;
     private highlightContainer: HTMLElement;
@@ -592,6 +598,117 @@ export class CommentView extends ItemView {
             onViewUpdate: async () => await this.updateHighlights()
         });
         
+        // 初始化布局管理器
+        this.layoutManager = new LayoutManager(
+            this.containerEl,
+            this.fileListContainer,
+            this.mainContentContainer,
+            this.searchContainer
+        );
+        
+        this.layoutManager.setCallbacks({
+            onCreateFloatingButton: () => this.createFloatingButton(),
+            onRemoveFloatingButton: () => this.removeFloatingButton(),
+            onUpdateFileList: async () => {
+                if (this.fileListManager) {
+                    this.fileListManager.updateState({
+                        currentFile: this.currentFile,
+                        isFlashcardMode: this.isFlashcardMode,
+                        isMobileView: this.isMobileView,
+                        isSmallScreen: this.isSmallScreen,
+                        isDraggedToMainView: this.isDraggedToMainView
+                    });
+                    await this.fileListManager.updateFileList();
+                }
+            }
+        });
+        
+        // 初始化视图位置检测器
+        this.viewPositionDetector = new ViewPositionDetector(this.app, this.leaf);
+        
+        this.viewPositionDetector.setCallbacks({
+            onPositionChange: async (isInMainView, wasInAllHighlightsView) => {
+                this.isDraggedToMainView = isInMainView;
+                
+                if (isInMainView) {
+                    // 拖拽到主视图
+                    if (this.layoutManager) {
+                        const deviceInfo = this.layoutManager.getDeviceInfo();
+                        if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
+                            this.isShowingFileList = true;
+                        }
+                    }
+                    
+                    const activeFile = this.app.workspace.getActiveFile();
+                    if (activeFile) {
+                        this.currentFile = activeFile;
+                        await this.updateHighlights();
+                    } else {
+                        this.currentFile = null;
+                        await this.updateAllHighlights();
+                    }
+                    
+                    if (this.fileListManager) {
+                        this.fileListManager.updateState({
+                            currentFile: this.currentFile,
+                            isFlashcardMode: this.isFlashcardMode
+                        });
+                        this.fileListManager.updateFileListSelection();
+                    }
+                } else {
+                    // 切换到侧边栏
+                    if (this.isFlashcardMode) {
+                        this.isFlashcardMode = false;
+                        if (this.flashcardComponent) {
+                            this.flashcardComponent.deactivate();
+                            this.flashcardComponent = null;
+                        }
+                        if (this.fileListManager) {
+                            this.fileListManager.updateState({
+                                currentFile: this.currentFile,
+                                isFlashcardMode: this.isFlashcardMode
+                            });
+                            this.fileListManager.updateFileListSelection();
+                        }
+                    }
+                    
+                    const activeFile = this.app.workspace.getActiveFile();
+                    if (activeFile) {
+                        if (wasInAllHighlightsView) {
+                            this.currentFile = activeFile;
+                            this.highlightContainer.empty();
+                            this.highlightContainer.appendChild(this.loadingIndicator);
+                            setTimeout(() => {
+                                this.updateHighlights();
+                            }, 10);
+                        } else {
+                            this.currentFile = activeFile;
+                            this.updateHighlights();
+                        }
+                    } else {
+                        this.highlights = [];
+                        this.renderHighlights([]);
+                    }
+                }
+                
+                // 更新布局
+                if (this.layoutManager) {
+                    this.layoutManager.updateState({
+                        isDraggedToMainView: this.isDraggedToMainView,
+                        isFlashcardMode: this.isFlashcardMode,
+                        isShowingFileList: this.isShowingFileList
+                    });
+                    await this.layoutManager.updateViewLayout();
+                }
+                
+                // 触发搜索更新
+                if (this.searchInput && this.searchInput.value.trim() !== '') {
+                    const inputEvent = new Event('input', { bubbles: true });
+                    this.searchInput.dispatchEvent(inputEvent);
+                }
+            }
+        });
+        
         // 添加键盘事件监听，支持按住 Shift 键进行多选
         this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
             if (e.key === 'Shift') {
@@ -701,204 +818,30 @@ export class CommentView extends ItemView {
         // ... 其他代码保持不变 ...
     }
 
-    // 添加新方法来检查视图位置
+    // 布局管理方法已移至 LayoutManager 和 ViewPositionDetector
+    
+    // 检查视图位置（使用 ViewPositionDetector）
     private async checkViewPosition() {
-        // 获取根布局
-        const root = this.app.workspace.rootSplit;
-        if (!root) return;
-        
-        // 检查当前视图是否在主区域
-        const isInMainView = this.isViewInMainArea(this.leaf, root);
-        
-        if (this.isDraggedToMainView !== isInMainView) {
-            // 记录切换前的状态
+        if (this.viewPositionDetector) {
             const wasInAllHighlightsView = this.isInAllHighlightsView();
-            const previousHighlights = [...this.highlights]; // 保存当前高亮列表
-            
-            // 更新视图位置状态
-            this.isDraggedToMainView = isInMainView;
-
-            if (isInMainView) {
-                // 在小屏幕移动端，拖拽到主视图时默认显示文件列表
-                if (this.checkIfMobile() && this.checkIfSmallScreen()) {
-                    this.isShowingFileList = true;
-                }
-                
-                // 拖拽到主视图时，若有激活文档则显示该文档高亮，否则显示全部高亮
-                const activeFile = this.app.workspace.getActiveFile();
-                if (activeFile) {
-                    this.currentFile = activeFile;
-                    await this.updateHighlights();
-                } else {
-                    this.currentFile = null;
-                    await this.updateAllHighlights();
-                }
-                if (this.fileListManager) {
-                    this.fileListManager.updateState({
-                        currentFile: this.currentFile,
-                        isFlashcardMode: this.isFlashcardMode
-                    });
-                    this.fileListManager.updateFileListSelection();
-                }
-            } else {
-                // 如果从主视图切换到侧边栏
-                // 如果当前处于 Flashcard 模式，自动清理
-                if (this.isFlashcardMode) {
-                    this.isFlashcardMode = false;
-                    if (this.flashcardComponent) {
-                        this.flashcardComponent.deactivate();
-                        this.flashcardComponent = null;
-                    }
-                    if (this.fileListManager) {
-                        this.fileListManager.updateState({
-                            currentFile: this.currentFile,
-                            isFlashcardMode: this.isFlashcardMode
-                        });
-                        this.fileListManager.updateFileListSelection();
-                    }
-                }
-
-                // 重新同步当前文件
-                const activeFile = this.app.workspace.getActiveFile();
-                if (activeFile) {
-                    // 如果之前是全部高亮视图，需要切换到当前文件视图
-                    if (wasInAllHighlightsView) {
-                        // 先设置当前文件，避免触发全文件扫描
-                        this.currentFile = activeFile;
-                        
-                        // 先显示加载指示器
-                        this.highlightContainer.empty();
-                        this.highlightContainer.appendChild(this.loadingIndicator);
-                        
-                        // 延迟加载当前文件的高亮，提高响应速度
-                        setTimeout(() => {
-                            this.updateHighlights();
-                        }, 10);
-                    } else {
-                        // 如果之前已经是单文件视图，只需更新当前文件
-                        this.currentFile = activeFile;
-                        this.updateHighlights();
-                    }
-                } else {
-                    // 没有激活文档，手动清空高亮，显示空提示
-                    this.highlights = [];
-                    this.renderHighlights([]);
-                }
-            }
-
-            // 更新视图布局
-            this.updateViewLayout();
-            
-            // 只有在搜索框有内容时才更新高亮列表
-            if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchManager) {
-                // 触发搜索管理器重新搜索
-                const searchValue = this.searchInput.value;
-                const inputEvent = new Event('input', { bubbles: true });
-                this.searchInput.dispatchEvent(inputEvent);
-            }
+            await this.viewPositionDetector.checkViewPosition(wasInAllHighlightsView);
         }
     }
-
-    // 添加新方法来递归检查视图是否在主区域
-    private isViewInMainArea(leaf: WorkspaceLeaf, parent: any): boolean {
-        if (!parent) return false;
-        if (parent.children) {
-            return parent.children.some((child: any) => {
-                if (child === leaf) {
-                    return true;
-                }
-                return this.isViewInMainArea(leaf, child);
-            });
-        }
-        return false;
-    }
     
-    // 检测是否为移动设备
-    private checkIfMobile(): boolean {
-        return Platform.isMobile;
-    }
-    
-    // 检测是否为小屏幕设备（宽度小于768px）
-    private checkIfSmallScreen(): boolean {
-        return window.innerWidth < 768;
-    }
-
-    // 添加新方法来更新视图布局
+    // 更新视图布局（使用 LayoutManager）
     private async updateViewLayout() {
-        // 检测设备类型和屏幕大小
-        this.isMobileView = this.checkIfMobile();
-        this.isSmallScreen = this.checkIfSmallScreen();
-        
-        // 先清除所有显示相关的类
-        this.fileListContainer.removeClass('highlight-display-block');
-        this.fileListContainer.removeClass('highlight-display-none');
-        this.mainContentContainer.removeClass('highlight-display-none');
-        
-        // 添加或移除主视图标记类
-        const container = this.containerEl.children[1];
-        if (this.isDraggedToMainView) {
-            container.addClass('is-in-main-view');
-        } else {
-            container.removeClass('is-in-main-view');
-        }
-        
-        // 添加或移除小屏幕标记类
-        if (this.isSmallScreen) {
-            container.addClass('is-small-screen');
-        } else {
-            container.removeClass('is-small-screen');
-        }
-        
-        if (this.isDraggedToMainView) {
-            // 更新文件列表
-            if (this.fileListManager) {
-                this.fileListManager.updateState({
-                    currentFile: this.currentFile,
-                    isFlashcardMode: this.isFlashcardMode,
-                    isMobileView: this.isMobileView,
-                    isSmallScreen: this.isSmallScreen,
-                    isDraggedToMainView: this.isDraggedToMainView
-                });
-                await this.fileListManager.updateFileList();
-            }
-            this.createFloatingButton();
+        if (this.layoutManager) {
+            this.layoutManager.updateState({
+                isDraggedToMainView: this.isDraggedToMainView,
+                isFlashcardMode: this.isFlashcardMode,
+                isShowingFileList: this.isShowingFileList
+            });
+            await this.layoutManager.updateViewLayout();
             
-            if (this.isMobileView && this.isSmallScreen) {
-                // 小屏幕移动设备主视图模式（手机）
-                if (this.isShowingFileList) {
-                    // 显示文件列表，隐藏内容区域
-                    this.fileListContainer.addClass('highlight-display-block');
-                    this.mainContentContainer.addClass('highlight-display-none');
-                    // 添加全宽类，使文件列表占据全部宽度
-                    this.fileListContainer.addClass('highlight-full-width');
-                } else {
-                    // 显示内容区域，隐藏文件列表
-                    this.fileListContainer.addClass('highlight-display-none');
-                    this.mainContentContainer.removeClass('highlight-display-none');
-                    // 移除全宽类
-                    this.fileListContainer.removeClass('highlight-full-width');
-                }
-            } else {
-                // 大屏幕设备主视图模式（平板、桌面）- 同时显示文件列表和内容
-                this.fileListContainer.addClass('highlight-display-block');
-                this.mainContentContainer.removeClass('highlight-display-none');
-                // 确保移除全宽类
-                this.fileListContainer.removeClass('highlight-full-width');
-            }
-        } else {
-            // 在侧边栏中隐藏文件列表
-            this.fileListContainer.addClass('highlight-display-none');
-            this.removeFloatingButton();
-            
-            // 在侧边栏中显示搜索容器（除非在闪卡模式）
-            if (!this.isFlashcardMode) {
-                this.searchContainer.removeClass('highlight-display-none');
-                // 显示搜索图标按钮
-                const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
-                if (iconButtons) {
-                    iconButtons.removeClass('highlight-display-none');
-                }
-            }
+            // 同步设备信息
+            const deviceInfo = this.layoutManager.getDeviceInfo();
+            this.isMobileView = deviceInfo.isMobile;
+            this.isSmallScreen = deviceInfo.isSmallScreen;
         }
     }
 
@@ -1349,6 +1292,16 @@ export class CommentView extends ItemView {
         if (this.commentInputManager) {
             this.commentInputManager.clearEditingState();
             this.commentInputManager = null;
+        }
+        
+        // 清理布局管理器
+        if (this.layoutManager) {
+            this.layoutManager = null;
+        }
+        
+        // 清理视图位置检测器
+        if (this.viewPositionDetector) {
+            this.viewPositionDetector = null;
         }
     }
 
