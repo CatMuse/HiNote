@@ -20,6 +20,7 @@ import { IdGenerator } from './utils/IdGenerator';
 import { SearchManager } from './view/search/SearchManager';
 import { SelectionManager } from './view/selection/SelectionManager';
 import { BatchOperationsHandler } from './view/selection/BatchOperationsHandler';
+import { FileListManager } from './view/filelist/FileListManager';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -30,6 +31,8 @@ export class CommentView extends ItemView {
     private selectionManager: SelectionManager | null = null;
     // 批量操作处理器
     private batchOperationsHandler: BatchOperationsHandler | null = null;
+    // 文件列表管理器
+    private fileListManager: FileListManager | null = null;
     // 添加活动视图变化的事件处理器
     private activeLeafChangeHandler: (() => void) | undefined;
     private highlightContainer: HTMLElement;
@@ -429,6 +432,67 @@ export class CommentView extends ItemView {
                 await this.refreshView();
             }
         );
+        
+        // 初始化文件列表管理器
+        this.fileListManager = new FileListManager(
+            this.fileListContainer,
+            this.plugin,
+            this.highlightService,
+            this.licenseManager
+        );
+        
+        // 设置文件列表管理器的回调函数
+        this.fileListManager.setCallbacks({
+            onFileSelect: async (file: TFile | null) => {
+                this.currentFile = file;
+                this.isFlashcardMode = false;
+                if (this.flashcardComponent) {
+                    this.flashcardComponent.deactivate();
+                    this.flashcardComponent = null;
+                }
+                this.fileListManager!.updateFileListSelection();
+                this.searchContainer.removeClass('highlight-display-none');
+                const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+                if (iconButtons) {
+                    iconButtons.removeClass('highlight-display-none');
+                }
+                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                    this.isShowingFileList = false;
+                    this.updateViewLayout();
+                }
+                await this.updateHighlights();
+            },
+            onFlashcardModeToggle: async (enabled: boolean) => {
+                this.currentFile = null;
+                this.isFlashcardMode = enabled;
+                this.fileListManager!.updateFileListSelection();
+                this.searchContainer.addClass('highlight-display-none');
+                this.highlightContainer.empty();
+                if (!this.flashcardComponent) {
+                    this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
+                    this.flashcardComponent.setLicenseManager(this.licenseManager);
+                }
+                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                    this.isShowingFileList = false;
+                    this.updateViewLayout();
+                }
+                await this.flashcardComponent.activate();
+            },
+            onAllHighlightsSelect: async () => {
+                this.currentFile = null;
+                this.isFlashcardMode = false;
+                if (this.flashcardComponent) {
+                    this.flashcardComponent.deactivate();
+                    this.flashcardComponent = null;
+                }
+                this.fileListManager!.updateFileListSelection();
+                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+                    this.isShowingFileList = false;
+                    this.updateViewLayout();
+                }
+                await this.updateAllHighlights();
+            }
+        });
         
         // 添加键盘事件监听，支持按住 Shift 键进行多选
         this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
@@ -842,7 +906,13 @@ export class CommentView extends ItemView {
                     this.currentFile = null;
                     await this.updateAllHighlights();
                 }
-                this.updateFileListSelection();
+                if (this.fileListManager) {
+                    this.fileListManager.updateState({
+                        currentFile: this.currentFile,
+                        isFlashcardMode: this.isFlashcardMode
+                    });
+                    this.fileListManager.updateFileListSelection();
+                }
             } else {
                 // 如果从主视图切换到侧边栏
                 // 如果当前处于 Flashcard 模式，自动清理
@@ -852,7 +922,13 @@ export class CommentView extends ItemView {
                         this.flashcardComponent.deactivate();
                         this.flashcardComponent = null;
                     }
-                    this.updateFileListSelection();
+                    if (this.fileListManager) {
+                        this.fileListManager.updateState({
+                            currentFile: this.currentFile,
+                            isFlashcardMode: this.isFlashcardMode
+                        });
+                        this.fileListManager.updateFileListSelection();
+                    }
                 }
 
                 // 重新同步当前文件
@@ -948,7 +1024,16 @@ export class CommentView extends ItemView {
         
         if (this.isDraggedToMainView) {
             // 更新文件列表
-            await this.updateFileList();
+            if (this.fileListManager) {
+                this.fileListManager.updateState({
+                    currentFile: this.currentFile,
+                    isFlashcardMode: this.isFlashcardMode,
+                    isMobileView: this.isMobileView,
+                    isSmallScreen: this.isSmallScreen,
+                    isDraggedToMainView: this.isDraggedToMainView
+                });
+                await this.fileListManager.updateFileList();
+            }
             this.createFloatingButton();
             
             if (this.isMobileView && this.isSmallScreen) {
@@ -988,320 +1073,6 @@ export class CommentView extends ItemView {
                 }
             }
         }
-    }
-    
-    // 修改 updateFileList 方法
-    private async updateFileList() {
-        // 如果文件列表已经存在，只更新选中状态
-        if (this.fileListContainer.children.length > 0) {
-            this.updateFileListSelection();
-            return;
-        }
-
-        // 首次创建文件列表
-        this.fileListContainer.empty();
-        
-        // 创建文件列表标题
-        const titleContainer = this.fileListContainer.createEl("div", {
-            cls: "highlight-file-list-header"
-        });
-
-        titleContainer.createEl("div", {
-            text: "HiNote",
-            cls: "highlight-file-list-title"
-        });
-
-        // 创建文件列表
-        const fileList = this.fileListContainer.createEl("div", {
-            cls: "highlight-file-list"
-        });
-
-        // 添加"全部"选项
-        const allFilesItem = fileList.createEl("div", {
-            cls: `highlight-file-item highlight-file-item-all ${this.currentFile === null ? 'is-active' : ''}`
-        });
-
-        allFilesItem.addEventListener("click", () => {
-            this.currentFile = null;
-            this.isFlashcardMode = false;
-            this.updateHighlights();
-            this.updateFileListSelection();
-            
-            // 显示搜索容器
-            this.searchContainer.removeClass('highlight-display-none');
-            
-            // 隐藏搜索图标按钮
-            const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
-            if (iconButtons) {
-                iconButtons.addClass('highlight-display-none');
-            }
-        });
-
-        // 创建左侧内容容器
-        const allFilesLeft = allFilesItem.createEl("div", {
-            cls: "highlight-file-item-left"
-        });
-
-        // 创建"全部"图标
-        const allIcon = allFilesLeft.createEl("span", {
-            cls: "highlight-file-item-icon"
-        });
-        setIcon(allIcon, 'square-library');
-
-        // 创建"全部"文本
-        allFilesLeft.createEl("span", {
-            text: t("All Highlight"),
-            cls: "highlight-file-item-name"
-        });
-
-        // 创建闪卡按钮的容器
-        const flashcardItem = fileList.createEl("div", {
-            cls: "highlight-file-item highlight-file-item-flashcard"
-        });
-
-        flashcardItem.addEventListener("click", async () => {
-            // 更新文件列表选中状态
-            this.currentFile = null;
-            this.isFlashcardMode = true;
-            this.updateFileListSelection();
-            
-            // 隐藏搜索容器
-            this.searchContainer.addClass('highlight-display-none');
-
-            // 清空当前容器
-            this.highlightContainer.empty();
-            
-            // 创建或更新闪卡组件
-            if (!this.flashcardComponent) {
-                this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
-                this.flashcardComponent.setLicenseManager(this.licenseManager);
-            }
-            
-            // 在小屏幕移动端主视图模式下，点击闪卡后切换到内容视图
-            if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
-                this.isShowingFileList = false;
-                this.updateViewLayout();
-            }
-            
-            // 激活闪卡组件
-            await this.flashcardComponent.activate();
-        });
-
-        const flashcardLeft = flashcardItem.createEl("div", {
-            cls: "highlight-file-item-left"
-        });
-
-        // 添加图标
-        const flashcardIcon = flashcardLeft.createEl("span", {
-            cls: "highlight-file-item-icon"
-        });
-        setIcon(flashcardIcon, 'book-heart');
-
-        flashcardLeft.createEl("span", {
-            text: t("HiCard"),
-            cls: "highlight-file-item-name"
-        });
-
-        // 创建卡片数量标签
-        const flashcardCount = flashcardItem.createEl("span", {
-            cls: "highlight-file-item-count"
-        });
-
-        // 更新卡片数量的函数
-        const updateFlashcardCount = async () => {
-            // 使用 getTotalCardsCount() 获取所有卡片的总数
-            const totalCards = this.plugin.fsrsManager.getTotalCardsCount();
-            flashcardCount.textContent = `${totalCards}`;
-        };
-
-        // 初始化卡片数量
-        updateFlashcardCount();
-
-        // 监听闪卡变化事件
-        this.registerEvent(
-            this.plugin.eventManager.on('flashcard:changed', () => {
-                updateFlashcardCount();
-            })
-        );
-
-        flashcardLeft.addEventListener("click", async () => {
-            // 获取最新版本的卡片
-            // 检查是否有可用的分组
-            const groups = this.plugin.fsrsManager.getCardGroups();
-            let latestCards: any[] = [];
-            
-            if (groups && groups.length > 0) {
-                // 使用第一个分组的ID获取卡片
-                const groupId = groups[0].id;
-                latestCards = this.plugin.fsrsManager.getCardsForStudy(groupId);
-                
-                // 清空当前容器
-                this.highlightContainer.empty();
-                
-                // 创建或更新闪卡组件
-                if (!this.flashcardComponent) {
-                    this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
-                    this.flashcardComponent.setLicenseManager(this.licenseManager);
-                }
-                
-                // 激活闪卡组件
-                await this.flashcardComponent.activate();
-                
-                // 更新文件列表选中状态
-                this.updateFileListSelection();
-            } else {
-                // 如果没有分组，不做任何处理
-            }
-        });
-
-        // 获取所有文件的高亮总数
-        const totalHighlights = await this.getTotalHighlightsCount();
-        
-        // 创建高亮数量标签
-        allFilesItem.createEl("span", {
-            text: `${totalHighlights}`,
-            cls: "highlight-file-item-count"
-        });
-
-        // 添加分隔线
-        fileList.createEl("div", {
-            cls: "highlight-file-list-separator"
-        });
-
-        // 修改点击事件
-        allFilesItem.addEventListener("click", async () => {
-            this.currentFile = null;
-            this.isFlashcardMode = false;
-            // 确保清理 Flashcard 组件
-            if (this.flashcardComponent) {
-                this.flashcardComponent.deactivate();
-                this.flashcardComponent = null;
-            }
-            this.updateFileListSelection();
-            
-            // 在小屏幕移动端主视图模式下，点击"全部"后切换到内容视图
-            if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
-                this.isShowingFileList = false;
-                this.updateViewLayout();
-            }
-            
-            await this.updateAllHighlights();
-        });
-
-        // 获取所有包含高亮的文件
-        const files = await this.getFilesWithHighlights();
-        
-        // 为每个文件创建一个列表项
-        for (const file of files) {
-            const fileItem = fileList.createEl("div", {
-                cls: `highlight-file-item ${this.currentFile?.path === file.path ? 'is-active' : ''}`
-            });
-            fileItem.setAttribute('data-path', file.path);
-
-            // 创建左侧内容容器
-            const fileItemLeft = fileItem.createEl("div", {
-                cls: "highlight-file-item-left"
-            });
-
-            // 创建文件图标
-            const fileIcon = fileItemLeft.createEl("span", {
-                cls: "highlight-file-item-icon",
-                attr: {
-                    'aria-label': t('Open (DoubleClick)'),
-                }
-            });
-            setIcon(fileIcon, 'file-text');
-
-            // 为文件图标添加双击事件
-            fileIcon.addEventListener("dblclick", async (e) => {
-                e.stopPropagation(); // 阻止事件冒泡
-                const leaf = this.getPreferredLeaf();
-                await leaf.openFile(file);
-            });
-
-            // 创建文件名
-            const fileNameEl = fileItemLeft.createEl("span", {
-                text: file.basename,
-                cls: "highlight-file-item-name"
-            });
-
-            // 添加页面预览功能
-            this.addPagePreview(fileNameEl, file);
-
-            // 获取文件的高亮数量
-            const highlightCount = await this.getFileHighlightsCount(file);
-            
-            // 创建高亮数量标签
-            fileItem.createEl("span", {
-                text: `${highlightCount}`,
-                cls: "highlight-file-item-count"
-            });
-
-            // 添加点击事件
-            fileItem.addEventListener("click", async () => {
-                this.currentFile = file;
-                this.isFlashcardMode = false;
-                // 确保清理 Flashcard 组件
-                if (this.flashcardComponent) {
-                    this.flashcardComponent.deactivate();
-                    this.flashcardComponent = null;
-                }
-                this.updateFileListSelection();
-                // 显示搜索容器
-                this.searchContainer.removeClass('highlight-display-none');
-                // 显示搜索图标按钮
-                const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
-                if (iconButtons) {
-                    iconButtons.removeClass('highlight-display-none');
-                }
-                
-                // 在小屏幕移动端主视图模式下，点击文件后切换到内容视图
-                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
-                    this.isShowingFileList = false;
-                    this.updateViewLayout();
-                }
-                
-                await this.updateHighlights();
-            });
-        }
-    }
-
-    // 添加新方法：只更新文件列表的选中状态
-    private updateFileListSelection() {
-        // 更新"全部"选项的选中状态
-        const allFilesItem = this.fileListContainer.querySelector('.highlight-file-item-all');
-        if (allFilesItem) {
-            allFilesItem.classList.toggle('is-active', this.currentFile === null && !this.isFlashcardMode);
-        }
-
-        // 更新闪卡选项的选中状态
-        const flashcardItem = this.fileListContainer.querySelector('.highlight-file-item-flashcard');
-        if (flashcardItem) {
-            flashcardItem.classList.toggle('is-active', this.isFlashcardMode);
-        }
-
-        // 更新文件项的选中状态
-        const fileItems = this.fileListContainer.querySelectorAll('.highlight-file-item:not(.highlight-file-item-all):not(.highlight-file-item-flashcard)');
-        fileItems.forEach((item: HTMLElement) => {
-            const isActive = this.currentFile?.path === item.getAttribute('data-path');
-            item.classList.toggle('is-active', isActive);
-        });
-    }
-
-    // 添加新方法来获取所有包含高亮的文件
-    async getFilesWithHighlights(): Promise<TFile[]> {
-        const allFiles = await this.app.vault.getMarkdownFiles();
-        const files = allFiles.filter(file => this.highlightService.shouldProcessFile(file));
-        const filesWithHighlights: TFile[] = [];
-        
-        for (const file of files) {
-            const content = await this.app.vault.read(file);
-            if (this.highlightService.extractHighlights(content, file).length > 0) {
-                filesWithHighlights.push(file);
-            }
-        }
-        
-        return filesWithHighlights;
     }
 
     // 添加新方法来更新全部高亮
@@ -1609,23 +1380,6 @@ export class CommentView extends ItemView {
     }
 }
 
-
-    // 添加新方法来获取文件的高亮数量
-    private async getFileHighlightsCount(file: TFile): Promise<number> {
-        const content = await this.app.vault.read(file);
-        return this.highlightService.extractHighlights(content, file).length;
-    }
-
-    // 添加新方法：获取所有文件的高亮总数
-    private async getTotalHighlightsCount(): Promise<number> {
-        const files = await this.getFilesWithHighlights();
-        let total = 0;
-        for (const file of files) {
-            total += await this.getFileHighlightsCount(file);
-        }
-        return total;
-    }
-
     // 添加创建浮动按钮的方法
     private createFloatingButton() {
         if (this.floatingButton) return;
@@ -1740,6 +1494,12 @@ export class CommentView extends ItemView {
         if (this.batchOperationsHandler) {
             this.batchOperationsHandler.destroy();
             this.batchOperationsHandler = null;
+        }
+        
+        // 清理文件列表管理器
+        if (this.fileListManager) {
+            this.fileListManager.destroy();
+            this.fileListManager = null;
         }
     }
 
@@ -2074,51 +1834,5 @@ if (isInCanvas && this.currentFile) {
             }
         }
     }
-
-    // 添加页面预览功能
-    private addPagePreview(element: HTMLElement, file: TFile) {
-        let hoverTimeout: NodeJS.Timeout;
-
-        // 添加悬停事件
-        element.addEventListener("mouseenter", (event) => {
-            hoverTimeout = setTimeout(async () => {
-                const target = event.target as HTMLElement;
-                
-                // 触发 Obsidian 的页面预览事件
-                this.app.workspace.trigger('hover-link', {
-                    event,
-                    source: 'hi-note',
-                    hoverParent: target,
-                    targetEl: target,
-                    linktext: file.path
-                });
-            }, 300); // 300ms 的延迟显示
-        });
-
-        // 添加鼠标离开事件
-        element.addEventListener("mouseleave", () => {
-            if (hoverTimeout) {
-                clearTimeout(hoverTimeout);
-            }
-        });
-    }
-
-    // 添加一个辅助方法来获取或创建拆分视图
-    private getPreferredLeaf(): WorkspaceLeaf {
-        // 获取所有叶子
-        const leaves = this.app.workspace.getLeavesOfType("markdown");
-        
-        // 如果当前叶子在主视图区域
-        if (this.isDraggedToMainView) {
-            // 找到一个不是当前叶子的其他叶子
-            const otherLeaf = leaves.find(leaf => leaf !== this.leaf);
-            if (otherLeaf) {
-                // 如果找到其他叶子，使用它
-                return otherLeaf;
-            }
-        }
-        
-        // 如果没有其他叶子，或者当前不在主视图，创建一个新的拆分视图
-        return this.app.workspace.getLeaf('split', 'vertical');
-    }
+    
 }
