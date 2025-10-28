@@ -23,6 +23,8 @@ import { BatchOperationsHandler } from './view/selection/BatchOperationsHandler'
 import { FileListManager } from './view/filelist/FileListManager';
 import { HighlightRenderManager } from './view/highlight/HighlightRenderManager';
 import { HighlightDataManager } from './view/highlight/HighlightDataManager';
+import { CommentOperationManager } from './view/comment/CommentOperationManager';
+import { CommentInputManager } from './view/comment/CommentInputManager';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -39,6 +41,10 @@ export class CommentView extends ItemView {
     private highlightRenderManager: HighlightRenderManager | null = null;
     // 高亮数据管理器
     private highlightDataManager: HighlightDataManager | null = null;
+    // 评论操作管理器
+    private commentOperationManager: CommentOperationManager | null = null;
+    // 评论输入管理器
+    private commentInputManager: CommentInputManager | null = null;
     // 添加活动视图变化的事件处理器
     private activeLeafChangeHandler: (() => void) | undefined;
     private highlightContainer: HTMLElement;
@@ -513,7 +519,13 @@ export class CommentView extends ItemView {
             onCommentEdit: (el, h, c) => this.showCommentInput(el, h, c),
             onExport: (h) => this.exportHighlightAsImage(h),
             onAIResponse: async (h, content) => {
-                await this.addComment(h, content);
+                if (this.commentOperationManager) {
+                    this.commentOperationManager.updateState({
+                        currentFile: this.currentFile,
+                        highlights: this.highlights
+                    });
+                    await this.commentOperationManager.addComment(h, content);
+                }
                 await this.updateHighlights();
             }
         });
@@ -525,6 +537,60 @@ export class CommentView extends ItemView {
             this.highlightService,
             this.commentStore
         );
+        
+        // 初始化评论操作管理器
+        this.commentOperationManager = new CommentOperationManager(
+            this.app,
+            this.plugin,
+            this.commentStore
+        );
+        
+        this.commentOperationManager.setCallbacks({
+            onRefreshView: async () => await this.refreshView(),
+            onHighlightsUpdate: (highlights) => {
+                this.highlights = highlights;
+            }
+        });
+        
+        // 初始化评论输入管理器
+        this.commentInputManager = new CommentInputManager(this.plugin);
+        
+        this.commentInputManager.setCallbacks({
+            onCommentSave: async (highlight, content, existingComment) => {
+                if (this.commentOperationManager) {
+                    this.commentOperationManager.updateState({
+                        currentFile: this.currentFile,
+                        highlights: this.highlights
+                    });
+                    if (existingComment) {
+                        await this.commentOperationManager.updateComment(highlight, existingComment.id, content);
+                    } else {
+                        await this.commentOperationManager.addComment(highlight, content);
+                    }
+                }
+            },
+            onCommentDelete: async (highlight, commentId) => {
+                if (this.commentOperationManager) {
+                    this.commentOperationManager.updateState({
+                        currentFile: this.currentFile,
+                        highlights: this.highlights
+                    });
+                    await this.commentOperationManager.deleteComment(highlight, commentId);
+                }
+            },
+            onCommentCancel: async (highlight) => {
+                if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
+                    if (this.commentOperationManager) {
+                        this.commentOperationManager.updateState({
+                            currentFile: this.currentFile,
+                            highlights: this.highlights
+                        });
+                        await this.commentOperationManager.deleteVirtualHighlight(highlight);
+                    }
+                }
+            },
+            onViewUpdate: async () => await this.updateHighlights()
+        });
         
         // 添加键盘事件监听，支持按住 Shift 键进行多选
         this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
@@ -593,171 +659,7 @@ export class CommentView extends ItemView {
         }
     }
 
-    private async addComment(highlight: HighlightInfo, content: string) {
-        const file = await this.getFileForHighlight(highlight);
-        if (!file) {
-            new Notice(t("No corresponding file found."));
-            return;
-        }
-
-        // 确保高亮有 ID
-        if (!highlight.id) {
-            // 使用统一的ID生成策略
-            highlight.id = IdGenerator.generateHighlightId(
-                this.currentFile?.path || '', 
-                highlight.position || 0, 
-                highlight.text
-            );
-        }
-
-        if (!highlight.comments) {
-            highlight.comments = [];
-        }
-
-        const newComment: CommentItem = {
-            id: IdGenerator.generateCommentId(),
-            content,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        };
-
-        highlight.comments.push(newComment);
-        highlight.updatedAt = Date.now();
-
-        await this.commentStore.addComment(file, highlight as HiNote);
-
-        // 触发更新评论按钮
-        window.dispatchEvent(new CustomEvent("comment-updated", {
-            detail: {
-                text: highlight.text,
-                comments: highlight.comments
-            }
-        }));
-
-        // 使用新的刷新方法
-        await this.refreshView();
-    }
-
-    private async updateComment(highlight: HighlightInfo, commentId: string, content: string) {
-        const file = await this.getFileForHighlight(highlight);
-        if (!file || !highlight.comments) return;
-
-        const comment = highlight.comments.find(c => c.id === commentId);
-        if (comment) {
-            const oldContent = comment.content; // 保存旧内容
-            
-            comment.content = content;
-            comment.updatedAt = Date.now();
-            highlight.updatedAt = Date.now();
-            await this.commentStore.addComment(file, highlight as HiNote);
-
-            // 触发更新评论按钮
-            window.dispatchEvent(new CustomEvent("comment-updated", {
-                detail: {
-                    text: highlight.text,
-                    comments: highlight.comments
-                }
-            }));
-            
-            // 通过 EventManager 触发批注更新事件，用于闪卡同步
-            if (highlight.id) {
-                this.plugin.eventManager.emitCommentUpdate(file.path, oldContent, content, highlight.id);
-            }
-
-            // 使用新的刷新方法
-            await this.refreshView();
-        }
-    }
-
-    /**
-     * 检查高亮是否已经创建了闪卡
-     * @param highlightId 高亮 ID
-     * @returns 是否已创建闪卡
-     */
-    private checkHasFlashcard(highlightId: string): boolean {
-        // 获取 fsrsManager
-        const plugin = this.plugin;
-        const fsrsManager = plugin.fsrsManager;
-        if (!fsrsManager || !highlightId) {
-            return false;
-        }
-        
-        // 通过 sourceId 查找闪卡
-        const cards = fsrsManager.findCardsBySourceId(highlightId, 'highlight');
-        return cards && cards.length > 0;
-    }
-
-    private async deleteComment(highlight: HighlightInfo, commentId: string) {
-        const file = await this.getFileForHighlight(highlight);
-        if (!file || !highlight.comments) return;
-
-        highlight.comments = highlight.comments.filter(c => c.id !== commentId);
-        highlight.updatedAt = Date.now();
-
-        // 检查高亮是否没有评论了
-        if (highlight.comments.length === 0) {
-            // 检查高亮是否关联了闪卡
-            const hasFlashcard = highlight.id ? this.checkHasFlashcard(highlight.id) : false;
-            
-            // 如果是虚拟高亮或者没有关联闪卡，则删除整个高亮
-            if (highlight.isVirtual || !hasFlashcard) {
-                // 从 CommentStore 中删除高亮
-                await this.commentStore.removeComment(file, highlight as HiNote);
-                
-                // 从当前高亮列表中移除
-                this.highlights = this.highlights.filter(h => h.id !== highlight.id);
-            } else {
-                // 有关联闪卡，只更新评论
-                await this.commentStore.addComment(file, highlight as HiNote);
-            }
-        } else {
-            // 还有其他评论，只更新评论
-            await this.commentStore.addComment(file, highlight as HiNote);
-        }
-
-        // 触发更新评论按钮
-        window.dispatchEvent(new CustomEvent("comment-updated", {
-            detail: {
-                text: highlight.text,
-                comments: highlight.comments
-            }
-        }));
-
-        // 使用新的刷新方法
-        await this.refreshView();
-    }
-
-    private async getFileForHighlight(highlight: HighlightInfo): Promise<TFile | null> {
-        // 如果有当前文件，使用当前文件
-        if (this.currentFile) {
-            return this.currentFile;
-        }
-        // 如果是全部高亮视图，使用 highlight.filePath 获取文件
-        if (highlight.filePath) {
-            const file = this.app.vault.getAbstractFileByPath(highlight.filePath);
-            if (file instanceof TFile) {
-                return file;
-            }
-        }
-        // 如果通过 filePath 找不到，尝试通过 fileName
-        if (highlight.fileName) {
-            const files = this.app.vault.getFiles();
-            const file = files.find(f => f.basename === highlight.fileName || f.name === highlight.fileName);
-            if (file) {
-                return file;
-            }
-        }
-        return null;
-    }
-
-    private generateHighlightId(highlight: HighlightInfo): string {
-        // 使用统一的ID生成策略
-        return IdGenerator.generateHighlightId(
-            this.currentFile?.path || '', 
-            highlight.position || 0, 
-            highlight.text
-        );
-    }
+    // 评论操作方法已移至 CommentOperationManager 和 CommentInputManager
 
     private async jumpToHighlight(highlight: HighlightInfo) {
         if (this.isDraggedToMainView) {
@@ -790,32 +692,9 @@ export class CommentView extends ItemView {
     }
 
     private async showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem) {
-        this.currentEditingHighlightId = highlight.id;
-        new CommentInput(card, highlight, existingComment, this.plugin, {
-            onSave: async (content: string) => {
-                if (existingComment) {
-                    await this.updateComment(highlight, existingComment.id, content);
-                } else {
-                    await this.addComment(highlight, content);
-                }
-                await this.updateHighlights();
-            },
-            onDelete: existingComment ? async () => {
-                await this.deleteComment(highlight, existingComment.id);
-            } : undefined,
-            onCancel: async () => {
-                const currentHighlight = this.highlights.find(h => h.id === this.currentEditingHighlightId);
-                if (currentHighlight?.isVirtual && (!currentHighlight.comments || currentHighlight.comments.length === 0)) {
-                    // 如果是虚拟高亮且没有评论，删除它
-                    const file = await this.getFileForHighlight(currentHighlight);
-                    if (file) {
-                        await this.commentStore.removeComment(file, currentHighlight as HiNote);
-                        this.highlights = this.highlights.filter(h => h.id !== currentHighlight.id);
-                        await this.refreshView();
-                    }
-                }
-            }
-        }).show();
+        if (this.commentInputManager) {
+            this.commentInputManager.showCommentInput(card, highlight, existingComment);
+        }
     }
 
     async onload() {
@@ -1459,6 +1338,17 @@ export class CommentView extends ItemView {
         // 清理高亮数据管理器
         if (this.highlightDataManager) {
             this.highlightDataManager = null;
+        }
+        
+        // 清理评论操作管理器
+        if (this.commentOperationManager) {
+            this.commentOperationManager = null;
+        }
+        
+        // 清理评论输入管理器
+        if (this.commentInputManager) {
+            this.commentInputManager.clearEditingState();
+            this.commentInputManager = null;
         }
     }
 
