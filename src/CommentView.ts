@@ -476,6 +476,10 @@ export class CommentView extends ItemView {
                     this.flashcardComponent.deactivate();
                     this.flashcardComponent = null;
                 }
+                this.fileListManager!.updateState({
+                    currentFile: this.currentFile,
+                    isFlashcardMode: this.isFlashcardMode
+                });
                 this.fileListManager!.updateFileListSelection();
                 this.searchContainer.removeClass('highlight-display-none');
                 const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
@@ -491,6 +495,10 @@ export class CommentView extends ItemView {
             onFlashcardModeToggle: async (enabled: boolean) => {
                 this.currentFile = null;
                 this.isFlashcardMode = enabled;
+                this.fileListManager!.updateState({
+                    currentFile: this.currentFile,
+                    isFlashcardMode: this.isFlashcardMode
+                });
                 this.fileListManager!.updateFileListSelection();
                 this.searchContainer.addClass('highlight-display-none');
                 this.highlightContainer.empty();
@@ -511,6 +519,10 @@ export class CommentView extends ItemView {
                     this.flashcardComponent.deactivate();
                     this.flashcardComponent = null;
                 }
+                this.fileListManager!.updateState({
+                    currentFile: this.currentFile,
+                    isFlashcardMode: this.isFlashcardMode
+                });
                 this.fileListManager!.updateFileListSelection();
                 if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
                     this.isShowingFileList = false;
