@@ -17,8 +17,9 @@ export class HighlightDecorator {
     constructor(plugin: Plugin, commentStore: CommentStore) {
         this.plugin = plugin;
         this.commentStore = commentStore;
-        this.highlightService = new HighlightService(this.plugin.app);
-        this.textSimilarityService = new TextSimilarityService(this.plugin.app);
+        // 使用插件提供的共享服务实例
+        this.highlightService = (plugin as any).highlightService;
+        this.textSimilarityService = (plugin as any).textSimilarityService;
     }
 
     /**
@@ -144,8 +145,9 @@ export class HighlightDecorator {
             constructor(view: EditorView) {
                 this.plugin = plugin;
                 this.commentStore = commentStore;
-                this.highlightService = new HighlightService(this.plugin.app);
-                this.textSimilarityService = new TextSimilarityService(this.plugin.app);
+                // 使用外部传入的共享实例，避免重复创建
+                this.highlightService = highlightService;
+                this.textSimilarityService = textSimilarityService;
                 this.decorations = this.buildDecorations(view);
             }
             

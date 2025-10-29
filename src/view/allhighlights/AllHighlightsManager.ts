@@ -2,6 +2,7 @@ import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
 import { HiNote, CommentStore } from '../../CommentStore';
 import { HighlightService } from '../../services/HighlightService';
+import { HighlightMatchingService } from '../../services/HighlightMatchingService';
 
 /**
  * 全局高亮管理器
@@ -11,6 +12,7 @@ export class AllHighlightsManager {
     private app: App;
     private highlightService: HighlightService;
     private commentStore: CommentStore;
+    private highlightMatchingService: HighlightMatchingService;
     
     constructor(
         app: App,
@@ -20,6 +22,8 @@ export class AllHighlightsManager {
         this.app = app;
         this.highlightService = highlightService;
         this.commentStore = commentStore;
+        // 使用统一的高亮匹配服务
+        this.highlightMatchingService = new HighlightMatchingService(app, commentStore);
     }
     
     /**
@@ -42,8 +46,18 @@ export class AllHighlightsManager {
     
     /**
      * 按路径加载高亮
+     * 优先使用缓存，避免重复读取文件
      */
     private async loadHighlightsByPath(searchTerm: string): Promise<HighlightInfo[]> {
+        // 尝试从缓存获取
+        const cachedHighlights = this.highlightService.getAllHighlightsFromCache();
+        
+        if (cachedHighlights) {
+            // 使用缓存数据，按路径过滤
+            return this.filterCachedHighlightsByPath(cachedHighlights, searchTerm);
+        }
+        
+        // 缓存不可用，从文件读取
         const allHighlights = await this.highlightService.getAllHighlights();
         const fileCommentsMap = this.createFileCommentsMap();
         const result: HighlightInfo[] = [];
@@ -55,6 +69,46 @@ export class AllHighlightsManager {
             }
             
             const fileComments = fileCommentsMap.get(file.path) || [];
+            const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
+            result.push(...processedHighlights);
+            
+            // 添加虚拟高亮
+            const virtualHighlights = this.getVirtualHighlights(fileComments, file);
+            result.push(...virtualHighlights);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 从缓存的高亮中按路径过滤
+     */
+    private filterCachedHighlightsByPath(cachedHighlights: HighlightInfo[], searchTerm: string): HighlightInfo[] {
+        const fileCommentsMap = this.createFileCommentsMap();
+        const result: HighlightInfo[] = [];
+        
+        // 按文件分组处理
+        const highlightsByFile = new Map<string, HighlightInfo[]>();
+        for (const highlight of cachedHighlights) {
+            const filePath = highlight.filePath || '';
+            
+            // 如果有搜索词，检查文件路径是否匹配
+            if (searchTerm && !filePath.toLowerCase().includes(searchTerm.toLowerCase())) {
+                continue;
+            }
+            
+            if (!highlightsByFile.has(filePath)) {
+                highlightsByFile.set(filePath, []);
+            }
+            highlightsByFile.get(filePath)!.push(highlight);
+        }
+        
+        // 处理每个文件的高亮
+        for (const [filePath, highlights] of highlightsByFile.entries()) {
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            if (!(file instanceof TFile)) continue;
+            
+            const fileComments = fileCommentsMap.get(filePath) || [];
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -83,14 +137,59 @@ export class AllHighlightsManager {
     
     /**
      * 加载所有高亮
+     * 优先使用缓存，避免重复读取文件
      */
     private async loadAllHighlights(): Promise<HighlightInfo[]> {
+        // 尝试从缓存获取
+        const cachedHighlights = this.highlightService.getAllHighlightsFromCache();
+        
+        if (cachedHighlights) {
+            // 使用缓存数据，快速返回
+            return this.processCachedHighlights(cachedHighlights);
+        }
+        
+        // 缓存不可用，从文件读取
         const allHighlights = await this.highlightService.getAllHighlights();
         const fileCommentsMap = this.createFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
             const fileComments = fileCommentsMap.get(file.path) || [];
+            const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
+            result.push(...processedHighlights);
+            
+            // 添加虚拟高亮
+            const virtualHighlights = this.getVirtualHighlights(fileComments, file);
+            result.push(...virtualHighlights);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 处理缓存的高亮数据
+     * 直接使用索引中的数据，合并评论信息
+     */
+    private processCachedHighlights(cachedHighlights: HighlightInfo[]): HighlightInfo[] {
+        const fileCommentsMap = this.createFileCommentsMap();
+        const result: HighlightInfo[] = [];
+        
+        // 按文件分组处理
+        const highlightsByFile = new Map<string, HighlightInfo[]>();
+        for (const highlight of cachedHighlights) {
+            const filePath = highlight.filePath || '';
+            if (!highlightsByFile.has(filePath)) {
+                highlightsByFile.set(filePath, []);
+            }
+            highlightsByFile.get(filePath)!.push(highlight);
+        }
+        
+        // 处理每个文件的高亮
+        for (const [filePath, highlights] of highlightsByFile.entries()) {
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            if (!(file instanceof TFile)) continue;
+            
+            const fileComments = fileCommentsMap.get(filePath) || [];
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -121,106 +220,24 @@ export class AllHighlightsManager {
     
     /**
      * 处理文件的高亮
+     * 使用统一的匹配服务
      */
     private processFileHighlights(
         highlights: HighlightInfo[],
         fileComments: HiNote[],
         file: TFile
     ): HighlightInfo[] {
-        const usedCommentIds = new Set<string>();
-        
-        return highlights.map(highlight => {
-            // 尝试匹配评论
-            let storedComment = this.findMatchingComment(highlight, fileComments, usedCommentIds);
-            
-            if (storedComment) {
-                usedCommentIds.add(storedComment.id);
-                return {
-                    ...highlight,
-                    id: storedComment.id,
-                    comments: storedComment.comments || [],
-                    createdAt: storedComment.createdAt,
-                    updatedAt: storedComment.updatedAt,
-                    fileName: file.basename,
-                    filePath: file.path,
-                    fileIcon: 'file-text'
-                };
-            }
-            
-            return {
-                ...highlight,
-                comments: highlight.comments || [],
-                fileName: file.basename,
-                filePath: file.path,
-                fileIcon: 'file-text'
-            };
-        });
+        // 使用统一的匹配服务，避免重复代码
+        return this.highlightMatchingService.mergeHighlightsWithComments(highlights, fileComments, file);
     }
     
     /**
-     * 查找匹配的评论
-     */
-    private findMatchingComment(
-        highlight: HighlightInfo,
-        fileComments: HiNote[],
-        usedCommentIds: Set<string>
-    ): HiNote | undefined {
-        // 1. 尝试 ID 匹配
-        let storedComment = fileComments.find(c => 
-            !usedCommentIds.has(c.id) && c.id === highlight.id
-        );
-        
-        if (storedComment) return storedComment;
-        
-        // 2. 尝试文本匹配
-        storedComment = fileComments.find(c => {
-            if (usedCommentIds.has(c.id)) return false;
-            
-            const textMatch = c.text === highlight.text;
-            if (textMatch && highlight.position !== undefined && c.position !== undefined) {
-                return Math.abs(c.position - highlight.position) < 1000;
-            }
-            return textMatch;
-        });
-        
-        if (storedComment) return storedComment;
-        
-        // 3. 尝试位置匹配
-        if (highlight.position !== undefined) {
-            const highlightPos = highlight.position;
-            storedComment = fileComments.find(c => 
-                !usedCommentIds.has(c.id) && 
-                c.position !== undefined && 
-                Math.abs(c.position - highlightPos) < 50
-            );
-        }
-        
-        return storedComment;
-    }
-    
-    /**
-     * 获取虚拟高亮
+     * 获取虚拟高亮（已废弃，由 mergeHighlightsWithComments 统一处理）
+     * 保留此方法以兼容现有代码，但实际上不再使用
      */
     private getVirtualHighlights(fileComments: HiNote[], file: TFile): HighlightInfo[] {
-        const usedCommentIds = new Set<string>();
-        
-        // 收集已使用的评论 ID
-        fileComments.forEach(c => {
-            if (!c.isVirtual) {
-                usedCommentIds.add(c.id);
-            }
-        });
-        
-        const virtualHighlights = fileComments
-            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
-        
-        return virtualHighlights.map(vh => ({
-            ...vh,
-            fileName: file.basename,
-            filePath: file.path,
-            fileIcon: 'file-text',
-            position: vh.position || 0
-        }));
+        // 虚拟高亮现在由 mergeHighlightsWithComments 统一处理
+        return [];
     }
     
     /**

@@ -1,9 +1,11 @@
 import { App, TFile } from "obsidian";
 import { CommentStore, HiNote } from "../CommentStore";
+import { HighlightInfo } from "../types";
 import { TextSimilarityService } from "./TextSimilarityService";
 
 /**
- * 高亮匹配服务 - 提供高亮文本匹配和恢复功能
+ * 高亮匹配服务 - 提供统一的高亮文本匹配和恢复功能
+ * 所有高亮与评论的匹配逻辑都应该使用这个服务
  */
 export class HighlightMatchingService {
     private textSimilarityService: TextSimilarityService;
@@ -112,5 +114,128 @@ export class HighlightMatchingService {
         await this.commentStore.addComment(file, recoveredHighlight);
         
         return recoveredHighlight;
+    }
+    
+    /**
+     * 批量合并高亮和评论数据（统一的匹配逻辑）
+     * 这是所有高亮匹配的核心方法，使用多种策略进行匹配
+     * 
+     * @param highlights 从文件中提取的高亮数组
+     * @param storedComments 已存储的评论数组
+     * @param file 文件对象
+     * @returns 合并后的高亮数组
+     */
+    public mergeHighlightsWithComments(
+        highlights: HighlightInfo[],
+        storedComments: HiNote[],
+        file: TFile
+    ): HighlightInfo[] {
+        // 创建一个集合来跟踪已使用的批注ID，防止重复匹配
+        const usedCommentIds = new Set<string>();
+        
+        // 合并高亮和评论数据
+        const mergedHighlights = highlights.map(highlight => {
+            // 1. 首先尝试 ID 精确匹配
+            let storedComment = storedComments.find(c => 
+                !usedCommentIds.has(c.id) && c.id === highlight.id
+            );
+            
+            if (storedComment) {
+                usedCommentIds.add(storedComment.id);
+                return this.createMergedHighlight(highlight, storedComment, file);
+            }
+            
+            // 2. 尝试文本和位置组合匹配
+            storedComment = storedComments.find(c => {
+                if (usedCommentIds.has(c.id)) return false;
+                
+                const textMatch = c.text === highlight.text;
+                if (textMatch && highlight.position !== undefined && c.position !== undefined) {
+                    return Math.abs(c.position - highlight.position) < 1000;
+                }
+                return textMatch;
+            });
+            
+            if (storedComment) {
+                usedCommentIds.add(storedComment.id);
+                return this.createMergedHighlight(highlight, storedComment, file);
+            }
+            
+            // 3. 尝试位置匹配（允许文本有小幅变化）
+            if (highlight.position !== undefined) {
+                const highlightPos = highlight.position;
+                storedComment = storedComments.find(c => 
+                    !usedCommentIds.has(c.id) && 
+                    c.position !== undefined && 
+                    Math.abs(c.position - highlightPos) < 50
+                );
+                
+                if (storedComment) {
+                    usedCommentIds.add(storedComment.id);
+                    return this.createMergedHighlight(highlight, storedComment, file);
+                }
+            }
+            
+            // 4. 尝试模糊文本匹配（基于相似度）
+            const candidates = storedComments.filter(c => !usedCommentIds.has(c.id));
+            let bestMatch: HiNote | undefined;
+            let bestSimilarity = 0.8; // 最低相似度阈值
+            
+            for (const candidate of candidates) {
+                const similarity = this.textSimilarityService.calculateSimilarity(
+                    highlight.text, 
+                    candidate.text
+                );
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestMatch = candidate;
+                }
+            }
+            
+            if (bestMatch) {
+                usedCommentIds.add(bestMatch.id);
+                return this.createMergedHighlight(highlight, bestMatch, file);
+            }
+            
+            // 5. 如果所有匹配都失败，返回原始高亮
+            return this.createHighlightInfo(highlight, file);
+        });
+
+        // 添加虚拟高亮（只有评论没有高亮的情况）
+        const virtualHighlights = storedComments
+            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id))
+            .map(vh => this.createHighlightInfo(vh, file));
+        
+        return [...virtualHighlights, ...mergedHighlights];
+    }
+    
+    /**
+     * 创建合并后的高亮信息
+     */
+    private createMergedHighlight(highlight: HighlightInfo, storedComment: HiNote, file: TFile): HighlightInfo {
+        return {
+            ...highlight,
+            id: storedComment.id,
+            comments: storedComment.comments || [],
+            createdAt: storedComment.createdAt,
+            updatedAt: storedComment.updatedAt,
+            fileName: file.basename,
+            filePath: file.path,
+            fileIcon: 'file-text'
+        };
+    }
+    
+    /**
+     * 创建高亮信息对象
+     */
+    private createHighlightInfo(highlight: HighlightInfo | HiNote, file: TFile): HighlightInfo {
+        return {
+            ...highlight,
+            comments: highlight.comments || [],
+            fileName: file.basename,
+            filePath: file.path,
+            fileIcon: 'file-text',
+            position: highlight.position || 0
+        };
     }
 }

@@ -11,7 +11,8 @@ import { FSRSManager } from './src/flashcard/services/FSRSManager';
 import { HighlightMatchingService } from './src/services/HighlightMatchingService';
 import { HighlightService } from './src/services/HighlightService';
 import { HiNoteDataManager } from './src/storage/HiNoteDataManager';
-
+import { TextSimilarityService } from './src/services/TextSimilarityService';
+import { CanvasService } from './src/services/CanvasService';
 import { EventManager } from './src/services/EventManager';
 
 export default class CommentPlugin extends Plugin {
@@ -23,6 +24,8 @@ export default class CommentPlugin extends Plugin {
 	public highlightMatchingService: HighlightMatchingService;
 	public highlightService: HighlightService;
 	public dataManager: HiNoteDataManager;
+	public textSimilarityService: TextSimilarityService;
+	public canvasService: CanvasService;
 
 	async onload() {
 
@@ -42,6 +45,14 @@ export default class CommentPlugin extends Plugin {
 
 		// 初始化高亮服务（共享实例）
 		this.highlightService = new HighlightService(this.app);
+		// 立即开始构建索引（异步，不阻塞插件加载），提升后续加载性能
+		this.highlightService.initialize();
+
+		// 初始化文本相似度服务（共享实例）
+		this.textSimilarityService = new TextSimilarityService(this.app);
+
+		// 初始化 Canvas 服务（共享实例）
+		this.canvasService = new CanvasService(this.app.vault);
 
 		// 初始化评论存储（传入共享的服务实例）
 		this.commentStore = new CommentStore(this, this.eventManager, this.dataManager, this.highlightService);
@@ -68,23 +79,7 @@ export default class CommentPlugin extends Plugin {
 			'highlighter',
 			'HiNote',
 			async () => {
-				const { workspace } = this.app;
-				
-				// 检查评论面板是否已经打开，如果已经打开，就激活它
-				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
-				if (existing.length) {
-					workspace.revealLeaf(existing[0]);
-					return;
-				}
-
-				// 在右侧打开评论面板
-				const leaf = workspace.getRightLeaf(false);
-				if (leaf) {
-					await leaf.setViewState({
-						type: VIEW_TYPE_COMMENT,
-						active: true,
-					});
-				}
+				await this.openCommentPanelInSidebar();
 			}
 		);
 
@@ -93,58 +88,7 @@ export default class CommentPlugin extends Plugin {
 			id: 'open-comment-window',
 			name: t('Open in right sidebar'),
 			callback: async () => {
-				const { workspace } = this.app;
-				
-				// 检查评论面板是否已经打开
-				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
-				if (existing.length) {
-					// 如果已经打开，先检查当前视图是否在主视图区域
-					const existingLeaf = existing[0];
-					const view = existingLeaf.view;
-					
-					// 如果在主视图区域，则移动到右侧侧边栏
-					if (view && view instanceof CommentView && (view as any).isDraggedToMainView) {
-						// 先分离当前叶子
-						workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
-						
-						// 然后在右侧侧边栏创建新的叶子
-						const newLeaf = workspace.getRightLeaf(false);
-						if (newLeaf) {
-							await newLeaf.setViewState({
-								type: VIEW_TYPE_COMMENT,
-								active: true,
-							});
-							
-							// 将视图标记为侧边栏模式
-							const newView = newLeaf.view;
-							if (newView && newView instanceof CommentView) {
-								(newView as any).isDraggedToMainView = false;
-								(newView as any).updateViewLayout();
-								(newView as any).updateHighlights();
-							}
-						}
-					} else {
-						// 如果已经在侧边栏，则直接激活它
-						workspace.revealLeaf(existingLeaf);
-					}
-					return;
-				}
-
-				// 如果评论面板未打开，则在右侧打开评论面板
-				const leaf = workspace.getRightLeaf(false);
-				if (leaf) {
-					await leaf.setViewState({
-						type: VIEW_TYPE_COMMENT,
-						active: true,
-					});
-					
-					// 确保视图标记为侧边栏模式
-					const view = leaf.view;
-					if (view && view instanceof CommentView) {
-						(view as any).isDraggedToMainView = false;
-						(view as any).updateViewLayout();
-					}
-				}
+				await this.openCommentPanelInSidebar();
 			}
 		});
 
@@ -263,9 +207,73 @@ export default class CommentPlugin extends Plugin {
 			this.highlightDecorator.disable();
 		}
 
+		// 清理高亮服务（注销事件监听器，清空索引）
+		if (this.highlightService) {
+			this.highlightService.destroy();
+		}
+
 		// 如果对话窗口打开，关闭它
 		if (ChatView.instance) {
 			ChatView.instance.close();
+		}
+	}
+
+	/**
+	 * 在右侧侧边栏打开评论面板
+	 * 如果面板已在主视图中打开，则移动到侧边栏
+	 */
+	private async openCommentPanelInSidebar() {
+		const { workspace } = this.app;
+		
+		// 检查评论面板是否已经打开
+		const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+		if (existing.length) {
+			// 如果已经打开，先检查当前视图是否在主视图区域
+			const existingLeaf = existing[0];
+			const view = existingLeaf.view;
+			
+			// 如果在主视图区域，则移动到右侧侧边栏
+			if (view && view instanceof CommentView && (view as any).isDraggedToMainView) {
+				// 先分离当前叶子
+				workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
+				
+				// 然后在右侧侧边栏创建新的叶子
+				const newLeaf = workspace.getRightLeaf(false);
+				if (newLeaf) {
+					await newLeaf.setViewState({
+						type: VIEW_TYPE_COMMENT,
+						active: true,
+					});
+					
+					// 将视图标记为侧边栏模式
+					const newView = newLeaf.view;
+					if (newView && newView instanceof CommentView) {
+						(newView as any).isDraggedToMainView = false;
+						(newView as any).updateViewLayout();
+						(newView as any).updateHighlights();
+					}
+				}
+			} else {
+				// 如果已经在侧边栏，则直接激活它
+				workspace.revealLeaf(existingLeaf);
+			}
+			return;
+		}
+
+		// 如果评论面板未打开，则在右侧打开评论面板
+		const leaf = workspace.getRightLeaf(false);
+		if (leaf) {
+			await leaf.setViewState({
+				type: VIEW_TYPE_COMMENT,
+				active: true,
+			});
+			
+			// 确保视图标记为侧边栏模式
+			const view = leaf.view;
+			if (view && view instanceof CommentView) {
+				(view as any).isDraggedToMainView = false;
+				(view as any).updateViewLayout();
+			}
 		}
 	}
 

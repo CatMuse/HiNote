@@ -58,17 +58,18 @@ export class CommentStore {
 
     constructor(
         plugin: Plugin,
-        eventManager?: EventManager,
-        dataManager?: HiNoteDataManager,
-        highlightService?: HighlightService
+        eventManager: EventManager,
+        dataManager: HiNoteDataManager,
+        highlightService: HighlightService
     ) {
         this.plugin = plugin;
-        this.eventManager = eventManager || new EventManager(plugin.app);
+        // 使用传入的共享实例，不再创建新实例
+        this.eventManager = eventManager;
         this.blockIdService = new BlockIdService(plugin.app);
-        this.highlightService = highlightService || new HighlightService(plugin.app);
+        this.highlightService = highlightService;
         
-        // 初始化新存储层
-        this.dataManager = dataManager || new HiNoteDataManager(plugin.app);
+        // 使用传入的共享数据管理器实例
+        this.dataManager = dataManager;
         this.migrationManager = new DataMigrationManager(plugin, this.dataManager);
     }
 

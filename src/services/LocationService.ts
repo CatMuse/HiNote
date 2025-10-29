@@ -5,8 +5,9 @@ import { TextSimilarityService } from "./TextSimilarityService";
 export class LocationService {
     private textSimilarityService: TextSimilarityService;
     
-    constructor(private app: any) {
-        this.textSimilarityService = new TextSimilarityService(app);
+    constructor(private app: any, textSimilarityService?: TextSimilarityService) {
+        // 优先使用传入的共享实例，否则创建新实例（向后兼容）
+        this.textSimilarityService = textSimilarityService || new TextSimilarityService(app);
     }
 
     /**

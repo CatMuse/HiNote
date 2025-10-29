@@ -3,7 +3,6 @@ import { HighlightInfo, PluginSettings } from '../types';
 import { t } from '../i18n';
 import { ExcludePatternMatcher } from './ExcludePatternMatcher';
 import { ColorExtractorService } from './ColorExtractorService';
-import { EventManager } from './EventManager';
 import { BlockIdService } from './BlockIdService';
 
 /**
@@ -26,7 +25,6 @@ export class HighlightService {
     private static readonly MIN_WORD_LENGTH = 2; // 最小词长度
     
     private colorExtractor: ColorExtractorService;
-    private eventManager: EventManager;
     private blockIdService: BlockIdService;
     
     // 文件级高亮索引
@@ -58,7 +56,6 @@ export class HighlightService {
             plugins.plugins['hi-note'] : undefined;
         this.settings = plugin?.settings;
         this.colorExtractor = new ColorExtractorService();
-        this.eventManager = new EventManager(app);
         this.blockIdService = new BlockIdService(app);
     }
     
@@ -69,11 +66,11 @@ export class HighlightService {
         // 注册文件事件监听器，实现索引的自动更新
         this.registerFileEventHandlers();
         
-        // 异步构建索引，不阻塞插件加载
-        setTimeout(() => {
-            this.buildFileIndex().then(() => {
-            });
-        }, HighlightService.INDEX_BUILD_DELAY);
+        // 立即开始异步构建索引，不阻塞插件加载
+        // 使用 Promise.resolve().then() 确保在下一个微任务中执行，避免阻塞当前调用栈
+        Promise.resolve().then(() => {
+            this.buildFileIndex();
+        });
     }
     
     /**
@@ -451,7 +448,20 @@ export class HighlightService {
     }
     
     /**
-     * 从索引中获取所有高亮
+     * 从索引中获取所有高亮（公共方法，供外部调用）
+     * 如果索引可用，直接从缓存返回，避免重新读取文件
+     * @returns 所有高亮数组，如果索引未构建则返回 null
+     */
+    public getAllHighlightsFromCache(): HighlightInfo[] | null {
+        // 检查索引是否可用
+        if (!this.isIndexExpired() && this.fileIndex.fileToHighlights.size > 0) {
+            return this.getAllHighlightsFromIndex();
+        }
+        return null;
+    }
+    
+    /**
+     * 从索引中获取所有高亮（内部方法）
      * @returns 所有高亮数组
      */
     private getAllHighlightsFromIndex(): HighlightInfo[] {

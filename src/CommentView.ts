@@ -100,11 +100,13 @@ export class CommentView extends ItemView {
         } else {
             throw new Error('Hi-Note plugin not found');
         }
-        this.locationService = new LocationService(this.app);
+        // 使用共享的 TextSimilarityService
+        this.locationService = new LocationService(this.app, this.plugin.textSimilarityService);
         this.exportService = new ExportService(this.app, this.commentStore);
-        this.highlightService = new HighlightService(this.app);
+        // 使用插件提供的共享服务实例，避免重复创建
+        this.highlightService = this.plugin.highlightService;
         this.licenseManager = new LicenseManager(this.plugin);
-        this.canvasService = new CanvasService(this.app.vault);
+        this.canvasService = this.plugin.canvasService;
         
         // 监听文档切换
         this.registerEvent(
