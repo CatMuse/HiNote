@@ -4,7 +4,15 @@ import { AnthropicService } from './AnthropicService';
 import { GeminiService } from './GeminiService';
 import { SiliconFlowService } from './SiliconFlowService';
 import { DeepseekService } from './DeepseekService';
-import { requestUrl } from 'obsidian';
+import { BaseHTTPClient } from './BaseHTTPClient';
+
+interface OpenAIResponse {
+    choices: Array<{
+        message: {
+            content: string;
+        };
+    }>;
+}
 
 export class AIService {
     private ollamaService: OllamaService;
@@ -12,6 +20,7 @@ export class AIService {
     private geminiService: GeminiService | null = null;
     private deepseekService: DeepseekService | null = null;
     private siliconflowService: SiliconFlowService | null = null;
+    private httpClient: BaseHTTPClient;
 
     // 存储当前使用的模型状态
     private currentState = {
@@ -20,6 +29,7 @@ export class AIService {
     };
 
     constructor(private settings: AISettings) {
+        this.httpClient = new BaseHTTPClient();
         if (settings.ollama?.host) {
             this.ollamaService = new OllamaService(settings.ollama.host);
         }
@@ -136,13 +146,10 @@ export class AIService {
             throw new Error('OpenAI API Key not configured');
         }
 
-        const response = await requestUrl({
+        const response = await this.httpClient.request<OpenAIResponse>({
             url: this.settings.openai.baseUrl || 'https://api.openai.com/v1/chat/completions',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.settings.openai.apiKey}`
-            },
+            headers: BaseHTTPClient.buildAuthHeaders(this.settings.openai.apiKey),
             body: JSON.stringify({
                 model: this.settings.openai.model,
                 messages: messages,
@@ -150,12 +157,7 @@ export class AIService {
             })
         });
 
-        if (response.status !== 200) {
-            throw new Error(`OpenAI API request failed: ${response.text}`);
-        }
-
-        const data = response.json;
-        return data.choices[0].message.content;
+        return response.choices[0].message.content;
     }
 
     private async chatWithAnthropic(messages: { role: string, content: string }[]): Promise<string> {

@@ -3,6 +3,7 @@ import { HighlightInfo } from '../../types';
 import { HiNote, CommentStore } from '../../CommentStore';
 import { HighlightService } from '../../services/HighlightService';
 import { HighlightMatchingService } from '../../services/HighlightMatchingService';
+import { FileCommentsCache } from '../../services/FileCommentsCache';
 
 /**
  * 全局高亮管理器
@@ -13,6 +14,7 @@ export class AllHighlightsManager {
     private highlightService: HighlightService;
     private commentStore: CommentStore;
     private highlightMatchingService: HighlightMatchingService;
+    private fileCommentsCache: FileCommentsCache;
     
     constructor(
         app: App,
@@ -24,6 +26,8 @@ export class AllHighlightsManager {
         this.commentStore = commentStore;
         // 使用统一的高亮匹配服务
         this.highlightMatchingService = new HighlightMatchingService(app, commentStore);
+        // 使用文件评论缓存服务
+        this.fileCommentsCache = new FileCommentsCache(app, commentStore);
     }
     
     /**
@@ -59,7 +63,7 @@ export class AllHighlightsManager {
         
         // 缓存不可用，从文件读取
         const allHighlights = await this.highlightService.getAllHighlights();
-        const fileCommentsMap = this.createFileCommentsMap();
+        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
@@ -84,7 +88,7 @@ export class AllHighlightsManager {
      * 从缓存的高亮中按路径过滤
      */
     private filterCachedHighlightsByPath(cachedHighlights: HighlightInfo[], searchTerm: string): HighlightInfo[] {
-        const fileCommentsMap = this.createFileCommentsMap();
+        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
@@ -150,7 +154,7 @@ export class AllHighlightsManager {
         
         // 缓存不可用，从文件读取
         const allHighlights = await this.highlightService.getAllHighlights();
-        const fileCommentsMap = this.createFileCommentsMap();
+        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
@@ -171,7 +175,7 @@ export class AllHighlightsManager {
      * 直接使用索引中的数据，合并评论信息
      */
     private processCachedHighlights(cachedHighlights: HighlightInfo[]): HighlightInfo[] {
-        const fileCommentsMap = this.createFileCommentsMap();
+        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
@@ -199,23 +203,6 @@ export class AllHighlightsManager {
         }
         
         return result;
-    }
-    
-    /**
-     * 创建文件评论映射
-     */
-    private createFileCommentsMap(): Map<string, HiNote[]> {
-        const fileCommentsMap = new Map<string, HiNote[]>();
-        const allFiles = this.app.vault.getMarkdownFiles();
-        
-        for (const file of allFiles) {
-            const fileComments = this.commentStore.getFileComments(file);
-            if (fileComments && fileComments.length > 0) {
-                fileCommentsMap.set(file.path, fileComments);
-            }
-        }
-        
-        return fileCommentsMap;
     }
     
     /**

@@ -1,4 +1,4 @@
-import { requestUrl } from 'obsidian';
+import { BaseHTTPClient } from './BaseHTTPClient';
 
 export interface GenerationConfig {
     maxOutputTokens?: number;
@@ -7,15 +7,27 @@ export interface GenerationConfig {
     responseSchema?: object;
 }
 
+interface GeminiResponse {
+    candidates: Array<{
+        content: {
+            parts: Array<{
+                text: string;
+            }>;
+        };
+    }>;
+}
+
 export class GeminiService {
     private apiKey: string;
     private baseUrl: string;
     private model: string;
+    private httpClient: BaseHTTPClient;
 
     constructor(apiKey: string, model: string = 'gemini-2.5-flash', baseUrl?: string) {
         this.apiKey = apiKey;
         this.model = model;
         this.baseUrl = baseUrl || 'https://generativelanguage.googleapis.com';
+        this.httpClient = new BaseHTTPClient();
     }
 
     // 更新当前使用的模型
@@ -40,29 +52,19 @@ export class GeminiService {
                 }
             };
 
-            const response = await requestUrl({
+            const response = await this.httpClient.request<GeminiResponse>({
                 url,
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: BaseHTTPClient.buildJSONHeaders(),
                 body: JSON.stringify(requestBody)
             });
 
-            if (response.status !== 200) {
-
-                throw new Error(`Gemini API error (${response.status}): ${response.text}`);
-            }
-
-            const data = response.json;
-            if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-
+            if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
                 throw new Error('Invalid response format from Gemini API');
             }
 
-            return data.candidates[0].content.parts[0].text;
+            return response.candidates[0].content.parts[0].text;
         } catch (error) {
-
             if (error instanceof Error) {
                 throw error;
             }
@@ -89,29 +91,19 @@ export class GeminiService {
                 }
             };
 
-            const response = await requestUrl({
+            const response = await this.httpClient.request<GeminiResponse>({
                 url,
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: BaseHTTPClient.buildJSONHeaders(),
                 body: JSON.stringify(requestBody)
             });
 
-            if (response.status !== 200) {
-
-                throw new Error(`Gemini Chat API error (${response.status}): ${response.text}`);
-            }
-
-            const data = response.json;
-            if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-
+            if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
                 throw new Error('Invalid response format from Gemini Chat API');
             }
 
-            return data.candidates[0].content.parts[0].text;
+            return response.candidates[0].content.parts[0].text;
         } catch (error) {
-
             if (error instanceof Error) {
                 throw error;
             }
@@ -135,21 +127,10 @@ export class GeminiService {
     }
 
     async testConnection(): Promise<boolean> {
-        try {
-            const url = `${this.baseUrl}/v1/models/${this.model}?key=${this.apiKey}`;
-            const response = await requestUrl({
-                url,
-                method: 'GET'
-            });
-
-            if (response.status !== 200) {
-
-            }
-
-            return response.status === 200;
-        } catch (error) {
-
-            return false;
-        }
+        const url = `${this.baseUrl}/v1/models/${this.model}?key=${this.apiKey}`;
+        return await this.httpClient.testConnection({
+            url,
+            method: 'GET'
+        });
     }
 }

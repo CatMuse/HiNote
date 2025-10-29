@@ -4,6 +4,7 @@ import { t } from '../i18n';
 import { ExcludePatternMatcher } from './ExcludePatternMatcher';
 import { ColorExtractorService } from './ColorExtractorService';
 import { BlockIdService } from './BlockIdService';
+import { FileContentCache } from './FileContentCache';
 
 /**
  * 文件级高亮索引接口，用于加速全局搜索
@@ -26,6 +27,7 @@ export class HighlightService {
     
     private colorExtractor: ColorExtractorService;
     private blockIdService: BlockIdService;
+    private fileContentCache: FileContentCache;
     
     // 文件级高亮索引
     private fileIndex: FileHighlightIndex = {
@@ -57,6 +59,7 @@ export class HighlightService {
         this.settings = plugin?.settings;
         this.colorExtractor = new ColorExtractorService();
         this.blockIdService = new BlockIdService(app);
+        this.fileContentCache = new FileContentCache(app);
     }
     
     /**
@@ -86,6 +89,9 @@ export class HighlightService {
             fileToHighlights: new Map(),
             lastUpdated: 0
         };
+        
+        // 清空文件内容缓存
+        this.fileContentCache.clear();
     }
     
     /**
@@ -102,6 +108,8 @@ export class HighlightService {
         // 文件修改事件
         this.fileModifyEventRef = this.app.vault.on('modify', (file) => {
             if (file instanceof TFile && file.extension === 'md') {
+                // 使文件内容缓存失效
+                this.fileContentCache.invalidate(file.path);
                 this.updateFileInIndex(file);
             }
         });
@@ -109,6 +117,8 @@ export class HighlightService {
         // 文件删除事件
         this.fileDeleteEventRef = this.app.vault.on('delete', (file) => {
             if (file instanceof TFile && file.extension === 'md') {
+                // 清除缓存
+                this.fileContentCache.invalidate(file.path);
                 this.removeFileFromIndex(file.path);
             }
         });
@@ -116,6 +126,8 @@ export class HighlightService {
         // 文件重命名事件
         this.fileRenameEventRef = this.app.vault.on('rename', (file, oldPath) => {
             if (file instanceof TFile && file.extension === 'md') {
+                // 清除旧路径的缓存
+                this.fileContentCache.invalidate(oldPath);
                 this.removeFileFromIndex(oldPath);
                 this.updateFileInIndex(file);
             }
@@ -341,7 +353,8 @@ export class HighlightService {
                 continue;
             }
 
-            const content = await this.app.vault.read(file);
+            // 使用缓存读取文件内容
+            const content = await this.fileContentCache.getFileContent(file);
             const highlights = this.extractHighlights(content, file);
             if (highlights.length > 0) {
                 filesWithHighlights.push(file);
@@ -360,7 +373,8 @@ export class HighlightService {
         const result: { file: TFile, highlights: HighlightInfo[] }[] = [];
         for (const file of files) {
             if (!this.shouldProcessFile(file)) continue;
-            const content = await this.app.vault.read(file);
+            // 使用缓存读取文件内容
+            const content = await this.fileContentCache.getFileContent(file);
             const highlights = this.extractHighlights(content, file);
             if (highlights.length > 0) {
                 result.push({ file, highlights });

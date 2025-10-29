@@ -5,6 +5,7 @@ import { HighlightService } from '../../services/HighlightService';
 import { CommentStore } from '../../CommentStore';
 import { IdGenerator } from '../../utils/IdGenerator';
 import { HighlightMatchingService } from '../../services/HighlightMatchingService';
+import { FileCommentsCache } from '../../services/FileCommentsCache';
 import CommentPlugin from '../../../main';
 
 /**
@@ -17,6 +18,7 @@ export class HighlightDataManager {
     private highlightService: HighlightService;
     private commentStore: CommentStore;
     private highlightMatchingService: HighlightMatchingService;
+    private fileCommentsCache: FileCommentsCache;
     
     constructor(
         app: App,
@@ -30,6 +32,8 @@ export class HighlightDataManager {
         this.commentStore = commentStore;
         // 使用统一的高亮匹配服务
         this.highlightMatchingService = new HighlightMatchingService(app, commentStore);
+        // 使用文件评论缓存服务
+        this.fileCommentsCache = new FileCommentsCache(app, commentStore);
     }
     
     /**
@@ -61,19 +65,8 @@ export class HighlightDataManager {
         if (searchType === 'path') {
             const highlightResults = await this.highlightService.getAllHighlights();
             
-            // 创建所有文件的批注映射
-            const fileCommentsMap = new Map<string, HiNote[]>();
-            
-            // 获取所有文件
-            const allFiles = this.app.vault.getMarkdownFiles();
-            
-            // 预先加载所有文件的批注
-            for (const file of allFiles) {
-                const fileComments = this.commentStore.getFileComments(file);
-                if (fileComments && fileComments.length > 0) {
-                    fileCommentsMap.set(file.path, fileComments);
-                }
-            }
+            // 使用缓存的文件评论映射
+            const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
             
             // 处理所有高亮
             for (const { file, highlights } of highlightResults) {
