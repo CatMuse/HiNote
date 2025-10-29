@@ -5,10 +5,6 @@
 	<img src="https://img.shields.io/github/last-commit/CatMuse/HiNote" alt="GitHub last commit" />
 	<img src="https://img.shields.io/github/issues/CatMuse/HiNote" alt="GitHub issues" />
 	<img src="https://img.shields.io/github/stars/CatMuse/HiNote?style=social" alt="GitHub stars" />
-	<br/><br/>
-	<a href="https://hinote.vip">
-		<img src="https://img.shields.io/badge/⭐_Pro_Version-Unlock_Flashcard_System-ff6b6b?style=for-the-badge&logo=star" alt="Upgrade to Pro" />
-	</a>
 </div>
 
 ---
@@ -16,8 +12,6 @@
 [简体中文](./README-ZH.md) | English
 
 This AI-programmed Obsidian plugin can automatically extract highlighted text from notes, allowing users to add comments, generate AI comments, and engage in dialogue with the highlighted text. Users can highlight text in various formats, export it as knowledge card images or create new notes, while enjoying additional extended features in the main view.
-
-> 💡 **Tip:** [Upgrade to Pro](https://hinote.vip) to unlock the FSRS-powered flashcard system for efficient memorization of your highlights
 
 >  This plugin is developed with AI assistance and is currently in Beta testing. Please use it with caution and back up your data regularly.
 
@@ -27,17 +21,19 @@ This AI-programmed Obsidian plugin can automatically extract highlighted text fr
 
 ---
 
+## ✨ Key Features
+
+🎯 Auto-extract highlights in multiple formats | 📝 Add comments and notes to highlights | 🤖 AI-assisted comments and intelligent dialogue | 📸 Export as beautiful knowledge cards | 📝 Generate new notes linked to source | 🧠 Spaced repetition learning system (Pro)
+
+> 💡 **Tip:** [Upgrade to Pro](https://hinote.vip) to unlock the FSRS-powered flashcard system for efficient memorization of your highlights
+
+---
+
 ## Highlighted text retrieval
 
 When you open a note with highlighted text, the sidebar automatically displays the highlighted text in card format. The following three formats of highlight tags are supported: `==`, `<mark>`, and `<span>`. Custom formats can also be defined using regular expressions.
 
 ![Highlighted text retrieval](./doc/highlighted-text-retrieval.jpg)
-
----
-
-## ✨ Key Features
-
-🎯 Auto-extract highlights in multiple formats | 📝 Add comments and notes to highlights | 🤖 AI-assisted comments and intelligent dialogue | 📸 Export as beautiful knowledge cards | 📝 Generate new notes linked to source | 🧠 Spaced repetition learning system (Pro)
 
 ---
 

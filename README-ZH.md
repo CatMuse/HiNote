@@ -5,10 +5,6 @@
 	<img src="https://img.shields.io/github/last-commit/CatMuse/HiNote" alt="GitHub last commit" />
 	<img src="https://img.shields.io/github/issues/CatMuse/HiNote" alt="GitHub issues" />
 	<img src="https://img.shields.io/github/stars/CatMuse/HiNote?style=social" alt="GitHub stars" />
-	<br/><br/>
-	<a href="https://hinote.vip">
-		<img src="https://img.shields.io/badge/⭐_Pro_版本-解锁闪卡系统-ff6b6b?style=for-the-badge&logo=star" alt="升级到 Pro" />
-	</a>
 </div>
 
 ---
@@ -16,8 +12,6 @@
 简体中文 | [English](./README.md)
 
 这款由 AI 编程的 Obsidian 插件能够自动提取笔记中的高亮文本，支持用户添加评论、生成 AI 评论及与高亮文本进行对话。用户可以使用多种格式进行文本高亮，并将其导出为知识卡片图片或全新笔记，同时在主视图中享受更多扩展功能。
-
-> 💡 **提示：** [升级到 Pro 版](https://hinote.vip) 可解锁基于 FSRS 算法的闪卡系统，高效记忆你的高亮内容
 
 >  本插件由 AI 辅助开发，目前处于 Beta 测试阶段，建议谨慎使用并及时备份数据。
 
@@ -27,17 +21,19 @@
 
 ---
 
+## ✨ 核心特性
+
+🎯 自动提取多种格式的高亮文本 | 📝 为高亮添加评论和笔记 | 🤖 AI 辅助评论和智能对话 | 📸 导出为精美知识卡片 | 📝 生成关联源笔记的新笔记 | 🧠 间隔重复学习系统（Pro）
+
+> 💡[升级到 Pro 版](https://hinote.vip) 可解锁基于 FSRS 算法的闪卡系统，高效记忆你的高亮内容
+
+---
+
 ## 高亮文本获取
 
 当打开包含高亮文本的笔记时，侧边栏会自动获取高亮文本以卡片的样式展示。支持以下三种格式的高亮标记：`==`、`<mark>`、`<span>`。同时支持设置正则表达式来自定义获取格式。
 
 ![高亮文本检索](./doc/highlighted-text-retrieval.jpg)
-
----
-
-## ✨ 核心特性
-
-🎯 自动提取多种格式的高亮文本 | 📝 为高亮添加评论和笔记 | 🤖 AI 辅助评论和智能对话 | 📸 导出为精美知识卡片 | 📝 生成关联源笔记的新笔记 | 🧠 间隔重复学习系统（Pro）
 
 ---
 
