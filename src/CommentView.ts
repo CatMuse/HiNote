@@ -27,6 +27,8 @@ import { CommentOperationManager } from './view/comment/CommentOperationManager'
 import { CommentInputManager } from './view/comment/CommentInputManager';
 import { LayoutManager } from './view/layout/LayoutManager';
 import { ViewPositionDetector } from './view/layout/ViewPositionDetector';
+import { CanvasHighlightProcessor } from './view/canvas/CanvasHighlightProcessor';
+import { AllHighlightsManager } from './view/allhighlights/AllHighlightsManager';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -82,6 +84,10 @@ export class CommentView extends ItemView {
     private currentEditingHighlightId: string | null | undefined = null;
     private flashcardComponent: FlashcardComponent | null = null;
     private canvasService: CanvasService;
+    // Canvas 高亮处理器
+    private canvasProcessor: CanvasHighlightProcessor | null = null;
+    // 全局高亮管理器
+    private allHighlightsManager: AllHighlightsManager | null = null;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -626,6 +632,49 @@ export class CommentView extends ItemView {
         // 初始化视图位置检测器
         this.viewPositionDetector = new ViewPositionDetector(this.app, this.leaf);
         
+        // 初始化全局高亮管理器
+        this.allHighlightsManager = new AllHighlightsManager(
+            this.app,
+            this.highlightService,
+            this.commentStore
+        );
+        
+        // 初始化 Canvas 处理器
+        this.canvasProcessor = new CanvasHighlightProcessor(
+            this.app,
+            this.canvasService,
+            this.highlightDataManager!
+        );
+        
+        this.canvasProcessor.setCallbacks({
+            onShowLoading: () => {
+                this.highlightContainer.empty();
+                if (this.loadingIndicator) {
+                    this.highlightContainer.appendChild(this.loadingIndicator);
+                    this.loadingIndicator.removeClass('highlight-display-none');
+                }
+            },
+            onHideLoading: () => {
+                if (this.loadingIndicator) {
+                    this.loadingIndicator.addClass('highlight-display-none');
+                }
+            },
+            onShowError: (message) => {
+                this.highlightContainer.empty();
+                this.highlightContainer.createDiv({
+                    cls: 'error-message',
+                    text: message
+                });
+            },
+            onShowEmpty: (message) => {
+                this.highlightContainer.empty();
+                this.highlightContainer.createDiv({
+                    cls: 'no-highlights-message',
+                    text: message
+                });
+            }
+        });
+        
         this.viewPositionDetector.setCallbacks({
             onPositionChange: async (isInMainView, wasInAllHighlightsView) => {
                 this.isDraggedToMainView = isInMainView;
@@ -814,12 +863,6 @@ export class CommentView extends ItemView {
         }
     }
 
-    async onload() {
-        // ... 其他代码保持不变 ...
-    }
-
-    // 布局管理方法已移至 LayoutManager 和 ViewPositionDetector
-    
     // 检查视图位置（使用 ViewPositionDetector）
     private async checkViewPosition() {
         if (this.viewPositionDetector) {
@@ -856,241 +899,9 @@ export class CommentView extends ItemView {
         this.highlightContainer.appendChild(this.loadingIndicator);
 
         try {
-            // 如果是路径搜索，先获取所有高亮然后按路径过滤
-            if (searchType === 'path') {
-                // 获取所有高亮
-                const allHighlights = await this.highlightService.getAllHighlights();
-                
-                // 创建所有文件的批注映射
-                const fileCommentsMap = new Map<string, HiNote[]>();
-                
-                // 获取所有文件
-                const allFiles = this.app.vault.getMarkdownFiles();
-                
-                // 预先加载所有文件的批注
-                for (const file of allFiles) {
-                    const fileComments = this.commentStore.getFileComments(file);
-                    if (fileComments && fileComments.length > 0) {
-                        fileCommentsMap.set(file.path, fileComments);
-                    }
-                }
-                
-                // 处理所有高亮
-                this.highlights = [];
-                
-                for (const { file, highlights } of allHighlights) {
-                    // 如果有搜索词，先检查文件路径是否匹配
-                    if (searchTerm && !file.path.toLowerCase().includes(searchTerm.toLowerCase())) {
-                        continue; // 跳过不匹配的文件
-                    }
-                    
-                    // 获取当前文件的所有批注
-                    const fileComments = fileCommentsMap.get(file.path) || [];
-                    
-                    // 创建一个集合来跟踪已使用的批注ID，防止重复匹配
-                    const usedCommentIds = new Set<string>();
-                    
-                    // 处理每个高亮
-                    const processedHighlights = highlights.map(highlight => {
-                        // 匹配批注的逻辑保持不变
-                        let storedComment = fileComments.find(c => 
-                            !usedCommentIds.has(c.id) && c.id === highlight.id
-                        );
-                        
-                        if (!storedComment) {
-                            storedComment = fileComments.find(c => {
-                                if (usedCommentIds.has(c.id)) return false;
-                                
-                                const textMatch = c.text === highlight.text;
-                                if (textMatch && highlight.position !== undefined && c.position !== undefined) {
-                                    return Math.abs(c.position - highlight.position) < 1000;
-                                }
-                                return textMatch;
-                            });
-                        }
-                        
-                        if (!storedComment && highlight.position !== undefined) {
-                            const highlightPos = highlight.position;
-                            storedComment = fileComments.find(c => 
-                                !usedCommentIds.has(c.id) && 
-                                c.position !== undefined && 
-                                Math.abs(c.position - highlightPos) < 50
-                            );
-                        }
-                        
-                        if (storedComment) {
-                            usedCommentIds.add(storedComment.id);
-                            
-                            return {
-                                ...highlight,
-                                id: storedComment.id,
-                                comments: storedComment.comments || [],
-                                createdAt: storedComment.createdAt,
-                                updatedAt: storedComment.updatedAt,
-                                fileName: file.basename,
-                                filePath: file.path,
-                                fileIcon: 'file-text'
-                            };
-                        }
-                        
-                        return {
-                            ...highlight,
-                            comments: highlight.comments || [],
-                            fileName: file.basename,
-                            filePath: file.path,
-                            fileIcon: 'file-text'
-                        };
-                    });
-                    
-                    this.highlights.push(...processedHighlights);
-                    
-                    // 添加虚拟高亮（只有批注的高亮）
-                    const virtualHighlights = fileComments
-                        .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
-                    
-                    virtualHighlights.forEach(vh => {
-                        usedCommentIds.add(vh.id);
-                        this.highlights.push({
-                            ...vh,
-                            fileName: file.basename,
-                            filePath: file.path,
-                            fileIcon: 'file-text',
-                            position: vh.position || 0
-                        });
-                    });
-                }
-                
-                // 初始加载
-                await this.loadMoreHighlights();
-                return;
-            }
-            
-            // 如果有搜索词，使用文件级索引系统进行搜索
-            if (searchTerm) {
-                const startTime = Date.now();
-                
-                // 使用索引搜索高亮
-                const searchResults = await this.highlightService.searchHighlightsFromIndex(searchTerm);
-                
-                // 处理搜索结果
-                this.highlights = searchResults.map(highlight => ({
-                    ...highlight,
-                    comments: highlight.comments || [],
-                    fileName: highlight.fileName || (highlight.filePath ? highlight.filePath.split('/').pop()?.replace('.md', '') : ''),
-                    filePath: highlight.filePath || '',
-                    fileIcon: 'file-text'
-                }));
-                
-                // 初始加载
-                await this.loadMoreHighlights();
-                return;
-            }
-            
-            // 如果没有搜索词，使用传统方法获取所有高亮
-            const allHighlights = await this.highlightService.getAllHighlights();
-            
-            // 创建所有文件的批注映射
-            const fileCommentsMap = new Map<string, HiNote[]>();
-            
-            // 获取所有文件
-            const allFiles = this.app.vault.getMarkdownFiles();
-            
-            // 预先加载所有文件的批注
-            for (const file of allFiles) {
-                const fileComments = this.commentStore.getFileComments(file);
-                if (fileComments && fileComments.length > 0) {
-                    fileCommentsMap.set(file.path, fileComments);
-                }
-            }
-            
-            // 处理所有高亮
-            this.highlights = [];
-            
-            for (const { file, highlights } of allHighlights) {
-                // 获取当前文件的所有批注
-                const fileComments = fileCommentsMap.get(file.path) || [];
-                
-                // 创建一个集合来跟踪已使用的批注ID，防止重复匹配
-                const usedCommentIds = new Set<string>();
-                
-                // 处理每个高亮
-                const processedHighlights = highlights.map(highlight => {
-                    // 1. 先尝试精确匹配 ID
-                    let storedComment = fileComments.find(c => 
-                        !usedCommentIds.has(c.id) && c.id === highlight.id
-                    );
-                    
-                    // 2. 如果没有精确匹配，尝试文本和位置匹配
-                    if (!storedComment) {
-                        storedComment = fileComments.find(c => {
-                            if (usedCommentIds.has(c.id)) return false;
-                            
-                            const textMatch = c.text === highlight.text;
-                            if (textMatch && highlight.position !== undefined && c.position !== undefined) {
-                                // 如果文本匹配且都有位置信息，检查是否在同一段落内
-                                return Math.abs(c.position - highlight.position) < 1000;
-                            }
-                            return textMatch; // 如果没有位置信息，只比较文本
-                        });
-                    }
-                    
-                    // 3. 如果还是没有匹配，尝试仅使用位置匹配
-                    if (!storedComment && highlight.position !== undefined) {
-                        // 由于上面的条件已经确保 highlight.position 不为 undefined，
-                        // 这里可以安全地使用它，但为了类型安全，我们使用一个临时变量
-                        const highlightPos = highlight.position;
-                        storedComment = fileComments.find(c => 
-                            !usedCommentIds.has(c.id) && 
-                            c.position !== undefined && 
-                            Math.abs(c.position - highlightPos) < 50
-                        );
-                    }
-                    
-                    if (storedComment) {
-                        // 标记这个批注ID已被使用
-                        usedCommentIds.add(storedComment.id);
-                        
-                        // 返回合并后的高亮对象
-                        return {
-                            ...highlight,
-                            id: storedComment.id, // 使用存储的批注ID
-                            comments: storedComment.comments || [],
-                            createdAt: storedComment.createdAt,
-                            updatedAt: storedComment.updatedAt,
-                            fileName: file.basename,
-                            filePath: file.path,
-                            fileIcon: 'file-text'
-                        };
-                    }
-                    
-                    // 如果没有匹配的批注，返回原始高亮并添加文件信息
-                    return {
-                        ...highlight,
-                        comments: highlight.comments || [],
-                        fileName: file.basename,
-                        filePath: file.path,
-                        fileIcon: 'file-text'
-                    };
-                });
-                
-                // 添加处理后的高亮到结果中
-                this.highlights.push(...processedHighlights);
-                
-                // 添加虚拟高亮（只有批注的高亮）
-                const virtualHighlights = fileComments
-                    .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
-                
-                // 将这些虚拟高亮添加到列表并标记为已使用
-                virtualHighlights.forEach(vh => {
-                    usedCommentIds.add(vh.id);
-                    this.highlights.push({
-                        ...vh,
-                        fileName: file.basename,
-                        filePath: file.path,
-                        fileIcon: 'file-text',
-                        position: vh.position || 0 // 确保 position 不为 undefined
-                    });
-                });
+            // 使用 AllHighlightsManager 加载所有高亮
+            if (this.allHighlightsManager) {
+                this.highlights = await this.allHighlightsManager.updateAllHighlights(searchTerm, searchType);
             }
             
             // 初始加载
@@ -1303,6 +1114,16 @@ export class CommentView extends ItemView {
         if (this.viewPositionDetector) {
             this.viewPositionDetector = null;
         }
+        
+        // 清理 Canvas 处理器
+        if (this.canvasProcessor) {
+            this.canvasProcessor = null;
+        }
+        
+        // 清理全局高亮管理器
+        if (this.allHighlightsManager) {
+            this.allHighlightsManager = null;
+        }
     }
 
     // Update AI-related dropdowns
@@ -1505,59 +1326,9 @@ export class CommentView extends ItemView {
 
     // 处理 Canvas 文件的方法
     private async handleCanvasFile(file: TFile): Promise<void> {
-        // 显示加载指示器
-        this.highlightContainer.empty();
-        if (this.loadingIndicator) {
-            this.highlightContainer.appendChild(this.loadingIndicator);
-            this.loadingIndicator.removeClass('highlight-display-none');
-        }
-        
-        try {
-            // 解析 Canvas 文件，获取所有文件路径
-            const filePaths = await this.canvasService.parseCanvasFile(file);
-            
-            if (filePaths.length === 0) {
-                // 如果没有文件节点，显示提示
-                this.highlightContainer.empty();
-                const emptyMessage = this.highlightContainer.createDiv({
-                    cls: 'no-highlights-message',
-                    text: 'There are no file nodes in the current Canvas.'
-                });
-                return;
-            }
-            
-            // 使用现有的 path: 搜索前缀功能来显示所有相关文件的高亮
-            // 先获取所有高亮
-            await this.updateAllHighlights('', 'path');
-            
-            // 然后只保留在 Canvas 文件中引用的文件的高亮
-            this.highlights = this.highlights.filter(highlight => {
-                if (!highlight.filePath) return false;
-                return filePaths.includes(highlight.filePath);
-            });
-            
-            // 添加来源信息并标记为全局搜索结果，以便显示文件名
-            this.highlights.forEach(highlight => {
-                highlight.isFromCanvas = true;
-                highlight.canvasSource = file.path;
-                highlight.isGlobalSearch = true; // 标记为全局搜索结果，这样会显示文件名
-            });
-            
-            // 渲染高亮
+        if (this.canvasProcessor) {
+            this.highlights = await this.canvasProcessor.processCanvasFile(file);
             this.renderHighlights(this.highlights);
-            
-        } catch (error) {
-            console.error('处理 Canvas 文件失败:', error);
-            this.highlightContainer.empty();
-            const errorMessage = this.highlightContainer.createDiv({
-                cls: 'error-message',
-                text: '处理 Canvas 文件时出错'
-            });
-        } finally {
-            // 隐藏加载指示器
-            if (this.loadingIndicator) {
-                this.loadingIndicator.addClass('highlight-display-none');
-            }
         }
     }
     
