@@ -1,10 +1,14 @@
 <div align="center">
-	<h1>HiNote-Highlight Text with Comments</h1>
+	<h1>HiNote - Highlight Text with Comments</h1>
 	<img src="https://img.shields.io/github/downloads/CatMuse/HiNote/total" alt="GitHub Downloads (all assets, all releases)" />
 	<img src="https://img.shields.io/github/v/release/CatMuse/HiNote" alt="GitHub release (latest by date)" />
 	<img src="https://img.shields.io/github/last-commit/CatMuse/HiNote" alt="GitHub last commit" />
 	<img src="https://img.shields.io/github/issues/CatMuse/HiNote" alt="GitHub issues" />
 	<img src="https://img.shields.io/github/stars/CatMuse/HiNote?style=social" alt="GitHub stars" />
+	<br/><br/>
+	<a href="https://hinote.vip">
+		<img src="https://img.shields.io/badge/⭐_Pro_Version-Unlock_Flashcard_System-ff6b6b?style=for-the-badge&logo=star" alt="Upgrade to Pro" />
+	</a>
 </div>
 
 ---
@@ -13,7 +17,9 @@
 
 This AI-programmed Obsidian plugin can automatically extract highlighted text from notes, allowing users to add comments, generate AI comments, and engage in dialogue with the highlighted text. Users can highlight text in various formats, export it as knowledge card images or create new notes, while enjoying additional extended features in the main view.
 
->  I have no development experience. This plugin was completed by me and an AI together. Please use it with caution as it is in the Beta version.
+> 💡 **Tip:** [Upgrade to Pro](https://hinote.vip) to unlock the FSRS-powered flashcard system for efficient memorization of your highlights
+
+>  This plugin is developed with AI assistance and is currently in Beta testing. Please use it with caution and back up your data regularly.
 
 👇🏻 Click the image to view the video tutorial
 
@@ -29,13 +35,19 @@ When you open a note with highlighted text, the sidebar automatically displays t
 
 ---
 
+## ✨ Key Features
+
+🎯 Auto-extract highlights in multiple formats | 📝 Add comments and notes to highlights | 🤖 AI-assisted comments and intelligent dialogue | 📸 Export as beautiful knowledge cards | 📝 Generate new notes linked to source | 🧠 Spaced repetition learning system (Pro)
+
+---
+
 ## Highlighted comments
 
 The highlight comment feature allows you to quickly engage with highlighted text, preventing your ideas from slipping away. Simply click on the Widgets in the editing area or directly click the add comment button on the card to open the input box.
 
 The note comment feature allows you to add your thoughts to the entire document without relying on any highlighted text. Click the add file comment on the right side of the search bar to open the input box at the top of the highlight list.
 
->  All your highlight and comment data will be stored in the plugin's data.json file, giving you complete control.
+>  All comments and highlight data are stored in the `.hinote` folder in the root directory of your vault, giving you complete control over your data.
 
 ---
 
@@ -43,7 +55,7 @@ The note comment feature allows you to add your thoughts to the entire document 
 
 Export your highlighted text and comments to create beautifully designed knowledge cards for easy sharing.
 
-![Export image](./doc/export-image.jpg)
+![Export as image](./doc/export-image.jpg)
 
 ---
 
@@ -51,7 +63,7 @@ Export your highlighted text and comments to create beautifully designed knowled
 
 Export all your highlighted text and comments as a new note, displayed in Callout format. Each highlight and comment can be linked back to the source note through block references (Block ID).
 
-![export as file](./doc/export-as-file.jpg)
+![Export as note](./doc/export-as-file.jpg)
 
 ---
 
@@ -62,21 +74,23 @@ Drag the right sidebar window to the main view to unlock more features, such as 
 - Notes List: Displays all notes in the knowledge base that contain highlighted text, with the number of highlights indicated.
 - All Highlights: Shows all highlighted cards in the knowledge base, allowing you to focus more on the highlighted content.
 - AI Chat: You can open the AI chat window via the chat icon in the bottom right corner (see below for details).
-- HiCard: Implements the functionality to generate FlashCards from your highlighted text and comments, assisting you in memorizing and learning (Pro feature).
+- HiCard: Implements the functionality to generate FlashCards from your highlighted text and comments, assisting you in memorizing and learning (Pro feature)
 
-![main view](./doc/main-view.jpg)
+![Main view](./doc/main-view.jpg)
 
 ---
 
 ## AI Comment
 
-AI can assist you in thinking and add the generated content as a comment below the highlighted text. First, you need to configure the AI provider, API Key, and model in the plugin's settings menu. Currently supported providers include OpenAI, Gemini, Anthropic, Deepseek, SiliconFlow, and Ollama.
+AI can assist you in thinking and add the generated content as a comment below the highlighted text.
 
-Next, configure your custom Prompt. Here, you can use two fields to obtain the highlighted text and comment content: `{{highlight}}` and `{{Comment}}` .
+First, you need to configure the AI provider, API Key, and model in the plugin's settings menu. Currently supported providers include OpenAI, Gemini, Anthropic, Deepseek, SiliconFlow, and Ollama.
+
+Next, configure your custom Prompt. Here, you can use two fields to obtain the highlighted text and comment content: `{{highlight}}` and `{{comment}}`.
 
 Finally, you can use your custom Prompt in the AI button on the highlighted card. Or you can input your custom Prompt in the comment input box and directly click the Tab key to trigger the AI service.
 
-![AI comment](./doc/ai-comment.jpg)
+![AI Comment](./doc/ai-comment.jpg)
 
 ---
 
@@ -86,7 +100,7 @@ In the bottom right corner of the main view, you can click the conversation icon
 
 Additionally, you can drag highlighted cards into the conversation window as part of the dialogue, and it supports dragging in multiple highlighted items simultaneously. You can also set the context of the highlighted text in the conversation window.
 
-![AI chat](./doc/ai-chat.jpg)
+![AI Chat](./doc/ai-chat.jpg)
 
 ---
 
@@ -102,15 +116,17 @@ The Flashcard feature is available in the Pro version of HiNote. This advanced s
 - Utilize the FSRS (Free Spaced Repetition Scheduler) algorithm for optimal learning efficiency
 - Customize review schedules to match your learning style
 
-To access these premium features, you'll need to [obtain a license](https://hinote.gumroad.com/l/qovuny).
+To access these premium features, you'll need to [upgrade to Pro](https://hinote.vip).
 
 ![HiCard](./doc/hi-card.jpg)
+
+![HiCard Settings](./doc/hicard-setting.jpg)
 
 [![HiNote Pro](./doc/hinote-pro.jpg)](https://www.hinote.vip/en.html)
 
 ---
 
-Support
+## Support
 
 If you find this plugin useful and would like to support its development:
 
