@@ -71,6 +71,11 @@ export default {
     "Invalid JSON format. Headers must be an object.": "Invalid JSON format. Headers must be an object.",
     "Invalid JSON format": "Invalid JSON format",
 
+//批注展开/收起
+
+    "Expand": "Expand",
+    "Collapse": "Collapse",
+
 //Ollama 设置
 
     "Ollama service": "Ollama service",

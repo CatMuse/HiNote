@@ -594,6 +594,102 @@ settings:
     display: none;
 }
 
+/* ========== 批注展开/收起功能样式 ========== */
+
+/* 内容包装器 */
+.hi-note-content-wrapper {
+    position: relative;
+}
+
+/* 编辑模式下隐藏展开/收起功能 */
+.hi-note.editing .toggle-content-btn,
+.hi-note.editing .content-fade-out {
+    display: none !important;
+}
+
+/* 编辑模式下移除高度限制 */
+.hi-note.editing .hi-note-content-wrapper.collapsed .hi-note-content {
+    max-height: none;
+}
+
+/* 可折叠内容的过渡动画 */
+.hi-note-content-wrapper.has-collapsible-content .hi-note-content {
+    transition: max-height 0.3s ease-out;
+    overflow: hidden;
+}
+
+/* 折叠状态 - 限制高度 */
+.hi-note-content-wrapper.collapsed .hi-note-content {
+    max-height: 240px;
+}
+
+/* 展开状态 - 移除高度限制 */
+.hi-note-content-wrapper.expanded .hi-note-content {
+    max-height: none;
+}
+
+/* 渐变遮罩 - 折叠时显示 */
+.hi-note-content-wrapper.collapsed .content-fade-out {
+    position: absolute;
+    bottom: 32px; /* 按钮高度 + 间距 */
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        var(--background-secondary) 80%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* 展开状态时隐藏遮罩 */
+.hi-note-content-wrapper.expanded .content-fade-out {
+    display: none;
+}
+
+/* 展开/收起按钮 */
+.toggle-content-btn {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    margin-top: 6px;
+    background: var(--background-modifier-hover);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    user-select: none; /* 防止文本被选中 */
+    -webkit-user-select: none;
+}
+
+.toggle-content-btn:hover {
+    background: var(--background-modifier-active-hover);
+    color: var(--text-normal);
+    border-color: var(--background-modifier-border-hover);
+}
+
+.toggle-content-btn:active {
+    transform: scale(0.98);
+}
+
+/* 按钮悬停效果 */
+.toggle-content-btn:hover span::after {
+    transform: translateY(1px);
+}
+
+.hi-note-content-wrapper.expanded .toggle-content-btn:hover span::after {
+    transform: translateY(-1px);
+}
+
+/* ========== 批注展开/收起功能样式结束 ========== */
+
 .hi-note-input {
     padding: 8px;
     background-color: var(--background-secondary);

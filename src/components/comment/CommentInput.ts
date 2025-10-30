@@ -16,6 +16,7 @@ export class CommentInput {
     private isAIProcessing = false;
     private originalContent = '';
     private boundHandleOutsideClick: (e: MouseEvent) => void;
+    private commentEl: Element | null = null; // 保存批注元素引用，用于移除 editing 类
     
     // 查找对应的 HighlightCard 实例
     private findHighlightCardInstance(): any {
@@ -66,6 +67,12 @@ export class CommentInput {
     private showEditMode() {
         const commentEl = this.card.querySelector(`[data-comment-id="${this.existingComment!.id}"]`);
         if (!commentEl) return;
+
+        // 保存引用，用于在 destroy 时移除 editing 类
+        this.commentEl = commentEl;
+
+        // 添加编辑状态类，用于隐藏展开/收起按钮
+        commentEl.addClass('editing');
 
         const contentEl = commentEl.querySelector('.hi-note-content') as HTMLElement;
         if (!contentEl) return;
@@ -539,6 +546,12 @@ export class CommentInput {
     public destroy() {
         document.removeEventListener('click', this.boundHandleOutsideClick);
         this.isProcessing = false;
+        
+        // 移除编辑状态类，恢复展开/收起按钮
+        if (this.commentEl) {
+            this.commentEl.removeClass('editing');
+            this.commentEl = null;
+        }
         
         // 通知 HighlightCard 输入框已关闭
         const event = new CustomEvent('comment-input-closed', {

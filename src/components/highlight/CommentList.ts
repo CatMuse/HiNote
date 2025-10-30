@@ -1,5 +1,6 @@
 import { CommentItem, HighlightInfo } from "../../types";
 import { MarkdownRenderer, Component, App } from "obsidian";
+import { t } from "../../i18n";
 
 // 标签格式的正则表达式
 const TAG_REGEX = /#[\w\u4e00-\u9fa5]+/g;
@@ -63,9 +64,14 @@ export class CommentList extends Component {
                 attr: { 'data-comment-id': comment.id }
             });
 
+            // 创建内容包装器（用于展开/收起功能）
+            const contentWrapper = commentEl.createEl("div", {
+                cls: "hi-note-content-wrapper"
+            });
+
             // 评论内容 - 添加双击事件
             // 处理标签和内容
-            const contentEl = commentEl.createEl("div", {
+            const contentEl = contentWrapper.createEl("div", {
                 cls: "hi-note-content markdown-rendered"
             });
 
@@ -151,6 +157,11 @@ export class CommentList extends Component {
                 e.stopPropagation();
             });
 
+            // 检查内容高度并添加展开/收起按钮（在下一帧执行，确保内容已渲染）
+            requestAnimationFrame(() => {
+                this.checkAndAddToggleButton(contentWrapper, contentEl, comment);
+            });
+
             // 创建底部操作栏
             const footer = commentEl.createEl("div", {
                 cls: "hi-note-footer"
@@ -175,6 +186,61 @@ export class CommentList extends Component {
         }
     }
     
+    /**
+     * 检查内容高度并添加展开/收起按钮
+     * @param wrapper 内容包装器
+     * @param contentEl 内容元素
+     * @param comment 评论对象
+     */
+    private checkAndAddToggleButton(
+        wrapper: HTMLElement,
+        contentEl: HTMLElement,
+        comment: CommentItem
+    ): void {
+        const MAX_HEIGHT = 240; // 折叠时的最大高度（像素）
+        const actualHeight = contentEl.scrollHeight;
+
+        // 如果内容高度超过阈值，添加展开/收起功能
+        if (actualHeight > MAX_HEIGHT) {
+            // 添加可折叠标记类
+            wrapper.addClass('has-collapsible-content');
+            wrapper.addClass('collapsed');
+
+            // 添加渐变遮罩
+            const fadeOut = wrapper.createEl("div", {
+                cls: "content-fade-out"
+            });
+
+            // 添加展开/收起按钮
+            const toggleBtn = wrapper.createEl("div", {
+                cls: "toggle-content-btn"
+            });
+
+            // 创建按钮文本和图标
+            const btnText = toggleBtn.createEl("span", {
+                text: t("Expand")
+            });
+
+            // 添加点击事件
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isCollapsed = wrapper.hasClass('collapsed');
+
+                if (isCollapsed) {
+                    // 展开
+                    wrapper.removeClass('collapsed');
+                    wrapper.addClass('expanded');
+                    btnText.textContent = t("Collapse");
+                } else {
+                    // 收起
+                    wrapper.addClass('collapsed');
+                    wrapper.removeClass('expanded');
+                    btnText.textContent = t("Expand");
+                }
+            });
+        }
+    }
+
     /**
      * 激活内部链接，添加悬停预览和点击跳转功能
      * @param element 包含链接的元素
