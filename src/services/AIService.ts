@@ -4,6 +4,7 @@ import { AnthropicService } from './AnthropicService';
 import { GeminiService } from './GeminiService';
 import { SiliconFlowService } from './SiliconFlowService';
 import { DeepseekService } from './DeepseekService';
+import { CustomAIService } from './CustomAIService';
 import { BaseHTTPClient } from './BaseHTTPClient';
 
 interface OpenAIResponse {
@@ -20,6 +21,7 @@ export class AIService {
     private geminiService: GeminiService | null = null;
     private deepseekService: DeepseekService | null = null;
     private siliconflowService: SiliconFlowService | null = null;
+    private customService: CustomAIService | null = null;
     private httpClient: BaseHTTPClient;
 
     // 存储当前使用的模型状态
@@ -57,6 +59,15 @@ export class AIService {
         if (settings.siliconflow?.apiKey) {
             this.siliconflowService = new SiliconFlowService(this.settings);
         }
+        if (settings.custom?.apiKey && settings.custom?.baseUrl && settings.custom?.model) {
+            this.customService = new CustomAIService(
+                settings.custom.apiKey,
+                settings.custom.baseUrl,
+                settings.custom.model,
+                settings.custom.headers,
+                settings.custom.detectedApiType
+            );
+        }
         
         // 初始化使用设置中的值
         this.currentState.provider = settings.provider;
@@ -69,6 +80,9 @@ export class AIService {
                 break;
             case 'siliconflow':
                 this.currentState.model = settings.siliconflow?.model || 'internlm/internlm2_5-7b-chat';
+                break;
+            case 'custom':
+                this.currentState.model = settings.custom?.model || '';
                 break;
             // 其他 provider 的情况...
         }
@@ -89,6 +103,11 @@ export class AIService {
             case 'deepseek':
                 if (this.deepseekService) {
                     this.deepseekService.updateModel(model);
+                }
+                break;
+            case 'custom':
+                if (this.customService) {
+                    this.customService.updateModel(model);
                 }
                 break;
             // 其他 provider 的情况...
@@ -117,6 +136,8 @@ export class AIService {
                 return await this.callDeepseek(promptWithContext);
             case 'siliconflow':
                 return await this.callSiliconFlow(promptWithContext);
+            case 'custom':
+                return await this.callCustom(promptWithContext);
             default:
                 throw new Error('AI service not configured');
         }
@@ -136,6 +157,8 @@ export class AIService {
                 return await this.chatWithDeepseek(messages);
             case 'siliconflow':
                 return await this.chatWithSiliconFlow(messages);
+            case 'custom':
+                return await this.chatWithCustom(messages);
             default:
                 throw new Error('AI service not configured');
         }
@@ -212,6 +235,13 @@ export class AIService {
         return await this.deepseekService.chat(messages);
     }
 
+    private async chatWithCustom(messages: { role: string, content: string }[]): Promise<string> {
+        if (!this.customService) {
+            throw new Error('Custom AI service not configured');
+        }
+        return await this.customService.chat(messages);
+    }
+
     private async callOpenAI(prompt: string): Promise<string> {
         return await this.chatWithOpenAI([{ role: 'user', content: prompt }]);
     }
@@ -268,6 +298,13 @@ export class AIService {
         return await this.deepseekService.generateResponse(prompt);
     }
 
+    private async callCustom(prompt: string): Promise<string> {
+        if (!this.customService) {
+            throw new Error('Custom AI service not configured');
+        }
+        return await this.customService.generateResponse(prompt);
+    }
+
     async testConnection(): Promise<boolean> {
         switch (this.settings.provider) {
             case 'openai':
@@ -290,6 +327,9 @@ export class AIService {
             case 'deepseek':
                 if (!this.deepseekService) return false;
                 return await this.deepseekService.testConnection();
+            case 'custom':
+                if (!this.customService) return false;
+                return await this.customService.testConnection();
             default:
                 return false;
         }
@@ -344,5 +384,36 @@ export class AIService {
         }
 
         return models;
+    }
+
+    async listCustomModels(): Promise<AIModel[]> {
+        const models: AIModel[] = [];
+
+        // 如果有自定义模型，添加到列表中
+        if (this.settings.custom?.model) {
+            models.push({
+                id: this.settings.custom.model,
+                name: this.settings.custom.model,
+                isCustom: true
+            });
+        }
+
+        // 如果有上次使用的自定义模型，也添加进去
+        if (this.settings.custom?.lastCustomModel && 
+            this.settings.custom.lastCustomModel !== this.settings.custom.model) {
+            models.push({
+                id: this.settings.custom.lastCustomModel,
+                name: this.settings.custom.lastCustomModel,
+                isCustom: true
+            });
+        }
+
+        return models;
+    }
+
+    // 获取自定义服务检测到的 API 类型
+    getCustomServiceAPIType(): string | null {
+        if (!this.customService) return null;
+        return this.customService.getDetectedAPIType();
     }
 }

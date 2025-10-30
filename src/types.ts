@@ -30,7 +30,7 @@ export interface HighlightInfo {
     canvasSource?: string; // Canvas 文件的路径
 }
 
-export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow';
+export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow' | 'custom';
 export type OpenAIModel = 'gpt-4o' | 'gpt-4o-mini' | 'gpt-o1';
 export type AnthropicModel = 'claude-opus-4-1-20250805' | 'claude-opus-4-20250514' | 'claude-sonnet-4-20250514' | 'claude-3-7-sonnet-20250219' | 'claude-3-5-haiku-20241022' | 'claude-3-haiku-20240307';
 
@@ -107,6 +107,16 @@ export interface AISettings {
         apiKey: string;
         model: string;
         baseUrl?: string;
+        isCustomModel?: boolean;
+        lastCustomModel?: string;
+    };
+    custom?: {
+        name: string;              // 自定义服务商名称
+        apiKey: string;            // API Key
+        baseUrl: string;           // API 端点 URL
+        model: string;             // 模型名称
+        detectedApiType?: 'openai' | 'anthropic' | 'gemini';  // 自动检测的 API 类型
+        headers?: Record<string, string>;  // 可选的自定义请求头
         isCustomModel?: boolean;
         lastCustomModel?: string;
     };

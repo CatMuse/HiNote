@@ -7,6 +7,7 @@ import { DeepseekSettings } from './ai/DeepseekSettings';
 import { GeminiSettings } from './ai/GeminiSettings';
 import { OllamaSettings } from './ai/OllamaSettings';
 import { SiliconFlowSettings } from './ai/SiliconFlowSettings';
+import { CustomAISettings } from './ai/CustomAISettings';
 import { PromptSettingsTab } from './PromptSettingsTab';
 
 export class AIServiceTab {
@@ -30,7 +31,8 @@ export class AIServiceTab {
                     'anthropic': 'Anthropic',
                     'deepseek': 'Deepseek',
                     'siliconflow': 'SiliconFlow',
-                    'ollama': 'Ollama (Local)'
+                    'ollama': 'Ollama (Local)',
+                    'custom': t('Custom AI Service')
                 };
 
                 return dropdown
@@ -64,6 +66,9 @@ export class AIServiceTab {
                 break;
             case 'siliconflow':
                 new SiliconFlowSettings(this.plugin, this.containerEl).display(this.containerEl);
+                break;
+            case 'custom':
+                new CustomAISettings(this.plugin, this.containerEl).display(this.containerEl);
                 break;
         }
 

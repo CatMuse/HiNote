@@ -44,6 +44,33 @@ export default {
 
     "Deepseek service": "Deepseek 服务",
 
+    //Custom AI 设置
+
+    "Custom AI Service": "自定义 AI 服务",
+    "Configure your own AI service provider. Supports OpenAI, Anthropic, and Gemini compatible APIs.": "配置您自己的 AI 服务商。支持 OpenAI、Anthropic 和 Gemini 兼容的 API。",
+    "The API type will be automatically detected based on your URL.": "API 类型将根据您的 URL 自动检测。",
+    "Service Name": "服务名称",
+    "Give your custom AI service a name": "为您的自定义 AI 服务命名",
+    "e.g., My AI Service": "例如：我的 AI 服务",
+    "API Endpoint URL": "API 端点 URL",
+    "The base URL of your AI service API": "您的 AI 服务 API 的基础 URL",
+    "Your API key for authentication": "用于身份验证的 API 密钥",
+    "Test Connection": "测试连接",
+    "Testing...": "测试中...",
+    "Please fill in all required fields first": "请先填写所有必填字段",
+    "Connection successful! Detected API type: ": "连接成功！检测到的 API 类型：",
+    "Connection successful!": "连接成功！",
+    "Connection failed. Please check your settings.": "连接失败。请检查您的设置。",
+    "Connection failed: ": "连接失败：",
+    "The model identifier to use": "要使用的模型标识符",
+    "gpt-4, claude-3-opus, gemini-pro, etc.": "gpt-4、claude-3-opus、gemini-pro 等",
+    "Detected API Type: ": "检测到的 API 类型：",
+    "Advanced Options": "高级选项",
+    "Optional custom headers (JSON format)": "可选的自定义请求头（JSON 格式）",
+    "Example: {\"X-Custom-Header\": \"value\"}": "示例：{\"X-Custom-Header\": \"value\"}",
+    "Invalid JSON format. Headers must be an object.": "无效的 JSON 格式。请求头必须是一个对象。",
+    "Invalid JSON format": "无效的 JSON 格式",
+
     //Ollama 设置
 
     "Ollama service": "Ollama 服务",
