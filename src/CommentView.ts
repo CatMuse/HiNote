@@ -129,6 +129,11 @@ export class CommentView extends ItemView {
         // 监听文档修改
         this.registerEvent(
             this.app.vault.on('modify', (file) => {
+                // 清除文件列表缓存(文件内容变化可能影响高亮)
+                if (this.fileListManager) {
+                    this.fileListManager.invalidateCache();
+                }
+                
                 // 只在非主视图时同步文件
                 if (file === this.currentFile && !this.isDraggedToMainView) {
                     // 检查是否是在 Canvas 中选中的文件节点
@@ -137,6 +142,23 @@ export class CommentView extends ItemView {
                                       activeLeaf?.view?.getViewType() === 'canvas';
                     
                     this.updateHighlights(isInCanvas);
+                }
+            })
+        );
+        
+        // 监听文件创建和删除,清除缓存
+        this.registerEvent(
+            this.app.vault.on('create', () => {
+                if (this.fileListManager) {
+                    this.fileListManager.invalidateCache();
+                }
+            })
+        );
+        
+        this.registerEvent(
+            this.app.vault.on('delete', () => {
+                if (this.fileListManager) {
+                    this.fileListManager.invalidateCache();
                 }
             })
         );
@@ -448,6 +470,7 @@ export class CommentView extends ItemView {
             this.plugin,
             this.exportService,
             this.licenseManager,
+            this.highlightService,
             this.containerEl
         );
 

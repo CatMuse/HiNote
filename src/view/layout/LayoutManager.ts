@@ -109,9 +109,11 @@ export class LayoutManager {
         }
         
         if (this.isDraggedToMainView) {
-            // 更新文件列表
-            if (this.onUpdateFileList) {
-                await this.onUpdateFileList();
+            // 立即应用布局,不阻塞UI
+            if (this.isMobileView && this.isSmallScreen) {
+                this.applySmallScreenLayout();
+            } else {
+                this.applyLargeScreenLayout();
             }
             
             // 创建浮动按钮
@@ -119,13 +121,23 @@ export class LayoutManager {
                 this.onCreateFloatingButton();
             }
             
-            // 根据设备类型和屏幕大小调整布局
-            if (this.isMobileView && this.isSmallScreen) {
-                // 小屏幕移动设备主视图模式（手机）
-                this.applySmallScreenLayout();
-            } else {
-                // 大屏幕设备主视图模式（平板、桌面）
-                this.applyLargeScreenLayout();
+            // 延迟加载文件列表,不阻塞UI渲染
+            // 使用 requestIdleCallback 在浏览器空闲时加载
+            if (this.onUpdateFileList) {
+                if ('requestIdleCallback' in window) {
+                    requestIdleCallback(async () => {
+                        if (this.onUpdateFileList) {
+                            await this.onUpdateFileList();
+                        }
+                    });
+                } else {
+                    // 降级方案:使用 setTimeout
+                    setTimeout(async () => {
+                        if (this.onUpdateFileList) {
+                            await this.onUpdateFileList();
+                        }
+                    }, 50);
+                }
             }
         } else {
             // 侧边栏布局

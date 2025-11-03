@@ -27,6 +27,12 @@ export class FileListManager {
     private isSmallScreen: boolean = false;
     private isDraggedToMainView: boolean = false;
     
+    // 缓存
+    private cachedFiles: TFile[] | null = null;
+    private cachedFileCounts: Map<string, number> | null = null;
+    private cacheTimestamp: number = 0;
+    private readonly CACHE_EXPIRY = 60000; // 1分钟缓存
+    
     constructor(
         container: HTMLElement,
         plugin: CommentPlugin,
@@ -311,41 +317,135 @@ export class FileListManager {
     }
     
     /**
-     * 获取所有包含高亮的文件
+     * 清除缓存
+     */
+    invalidateCache(): void {
+        this.cachedFiles = null;
+        this.cachedFileCounts = null;
+        this.cacheTimestamp = 0;
+    }
+    
+    /**
+     * 获取所有包含高亮的文件(优化版)
+     * 优先使用索引和缓存,大幅提升性能
      */
     async getFilesWithHighlights(): Promise<TFile[]> {
+        // 检查缓存
+        const now = Date.now();
+        if (this.cachedFiles && (now - this.cacheTimestamp) < this.CACHE_EXPIRY) {
+            return this.cachedFiles;
+        }
+        
+        // 优先使用 HighlightService 的索引
+        const cachedHighlights = this.highlightService.getAllHighlightsFromCache();
+        
+        if (cachedHighlights && cachedHighlights.length > 0) {
+            // 从索引中提取文件列表和数量
+            const filePathsSet = new Set<string>();
+            const countsMap = new Map<string, number>();
+            
+            for (const highlight of cachedHighlights) {
+                if (highlight.filePath) {
+                    filePathsSet.add(highlight.filePath);
+                    countsMap.set(
+                        highlight.filePath,
+                        (countsMap.get(highlight.filePath) || 0) + 1
+                    );
+                }
+            }
+            
+            // 转换为 TFile 对象
+            const files: TFile[] = [];
+            for (const filePath of filePathsSet) {
+                const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+                if (file instanceof TFile) {
+                    files.push(file);
+                }
+            }
+            
+            // 更新缓存
+            this.cachedFiles = files;
+            this.cachedFileCounts = countsMap;
+            this.cacheTimestamp = now;
+            
+            return files;
+        }
+        
+        // 如果索引不可用,降级到原有逻辑
+        const files = await this.getFilesWithHighlightsLegacy();
+        this.cachedFiles = files;
+        this.cacheTimestamp = now;
+        return files;
+    }
+    
+    /**
+     * 获取所有包含高亮的文件(原有逻辑,作为降级方案)
+     */
+    private async getFilesWithHighlightsLegacy(): Promise<TFile[]> {
         const allFiles = this.plugin.app.vault.getMarkdownFiles();
         const files = allFiles.filter(file => this.highlightService.shouldProcessFile(file));
         const filesWithHighlights: TFile[] = [];
+        const countsMap = new Map<string, number>();
         
         for (const file of files) {
             const content = await this.plugin.app.vault.read(file);
-            if (this.highlightService.extractHighlights(content, file).length > 0) {
+            const highlights = this.highlightService.extractHighlights(content, file);
+            if (highlights.length > 0) {
                 filesWithHighlights.push(file);
+                countsMap.set(file.path, highlights.length);
             }
         }
+        
+        // 同时缓存数量信息
+        this.cachedFileCounts = countsMap;
         
         return filesWithHighlights;
     }
     
     /**
-     * 获取文件的高亮数量
+     * 获取文件的高亮数量(优化版)
+     * 优先从缓存获取,避免重复读取文件
      */
     private async getFileHighlightsCount(file: TFile): Promise<number> {
+        // 优先从缓存获取
+        if (this.cachedFileCounts && this.cachedFileCounts.has(file.path)) {
+            return this.cachedFileCounts.get(file.path)!;
+        }
+        
+        // 如果缓存不可用,读取文件
         const content = await this.plugin.app.vault.read(file);
-        return this.highlightService.extractHighlights(content, file).length;
+        const count = this.highlightService.extractHighlights(content, file).length;
+        
+        // 更新缓存
+        if (!this.cachedFileCounts) {
+            this.cachedFileCounts = new Map();
+        }
+        this.cachedFileCounts.set(file.path, count);
+        
+        return count;
     }
     
     /**
-     * 获取所有文件的高亮总数
+     * 获取所有文件的高亮总数(优化版)
+     * 直接从索引或缓存获取,避免遍历文件
      */
-    private async getTotalHighlightsCount(): Promise<number> {
-        const files = await this.getFilesWithHighlights();
-        let total = 0;
-        for (const file of files) {
-            total += await this.getFileHighlightsCount(file);
+    private getTotalHighlightsCount(): number {
+        // 优先从索引获取
+        const cachedHighlights = this.highlightService.getAllHighlightsFromCache();
+        if (cachedHighlights) {
+            return cachedHighlights.length;
         }
-        return total;
+        
+        // 从缓存的数量信息计算
+        if (this.cachedFileCounts) {
+            let total = 0;
+            for (const count of this.cachedFileCounts.values()) {
+                total += count;
+            }
+            return total;
+        }
+        
+        return 0;
     }
     
     /**

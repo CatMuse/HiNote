@@ -17,7 +17,7 @@ import { EventManager } from './src/services/EventManager';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
-	private commentStore: CommentStore;
+	public commentStore: CommentStore;
 	private highlightDecorator: HighlightDecorator;
 	public fsrsManager: FSRSManager;
 	public eventManager: EventManager;

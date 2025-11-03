@@ -1,9 +1,10 @@
-import { Notice, Modal, setIcon } from "obsidian";
+import { Notice, Modal, setIcon, TFile } from "obsidian";
 import { HighlightInfo } from "../../types";
 import { HighlightCard } from "../../components/highlight/HighlightCard";
 import CommentPlugin from "../../../main";
 import { ExportService } from "../../services/ExportService";
 import { LicenseManager } from "../../services/LicenseManager";
+import { HighlightService } from "../../services/HighlightService";
 import { t } from "../../i18n";
 
 /**
@@ -17,6 +18,7 @@ export class BatchOperationsHandler {
     private plugin: CommentPlugin;
     private exportService: ExportService;
     private licenseManager: LicenseManager;
+    private highlightService: HighlightService;
     private containerEl: HTMLElement;
     private multiSelectActionsContainer: HTMLElement | null = null;
     
@@ -29,11 +31,13 @@ export class BatchOperationsHandler {
         plugin: CommentPlugin,
         exportService: ExportService,
         licenseManager: LicenseManager,
+        highlightService: HighlightService,
         containerEl: HTMLElement
     ) {
         this.plugin = plugin;
         this.exportService = exportService;
         this.licenseManager = licenseManager;
+        this.highlightService = highlightService;
         this.containerEl = containerEl;
     }
     
@@ -306,12 +310,14 @@ export class BatchOperationsHandler {
                     
                     let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
                     let result = false;
+                    let tempCard: HighlightCard | null = null;
                     
                     if (highlightCard) {
                         result = await highlightCard.createHiCardForHighlight(true);
                     } else {
+                        // 创建临时实例
                         const tempContainer = document.createElement('div');
-                        highlightCard = new HighlightCard(
+                        tempCard = new HighlightCard(
                             tempContainer,
                             highlight,
                             this.plugin,
@@ -324,7 +330,12 @@ export class BatchOperationsHandler {
                             },
                             false
                         );
-                        result = await highlightCard.createHiCardForHighlight(true);
+                        try {
+                            result = await tempCard.createHiCardForHighlight(true);
+                        } finally {
+                            // 清理临时实例,防止内存泄漏
+                            tempCard.destroy();
+                        }
                     }
                     
                     if (result) {
@@ -400,12 +411,14 @@ export class BatchOperationsHandler {
                     
                     let highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
                     let result = false;
+                    let tempCard: HighlightCard | null = null;
                     
                     if (highlightCard) {
                         result = await highlightCard.deleteHiCardForHighlight(true);
                     } else {
+                        // 创建临时实例
                         const tempContainer = document.createElement('div');
-                        highlightCard = new HighlightCard(
+                        tempCard = new HighlightCard(
                             tempContainer,
                             highlight,
                             this.plugin,
@@ -418,7 +431,12 @@ export class BatchOperationsHandler {
                             },
                             false
                         );
-                        result = await highlightCard.deleteHiCardForHighlight(true);
+                        try {
+                            result = await tempCard.deleteHiCardForHighlight(true);
+                        } finally {
+                            // 清理临时实例,防止内存泄漏
+                            tempCard.destroy();
+                        }
                     }
                     
                     if (result) {
@@ -481,6 +499,11 @@ export class BatchOperationsHandler {
     
     /**
      * 执行删除选中高亮
+     * 重构后的批量删除逻辑:
+     * 1. 先删除所有闪卡(如果存在)
+     * 2. 批量删除文件中的高亮标记(一次性处理,避免多次文件读写)
+     * 3. 从 CommentStore 中删除数据
+     * 4. 清理 DOM 和卡片实例
      */
     private async performDeleteSelectedHighlights() {
         const selectedHighlights = this.getSelectedHighlightsCallback();
@@ -490,34 +513,137 @@ export class BatchOperationsHandler {
             return;
         }
         
-        let successCount = 0;
-        let failCount = 0;
+        const highlightsArray = Array.from(selectedHighlights);
+        let fileMarkSuccess = 0;
+        let fileMarkFailed = 0;
+        let dataDeleteFailed = 0;
         
-        for (const highlight of selectedHighlights) {
-            try {
-                if (!highlight.id) continue;
-                
-                const highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
-                
-                if (highlightCard) {
-                    await highlightCard.handleDeleteHighlight(true, true);
-                    successCount++;
-                } else {
-                    failCount++;
+        try {
+            // 第一步: 删除闪卡(如果存在)
+            const fsrsManager = this.plugin.fsrsManager;
+            if (fsrsManager) {
+                for (const highlight of highlightsArray) {
+                    if (highlight.id) {
+                        try {
+                            fsrsManager.deleteCardsBySourceId(highlight.id, 'highlight');
+                        } catch (error) {
+                            console.error('[BatchDelete] 删除闪卡失败:', highlight.id, error);
+                        }
+                    }
                 }
-            } catch (error) {
-                console.error('删除高亮时出错:', error);
-                failCount++;
             }
+            
+            // 第二步: 批量删除文件中的高亮标记
+            const highlightsToRemove = highlightsArray
+                .filter(h => h.filePath && h.text)
+                .map(h => ({
+                    text: h.text,
+                    position: h.position,
+                    filePath: h.filePath!,
+                    originalLength: h.originalLength
+                }));
+            
+            if (highlightsToRemove.length > 0) {
+                const result = await this.highlightService.batchRemoveHighlightMarks(highlightsToRemove);
+                fileMarkSuccess = result.success;
+                fileMarkFailed = result.failed;
+            }
+            
+            // 第三步: 从 CommentStore 中批量删除数据
+            const commentStore = this.plugin.commentStore;
+            if (commentStore) {
+                // 按文件分组,减少保存次数
+                const highlightsByFile = new Map<string, typeof highlightsArray>();
+                for (const highlight of highlightsArray) {
+                    if (highlight.filePath && highlight.id) {
+                        if (!highlightsByFile.has(highlight.filePath)) {
+                            highlightsByFile.set(highlight.filePath, []);
+                        }
+                        highlightsByFile.get(highlight.filePath)!.push(highlight);
+                    }
+                }
+                
+                // 对每个文件批量删除
+                for (const [filePath, fileHighlights] of highlightsByFile) {
+                    try {
+                        const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
+                        if (file instanceof TFile) {
+                            // 批量删除该文件的所有高亮
+                            for (const highlight of fileHighlights) {
+                                try {
+                                    await commentStore.removeComment(file, highlight as any);
+                                } catch (error) {
+                                    console.error('[BatchDelete] 从 CommentStore 删除失败:', highlight.id, error);
+                                    dataDeleteFailed++;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[BatchDelete] 处理文件失败:', filePath, error);
+                        dataDeleteFailed += fileHighlights.length;
+                    }
+                }
+            }
+            
+            // 第四步: 清理 DOM 和卡片实例
+            for (const highlight of highlightsArray) {
+                if (highlight.id) {
+                    try {
+                        const highlightCard = HighlightCard.findCardInstanceByHighlightId(highlight.id);
+                        if (highlightCard) {
+                            // 移除 DOM 元素
+                            const cardElement = (highlightCard as any).card;
+                            if (cardElement) {
+                                cardElement.remove();
+                            }
+                            // 从实例集合中移除
+                            highlightCard.destroy();
+                        }
+                    } catch (error) {
+                        console.error('[BatchDelete] 清理卡片实例失败:', highlight.id, error);
+                    }
+                }
+            }
+            
+            // 第五步: 批量触发事件(只触发一次)
+            if (fileMarkSuccess > 0) {
+                // 可以扩展 eventManager 支持批量删除事件
+                // 暂时保持逐个触发,但添加注释说明可优化
+                for (const highlight of highlightsArray) {
+                    if (highlight.filePath && highlight.id) {
+                        this.plugin.eventManager.emitHighlightDelete(
+                            highlight.filePath,
+                            highlight.text || '',
+                            highlight.id
+                        );
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error('[BatchDelete] 批量删除过程出错:', error);
+            fileMarkFailed = highlightsArray.length;
         }
         
+        // 清除选择状态
         this.onClearSelectionCallback();
         
-        if (successCount > 0 && failCount === 0) {
-            new Notice(t(`成功删除 ${successCount} 个高亮`));
-        } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`成功删除 ${successCount} 个高亮，${failCount} 个删除失败`));
-        } else if (successCount === 0 && failCount > 0) {
+        // 显示详细的结果通知
+        const totalSuccess = fileMarkSuccess;
+        const totalFailed = fileMarkFailed + dataDeleteFailed;
+        
+        if (totalSuccess > 0 && totalFailed === 0) {
+            new Notice(t(`成功删除 ${totalSuccess} 个高亮`));
+        } else if (totalSuccess > 0 && totalFailed > 0) {
+            let message = t(`成功删除 ${totalSuccess} 个高亮`);
+            if (fileMarkFailed > 0) {
+                message += t(`，${fileMarkFailed} 个文件标记删除失败`);
+            }
+            if (dataDeleteFailed > 0) {
+                message += t(`，${dataDeleteFailed} 个数据删除失败`);
+            }
+            new Notice(message);
+        } else if (totalFailed > 0) {
             new Notice(t('删除高亮失败'));
         }
     }
