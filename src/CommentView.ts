@@ -944,19 +944,11 @@ export class CommentView extends ItemView {
             // 初始加载
             await this.loadMoreHighlights();
             
-            // 添加滚动监听
-            const handleScroll = debounce(async (e: Event) => {
-                const container = e.target as HTMLElement;
-                const { scrollTop, scrollHeight, clientHeight } = container;
-                // 当滚动到底部附近时加载更多
-                if (scrollHeight - scrollTop - clientHeight < 300) {
-                    await this.loadMoreHighlights();
-                }
-            }, 100);
+            // 自动加载直到填满屏幕(解决内容不满一屏时无法滚动的问题)
+            await this.loadUntilScrollable();
             
-            // 注册和清理滚动监听
-            this.highlightContainer.addEventListener('scroll', handleScroll);
-            this.register(() => this.highlightContainer.removeEventListener('scroll', handleScroll));
+            // 设置无限滚动加载
+            this.setupInfiniteScroll();
             
         } catch (error) {
             console.error('[CommentView] Error in updateAllHighlights:', error);
@@ -972,31 +964,100 @@ export class CommentView extends ItemView {
     }
 
 
-    // 添加新方法：加载更多高亮
+    /**
+     * 加载更多高亮
+     */
     private async loadMoreHighlights() {
-    if (this.isLoading) return;
-    this.isLoading = true;
-    this.loadingIndicator.addClass('highlight-display-block');
+        if (this.isLoading) return;
+        this.isLoading = true;
+        this.loadingIndicator.addClass('highlight-display-block');
 
-    try {
-        const start = this.currentBatch * this.BATCH_SIZE;
-        const batch = this.highlights.slice(start, start + this.BATCH_SIZE);
+        try {
+            const start = this.currentBatch * this.BATCH_SIZE;
+            const batch = this.highlights.slice(start, start + this.BATCH_SIZE);
 
-        if (batch.length === 0) {
-            this.loadingIndicator.remove();
-            return;
+            if (batch.length === 0) {
+                this.loadingIndicator.remove();
+                return;
+            }
+
+            // 渲染新的高亮
+            await this.renderHighlights(batch, true);
+            this.currentBatch++;
+        } catch (error) {
+            new Notice("加载高亮内容时出错");
+        } finally {
+            this.isLoading = false;
+            this.loadingIndicator.addClass('highlight-display-none');
         }
-
-        // 渲染新的高亮
-        await this.renderHighlights(batch, true);
-        this.currentBatch++;
-    } catch (error) {
-        new Notice("加载高亮内容时出错");
-    } finally {
-        this.isLoading = false;
-        this.loadingIndicator.addClass('highlight-display-none');
     }
-}
+    
+    /**
+     * 加载内容直到容器可滚动
+     * 解决内容不满一屏时无法触发滚动加载的问题
+     */
+    private async loadUntilScrollable() {
+        const maxAttempts = 10; // 最多尝试10次,避免无限循环
+        let attempts = 0;
+        
+        while (attempts < maxAttempts) {
+            const { scrollHeight, clientHeight } = this.highlightContainer;
+            
+            // 检查是否可滚动(内容高度 > 容器高度)
+            if (scrollHeight > clientHeight) {
+                break; // 已经可滚动,退出
+            }
+            
+            // 检查是否还有更多内容
+            const start = this.currentBatch * this.BATCH_SIZE;
+            if (start >= this.highlights.length) {
+                break; // 没有更多内容了,退出
+            }
+            
+            // 加载下一批
+            await this.loadMoreHighlights();
+            attempts++;
+            
+            // 等待DOM更新
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    }
+    
+    /**
+     * 设置无限滚动加载
+     * 使用 Intersection Observer 实现高性能的无限滚动
+     */
+    private setupInfiniteScroll() {
+        // 创建哨兵元素
+        const sentinel = this.highlightContainer.createEl('div', {
+            cls: 'scroll-sentinel'
+        });
+        sentinel.style.height = '1px';
+        sentinel.style.width = '100%';
+        
+        // 使用 Intersection Observer 监听哨兵元素
+        const observer = new IntersectionObserver(
+            async (entries) => {
+                const entry = entries[0];
+                if (entry.isIntersecting && !this.isLoading) {
+                    await this.loadMoreHighlights();
+                }
+            },
+            {
+                root: this.highlightContainer,
+                rootMargin: '300px', // 提前300px触发加载
+                threshold: 0
+            }
+        );
+        
+        observer.observe(sentinel);
+        
+        // 清理资源
+        this.register(() => {
+            observer.disconnect();
+            sentinel.remove();
+        });
+    }
 
     // 添加创建浮动按钮的方法
     private createFloatingButton() {
