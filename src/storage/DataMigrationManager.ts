@@ -1,7 +1,16 @@
 import { App, Plugin } from 'obsidian';
 import { HiNoteDataManager } from './HiNoteDataManager';
-import { HiNote, CommentsData } from '../CommentStore';
+import { HiNote } from '../CommentStore';
 import { FSRSStorage } from '../flashcard/types/FSRSTypes';
+
+// 旧的数据格式定义（仅用于迁移）
+interface FileComments {
+    [highlightId: string]: HiNote;
+}
+
+interface CommentsData {
+    [filePath: string]: FileComments;
+}
 
 /**
  * 迁移状态

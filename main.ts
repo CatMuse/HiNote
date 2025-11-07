@@ -11,7 +11,6 @@ import { FSRSManager } from './src/flashcard/services/FSRSManager';
 import { HighlightMatchingService } from './src/services/HighlightMatchingService';
 import { HighlightService } from './src/services/HighlightService';
 import { HiNoteDataManager } from './src/storage/HiNoteDataManager';
-import { TextSimilarityService } from './src/services/TextSimilarityService';
 import { CanvasService } from './src/services/CanvasService';
 import { EventManager } from './src/services/EventManager';
 
@@ -24,7 +23,6 @@ export default class CommentPlugin extends Plugin {
 	public highlightMatchingService: HighlightMatchingService;
 	public highlightService: HighlightService;
 	public dataManager: HiNoteDataManager;
-	public textSimilarityService: TextSimilarityService;
 	public canvasService: CanvasService;
 
 	async onload() {
@@ -47,9 +45,6 @@ export default class CommentPlugin extends Plugin {
 		this.highlightService = new HighlightService(this.app);
 		// 立即开始构建索引（异步，不阻塞插件加载），提升后续加载性能
 		this.highlightService.initialize();
-
-		// 初始化文本相似度服务（共享实例）
-		this.textSimilarityService = new TextSimilarityService(this.app);
 
 		// 初始化 Canvas 服务（共享实例）
 		this.canvasService = new CanvasService(this.app.vault);

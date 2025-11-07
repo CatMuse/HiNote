@@ -29,32 +29,20 @@ export interface HiNote {
     isCloze?: boolean;    // 新增：标记是否为挖空格式
 }
 
-export interface FileComments {
-    [highlightId: string]: HiNote;
-}
-
-export interface CommentsData {
-    [filePath: string]: FileComments;
-}
 
 import { EventManager } from './services/EventManager';
 import { HighlightService } from './services/HighlightService';
 
 export class CommentStore {
     private plugin: Plugin;
-    private data: CommentsData = {};
     private comments: Map<string, HiNote[]> = new Map();
     private eventManager: EventManager;
     private blockIdService: BlockIdService;
     private highlightService: HighlightService;
-    private commentCache: Map<string, HiNote[]> = new Map();
-    private maxCacheSize: number = 100;
-    private readonly PERFORMANCE_THRESHOLD = 100; // 毫秒
     
-    // 新的存储层
+    // 存储层
     private dataManager: HiNoteDataManager;
     private migrationManager: DataMigrationManager;
-    private useNewStorage: boolean = false;
 
     constructor(
         plugin: Plugin,
@@ -78,34 +66,25 @@ export class CommentStore {
         const needsMigration = await this.migrationManager.needsMigration();
         
         if (needsMigration) {
+            console.log('[HiNote] 检测到旧数据，开始自动迁移...');
             try {
                 const stats = await this.migrationManager.migrate();
-                this.useNewStorage = true;
+                console.log('[HiNote] 数据迁移成功:', stats);
             } catch (error) {
-                console.error('数据迁移失败，回退到旧存储方式:', error);
-                this.useNewStorage = false;
+                console.error('[HiNote] 数据迁移失败:', error);
+                throw new Error('数据迁移失败，请查看控制台错误信息');
             }
-        } else {
-            // 检查迁移状态
-            const status = await this.migrationManager.getMigrationStatus();
-            this.useNewStorage = status.isCompleted;
         }
         
-        if (this.useNewStorage) {
-            // 使用新存储层
-            await this.dataManager.initialize();
-            await this.loadCommentsFromNewStorage();
-        } else {
-            // 使用旧存储方式
-            await this.loadCommentsFromLegacyStorage();
-        }
+        // 初始化并使用新存储层
+        await this.dataManager.initialize();
+        await this.loadCommentsFromNewStorage();
     }
     
     /**
      * 从新存储层加载数据
      */
     private async loadCommentsFromNewStorage() {
-        this.data = {};
         this.comments = new Map();
         
         const highlightFiles = await this.dataManager.getAllHighlightFiles();
@@ -113,105 +92,17 @@ export class CommentStore {
         for (const filePath of highlightFiles) {
             const highlights = await this.dataManager.getFileHighlights(filePath);
             if (highlights.length > 0) {
-                // 转换为旧格式以保持兼容性
-                const fileComments: FileComments = {};
-                highlights.forEach(highlight => {
-                    fileComments[highlight.id] = highlight;
-                });
-                
-                this.data[filePath] = fileComments;
                 this.comments.set(filePath, highlights);
             }
         }
     }
     
-    /**
-     * 从旧存储方式加载数据
-     */
-    private async loadCommentsFromLegacyStorage() {
-        const data = await this.plugin.loadData();
-
-        this.data = data?.comments || {};
-
-        // 数据迁移：将 paragraphId 转换为 blockId
-        this.migrateDataToBlockId();
-
-        // 将 data 转换为正确的格式
-        this.comments = new Map(
-            Object.entries(this.data).map(([key, value]) => [
-                key,
-                Object.values(value as { [key: string]: HiNote })
-            ])
-        );
-    }
-
-    /**
-     * 数据迁移：将 paragraphId 转换为 blockId
-     */
-    private migrateDataToBlockId() {
-        let migrationCount = 0;
-        
-        // 遍历所有文件的高亮
-        for (const filePath in this.data) {
-            const fileHighlights = this.data[filePath];
-            
-            // 遍历文件中的所有高亮
-            for (const highlightId in fileHighlights) {
-                const highlight = fileHighlights[highlightId];
-                
-                // 如果有 paragraphId 但没有 blockId
-                if (highlight.paragraphId && !highlight.blockId) {
-                    // 从 paragraphId 中提取纯 BlockID
-                    // 使用与 BlockIdService 一致的正则表达式
-                    const blockIdMatch = highlight.paragraphId.match(/#\^([a-zA-Z0-9-]+)/);
-                    if (blockIdMatch && blockIdMatch[1]) {
-                        // 设置 blockId
-                        highlight.blockId = blockIdMatch[1];
-                        migrationCount++;
-                    }
-                }
-            }
-        }
-    }
 
     async saveComments() {
-        if (this.useNewStorage) {
-            // 使用新存储层保存
-            await this.saveCommentsToNewStorage();
-        } else {
-            // 使用旧存储方式保存
-            await this.saveCommentsToLegacyStorage();
-        }
-    }
-    
-    /**
-     * 保存到新存储层
-     */
-    private async saveCommentsToNewStorage() {
-        // 按文件分别保存
+        // 使用新存储层保存
         for (const [filePath, highlights] of this.comments.entries()) {
             await this.dataManager.saveFileHighlights(filePath, highlights);
         }
-    }
-    
-    /**
-     * 保存到旧存储方式
-     */
-    private async saveCommentsToLegacyStorage() {
-        // 先加载当前的数据
-        const currentData = await this.plugin.loadData() || {};
-
-        const dataToSave = {
-            ...currentData,  // 保持其他设置不变
-            comments: this.data
-            // fileComments 字段已移除
-        };
-
-        // 更新评论数据，保持其他数据不变
-        await this.plugin.saveData(dataToSave);
-
-        // 验证数据是否成功保存
-        const verifyData = await this.plugin.loadData();
     }
     
     /**
@@ -224,13 +115,13 @@ export class CommentStore {
         let affectedFiles = new Set<string>();
         
         // 遍历所有文件的高亮数据
-        for (const filePath in this.data) {
+        for (const [filePath, highlights] of this.comments.entries()) {
             // 尝试获取文件
             const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
             if (!file || !(file instanceof TFile)) {
                 // 如果文件不存在，计算整个文件的数据
                 affectedFiles.add(filePath);
-                orphanedHighlights += Object.keys(this.data[filePath] || {}).length;
+                orphanedHighlights += highlights.length;
                 continue;
             }
             
@@ -242,14 +133,10 @@ export class CommentStore {
                 const extractedHighlights = this.highlightService.extractHighlights(content, file);
                 const extractedTexts = new Set(extractedHighlights.map(h => h.text));
                 
-                // 获取存储的高亮
-                const storedHighlights = this.data[filePath] || {};
                 let fileHasOrphans = false;
                 
                 // 检查每个存储的高亮是否在文件中存在
-                for (const highlightId in storedHighlights) {
-                    const highlight = storedHighlights[highlightId];
-                    
+                for (const highlight of highlights) {
                     // 如果高亮是虚拟的，跳过它
                     if (highlight.isVirtual) continue;
                     
@@ -283,15 +170,14 @@ export class CommentStore {
         let affectedFiles = new Set<string>();
         
         // 遍历所有文件的高亮数据
-        for (const filePath in this.data) {
+        for (const [filePath, highlights] of this.comments.entries()) {
             // 尝试获取文件
             const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
             if (!file || !(file instanceof TFile)) {
                 // 如果文件不存在，移除整个文件的数据
-                delete this.data[filePath];
                 this.comments.delete(filePath);
                 affectedFiles.add(filePath);
-                removedHighlights += Object.keys(this.data[filePath] || {}).length;
+                removedHighlights += highlights.length;
                 continue;
             }
             
@@ -303,35 +189,26 @@ export class CommentStore {
                 const extractedHighlights = this.highlightService.extractHighlights(content, file);
                 const extractedTexts = new Set(extractedHighlights.map(h => h.text));
                 
-                // 获取存储的高亮
-                const storedHighlights = this.data[filePath] || {};
-                let fileModified = false;
-                
-                // 检查每个存储的高亮是否在文件中存在
-                for (const highlightId in storedHighlights) {
-                    const highlight = storedHighlights[highlightId];
-                    
+                // 过滤出仍然存在的高亮
+                const validHighlights = highlights.filter(highlight => {
                     // 如果高亮是虚拟的，保留它
-                    if (highlight.isVirtual) continue;
+                    if (highlight.isVirtual) return true;
                     
                     // 检查高亮文本是否在提取的高亮中
-                    if (!extractedTexts.has(highlight.text)) {
-                        // 高亮文本不在文件中，移除它
-                        delete storedHighlights[highlightId];
-                        removedHighlights++;
-                        fileModified = true;
-                    }
-                }
+                    return extractedTexts.has(highlight.text);
+                });
                 
-                // 如果文件被修改，更新 comments Map
-                if (fileModified) {
+                // 如果有高亮被移除
+                if (validHighlights.length < highlights.length) {
+                    removedHighlights += highlights.length - validHighlights.length;
                     affectedFiles.add(filePath);
-                    this.comments.set(filePath, Object.values(storedHighlights));
                     
-                    // 如果文件中没有高亮了，移除整个文件的数据
-                    if (Object.keys(storedHighlights).length === 0) {
-                        delete this.data[filePath];
+                    if (validHighlights.length === 0) {
+                        // 如果文件中没有高亮了，移除整个文件的数据
                         this.comments.delete(filePath);
+                    } else {
+                        // 更新文件的高亮列表
+                        this.comments.set(filePath, validHighlights);
                     }
                 }
             } catch (error) {
@@ -353,38 +230,17 @@ export class CommentStore {
      * @param newPath 文件的新路径
      */
     async updateFilePath(oldPath: string, newPath: string) {
-        if (this.useNewStorage) {
-            // 使用新存储层处理文件重命名
-            await this.dataManager.handleFileRename(oldPath, newPath);
-            
-            // 更新内存中的数据
-            if (this.data[oldPath]) {
-                this.data[newPath] = this.data[oldPath];
-                delete this.data[oldPath];
-            }
-            
-            const oldPathComments = this.comments.get(oldPath) || [];
-            // 更新文件路径字段
-            oldPathComments.forEach(comment => {
-                comment.filePath = newPath;
-            });
-            this.comments.set(newPath, oldPathComments);
-            this.comments.delete(oldPath);
-        } else {
-            // 旧存储方式
-            if (this.data[oldPath]) {
-                this.data[newPath] = this.data[oldPath];
-                delete this.data[oldPath];
-            }
-
-            // 更新评论中的文件路径
-            const oldPathComments = this.comments.get(oldPath) || [];
-            this.comments.set(newPath, oldPathComments);
-            this.comments.delete(oldPath);
-
-            // 保存更新后的数据
-            await this.saveComments();
-        }
+        // 使用新存储层处理文件重命名
+        await this.dataManager.handleFileRename(oldPath, newPath);
+        
+        // 更新内存中的数据
+        const oldPathComments = this.comments.get(oldPath) || [];
+        // 更新文件路径字段
+        oldPathComments.forEach(comment => {
+            comment.filePath = newPath;
+        });
+        this.comments.set(newPath, oldPathComments);
+        this.comments.delete(oldPath);
     }
 
     /**
@@ -396,14 +252,27 @@ export class CommentStore {
         const activeFile = this.plugin.app.workspace.getActiveFile();
         if (!activeFile) return [];
 
-        const fileComments = this.data[activeFile.path] || {};
-        return Object.values(fileComments).filter(c => {
+        const fileHighlights = this.comments.get(activeFile.path) || [];
+        
+        // 使用更宽松的匹配策略
+        return fileHighlights.filter(c => {
+            // 1. 精确文本匹配
             const textMatch = c.text === highlight.text;
-            // 如果存储的评论没有 position，则不进行位置匹配
-            if (textMatch && typeof c.position === 'number' && typeof highlight.position === 'number') {
-                return Math.abs(c.position - highlight.position) < 1000;
+            if (textMatch) {
+                // 如果文本匹配，检查位置是否也接近
+                if (typeof c.position === 'number' && typeof highlight.position === 'number') {
+                    return Math.abs(c.position - highlight.position) < 1000;
+                }
+                return true;
             }
-            return textMatch;
+            
+            // 2. 如果文本不匹配，尝试位置匹配（允许文本有变化）
+            if (typeof c.position === 'number' && typeof highlight.position === 'number') {
+                // 位置接近（容差 30 字符），认为是同一个高亮
+                return Math.abs(c.position - highlight.position) < 30;
+            }
+            
+            return false;
         });
     }
     
@@ -415,9 +284,8 @@ export class CommentStore {
     getFileComments(file: TFile): HiNote[] {
         if (!file) return [];
         
-        // 从数据中获取文件的高亮
-        const fileHighlights = this.data[file.path] || {};
-        return Object.values(fileHighlights);
+        // 从 comments Map 中获取文件的高亮
+        return this.comments.get(file.path) || [];
     }
 
     /**
@@ -444,16 +312,8 @@ export class CommentStore {
         }
         highlight.updatedAt = now;
         
-        // 确保文件路径存在于数据结构中
-        const filePath = file.path;
-        if (!this.data[filePath]) {
-            this.data[filePath] = {};
-        }
-        
-        // 添加或更新高亮到数据中
-        this.data[filePath][highlight.id] = highlight;
-        
         // 更新内存中的评论映射
+        const filePath = file.path;
         if (!this.comments.has(filePath)) {
             this.comments.set(filePath, []);
         }
@@ -494,29 +354,25 @@ export class CommentStore {
     async removeComment(file: TFile, highlight: HiNote): Promise<boolean> {
         const filePath = file.path;
         
-        // 检查文件路径和高亮ID是否存在
-        if (!this.data[filePath] || !this.data[filePath][highlight.id]) {
+        // 检查文件路径和高亮 ID是否存在
+        if (!this.comments.has(filePath)) {
             return false;
         }
         
-        // 从数据中删除高亮
-        delete this.data[filePath][highlight.id];
+        const fileHighlights = this.comments.get(filePath) || [];
+        const highlightExists = fileHighlights.some(h => h.id === highlight.id);
         
-        // 如果文件没有高亮了，删除整个文件条目
-        if (Object.keys(this.data[filePath]).length === 0) {
-            delete this.data[filePath];
+        if (!highlightExists) {
+            return false;
         }
         
         // 更新内存中的评论映射
-        if (this.comments.has(filePath)) {
-            const fileHighlights = this.comments.get(filePath) || [];
-            const updatedHighlights = fileHighlights.filter(h => h.id !== highlight.id);
-            
-            if (updatedHighlights.length > 0) {
-                this.comments.set(filePath, updatedHighlights);
-            } else {
-                this.comments.delete(filePath);
-            }
+        const updatedHighlights = fileHighlights.filter(h => h.id !== highlight.id);
+        
+        if (updatedHighlights.length > 0) {
+            this.comments.set(filePath, updatedHighlights);
+        } else {
+            this.comments.delete(filePath);
         }
         
         // 保存更改
@@ -554,11 +410,8 @@ export class CommentStore {
         
         const filePath = file.path;
         
-        // 如果文件路径不存在于数据中，返回空数组
-        if (!this.data[filePath]) return [];
-        
-        // 获取文件中的所有高亮
-        const fileHighlights = Object.values(this.data[filePath]);
+        // 从 comments Map 中获取文件的高亮
+        const fileHighlights = this.comments.get(filePath) || [];
         
         // 过滤出与指定 blockId 相关的高亮
         return fileHighlights.filter(highlight => highlight.blockId === blockId);

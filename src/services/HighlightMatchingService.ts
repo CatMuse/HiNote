@@ -1,20 +1,16 @@
 import { App, TFile } from "obsidian";
 import { CommentStore, HiNote } from "../CommentStore";
 import { HighlightInfo } from "../types";
-import { TextSimilarityService } from "./TextSimilarityService";
 
 /**
  * 高亮匹配服务 - 提供统一的高亮文本匹配和恢复功能
  * 所有高亮与评论的匹配逻辑都应该使用这个服务
  */
 export class HighlightMatchingService {
-    private textSimilarityService: TextSimilarityService;
-    
     constructor(
         private app: App,
         private commentStore: CommentStore
     ) {
-        this.textSimilarityService = new TextSimilarityService(app);
     }
     
     /**
@@ -64,30 +60,7 @@ export class HighlightMatchingService {
             }
         }
         
-        // 3. 如果位置匹配也失败，尝试使用模糊文本匹配
-        let bestMatch = null;
-        let highestSimilarity = 0;
-        
-        for (const h of fileHighlights) {
-            // 跳过没有评论的高亮
-            if (!h.comments || h.comments.length === 0) continue;
-            
-            const similarity = this.textSimilarityService.calculateSimilarity(
-                h.text, 
-                highlight.text
-            );
-            
-            if (similarity > highestSimilarity && similarity > 0.6) { // 设置一个相似度阈值
-                highestSimilarity = similarity;
-                bestMatch = h;
-            }
-        }
-        
-        if (bestMatch) {
-            return bestMatch;
-        }
-        
-        // 4. 如果所有匹配都失败，尝试使用块ID匹配
+        // 3. 如果所有匹配都失败，尝试使用块ID匹配
         if (highlight.blockId) {
             const blockHighlights = fileHighlights.filter(h => h.blockId === highlight.blockId);
             if (blockHighlights.length > 0) {
@@ -176,28 +149,7 @@ export class HighlightMatchingService {
                 }
             }
             
-            // 4. 尝试模糊文本匹配（基于相似度）
-            const candidates = storedComments.filter(c => !usedCommentIds.has(c.id));
-            let bestMatch: HiNote | undefined;
-            let bestSimilarity = 0.8; // 最低相似度阈值
-            
-            for (const candidate of candidates) {
-                const similarity = this.textSimilarityService.calculateSimilarity(
-                    highlight.text, 
-                    candidate.text
-                );
-                if (similarity > bestSimilarity) {
-                    bestSimilarity = similarity;
-                    bestMatch = candidate;
-                }
-            }
-            
-            if (bestMatch) {
-                usedCommentIds.add(bestMatch.id);
-                return this.createMergedHighlight(highlight, bestMatch, file);
-            }
-            
-            // 5. 如果所有匹配都失败，返回原始高亮
+            // 4. 如果所有匹配都失败，返回原始高亮
             return this.createHighlightInfo(highlight, file);
         });
 

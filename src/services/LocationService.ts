@@ -1,13 +1,8 @@
 import { MarkdownView, Notice, WorkspaceLeaf, EditorSelection } from "obsidian";
 import { HighlightInfo } from "../types";
-import { TextSimilarityService } from "./TextSimilarityService";
 
 export class LocationService {
-    private textSimilarityService: TextSimilarityService;
-    
-    constructor(private app: any, textSimilarityService?: TextSimilarityService) {
-        // 优先使用传入的共享实例，否则创建新实例（向后兼容）
-        this.textSimilarityService = textSimilarityService || new TextSimilarityService(app);
+    constructor(private app: any) {
     }
 
     /**
@@ -103,23 +98,13 @@ export class LocationService {
             }
         }
         
-        // 如果没有找到精确匹配项，尝试使用模糊匹配
+        // 如果没有找到精确匹配项
         if (textPosition === -1) {
             if (allMatches.length > 0) {
                 textPosition = allMatches[0];
             } else {
-                // 使用模糊匹配查找最相似的文本
-                const bestMatch = this.textSimilarityService.findBestMatch(text, content, position);
-                if (bestMatch) {
-                    textPosition = bestMatch.position;
-                    matchedText = bestMatch.text; // 使用匹配到的文本
-                    
-                    // 显示通知，告知用户使用了模糊匹配
-                    new Notice(`使用模糊匹配找到了相似内容`);
-                } else {
-                    new Notice("未找到高亮内容");
-                    return;
-                }
+                new Notice("未找到高亮内容");
+                return;
             }
         }
         

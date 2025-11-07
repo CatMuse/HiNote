@@ -2,11 +2,9 @@ import { WidgetType } from "@codemirror/view";
 import type { Plugin } from "obsidian";
 import { HiNote, CommentItem } from "../../CommentStore";
 import { setIcon, MarkdownRenderer, Component, App } from "obsidian";
-import { TextSimilarityService } from "../../services/TextSimilarityService";
 
 export class CommentWidget extends WidgetType {
     private app: App;
-    private textSimilarityService: TextSimilarityService;
     
     /**
      * 构造函数
@@ -23,30 +21,30 @@ export class CommentWidget extends WidgetType {
     ) {
         super();
         this.app = this.plugin.app;
-        this.textSimilarityService = new TextSimilarityService(this.plugin.app);
     }
 
-    // /**
-    //  * 比较两个小部件是否相等
-    //  * 用于 CodeMirror 的优化，避免不必要的 DOM 更新
-    //  * @param widget 要比较的另一个小部件
-    //  * @returns 如果两个小部件内容相同则返回 true
-    //  */
+    /**
+     * 比较两个小部件是否相等
+     * 用于 CodeMirror 的优化，避免不必要的 DOM 更新
+     * @param widget 要比较的另一个小部件
+     * @returns 如果两个小部件内容相同则返回 true
+     */
     eq(widget: WidgetType): boolean {
         if (!(widget instanceof CommentWidget)) return false;
         
-        // 首先比较高亮 ID，如果不同则直接返回 false
-        if (this.highlight.id !== widget.highlight.id) return false;
+        // 使用位置匹配策略：如果位置接近且评论数量相同，认为是同一个 widget
+        // 这样即使文本有小幅修改，widget 也不会被重新创建
+        const positionMatch = typeof this.highlight.position === 'number' && 
+                             typeof widget.highlight.position === 'number' &&
+                             Math.abs(this.highlight.position - widget.highlight.position) < 30;
         
-        // 使用模糊匹配来比较文本相似度
-        const textSimilarity = this.textSimilarityService.calculateSimilarity(
-            this.highlight.text,
-            widget.highlight.text
-        );
+        const textMatch = this.highlight.text === widget.highlight.text;
+        const commentsMatch = this.highlight.comments.length === widget.highlight.comments.length;
         
-        // 如果文本相似度超过阈值，或者文本完全相同，则认为是相同的小部件
-        return (textSimilarity > 0.7 || this.highlight.text === widget.highlight.text) &&
-               this.highlight.comments.length === widget.highlight.comments.length;
+        // 如果文本完全匹配，或者位置匹配，都认为是同一个 widget
+        return this.highlight.id === widget.highlight.id &&
+               (textMatch || positionMatch) &&
+               commentsMatch;
     }
 
     /**
