@@ -151,39 +151,26 @@ export class HighlightDecorator {
                 if (highlight.blockId) {
                     const blockComments = commentStore.getCommentsByBlockId(file, highlight.blockId);
                     if (blockComments && blockComments.length > 0) {
-                        // 首先尝试通过文本内容进行精确匹配
-                        const textMatchingHighlight = blockComments.find(h => h.text === highlight.text);
-                        if (textMatchingHighlight) {
-                            // 如果找到文本完全匹配的高亮，直接使用其评论
-                            comments = textMatchingHighlight.comments || [];
-                        } else {
-                            // 如果没有找到文本匹配，尝试通过位置匹配
-                            const bestMatch = HighlightMatcher.findMatch(highlight, blockComments);
-                            if (bestMatch) {
-                                comments = bestMatch.comments || [];
-                                if (fullMatch) {
-                                    this.handleTextChanges(file, bestMatch, highlight);
-                                }
+                        // 使用 HighlightMatcher 进行匹配（支持精确匹配和位置匹配）
+                        const bestMatch = HighlightMatcher.findMatch(highlight, blockComments);
+                        if (bestMatch) {
+                            comments = bestMatch.comments || [];
+                            // 如果文本发生变化，更新存储
+                            if (fullMatch && bestMatch.text !== highlight.text) {
+                                this.handleTextChanges(file, bestMatch, highlight);
                             }
                         }
                     }
                 } else {
-                    const storedHighlight = commentStore.getHiNotes(highlight);
-                    if (storedHighlight && storedHighlight.length > 0) {
-                        // 首先尝试通过文本内容进行精确匹配
-                        const textMatchingHighlight = storedHighlight.find(h => h.text === highlight.text);
-                        if (textMatchingHighlight) {
-                            // 如果找到文本完全匹配的高亮，直接使用其评论
-                            comments = textMatchingHighlight.comments || [];
-                        } else {
-                            // 如果没有找到文本匹配，尝试通过位置匹配
-                            const bestMatch = HighlightMatcher.findMatch(highlight, storedHighlight);
-                            if (bestMatch) {
-                                comments = bestMatch.comments || [];
-                                if (fullMatch) {
-                                    this.handleTextChanges(file, bestMatch, highlight);
-                                }
-                            }
+                    // getHiNotes 已经包含了精确匹配和位置匹配逻辑
+                    const storedHighlights = commentStore.getHiNotes(highlight);
+                    if (storedHighlights && storedHighlights.length > 0) {
+                        // 取第一个匹配的高亮（getHiNotes 已经做了匹配）
+                        const matched = storedHighlights[0];
+                        comments = matched.comments || [];
+                        // 如果文本发生变化，更新存储
+                        if (fullMatch && matched.text !== highlight.text) {
+                            this.handleTextChanges(file, matched, highlight);
                         }
                     }
                 }
@@ -255,27 +242,44 @@ export class HighlightDecorator {
                     ),
                     side: 2, // 将小部件放在文本右侧
                     stopEvent: (event: Event) => {
-                        // 阻止事件冒泡，防止意外切换视图
-                        return true;
+                        // 只阻止特定事件，允许点击事件通过
+                        // 阻止 mousedown 和 mouseup 以防止文本选择干扰
+                        if (event.type === 'mousedown' || event.type === 'mouseup') {
+                            return true;
+                        }
+                        return false;
                     }
                 });
             }
 
-            private openCommentPanel(highlight: HiNote) {
+            private async openCommentPanel(highlight: HiNote) {
                 const workspace = this.plugin.app.workspace;
                 const existing = workspace.getLeavesOfType("comment-view");
 
                 if (existing.length) {
                     workspace.revealLeaf(existing[0]);
+                    // 侧边栏已存在，等待一小段时间确保视图激活
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 } else {
                     const leaf = workspace.getRightLeaf(false);
                     if (leaf) {
-                        leaf.setViewState({
+                        await leaf.setViewState({
                             type: "comment-view",
                             active: true
                         });
+                        // 等待视图完全渲染
+                        await new Promise(resolve => setTimeout(resolve, 200));
                     }
                 }
+                
+                // 触发评论输入事件
+                const event = new CustomEvent("open-comment-input", {
+                    detail: {
+                        highlightId: highlight.id,
+                        text: highlight.text
+                    }
+                });
+                window.dispatchEvent(event);
             }
             
         }, {

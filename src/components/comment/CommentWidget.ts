@@ -33,7 +33,7 @@ export class CommentWidget extends WidgetType {
         if (!(widget instanceof CommentWidget)) return false;
         
         // 使用位置匹配策略：如果位置接近且评论数量相同，认为是同一个 widget
-        // 这样即使文本有小幅修改，widget 也不会被重新创建
+        // 不依赖 ID 匹配，因为每次提取高亮时 ID 可能会变化
         const positionMatch = typeof this.highlight.position === 'number' && 
                              typeof widget.highlight.position === 'number' &&
                              Math.abs(this.highlight.position - widget.highlight.position) < 30;
@@ -41,10 +41,19 @@ export class CommentWidget extends WidgetType {
         const textMatch = this.highlight.text === widget.highlight.text;
         const commentsMatch = this.highlight.comments.length === widget.highlight.comments.length;
         
-        // 如果文本完全匹配，或者位置匹配，都认为是同一个 widget
-        return this.highlight.id === widget.highlight.id &&
-               (textMatch || positionMatch) &&
-               commentsMatch;
+        // 只要位置匹配或文本匹配，且评论数量相同，就认为是同一个 widget
+        const isEqual = (textMatch || positionMatch) && commentsMatch;
+        
+        // console.log('[HiNote Debug] CommentWidget.eq 比较:', {
+        //     thisId: this.highlight.id,
+        //     widgetId: widget.highlight.id,
+        //     isEqual,
+        //     textMatch,
+        //     positionMatch,
+        //     commentsMatch
+        // });
+        
+        return isEqual;
     }
 
     /**
@@ -67,7 +76,7 @@ export class CommentWidget extends WidgetType {
      * 创建小部件的 DOM 结构
      * @returns 包含评论按钮和预览的 HTML 元素
      */
-    toDOM() {
+    toDOM(): HTMLElement {
         const wrapper = document.createElement("span");
         wrapper.addClass("hi-note-widget");
         
@@ -259,21 +268,15 @@ export class CommentWidget extends WidgetType {
         }
 
         // 点击按钮时触发评论输入事件
-        button.addEventListener("click", (e) => {
+        button.addEventListener("click", async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            this.onClick();
             
             // 隐藏工具提示
             tooltip.addClass("hi-note-tooltip-hidden");
-
-            const event = new CustomEvent("open-comment-input", {
-                detail: {
-                    highlightId: this.highlight.id,
-                    text: this.highlight.text
-                }
-            });
-            window.dispatchEvent(event);
+            
+            // 调用 onClick 回调，它会处理打开侧边栏和触发 open-comment-input 事件
+            await this.onClick();
         });
 
         // 监听窗口大小改变事件，更新工具提示位置
