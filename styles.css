@@ -283,8 +283,6 @@ settings:
     100% { transform: rotate(360deg); }
 }
 
-
-
 /* 搜索框图标容器 */
 .highlight-search-icons {
     display: flex;
@@ -464,9 +462,6 @@ settings:
     flex-shrink: 0;
 }
 
-/* 已删除 highlight-action-buttons 相关样式 */
-
-/* 已删除 highlight-action-btn 相关样式 */
 
 .hi-note {
     padding: 8px;
@@ -550,49 +545,6 @@ settings:
     box-shadow: none;
 }
 
-/* 标签相关样式 */
-.highlight-tags-preview {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 8px;
-}
-
-.highlight-tag {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background-color: var(--background-secondary);
-    color: var(--text-accent);
-    font-size: 12px;
-    white-space: nowrap;
-}
-
-/* 纯标签评论的特殊样式 */
-.pure-tags-comment {
-    background-color: var(--background-primary);
-    border-radius: 4px;
-    padding: 8px;
-    position: relative;
-    border: 2px solid color-mix(in srgb, var(--text-accent) 10%, transparent);
-}
-
-.pure-tags-comment .hi-note-footer {
-    display: none; /* 隐藏时间显示 */
-}
-
-.pure-tags-comment .hi-note-content {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 0;
-}
-
-/* 纯标签评论不显示双击提示 */
-.pure-tags-comment .hi-note-content:hover::after {
-    display: none;
-}
 
 /* ========== 批注展开/收起功能样式 ========== */
 
@@ -774,10 +726,6 @@ settings:
     gap: 2px;
 }
 
-/* 已合并到上面的样式定义中 */
-
-/* 已合并到下面的样式定义中（L3542-3547） */
-
 .hi-note-button {
     display: inline-flex;
     align-items: center;
@@ -815,17 +763,6 @@ settings:
     padding: 0px 2px; /* 恢复原来的内边距 */
     overflow: visible;
 }
-
-/* 新样式：没有评论的按钮半透明显示 */
-/* .hi-note-button-no-comments {
-    opacity: 0.5; /* 半透明而不是完全隐藏 */
-
-/* 鼠标悬停时显示没有评论的按钮 */
-/* .cm-line:hover .hi-note-button-no-comments,
-.cm-highlight:hover + .hi-note-widget .hi-note-button-no-comments,
-.hi-note-widget:hover .hi-note-button-no-comments {
-    opacity: 1;
-} */
 
 .hi-note-icon-container {
     display: inline-flex;
@@ -1040,7 +977,6 @@ settings:
     color: var(--text-normal);
 }
 
-/* flashcard-groups-actions类已移除，相关样式已合并到flashcard-groups-header中 */
 
 /* 分组操作按钮 - 已合并 */
 .flashcard-group-action {
@@ -1073,8 +1009,6 @@ settings:
 .flashcard-add-group:hover {
     background-color: var(--background-modifier-hover);
 }
-
-/* flashcard-add-group-content类已移除，相关样式已合并到flashcard-add-group中 */
 
 .flashcard-add-group svg {
     width: 16px;
@@ -1207,8 +1141,6 @@ settings:
     gap: 8px;
 }
 
-/* 这里的样式已合并到上面的 .flashcard-add-group 定义中 */
-
 /* 正则规则添加按钮样式 */
 .regex-rule-add {
     padding: 6px;
@@ -1297,22 +1229,6 @@ settings:
 .flashcard-groups .flashcard-group-actions {
     display: flex;
     gap: 8px;
-}
-
-.flashcard-groups .flashcard-group-action {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    border-radius: 4px;
-    cursor: pointer;
-    color: var(--text-muted);
-    transition: all 0.2s ease;
-}
-
-.flashcard-groups .flashcard-group-action:hover {
-    color: var(--text-accent);
-    background: var(--background-modifier-hover);
 }
 
 /* 统计数据行 */
@@ -1410,8 +1326,6 @@ settings:
 .flashcard-group-item:hover .flashcard-group-actions {
     opacity: 1;
 }
-
-/* 已合并到上面的样式定义中 */
 
 .flashcard-group-item:hover {
     background-color: var(--background-modifier-hover);
@@ -2308,14 +2222,6 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--background-modifier-border);
 }
 
-/* 预览标题 */
-/* .highlight-chat-preview-header {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--background-modifier-border);
-} */
 
 /* 预览卡片容器 */
 .highlight-chat-preview-cards {
@@ -2551,14 +2457,6 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border-radius: 4px;
 }
 
-/* 确保 CommentWidget 始终可见 */
-/* .hi-note-widget {
-    display: inline-flex !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-} */
-
 /* 当没有评论时，最小化 widget 的空间占用 */
 .hi-note-widget-no-comments {
     width: 0;
@@ -2590,12 +2488,6 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 .highlight-ai-btn.loading svg {
     animation: spin 2s linear infinite;
     stroke: var(--text-accent);
-}
-
-@keyframes spin {
-    100% {
-        transform: rotate(360deg);
-    }
 }
 
 /* 更多操作容器样式 */
@@ -2700,11 +2592,6 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     width: 100%;
     height: 100%;
     transform-origin: center;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 /* AI处理时的输入框样式 */
@@ -3088,22 +2975,8 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* 插件专用隐藏类 */
-.hi-note-hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-/* 评论页脚隐藏状态 */
-.hi-note-footer.hi-note-hidden {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-/* Prompt 编辑模式隐藏状态 */
+.hi-note-hidden,
+.hi-note-footer.hi-note-hidden,
 .prompt-display-mode.hi-note-hidden {
     display: none !important;
     visibility: hidden !important;
@@ -3564,14 +3437,6 @@ textarea.flashcard-modal-input {
     color: var(--text-normal);
 }
 
-/* 学习设置标题 */
-.settings-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-normal);
-    margin: 16px 0 12px 0;
-}
-
 /* 全局设置复选框容器 */
 .global-settings-container {
     display: flex;
@@ -3673,8 +3538,6 @@ textarea.flashcard-modal-input {
 }
 
 /* 高亮多选功能样式 */
-
-/* 已删除多选模式下的 highlight-action-buttons 相关样式 */
 
 /* 不聚焦的批注输入框样式 */
 .unfocused-comment-input {
@@ -3852,20 +3715,11 @@ textarea.flashcard-modal-input {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
 /* AI 下拉菜单容器 */
 .highlight-ai-container {
     position: relative;
 }
 
-/* 隐藏类 */
-.hi-note-hidden {
-    display: none;
-}
 
 /* 当鼠标悬停在标题栏上时显示按钮 */
 .highlight-card-title-bar:not(:hover) .highlight-title-btn {

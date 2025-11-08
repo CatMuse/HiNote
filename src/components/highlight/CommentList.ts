@@ -2,10 +2,6 @@ import { CommentItem, HighlightInfo } from "../../types";
 import { MarkdownRenderer, Component, App } from "obsidian";
 import { t } from "../../i18n";
 
-// 标签格式的正则表达式
-const TAG_REGEX = /#[\w\u4e00-\u9fa5]+/g;
-const PURE_TAGS_FORMAT = /^\s*(#[\w\u4e00-\u9fa5]+(\s+#[\w\u4e00-\u9fa5]+)*\s*)$/;
-
 export class CommentList extends Component {
     private container: HTMLElement;
     private app: App;
@@ -40,14 +36,8 @@ export class CommentList extends Component {
     private async renderComments() {
         const comments = this.highlight.comments || [];
         
-        // 按更新时间倒序排序，并将纯标签评论放在前面
-        comments.sort((a, b) => {
-            const aIsTag = PURE_TAGS_FORMAT.test(a.content);
-            const bIsTag = PURE_TAGS_FORMAT.test(b.content);
-            if (aIsTag && !bIsTag) return -1;
-            if (!aIsTag && bIsTag) return 1;
-            return b.updatedAt - a.updatedAt;
-        });
+        // 按更新时间倒序排序
+        comments.sort((a, b) => b.updatedAt - a.updatedAt);
 
         // 清空容器
         while (this.container.firstChild) {
@@ -56,11 +46,8 @@ export class CommentList extends Component {
         
         // 使用 for...of 循环以支持 await
         for (const comment of comments) {
-            // 检查是否是纯标签评论
-            const isPureTagComment = PURE_TAGS_FORMAT.test(comment.content);
-
             const commentEl = this.container.createEl("div", {
-                cls: `hi-note${isPureTagComment ? ' pure-tags-comment' : ''}`,
+                cls: "hi-note",
                 attr: { 'data-comment-id': comment.id }
             });
 
@@ -70,71 +57,32 @@ export class CommentList extends Component {
             });
 
             // 评论内容 - 添加双击事件
-            // 处理标签和内容
             const contentEl = contentWrapper.createEl("div", {
                 cls: "hi-note-content markdown-rendered"
             });
 
             const content = comment.content;
-            // 检查是否是纯标签格式
-            if (PURE_TAGS_FORMAT.test(content)) {
-                // 如果是纯标签格式，将每个标签替换为样式化的标签
-                let formattedContent = content;
-                const tags = content.match(TAG_REGEX) || [];
+            try {
+                // 使用 MarkdownRenderer 渲染 Markdown 内容
+                await MarkdownRenderer.renderMarkdown(
+                    content,
+                    contentEl,
+                    this.highlight.filePath || '',
+                    this
+                );
                 
-                // Clear the content element
-                while (contentEl.firstChild) {
-                    contentEl.removeChild(contentEl.firstChild);
-                }
+                // 添加自定义样式类以修复可能的样式问题
+                const lists = contentEl.querySelectorAll('ul, ol');
+                lists.forEach(list => {
+                    list.addClass('comment-markdown-list');
+                });
                 
-                // If there are tags, process them
-                if (tags.length > 0) {
-                    // Split the content by tags to preserve the order
-                    const parts = formattedContent.split(TAG_REGEX);
-                    let currentIndex = 0;
-                    
-                    // Interleave text parts and styled tags
-                    parts.forEach((part, index) => {
-                        // Add the text part
-                        if (part) {
-                            contentEl.appendChild(document.createTextNode(part));
-                        }
-                        
-                        // Add the tag (if there is one after this part)
-                        if (index < tags.length) {
-                            const tagSpan = document.createElement('span');
-                            tagSpan.className = 'highlight-tag';
-                            tagSpan.textContent = tags[index];
-                            contentEl.appendChild(tagSpan);
-                        }
-                    });
-                } else {
-                    // 如果不是纯标签格式，直接显示原始内容
-                    contentEl.textContent = content;
-                }
-            } else {
-                try {
-                    // 使用 MarkdownRenderer 渲染 Markdown 内容
-                    await MarkdownRenderer.renderMarkdown(
-                        content,
-                        contentEl,
-                        this.highlight.filePath || '',
-                        this
-                    );
-                    
-                    // 添加自定义样式类以修复可能的样式问题
-                    const lists = contentEl.querySelectorAll('ul, ol');
-                    lists.forEach(list => {
-                        list.addClass('comment-markdown-list');
-                    });
-                    
-                    // 激活内部链接
-                    await this.activateInternalLinks(contentEl, this.highlight.filePath || '');
-                } catch (error) {
-                    console.error('Error rendering markdown in comment:', error);
-                    // 如果渲染失败，回退到纯文本渲染
-                    contentEl.textContent = content;
-                }
+                // 激活内部链接
+                await this.activateInternalLinks(contentEl, this.highlight.filePath || '');
+            } catch (error) {
+                console.error('Error rendering markdown in comment:', error);
+                // 如果渲染失败，回退到纯文本渲染
+                contentEl.textContent = content;
             }
 
             // 添加双击事件监听

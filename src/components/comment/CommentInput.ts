@@ -4,10 +4,6 @@ import { Platform, Notice, setIcon } from "obsidian";
 import { AIService } from "../../services/AIService";
 import type CommentPlugin from "../../../main";
 
-// 标签格式的正则表达式
-const TAG_REGEX = /#[\w\u4e00-\u9fa5]+/g;
-const PURE_TAGS_FORMAT = /^\s*(#[\w\u4e00-\u9fa5]+(\s+#[\w\u4e00-\u9fa5]+)*\s*)$/;
-
 export class CommentInput {
     private textarea: HTMLTextAreaElement;
     private actionHint: HTMLElement;
@@ -88,7 +84,6 @@ export class CommentInput {
 
         // 添加输入事件监听器
         this.textarea.addEventListener('input', () => {
-            this.processTagsInInput();
             this.autoResizeTextarea();
         });
         
@@ -196,7 +191,6 @@ export class CommentInput {
         
         // 添加输入事件监听器
         this.textarea.addEventListener('input', () => {
-            this.processTagsInInput();
             this.autoResizeTextarea();
         });
         
@@ -372,41 +366,6 @@ export class CommentInput {
         window.scrollTo(0, scrollTop);
     }
 
-    private processTagsInInput() {
-        const text = this.textarea.value;
-        
-        // 检查是否是纯标签格式
-        if (PURE_TAGS_FORMAT.test(text)) {
-            const tags = text.match(TAG_REGEX) || [];
-            
-            // 如果找到标签，在textarea上方显示标签预览
-            if (tags.length > 0) {
-                let tagsPreview = this.textarea.parentElement?.querySelector('.highlight-tags-preview');
-                if (!tagsPreview) {
-                    tagsPreview = document.createElement('div');
-                    tagsPreview.className = 'highlight-tags-preview';
-                    this.textarea.parentElement?.insertBefore(tagsPreview, this.textarea);
-                }
-                if (tagsPreview) {
-                    // Clear the tags preview using DOM API
-                    while (tagsPreview.firstChild) {
-                        tagsPreview.removeChild(tagsPreview.firstChild);
-                    }
-                    
-                    const previewEl = tagsPreview; // 创建一个确定非空的引用
-                    tags.forEach(tag => {
-                        const tagEl = document.createElement('span');
-                        tagEl.className = 'highlight-tag';
-                        tagEl.textContent = tag;
-                        previewEl.appendChild(tagEl);
-                    });
-                }
-            }
-        } else {
-            // 如果不是纯标签格式，移除预览区域
-            this.textarea.parentElement?.querySelector('.highlight-tags-preview')?.remove();
-        }
-    }
 
     private handleOutsideClick(e: MouseEvent) {
         if (!this.textarea || this.isProcessing) return;
