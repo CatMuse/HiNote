@@ -8,9 +8,32 @@ import { HighlightCard } from "../../components/highlight/HighlightCard";
  * - 选择状态管理
  * - 选择框绘制
  */
+/**
+ * 选中卡片的数据结构
+ */
+interface SelectedCardData {
+    element: HTMLElement;
+    highlight: HighlightInfo;
+}
+
+/**
+ * 卡片缓存数据结构
+ */
+interface CardCacheData {
+    element: HTMLElement;
+    rect: DOMRect;
+    highlight: HighlightInfo;
+}
+
 export class SelectionManager {
     private highlightContainer: HTMLElement;
-    private selectedHighlights: Set<HighlightInfo> = new Set<HighlightInfo>();
+    // 使用 Map 存储选中的卡片，key 为 highlight.id，value 为卡片数据
+    // 这样可以快速访问，避免 JSON 解析，并确保数据一致性
+    private selectedCards: Map<string, SelectedCardData> = new Map();
+    
+    // 卡片缓存：避免每次框选时都查询 DOM 和计算位置
+    private cardCache: CardCacheData[] = [];
+    private isCacheValid: boolean = false;
     
     // 选择模式相关
     private isSelectionMode: boolean = false;
@@ -19,6 +42,9 @@ export class SelectionManager {
     private selectionStartY: number = 0;
     private mouseMoveThreshold = 5;
     private mouseMoved = false;
+    
+    // RAF 优化相关
+    private animationFrameId: number | null = null;
     
     // 回调函数
     private onSelectionChangeCallback: ((selectedCount: number) => void) | null = null;
@@ -39,24 +65,68 @@ export class SelectionManager {
      */
     initialize() {
         this.setupSelectionBox();
+        // 初始化时构建卡片缓存
+        this.buildCardCache();
+    }
+    
+    /**
+     * 构建卡片缓存
+     * 缓存所有卡片的元素、位置和数据，避免重复查询
+     */
+    buildCardCache() {
+        this.cardCache = [];
+        const cards = this.highlightContainer.querySelectorAll('.highlight-card');
+        
+        cards.forEach(card => {
+            const element = card as HTMLElement;
+            const highlightData = element.getAttribute('data-highlight');
+            
+            if (highlightData) {
+                try {
+                    const highlight = JSON.parse(highlightData) as HighlightInfo;
+                    this.cardCache.push({
+                        element,
+                        rect: element.getBoundingClientRect(),
+                        highlight
+                    });
+                } catch (e) {
+                    console.error('Error parsing highlight data:', e);
+                }
+            }
+        });
+        
+        this.isCacheValid = true;
+    }
+    
+    /**
+     * 使缓存失效
+     * 当 DOM 结构变化时调用
+     */
+    invalidateCache() {
+        this.isCacheValid = false;
+        this.cardCache = [];
+    }
+    
+    /**
+     * 确保缓存有效
+     */
+    private ensureCacheValid() {
+        if (!this.isCacheValid) {
+            this.buildCardCache();
+        }
     }
     
     /**
      * 清除所有选中状态
      */
     clearSelection() {
-        // 清除DOM中的选中状态
-        this.highlightContainer.querySelectorAll('.highlight-card.selected').forEach(card => {
-            card.removeClass('selected');
+        // 清除所有选中卡片的 DOM 状态
+        this.selectedCards.forEach(({ element }) => {
+            element.removeClass('selected');
         });
         
-        // 清除HighlightCard类中的选中状态
-        if (HighlightCard && typeof HighlightCard.clearSelection === 'function') {
-            HighlightCard.clearSelection();
-        }
-        
-        // 清空选中的高亮集合
-        this.selectedHighlights.clear();
+        // 清空选中的卡片集合
+        this.selectedCards.clear();
         
         // 重置选择模式
         this.isSelectionMode = false;
@@ -67,17 +137,23 @@ export class SelectionManager {
     
     /**
      * 更新选中的高亮列表
+     * 从 DOM 同步选中状态到内部 Map
      */
     updateSelectedHighlights() {
-        this.selectedHighlights.clear();
-        const selectedCards = Array.from(this.highlightContainer.querySelectorAll('.highlight-card.selected'));
+        this.selectedCards.clear();
+        const selectedCardElements = Array.from(this.highlightContainer.querySelectorAll('.highlight-card.selected'));
         
-        selectedCards.forEach(card => {
-            const highlightData = card.getAttribute('data-highlight');
+        selectedCardElements.forEach(cardElement => {
+            const highlightData = cardElement.getAttribute('data-highlight');
             if (highlightData) {
                 try {
                     const highlight = JSON.parse(highlightData) as HighlightInfo;
-                    this.selectedHighlights.add(highlight);
+                    if (highlight.id) {
+                        this.selectedCards.set(highlight.id, {
+                            element: cardElement as HTMLElement,
+                            highlight: highlight
+                        });
+                    }
                 } catch (e) {
                     console.error('Error parsing highlight data:', e);
                 }
@@ -90,16 +166,64 @@ export class SelectionManager {
     
     /**
      * 获取选中的高亮
+     * 返回 Set 以保持向后兼容
      */
     getSelectedHighlights(): Set<HighlightInfo> {
-        return this.selectedHighlights;
+        const highlights = new Set<HighlightInfo>();
+        this.selectedCards.forEach(({ highlight }) => {
+            highlights.add(highlight);
+        });
+        return highlights;
     }
     
     /**
      * 获取选中数量
      */
     getSelectedCount(): number {
-        return this.selectedHighlights.size;
+        return this.selectedCards.size;
+    }
+    
+    /**
+     * 选中单个卡片
+     * @param id 高亮 ID
+     * @param element 卡片元素
+     * @param highlight 高亮数据
+     */
+    selectCard(id: string, element: HTMLElement, highlight: HighlightInfo) {
+        // 添加到选中集合
+        this.selectedCards.set(id, { element, highlight });
+        
+        // 更新 DOM 状态
+        element.addClass('selected');
+        
+        // 通知选择变化
+        this.notifySelectionChange();
+    }
+    
+    /**
+     * 取消选中单个卡片
+     * @param id 高亮 ID
+     */
+    unselectCard(id: string) {
+        const cardData = this.selectedCards.get(id);
+        if (cardData) {
+            // 更新 DOM 状态
+            cardData.element.removeClass('selected');
+            
+            // 从选中集合中移除
+            this.selectedCards.delete(id);
+            
+            // 通知选择变化
+            this.notifySelectionChange();
+        }
+    }
+    
+    /**
+     * 检查卡片是否被选中
+     * @param id 高亮 ID
+     */
+    isCardSelected(id: string): boolean {
+        return this.selectedCards.has(id);
     }
     
     /**
@@ -113,8 +237,12 @@ export class SelectionManager {
      * 设置框选功能
      */
     private setupSelectionBox() {
-        // 移除现有的事件监听器
+        // 移除现有的事件监听器，避免重复添加
         this.highlightContainer.removeEventListener('mousedown', this.handleSelectionStart);
+        
+        // 清理可能残留的其他事件监听器
+        this.cleanupMouseEvents();
+        this.cleanupSelectionEvents();
         
         // 添加新的事件监听器
         this.highlightContainer.addEventListener('mousedown', this.handleSelectionStart);
@@ -124,12 +252,11 @@ export class SelectionManager {
      * 处理选择开始
      */
     private handleSelectionStart = (e: MouseEvent) => {
-        // 如果点击的是卡片内部元素、HiCard页面元素或AI对话浮动按钮，不启动框选
+        // 如果点击的是卡片内部元素或闪卡页面元素，不启动框选
         if ((e.target as HTMLElement).closest('.highlight-card') ||
             (e.target as HTMLElement).closest('.flashcard-mode') ||
             (e.target as HTMLElement).closest('.flashcard-add-group') ||
-            (e.target as HTMLElement).closest('.flashcard-group-action') ||
-            (e.target as HTMLElement).closest('.highlight-floating-button')) {
+            (e.target as HTMLElement).closest('.flashcard-group-action')) {
             return;
         }
     
@@ -162,8 +289,8 @@ export class SelectionManager {
      * 处理鼠标释放（未移动时）
      */
     private handleMouseUp = (e: MouseEvent) => {
-        document.removeEventListener('mousemove', this.handleMouseMove);
-        document.removeEventListener('mouseup', this.handleMouseUp);
+        // 清理事件监听器
+        this.cleanupMouseEvents();
         
         if (!this.mouseMoved) {
             this.clearSelection();
@@ -174,12 +301,11 @@ export class SelectionManager {
      * 开始框选
      */
     private startSelection(e: MouseEvent) {
-        // 检查是否已有选中的卡片
-        const hasSelectedCards = this.highlightContainer.querySelectorAll('.highlight-card.selected').length > 0;
-        const HighlightCardClass = (window as any).HighlightCard;
-        const hasSelectedCardsInSet = HighlightCardClass && HighlightCardClass.selectedCards && HighlightCardClass.selectedCards.size > 0;
+        // 清理可能残留的鼠标事件监听器
+        this.cleanupMouseEvents();
         
-        if (this.selectedHighlights.size > 0 || hasSelectedCards || hasSelectedCardsInSet) {
+        // 检查是否已有选中的卡片，如果有则清除
+        if (this.selectedCards.size > 0) {
             this.clearSelection();
         }
         
@@ -200,30 +326,48 @@ export class SelectionManager {
     
     /**
      * 处理框选移动
+     * 使用 RAF 优化，避免频繁的 DOM 操作
      */
     private handleSelectionMove = (e: MouseEvent) => {
         if (!this.isSelectionMode || !this.selectionBox) return;
         
-        const width = e.clientX - this.selectionStartX;
-        const height = e.clientY - this.selectionStartY;
+        // 如果已经有待处理的动画帧，直接返回
+        if (this.animationFrameId !== null) return;
         
-        // 根据拖动方向设置选择框位置和大小
-        if (width < 0) {
-            this.selectionBox.style.left = `${e.clientX}px`;
-            this.selectionBox.style.width = `${-width}px`;
-        } else {
-            this.selectionBox.style.width = `${width}px`;
-        }
-        
-        if (height < 0) {
-            this.selectionBox.style.top = `${e.clientY}px`;
-            this.selectionBox.style.height = `${-height}px`;
-        } else {
-            this.selectionBox.style.height = `${height}px`;
-        }
-        
-        // 实时选中框内的卡片
-        this.selectCardsInBox();
+        // 使用 RAF 批量处理 DOM 更新
+        this.animationFrameId = requestAnimationFrame(() => {
+            if (!this.selectionBox) {
+                this.animationFrameId = null;
+                return;
+            }
+            
+            const width = e.clientX - this.selectionStartX;
+            const height = e.clientY - this.selectionStartY;
+            
+            // 根据拖动方向设置选择框位置和大小
+            if (width < 0) {
+                this.selectionBox.style.left = `${e.clientX}px`;
+                this.selectionBox.style.width = `${-width}px`;
+            } else {
+                this.selectionBox.style.width = `${width}px`;
+            }
+            
+            if (height < 0) {
+                this.selectionBox.style.top = `${e.clientY}px`;
+                this.selectionBox.style.height = `${-height}px`;
+            } else {
+                this.selectionBox.style.height = `${height}px`;
+            }
+            
+            // 实时选中框内的卡片
+            this.selectCardsInBox();
+            
+            // 通知选择变化（实时更新批量操作按钮）
+            this.notifySelectionChange();
+            
+            // 重置动画帧 ID
+            this.animationFrameId = null;
+        });
     }
     
     /**
@@ -241,42 +385,46 @@ export class SelectionManager {
         // 结束选择模式
         this.isSelectionMode = false;
         
-        // 移除事件监听器
-        document.removeEventListener('mousemove', this.handleSelectionMove);
-        document.removeEventListener('mouseup', this.handleSelectionEnd);
+        // 清理事件监听器
+        this.cleanupSelectionEvents();
         
-        // 更新选中的高亮列表
-        this.updateSelectedHighlights();
+        // 最后一次通知选择变化（确保状态同步）
+        this.notifySelectionChange();
     }
     
     /**
      * 选中框内的卡片
+     * 使用缓存优化，避免重复查询 DOM
      */
     private selectCardsInBox() {
         if (!this.selectionBox) return;
         
-        const boxRect = this.selectionBox.getBoundingClientRect();
-        const cards = this.highlightContainer.querySelectorAll('.highlight-card');
-        const HighlightCardClass = (window as any).HighlightCard;
+        // 确保缓存有效
+        this.ensureCacheValid();
         
-        cards.forEach(card => {
-            const cardRect = card.getBoundingClientRect();
-            
+        const boxRect = this.selectionBox.getBoundingClientRect();
+        
+        // 使用缓存的卡片数据，避免重复查询 DOM
+        this.cardCache.forEach(({ element, rect, highlight }) => {
             // 检查卡片是否与选择框重叠
-            const overlap = !(boxRect.right < cardRect.left || 
-                            boxRect.left > cardRect.right || 
-                            boxRect.bottom < cardRect.top || 
-                            boxRect.top > cardRect.bottom);
+            // 注意：这里使用缓存的 rect，在快速拖动时可能略有偏差
+            // 但性能提升显著，且偏差在可接受范围内
+            const overlap = !(boxRect.right < rect.left || 
+                            boxRect.left > rect.right || 
+                            boxRect.bottom < rect.top || 
+                            boxRect.top > rect.bottom);
             
             if (overlap) {
-                card.addClass('selected');
-                if (HighlightCardClass && HighlightCardClass.selectedCards) {
-                    HighlightCardClass.selectedCards.add(card);
+                element.addClass('selected');
+                // 同时更新 selectedCards Map
+                if (highlight.id) {
+                    this.selectedCards.set(highlight.id, { element, highlight });
                 }
             } else if (!document.querySelector('.multi-select-mode')) {
-                card.removeClass('selected');
-                if (HighlightCardClass && HighlightCardClass.selectedCards) {
-                    HighlightCardClass.selectedCards.delete(card);
+                element.removeClass('selected');
+                // 从 selectedCards Map 中移除
+                if (highlight.id) {
+                    this.selectedCards.delete(highlight.id);
                 }
             }
         });
@@ -287,14 +435,36 @@ export class SelectionManager {
      */
     private notifySelectionChange() {
         if (this.onSelectionChangeCallback) {
-            this.onSelectionChangeCallback(this.selectedHighlights.size);
+            this.onSelectionChangeCallback(this.selectedCards.size);
         }
+    }
+    
+    /**
+     * 清理鼠标事件监听器
+     */
+    private cleanupMouseEvents() {
+        document.removeEventListener('mousemove', this.handleMouseMove);
+        document.removeEventListener('mouseup', this.handleMouseUp);
+    }
+    
+    /**
+     * 清理框选事件监听器
+     */
+    private cleanupSelectionEvents() {
+        document.removeEventListener('mousemove', this.handleSelectionMove);
+        document.removeEventListener('mouseup', this.handleSelectionEnd);
     }
     
     /**
      * 清理资源
      */
     destroy() {
+        // 取消待处理的动画帧
+        if (this.animationFrameId !== null) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        
         // 移除选择框
         if (this.selectionBox) {
             this.selectionBox.remove();
@@ -304,11 +474,12 @@ export class SelectionManager {
         // 清除选择状态
         this.clearSelection();
         
-        // 移除事件监听器
+        // 清除缓存
+        this.invalidateCache();
+        
+        // 移除所有事件监听器
         this.highlightContainer.removeEventListener('mousedown', this.handleSelectionStart);
-        document.removeEventListener('mousemove', this.handleMouseMove);
-        document.removeEventListener('mouseup', this.handleMouseUp);
-        document.removeEventListener('mousemove', this.handleSelectionMove);
-        document.removeEventListener('mouseup', this.handleSelectionEnd);
+        this.cleanupMouseEvents();
+        this.cleanupSelectionEvents();
     }
 }

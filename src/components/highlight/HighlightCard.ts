@@ -11,28 +11,15 @@ import { DragContentGenerator } from "./DragContentGenerator";
 import { AIButton } from "../AIButton";
 import { AIService } from "../../services/AIService";
 import { LicenseManager } from "../../services/LicenseManager";
+import { SelectionManager } from "../../view/selection/SelectionManager";
 
 export class HighlightCard {
-    // 静态方法：获取所有选中的卡片
-    public static getSelectedCards(): Set<HTMLElement> {
-        return HighlightCard.selectedCards;
-    }
-    
     // 为了让 CommentInput 能够访问到 findCardInstanceByHighlightId 方法
     static {
         // @ts-ignore - 添加到 window 对象上，忽略类型检查
         window.HighlightCard = {
             findCardInstanceByHighlightId: HighlightCard.findCardInstanceByHighlightId
         };
-    }
-    
-    // 静态方法：清除所有选中状态
-    public static clearSelection(): void {
-        HighlightCard.selectedCards.forEach(card => {
-            card.removeClass('selected');
-        });
-        HighlightCard.selectedCards.clear();
-        HighlightCard.lastSelectedCard = null;
     }
     
     // 静态方法：清理所有卡片实例
@@ -47,9 +34,6 @@ export class HighlightCard {
         
         // 清空实例集合
         HighlightCard.cardInstances.clear();
-        // 清空选中状态
-        HighlightCard.selectedCards.clear();
-        HighlightCard.lastSelectedCard = null;
     }
     
     // 静态方法：根据高亮ID查找HighlightCard实例
@@ -81,8 +65,6 @@ export class HighlightCard {
     }
     
     private card: HTMLElement;
-    private static selectedCards: Set<HTMLElement> = new Set<HTMLElement>();
-    private static lastSelectedCard: HTMLElement | null = null;
     private static cardInstances = new Set<HighlightCard>();
     private fileName: string | undefined;
     private isEditing = false;
@@ -104,7 +86,8 @@ export class HighlightCard {
             onAIResponse: (content: string) => Promise<void>;
         },
         private isInMainView: boolean = false,
-        fileName?: string
+        fileName?: string,
+        private selectionManager?: SelectionManager  // SelectionManager 实例
     ) {
         this.fileName = fileName;
         this.highlight = highlight;
@@ -474,75 +457,42 @@ export class HighlightCard {
         // 先清除所有卡片上的不聚焦输入框
         HighlightCard.clearAllUnfocusedInputs();
         
+        // 如果没有 SelectionManager，只显示输入框（单选模式降级）
+        if (!this.selectionManager) {
+            this.showUnfocusedCommentInput();
+            return;
+        }
+        
+        // 如果没有 highlight.id，无法进行选择操作
+        if (!this.highlight.id) {
+            this.showUnfocusedCommentInput();
+            return;
+        }
+        
         // 如果按住 Shift 键，则进行多选或取消选择
-        if (event && event.shiftKey && HighlightCard.lastSelectedCard) {
+        if (event && event.shiftKey) {
             // 检查当前卡片是否已经被选中
-            const isCurrentCardSelected = this.card.hasClass('selected');
+            const isSelected = this.selectionManager.isCardSelected(this.highlight.id);
             
-            if (isCurrentCardSelected) {
+            if (isSelected) {
                 // 如果已经选中，则取消选择
-                this.card.removeClass('selected');
-                HighlightCard.selectedCards.delete(this.card);
+                this.selectionManager.unselectCard(this.highlight.id);
             } else {
                 // 如果未选中，则添加到选中集合
-                // 保持上一个选中的卡片状态
-                HighlightCard.selectedCards.add(HighlightCard.lastSelectedCard);
-                // 添加当前卡片到选中集合
-                HighlightCard.selectedCards.add(this.card);
-                this.card.addClass('selected');
+                this.selectionManager.selectCard(this.highlight.id, this.card, this.highlight);
             }
-            
-            // 触发自定义事件，通知 CommentView 多选状态变化
-            const customEvent = new CustomEvent('highlight-multi-select', {
-                detail: {
-                    selectedCards: Array.from(HighlightCard.selectedCards),
-                    lastSelected: this.card
-                },
-                bubbles: true
-            });
-            this.card.dispatchEvent(customEvent);
             
             // 多选模式下不显示输入框
         } else {
-            // 单选模式，清除之前的所有选择
+            // 单选模式，先清除所有选择
+            this.selectionManager.clearSelection();
             
-            // 清除 DOM 中所有带有 selected 类的卡片
-            const allSelectedCards = document.querySelectorAll('.highlight-card.selected');
-            allSelectedCards.forEach(card => {
-                if (card !== this.card) {
-                    card.removeClass('selected');
-                }
-            });
+            // 然后选中当前卡片
+            this.selectionManager.selectCard(this.highlight.id, this.card, this.highlight);
             
-            // 清除 HighlightCard.selectedCards 集合
-            HighlightCard.selectedCards.forEach(card => {
-                if (card !== this.card) {
-                    card.removeClass('selected');
-                }
-            });
-            HighlightCard.selectedCards.clear();
-            
-            HighlightCard.selectedCards.add(this.card);
-            this.card.addClass('selected');
-        }
-        
-        // 触发自定义事件，通知 CommentView 多选状态变化
-        const customEvent = new CustomEvent('highlight-multi-select', {
-            detail: {
-                selectedCards: Array.from(HighlightCard.selectedCards),
-                lastSelected: this.card
-            },
-            bubbles: true
-        });
-        this.card.dispatchEvent(customEvent);
-        
-        // 在单选模式下显示不聚焦的批注输入框
-        if (!event?.shiftKey) {
+            // 在单选模式下显示不聚焦的批注输入框
             this.showUnfocusedCommentInput();
         }
-        
-        // 更新最后选中的卡片，即使它被取消选择了
-        HighlightCard.lastSelectedCard = this.card;
     }
     
     public getElement(): HTMLElement {

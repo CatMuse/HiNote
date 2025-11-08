@@ -1,5 +1,6 @@
 import { HighlightInfo, CommentItem } from '../../types';
 import { HighlightCard } from '../../components/highlight/HighlightCard';
+import { SelectionManager } from '../selection/SelectionManager';
 import { TFile } from 'obsidian';
 import CommentPlugin from '../../../main';
 import { t } from '../../i18n';
@@ -12,6 +13,7 @@ export class HighlightRenderManager {
     private container: HTMLElement;
     private plugin: CommentPlugin;
     private searchInput: HTMLInputElement;
+    private selectionManager: SelectionManager | null = null;  // 保存 SelectionManager 实例
     
     // 回调函数
     private onHighlightClick: ((h: HighlightInfo) => Promise<void>) | null = null;
@@ -92,23 +94,26 @@ export class HighlightRenderManager {
     renderHighlights(
         highlightsToRender: HighlightInfo[], 
         append = false,
-        selectionManager?: any
+        selectionManager?: SelectionManager
     ) {
+        // 保存 SelectionManager 实例
+        if (selectionManager) {
+            this.selectionManager = selectionManager;
+        }
+        
         if (!append) {
             // 在清空容器前清理静态实例集合
             if (typeof HighlightCard.clearAllInstances === 'function') {
                 HighlightCard.clearAllInstances();
-            } else {
-                // 兼容性处理
-                HighlightCard.clearSelection();
             }
             
             this.container.empty();
             this.currentBatch = 0;
             
-            // 清除多选状态
-            if (selectionManager) {
-                selectionManager.clearSelection();
+            // 清除多选状态和缓存
+            if (this.selectionManager) {
+                this.selectionManager.clearSelection();
+                this.selectionManager.invalidateCache();
             }
         }
 
@@ -117,9 +122,12 @@ export class HighlightRenderManager {
             return;
         }
         
-        // 初始化选择功能
-        if (selectionManager && !append) {
-            selectionManager.initialize();
+        // 初始化选择功能（会重建缓存）
+        if (this.selectionManager && !append) {
+            this.selectionManager.initialize();
+        } else if (this.selectionManager && append) {
+            // 追加模式下也需要使缓存失效
+            this.selectionManager.invalidateCache();
         }
 
         let highlightList = this.container.querySelector('.highlight-list') as HTMLElement;
@@ -132,6 +140,16 @@ export class HighlightRenderManager {
         highlightsToRender.forEach((highlight) => {
             this.renderHighlightCard(highlightList, highlight);
         });
+        
+        // 渲染完成后，重建缓存
+        if (this.selectionManager) {
+            // 使用 setTimeout 确保 DOM 已更新
+            setTimeout(() => {
+                if (this.selectionManager) {
+                    this.selectionManager.buildCardCache();
+                }
+            }, 0);
+        }
     }
     
     /**
@@ -142,7 +160,7 @@ export class HighlightRenderManager {
         if (this.currentFile && !highlight.filePath) {
             highlight.filePath = this.currentFile.path;
         }
-
+        
         const highlightCard = new HighlightCard(
             container,
             highlight,
@@ -176,7 +194,8 @@ export class HighlightRenderManager {
             },
             this.isDraggedToMainView,
             // 当显示全部高亮时（currentFile 为 null），使用高亮的 fileName，否则使用当前文件名
-            this.currentFile === null ? highlight.fileName : this.currentFile.basename
+            this.currentFile === null ? highlight.fileName : this.currentFile.basename,
+            this.selectionManager ?? undefined  // 传入 SelectionManager 实例，null 转为 undefined
         );
         
         // 如果高亮已经创建了闪卡，立即更新UI状态
@@ -228,8 +247,6 @@ export class HighlightRenderManager {
     clear() {
         if (typeof HighlightCard.clearAllInstances === 'function') {
             HighlightCard.clearAllInstances();
-        } else {
-            HighlightCard.clearSelection();
         }
         this.container.empty();
     }

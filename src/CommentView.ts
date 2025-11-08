@@ -13,7 +13,6 @@ import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
 import { ExportService } from './services/ExportService';
 import { CommentInput } from './components/comment/CommentInput';
-import { ChatView } from './components/ChatView';
 import {t} from "./i18n";
 import { LicenseManager } from './services/LicenseManager';
 import { IdGenerator } from './utils/IdGenerator';
@@ -53,8 +52,6 @@ export class CommentView extends ItemView {
     private layoutManager: LayoutManager | null = null;
     // 视图位置检测器
     private viewPositionDetector: ViewPositionDetector | null = null;
-    // 添加活动视图变化的事件处理器
-    private activeLeafChangeHandler: (() => void) | undefined;
     private highlightContainer: HTMLElement;
     private searchContainer: HTMLElement;
     private fileListContainer: HTMLElement;
@@ -79,7 +76,6 @@ export class CommentView extends ItemView {
     private isLoading: boolean = false;
     private loadingIndicator: HTMLElement;
     private BATCH_SIZE = 20;
-    private floatingButton: HTMLElement | null = null;
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
     private currentEditingHighlightId: string | null | undefined = null;
     private flashcardComponent: FlashcardComponent | null = null;
@@ -557,6 +553,12 @@ export class CommentView extends ItemView {
                     isFlashcardMode: this.isFlashcardMode
                 });
                 this.fileListManager!.updateFileListSelection();
+                this.searchContainer.removeClass('highlight-display-none');
+                // 在全部高亮视图下隐藏添加文件批注和导出为笔记按钮
+                const iconButtons = this.searchContainer.querySelector('.highlight-search-icons') as HTMLElement;
+                if (iconButtons) {
+                    iconButtons.addClass('highlight-display-none');
+                }
                 if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
                     this.isShowingFileList = false;
                     this.updateViewLayout();
@@ -688,8 +690,8 @@ export class CommentView extends ItemView {
         );
         
         this.layoutManager.setCallbacks({
-            onCreateFloatingButton: () => this.createFloatingButton(),
-            onRemoveFloatingButton: () => this.removeFloatingButton(),
+            onCreateFloatingButton: () => {},
+            onRemoveFloatingButton: () => {},
             onUpdateFileList: async (forceRefresh?: boolean) => {
                 if (this.fileListManager) {
                     this.fileListManager.updateState({
@@ -893,7 +895,7 @@ export class CommentView extends ItemView {
             this.highlightRenderManager.renderHighlights(
                 highlightsToRender,
                 append,
-                this.selectionManager
+                this.selectionManager ?? undefined
             );
             // 同步 currentBatch
             this.currentBatch = this.highlightRenderManager.getCurrentBatch();
@@ -1097,103 +1099,9 @@ export class CommentView extends ItemView {
         });
     }
 
-    // 添加创建浮动按钮的方法
-    private createFloatingButton() {
-        if (this.floatingButton) return;
-        
-        this.floatingButton = document.createElement('div');
-        this.floatingButton.className = 'highlight-floating-button';
-        
-        const icon = document.createElement('span');
-        setIcon(icon, 'bot-message-square');
-        this.floatingButton.appendChild(icon);
-        
-        // 使用 getInstance 方法
-        this.floatingButton.addEventListener('click', (e) => {
-            // 阻止事件冒泡和默认行为
-            e.preventDefault();
-            e.stopPropagation();
-            
-            try {
-                const chatView = ChatView.getInstance(this.app, this.plugin);
-                
-                // 确保在下一个事件循环中显示对话框
-                setTimeout(() => {
-                    chatView.show();
-                }, 0);
-            } catch (error) {
-                console.error('创建ChatView失败:', error);
-            }
-        });
-        
-        document.body.appendChild(this.floatingButton);
-        
-        // 注册活动叶子变化的事件处理器
-        this.registerActiveLeafChangeHandler();
-    }
-
-    // 添加移除浮动按钮的方法
-    private removeFloatingButton() {
-        if (this.floatingButton) {
-            this.floatingButton.remove();
-            this.floatingButton = null;
-        }
-        
-        // 移除活动叶子变化的事件处理器
-        this.unregisterActiveLeafChangeHandler();
-    }
-    
-    // 注册活动叶子变化的事件处理器
-    private registerActiveLeafChangeHandler() {
-        // 如果已经注册过，先移除
-        this.unregisterActiveLeafChangeHandler();
-        
-        // 创建事件处理器
-        this.activeLeafChangeHandler = () => {
-            this.updateFloatingButtonVisibility();
-            
-            // 清理高亮卡片实例
-            if (typeof HighlightCard.clearAllInstances === 'function') {
-                HighlightCard.clearAllInstances();
-            }
-            
-            // 重新加载高亮
-            this.updateHighlights();
-        };
-        
-        // 注册事件
-        this.app.workspace.on('active-leaf-change', this.activeLeafChangeHandler);
-        
-        // 初始化按钮可见性
-        this.updateFloatingButtonVisibility();
-    }
-    
-    // 移除活动叶子变化的事件处理器
-    private unregisterActiveLeafChangeHandler() {
-        if (this.activeLeafChangeHandler) {
-            this.app.workspace.off('active-leaf-change', this.activeLeafChangeHandler);
-            this.activeLeafChangeHandler = undefined;
-        }
-    }
-    
-    // 更新浮动按钮的可见性
-    private updateFloatingButtonVisibility() {
-        if (!this.floatingButton) return;
-        
-        const activeLeaf = this.app.workspace.activeLeaf;
-        if (activeLeaf && activeLeaf.view && activeLeaf.view.getViewType() === VIEW_TYPE_COMMENT) {
-            // 如果当前活动视图是 CommentView，显示浮动按钮
-            this.floatingButton.style.display = 'flex';
-        } else {
-            // 否则隐藏浮动按钮
-            this.floatingButton.style.display = 'none';
-        }
-    }
 
     // 在 onunload 方法中确保清理
     onunload() {
-        this.removeFloatingButton();
-        this.unregisterActiveLeafChangeHandler();
         
         // 清理搜索管理器
         if (this.searchManager) {
