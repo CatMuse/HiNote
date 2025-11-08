@@ -110,10 +110,9 @@ export class HighlightRenderManager {
             this.container.empty();
             this.currentBatch = 0;
             
-            // 清除多选状态和缓存
+            // 清除多选状态
             if (this.selectionManager) {
                 this.selectionManager.clearSelection();
-                this.selectionManager.invalidateCache();
             }
         }
 
@@ -122,12 +121,9 @@ export class HighlightRenderManager {
             return;
         }
         
-        // 初始化选择功能（会重建缓存）
+        // 初始化选择功能
         if (this.selectionManager && !append) {
             this.selectionManager.initialize();
-        } else if (this.selectionManager && append) {
-            // 追加模式下也需要使缓存失效
-            this.selectionManager.invalidateCache();
         }
 
         let highlightList = this.container.querySelector('.highlight-list') as HTMLElement;
@@ -140,16 +136,6 @@ export class HighlightRenderManager {
         highlightsToRender.forEach((highlight) => {
             this.renderHighlightCard(highlightList, highlight);
         });
-        
-        // 渲染完成后，重建缓存
-        if (this.selectionManager) {
-            // 使用 setTimeout 确保 DOM 已更新
-            setTimeout(() => {
-                if (this.selectionManager) {
-                    this.selectionManager.buildCardCache();
-                }
-            }, 0);
-        }
     }
     
     /**
@@ -160,7 +146,7 @@ export class HighlightRenderManager {
         if (this.currentFile && !highlight.filePath) {
             highlight.filePath = this.currentFile.path;
         }
-        
+
         const highlightCard = new HighlightCard(
             container,
             highlight,

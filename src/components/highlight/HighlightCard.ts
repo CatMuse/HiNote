@@ -457,15 +457,9 @@ export class HighlightCard {
         // 先清除所有卡片上的不聚焦输入框
         HighlightCard.clearAllUnfocusedInputs();
         
-        // 如果没有 SelectionManager，只显示输入框（单选模式降级）
-        if (!this.selectionManager) {
-            this.showUnfocusedCommentInput();
-            return;
-        }
-        
-        // 如果没有 highlight.id，无法进行选择操作
-        if (!this.highlight.id) {
-            this.showUnfocusedCommentInput();
+        // 必须有 SelectionManager 和 highlight.id 才能进行选择操作
+        if (!this.selectionManager || !this.highlight.id) {
+            console.error('[HighlightCard] SelectionManager 未传入或 highlight.id 不存在，无法进行选择操作');
             return;
         }
         
