@@ -19,6 +19,7 @@ export class FileListManager {
     private onFileSelect: ((file: TFile | null) => void) | null = null;
     private onFlashcardModeToggle: ((enabled: boolean) => void) | null = null;
     private onAllHighlightsSelect: (() => void) | null = null;
+    private onRefreshView: (() => Promise<void>) | null = null;
     
     // 状态
     private currentFile: TFile | null = null;
@@ -52,6 +53,7 @@ export class FileListManager {
         onFileSelect?: (file: TFile | null) => void;
         onFlashcardModeToggle?: (enabled: boolean) => void;
         onAllHighlightsSelect?: () => void;
+        onRefreshView?: () => Promise<void>;
     }) {
         if (callbacks.onFileSelect) {
             this.onFileSelect = callbacks.onFileSelect;
@@ -61,6 +63,9 @@ export class FileListManager {
         }
         if (callbacks.onAllHighlightsSelect) {
             this.onAllHighlightsSelect = callbacks.onAllHighlightsSelect;
+        }
+        if (callbacks.onRefreshView) {
+            this.onRefreshView = callbacks.onRefreshView;
         }
     }
     
@@ -93,15 +98,21 @@ export class FileListManager {
     
     /**
      * 创建或更新文件列表
+     * @param forceRefresh 是否强制刷新（清除缓存并重新获取）
      */
-    async updateFileList() {
-        // 如果文件列表已经存在，只更新选中状态
-        if (this.container.children.length > 0) {
+    async updateFileList(forceRefresh: boolean = false) {
+        // 如果强制刷新，清除缓存
+        if (forceRefresh) {
+            this.invalidateCache();
+        }
+        
+        // 如果文件列表已经存在且不是强制刷新，只更新选中状态
+        if (this.container.children.length > 0 && !forceRefresh) {
             this.updateFileListSelection();
             return;
         }
 
-        // 首次创建文件列表
+        // 创建或重新创建文件列表
         await this.createFileList();
     }
     
@@ -116,9 +127,20 @@ export class FileListManager {
             cls: "highlight-file-list-header"
         });
 
-        titleContainer.createEl("div", {
+        const titleEl = titleContainer.createEl("div", {
             text: "HiNote",
             cls: "highlight-file-list-title"
+        });
+        
+        // 添加点击刷新功能
+        titleEl.style.cursor = 'pointer';
+        titleEl.addEventListener("click", async () => {
+            // 刷新文件列表
+            await this.updateFileList(true);
+            // 刷新主视图的高亮卡片
+            if (this.onRefreshView) {
+                await this.onRefreshView();
+            }
         });
 
         // 创建文件列表
@@ -502,5 +524,6 @@ export class FileListManager {
         this.onFileSelect = null;
         this.onFlashcardModeToggle = null;
         this.onAllHighlightsSelect = null;
+        this.onRefreshView = null;
     }
 }

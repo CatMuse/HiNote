@@ -499,6 +499,11 @@ export class CommentView extends ItemView {
                     this.flashcardComponent.deactivate();
                     this.flashcardComponent = null;
                 }
+                
+                // 强制清空容器并移除 flashcard-mode 类，防止异步渲染竞态条件
+                this.highlightContainer.empty();
+                this.highlightContainer.removeClass('flashcard-mode');
+                
                 this.fileListManager!.updateState({
                     currentFile: this.currentFile,
                     isFlashcardMode: this.isFlashcardMode
@@ -542,6 +547,11 @@ export class CommentView extends ItemView {
                     this.flashcardComponent.deactivate();
                     this.flashcardComponent = null;
                 }
+                
+                // 强制清空容器并移除 flashcard-mode 类，防止异步渲染竞态条件
+                this.highlightContainer.empty();
+                this.highlightContainer.removeClass('flashcard-mode');
+                
                 this.fileListManager!.updateState({
                     currentFile: this.currentFile,
                     isFlashcardMode: this.isFlashcardMode
@@ -552,6 +562,21 @@ export class CommentView extends ItemView {
                     this.updateViewLayout();
                 }
                 await this.updateAllHighlights();
+            },
+            onRefreshView: async () => {
+                // 根据当前状态刷新对应的视图
+                if (this.isFlashcardMode) {
+                    // 刷新闪卡视图
+                    if (this.flashcardComponent) {
+                        await this.flashcardComponent.activate();
+                    }
+                } else if (this.currentFile === null) {
+                    // 刷新全部高亮视图
+                    await this.updateAllHighlights();
+                } else {
+                    // 刷新单文件高亮视图
+                    await this.updateHighlights();
+                }
             }
         });
         
@@ -598,6 +623,19 @@ export class CommentView extends ItemView {
             onRefreshView: async () => await this.refreshView(),
             onHighlightsUpdate: (highlights) => {
                 this.highlights = highlights;
+            },
+            onCardUpdate: (highlight) => {
+                // 同步更新 this.highlights 数组中的数据
+                const index = this.highlights.findIndex(h => h.id === highlight.id);
+                if (index !== -1) {
+                    this.highlights[index] = highlight;
+                }
+                
+                // 只更新单个卡片，而不是刷新整个视图
+                const cardInstance = HighlightCard.findCardInstanceByHighlightId(highlight.id || '');
+                if (cardInstance) {
+                    cardInstance.updateComments(highlight);
+                }
             }
         });
         
@@ -652,7 +690,7 @@ export class CommentView extends ItemView {
         this.layoutManager.setCallbacks({
             onCreateFloatingButton: () => this.createFloatingButton(),
             onRemoveFloatingButton: () => this.removeFloatingButton(),
-            onUpdateFileList: async () => {
+            onUpdateFileList: async (forceRefresh?: boolean) => {
                 if (this.fileListManager) {
                     this.fileListManager.updateState({
                         currentFile: this.currentFile,
@@ -661,7 +699,7 @@ export class CommentView extends ItemView {
                         isSmallScreen: this.isSmallScreen,
                         isDraggedToMainView: this.isDraggedToMainView
                     });
-                    await this.fileListManager.updateFileList();
+                    await this.fileListManager.updateFileList(forceRefresh);
                 }
             }
         });

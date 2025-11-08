@@ -201,6 +201,10 @@ export class FlashcardComponent extends Component {
         return this.container;
     }
     
+    public getIsActive(): boolean {
+        return this.isActive;
+    }
+    
     public getApp(): any {
         return this.app;
     }

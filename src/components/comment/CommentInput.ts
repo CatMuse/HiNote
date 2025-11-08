@@ -167,7 +167,14 @@ export class CommentInput {
 
             deleteLink.addEventListener('click', async (e) => {
                 e.stopPropagation();
+                
+                if (this.isProcessing) return;
+                this.isProcessing = true;
+                
                 await this.options.onDelete?.();
+                
+                // 删除成功后销毁输入框
+                this.destroy();
             });
         }
 
@@ -546,6 +553,16 @@ export class CommentInput {
     public destroy() {
         document.removeEventListener('click', this.boundHandleOutsideClick);
         this.isProcessing = false;
+        
+        // 移除 textarea
+        if (this.textarea && this.textarea.parentElement) {
+            this.textarea.remove();
+        }
+        
+        // 移除 actionHint
+        if (this.actionHint && this.actionHint.parentElement) {
+            this.actionHint.remove();
+        }
         
         // 移除编辑状态类，恢复展开/收起按钮
         if (this.commentEl) {

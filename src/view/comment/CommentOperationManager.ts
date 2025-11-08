@@ -17,6 +17,7 @@ export class CommentOperationManager {
     // 回调函数
     private onRefreshView: (() => Promise<void>) | null = null;
     private onHighlightsUpdate: ((highlights: HighlightInfo[]) => void) | null = null;
+    private onCardUpdate: ((highlight: HighlightInfo) => void) | null = null;
     
     // 当前状态
     private currentFile: TFile | null = null;
@@ -38,12 +39,16 @@ export class CommentOperationManager {
     setCallbacks(callbacks: {
         onRefreshView?: () => Promise<void>;
         onHighlightsUpdate?: (highlights: HighlightInfo[]) => void;
+        onCardUpdate?: (highlight: HighlightInfo) => void;
     }) {
         if (callbacks.onRefreshView) {
             this.onRefreshView = callbacks.onRefreshView;
         }
         if (callbacks.onHighlightsUpdate) {
             this.onHighlightsUpdate = callbacks.onHighlightsUpdate;
+        }
+        if (callbacks.onCardUpdate) {
+            this.onCardUpdate = callbacks.onCardUpdate;
         }
     }
     
@@ -100,8 +105,11 @@ export class CommentOperationManager {
         // 触发更新评论按钮
         this.dispatchCommentUpdateEvent(highlight);
 
-        // 刷新视图
-        if (this.onRefreshView) {
+        // 只更新单个卡片，而不是刷新整个视图
+        if (this.onCardUpdate) {
+            this.onCardUpdate(highlight);
+        } else if (this.onRefreshView) {
+            // 降级方案：如果没有 onCardUpdate，则刷新整个视图
             await this.onRefreshView();
         }
     }
@@ -130,8 +138,11 @@ export class CommentOperationManager {
                 this.plugin.eventManager.emitCommentUpdate(file.path, oldContent, content, highlight.id);
             }
 
-            // 刷新视图
-            if (this.onRefreshView) {
+            // 只更新单个卡片，而不是刷新整个视图
+            if (this.onCardUpdate) {
+                this.onCardUpdate(highlight);
+            } else if (this.onRefreshView) {
+                // 降级方案：如果没有 onCardUpdate，则刷新整个视图
                 await this.onRefreshView();
             }
         }
@@ -144,6 +155,7 @@ export class CommentOperationManager {
         const file = await this.getFileForHighlight(highlight);
         if (!file || !highlight.comments) return;
 
+        // 过滤掉要删除的批注
         highlight.comments = highlight.comments.filter(c => c.id !== commentId);
         highlight.updatedAt = Date.now();
 
@@ -176,8 +188,11 @@ export class CommentOperationManager {
         // 触发更新评论按钮
         this.dispatchCommentUpdateEvent(highlight);
 
-        // 刷新视图
-        if (this.onRefreshView) {
+        // 只更新单个卡片，而不是刷新整个视图
+        if (this.onCardUpdate) {
+            this.onCardUpdate(highlight);
+        } else if (this.onRefreshView) {
+            // 降级方案：如果没有 onCardUpdate，则刷新整个视图
             await this.onRefreshView();
         }
     }

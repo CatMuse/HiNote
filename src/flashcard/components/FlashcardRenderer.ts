@@ -30,6 +30,11 @@ export class FlashcardRenderer {
      * 渲染激活界面
      */
     public renderActivation() {
+        // 检查组件是否仍然激活，防止异步渲染竞态条件
+        if (!this.component.getIsActive()) {
+            return;
+        }
+        
         const container = this.component.getContainer();
         container.empty();
         container.addClass('flashcard-mode');
@@ -157,6 +162,11 @@ export class FlashcardRenderer {
      * 渲染主界面
      */
     public render() {
+        // 检查组件是否仍然激活，防止异步渲染竞态条件
+        if (!this.component.getIsActive()) {
+            return;
+        }
+        
         const container = this.component.getContainer();
         container.empty();
         container.addClass('flashcard-mode');

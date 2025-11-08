@@ -73,11 +73,14 @@ export class HighlightService {
         // 注册文件事件监听器，实现索引的自动更新
         this.registerFileEventHandlers();
         
-        // 立即开始异步构建索引，不阻塞插件加载
-        // 使用 Promise.resolve().then() 确保在下一个微任务中执行，避免阻塞当前调用栈
-        Promise.resolve().then(() => {
+        // 根据设备类型调整索引构建策略
+        // 移动端延迟更长时间，避免影响启动性能
+        const isMobile = (this.app as any).isMobile;
+        const delay = isMobile ? 10000 : 3000; // 移动端10秒，桌面端3秒
+        
+        setTimeout(() => {
             this.buildFileIndex();
-        });
+        }, delay);
     }
     
     /**
@@ -175,7 +178,7 @@ export class HighlightService {
                     const pattern = new RegExp(rule.pattern, 'g');
                     this.processRegexMatches(content, pattern, highlights, file, rule.color);
                 } catch (error) {
-                    console.error(`[HighlightService] 正则规则 "${rule.name}" 错误:`, error);
+                    // 忽略正则规则错误
                 }
             }
         } else {
@@ -430,9 +433,10 @@ export class HighlightService {
                 wordToFiles: newWordToFiles,
                 fileToHighlights: newFileToHighlights,
                 lastUpdated: Date.now()
-            };            
+            };
+            
         } catch (error) {
-            console.error('构建索引时出错:', error);
+            // 忽略索引构建错误
         } finally {
             this.isIndexing = false;
         }
@@ -468,9 +472,15 @@ export class HighlightService {
     /**
      * 从索引中获取所有高亮（公共方法，供外部调用）
      * 如果索引可用，直接从缓存返回，避免重新读取文件
+     * 如果索引未构建，触发按需构建（但本次返回 null）
      * @returns 所有高亮数组，如果索引未构建则返回 null
      */
     public getAllHighlightsFromCache(): HighlightInfo[] | null {
+        // 如果索引从未构建过，触发按需构建
+        if (this.fileIndex.lastUpdated === 0 && !this.isIndexing) {
+            this.buildFileIndex();
+        }
+        
         // 检查索引是否可用
         if (!this.isIndexExpired() && this.fileIndex.fileToHighlights.size > 0) {
             return this.getAllHighlightsFromIndex();
@@ -556,7 +566,7 @@ export class HighlightService {
                 this.fileIndex.fileToHighlights.delete(filePath);
             }
         } catch (error) {
-            console.error(`[HighlightService] 移除文件 ${filePath} 索引时出错:`, error);
+            // 忽略移除索引错误
         }
     }
     
@@ -565,8 +575,24 @@ export class HighlightService {
      * @param file 要更新的文件
      */
     async updateFileInIndex(file: TFile): Promise<void> {
-        // 如果索引未初始化或过期，则跳过增量更新，等待完整重建
+        // 如果索引正在构建中，跳过增量更新
+        if (this.isIndexing) {
+            return;
+        }
+        
+        // 如果索引未初始化，初始化空索引结构
+        if (this.fileIndex.lastUpdated === 0) {
+            this.fileIndex = {
+                wordToFiles: new Map(),
+                fileToHighlights: new Map(),
+                lastUpdated: Date.now()
+            };
+        }
+        
+        // 如果索引已过期，触发完整重建（异步，不阻塞当前更新）
         if (this.isIndexExpired()) {
+            // 异步触发重建，但不等待
+            this.buildFileIndex();
             return;
         }
         
@@ -596,7 +622,7 @@ export class HighlightService {
                 }
             }
         } catch (error) {
-            console.error(`更新文件 ${file.path} 的索引时出错:`, error);
+            // 忽略更新索引错误
         }
     }
     
@@ -698,8 +724,7 @@ export class HighlightService {
             // 强制创建并返回 Block ID 引用，传递起始和结束位置
             return await this.blockIdService.createParagraphBlockId(file, position, endPosition);
         } catch (error) {
-            console.error('[HighlightService] Error creating block ID for highlight:', error);
-            throw error; // 重新抛出错误，让调用者处理
+            throw error;
         }
     }
 
@@ -748,7 +773,6 @@ export class HighlightService {
                         content = this.removeHighlightMarkFromContent(content, highlight);
                         successCount++;
                     } catch (error) {
-                        console.error(`[HighlightService] 删除高亮失败:`, highlight.text, error);
                         failedCount++;
                     }
                 }
@@ -757,7 +781,6 @@ export class HighlightService {
                 await this.app.vault.modify(file, content);
                 
             } catch (error) {
-                console.error(`[HighlightService] 处理文件 ${filePath} 时出错:`, error);
                 failedCount += fileHighlights.length;
             }
         }

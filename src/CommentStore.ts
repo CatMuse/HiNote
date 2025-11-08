@@ -371,12 +371,14 @@ export class CommentStore {
         
         if (updatedHighlights.length > 0) {
             this.comments.set(filePath, updatedHighlights);
+            // 保存更改
+            await this.saveComments();
         } else {
+            // 如果文件没有高亮了，删除整个文件的数据
             this.comments.delete(filePath);
+            // 删除对应的 JSON 文件
+            await this.dataManager.deleteFileHighlights(filePath);
         }
-        
-        // 保存更改
-        await this.saveComments();
         
         // 触发事件通知
         if (this.eventManager) {

@@ -13,7 +13,7 @@ export class LayoutManager {
     // 回调函数
     private onCreateFloatingButton: (() => void) | null = null;
     private onRemoveFloatingButton: (() => void) | null = null;
-    private onUpdateFileList: (() => Promise<void>) | null = null;
+    private onUpdateFileList: ((forceRefresh?: boolean) => Promise<void>) | null = null;
     
     // 状态
     private isDraggedToMainView: boolean = false;
@@ -40,7 +40,7 @@ export class LayoutManager {
     setCallbacks(callbacks: {
         onCreateFloatingButton?: () => void;
         onRemoveFloatingButton?: () => void;
-        onUpdateFileList?: () => Promise<void>;
+        onUpdateFileList?: (forceRefresh?: boolean) => Promise<void>;
     }) {
         if (callbacks.onCreateFloatingButton) {
             this.onCreateFloatingButton = callbacks.onCreateFloatingButton;
@@ -123,18 +123,19 @@ export class LayoutManager {
             
             // 延迟加载文件列表,不阻塞UI渲染
             // 使用 requestIdleCallback 在浏览器空闲时加载
+            // 拖拽到主视图时强制刷新，确保显示最新的文件和高亮
             if (this.onUpdateFileList) {
                 if ('requestIdleCallback' in window) {
                     requestIdleCallback(async () => {
                         if (this.onUpdateFileList) {
-                            await this.onUpdateFileList();
+                            await this.onUpdateFileList(true); // 强制刷新
                         }
                     });
                 } else {
                     // 降级方案:使用 setTimeout
                     setTimeout(async () => {
                         if (this.onUpdateFileList) {
-                            await this.onUpdateFileList();
+                            await this.onUpdateFileList(true); // 强制刷新
                         }
                     }, 50);
                 }

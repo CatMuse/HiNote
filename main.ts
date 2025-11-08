@@ -160,6 +160,10 @@ export default class CommentPlugin extends Plugin {
 					const view = newLeaf.view;
 					if (view && view instanceof CommentView) {
 						(view as any).isDraggedToMainView = true;
+						// 强制刷新文件列表，确保显示最新的文件和高亮
+						if ((view as any).fileListManager) {
+							(view as any).fileListManager.invalidateCache();
+						}
 						(view as any).updateViewLayout();
 						(view as any).updateHighlights();
 					}
@@ -179,6 +183,10 @@ export default class CommentPlugin extends Plugin {
 						const view = leaf.view;
 						if (view && view instanceof CommentView) {
 							(view as any).isDraggedToMainView = true;
+							// 强制刷新文件列表，确保显示最新的文件和高亮
+							if ((view as any).fileListManager) {
+								(view as any).fileListManager.invalidateCache();
+							}
 							(view as any).updateViewLayout();
 							(view as any).updateHighlights();
 						}

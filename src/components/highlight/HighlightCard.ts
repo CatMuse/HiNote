@@ -1383,6 +1383,35 @@ export class HighlightCard {
     // 移除updateAllMenuItems方法
     
     /**
+     * 更新评论列表（只更新评论部分，不重新渲染整个卡片）
+     */
+    public updateComments(updatedHighlight: HighlightInfo): void {
+        // 更新高亮数据
+        this.highlight = updatedHighlight;
+        
+        // 查找评论列表容器
+        const commentsSection = this.card.querySelector('.hi-notes-section');
+        
+        if (commentsSection) {
+            // 如果有评论列表，移除它
+            commentsSection.remove();
+        }
+        
+        // 重新渲染评论列表
+        if (this.highlight.comments && this.highlight.comments.length > 0) {
+            new CommentList(
+                this.card,
+                this.highlight,
+                (comment) => {
+                    this.isEditing = true;
+                    this.selectCard();
+                    this.options.onCommentEdit(this.highlight, comment);
+                }
+            );
+        }
+    }
+    
+    /**
      * 销毁方法，用于清理事件监听器和从静态集合中移除实例
      */
     public destroy(): void {
