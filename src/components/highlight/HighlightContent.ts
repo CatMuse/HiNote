@@ -14,7 +14,8 @@ export class HighlightContent extends Component {
         parentEl: HTMLElement,
         private highlight: HighlightInfo,
         private onHighlightClick: (highlight: HighlightInfo) => Promise<void>,
-        private app: App = (window as any).app
+        private app: App = (window as any).app,
+        private isInMainView: boolean = false
     ) {
         super();
         this.render(parentEl).catch(error => {
@@ -96,8 +97,8 @@ export class HighlightContent extends Component {
             });
         }
 
-        // 如果不是全局搜索结果，添加点击事件
-        if (!this.highlight.isGlobalSearch) {
+        // 如果不是全局搜索结果且不在主视图中，添加点击事件
+        if (!this.highlight.isGlobalSearch && !this.isInMainView) {
             // 设置提示文本为“跳转到高亮”
             textContent.setAttribute('aria-label', t('Jump to highlight'));
             
@@ -111,7 +112,7 @@ export class HighlightContent extends Component {
                 await this.onHighlightClick(this.highlight);
             });
         } else {
-            // 全局搜索结果添加特殊样式类
+            // 全局搜索结果或主视图添加特殊样式类
             textContent.addClass('global-search-highlight');
             
             // 移除可能存在的提示文本

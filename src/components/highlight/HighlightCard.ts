@@ -376,7 +376,9 @@ export class HighlightCard {
         new HighlightContent(
             highlightContentEl,
             this.highlight,
-            this.options.onHighlightClick
+            this.options.onHighlightClick,
+            this.plugin.app,
+            this.isInMainView
         );
 
         // 渲染评论列表 (在 card 容器内)
@@ -1319,12 +1321,6 @@ export class HighlightCard {
     private escapeRegExp(string: string): string {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
-    
-    /**
-     * 更新所有下拉菜单中的闪卡按钮文本
-     * 这个方法会查找所有可能的下拉菜单并更新其中的按钮文本
-     */
-    // 移除updateAllMenuItems方法
     
     /**
      * 更新评论列表（只更新评论部分，不重新渲染整个卡片）

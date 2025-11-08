@@ -255,7 +255,7 @@ export class FlashcardSettingsTab {
         // 创建文本区域设置
         new Setting(fsrsParamsContainer)
             .setName(t('FSRS parameters'))
-            .setDesc(t('Edit the 17 FSRS algorithm weights. Format: JSON array of numbers.'))
+            .setDesc(t('Edit the 21 FSRS algorithm weights. Format: JSON array of numbers.'))
             .addTextArea(textarea => {
                 textarea
                     .setValue(wParamsString)
@@ -265,9 +265,9 @@ export class FlashcardSettingsTab {
                             // 尝试解析用户输入的 JSON
                             const newParams = JSON.parse(value);
                             
-                            // 验证参数是否有效（必须是 17 个数字的数组）
+                            // 验证参数是否有效（必须是 21 个数字的数组）
                             if (Array.isArray(newParams) && 
-                                newParams.length === 17 && 
+                                newParams.length === 21 && 
                                 newParams.every(p => typeof p === 'number')) {
                                 
                                 // 更新参数
@@ -280,7 +280,7 @@ export class FlashcardSettingsTab {
                                 new Notice(t('FSRS weights updated successfully'));
                             } else {
                                 // 显示错误提示
-                                new Notice(t('Invalid format. Must be an array of 17 numbers.'), 5000);
+                                new Notice(t('Invalid format. Must be an array of 21 numbers.'), 5000);
                             }
                         } catch (e) {
                             // JSON 解析错误

@@ -352,18 +352,23 @@ export class CommentInput {
     private autoResizeTextarea() {
         if (!this.textarea) return;
         
-        // 保存当前滚动位置
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        // 重置高度，以便能够准确计算内容高度
-        this.textarea.style.height = 'auto';
-        
-        // 设置新高度 (内容高度 + 边距)
-        const newHeight = this.textarea.scrollHeight;
-        this.textarea.style.height = `${newHeight}px`;
-        
-        // 恢复滚动位置，避免页面跳动
-        window.scrollTo(0, scrollTop);
+        // 使用 requestAnimationFrame 批处理 DOM 操作，减少强制重排
+        requestAnimationFrame(() => {
+            if (!this.textarea) return;
+            
+            // 保存当前滚动位置
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // 重置高度，以便能够准确计算内容高度
+            this.textarea.style.height = 'auto';
+            
+            // 设置新高度 (内容高度 + 边距)
+            const newHeight = this.textarea.scrollHeight;
+            this.textarea.style.height = `${newHeight}px`;
+            
+            // 恢复滚动位置，避免页面跳动
+            window.scrollTo(0, scrollTop);
+        });
     }
 
 
