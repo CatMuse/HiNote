@@ -13,19 +13,6 @@ export class CommentInput {
     private originalContent = '';
     private boundHandleOutsideClick: (e: MouseEvent) => void;
     private commentEl: Element | null = null; // 保存批注元素引用，用于移除 editing 类
-    
-    // 查找对应的 HighlightCard 实例
-    private findHighlightCardInstance(): any {
-        // 这里使用 any 类型，因为我们没有直接引入 HighlightCard 类型
-        // 在实际代码中可能需要调整导入和类型
-        try {
-            // 尝试使用全局方法查找卡片实例
-            // @ts-ignore - 忽略类型检查
-            return window.HighlightCard?.findCardInstanceByHighlightId?.(this.highlight.id);
-        } catch (e) {
-            return null;
-        }
-    }
 
     constructor(
         private card: HTMLElement,
@@ -41,15 +28,8 @@ export class CommentInput {
         this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
         document.addEventListener('click', this.boundHandleOutsideClick);
         
-        // 设置标记，通知 HighlightCard 当前正在显示真正的输入框
-        const cardInstance = this.findHighlightCardInstance();
-        if (cardInstance) {
-            // 使用自定义事件通知 HighlightCard 实例
-            const event = new CustomEvent('comment-input-shown', {
-                detail: { highlightId: this.highlight.id }
-            });
-            document.dispatchEvent(event);
-        }
+        // 通知 HighlightCard 当前正在显示输入框
+        this.notifyInputShown();
     }
 
     public show() {
@@ -111,47 +91,8 @@ export class CommentInput {
             e.stopPropagation();
         });
 
-        // 快捷键提示 - 只在非移动端显示
-        if (!Platform.isMobile) {
-            this.actionHint.createEl('span', {
-                cls: 'hi-note-hint',
-                text: t('Tab AI, Shift + Enter Wrap, Enter Save')
-            });
-        } 
-        // 移动端上显示保存按钮
-        else {
-            const saveButton = this.actionHint.createEl('button', {
-                cls: 'hi-note-save-button',
-                text: t('Submit')
-            });
-            
-            saveButton.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                
-                if (this.isProcessing) return;
-                
-                const content = this.textarea.value.trim();
-                if (!content) return;
-                
-                this.isProcessing = true;
-                this.textarea.disabled = true;
-                saveButton.disabled = true;
-                
-                try {
-                    await this.options.onSave(content);
-                    // 保存成功后清理
-                    requestAnimationFrame(() => {
-                        document.removeEventListener('click', this.boundHandleOutsideClick);
-                        this.isProcessing = false;
-                        this.textarea.disabled = false;
-                    });
-                } catch (error) {
-                    this.isProcessing = false;
-                    this.textarea.disabled = false;
-                    saveButton.disabled = false;
-                }
-            });
-        }
+        // 设置快捷键提示或保存按钮
+        this.setupActionHint();
 
         // 删除按钮
         if (this.options.onDelete) {
@@ -198,11 +139,6 @@ export class CommentInput {
         inputSection.addEventListener('click', (e) => {
             e.stopPropagation();
         });
-        
-        // 阻止文本框的点击事件冒泡
-        this.textarea.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
 
         // 添加到评论区域
         let commentsSection = this.card.querySelector('.hi-notes-section');
@@ -231,46 +167,8 @@ export class CommentInput {
             e.stopPropagation();
         });
 
-        // 快捷键提示 - 只在非移动端显示
-        if (!Platform.isMobile) {
-            this.actionHint.createEl('span', {
-                cls: 'hi-note-hint',
-                text: t('Tab AI, Shift + Enter Wrap, Enter Save')
-            });
-        } 
-        // 移动端上显示保存按钮
-        else {
-            const saveButton = this.actionHint.createEl('button', {
-                cls: 'hi-note-save-button',
-                text: t('Submit')
-            });
-            
-            saveButton.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                
-                if (this.isProcessing) return;
-                
-                const content = this.textarea.value.trim();
-                if (!content) return;
-                
-                this.isProcessing = true;
-                this.textarea.disabled = true;
-                saveButton.disabled = true;
-                
-                try {
-                    await this.options.onSave(content);
-                    // 保存成功后清理
-                    requestAnimationFrame(() => {
-                        this.destroy();
-                        this.isProcessing = false;
-                    });
-                } catch (error) {
-                    this.isProcessing = false;
-                    this.textarea.disabled = false;
-                    saveButton.disabled = false;
-                }
-            });
-        }
+        // 设置快捷键提示或保存按钮
+        this.setupActionHint();
 
         this.setupKeyboardEvents();
         
@@ -281,26 +179,11 @@ export class CommentInput {
     }
 
     private setupKeyboardEvents(contentEl?: HTMLElement, footer?: Element) {
+        // 保存编辑模式的上下文，用于取消时恢复
+        const editContext = this.existingComment ? { contentEl, footer } : null;
+        
         this.cancelEdit = () => {
-            if (this.existingComment) {
-                if (contentEl && footer) {
-                    requestAnimationFrame(() => {
-                        this.textarea.replaceWith(contentEl);
-                        this.actionHint.remove();
-                        footer.removeClass('hi-note-hidden');
-                        document.removeEventListener('click', this.boundHandleOutsideClick);
-                    });
-                }
-            } else {
-                requestAnimationFrame(() => {
-                    this.textarea.closest('.hi-note-input')?.remove();
-                    if (!this.card.querySelector('.hi-note')) {
-                        this.card.querySelector('.hi-notes-section')?.remove();
-                    }
-                    document.removeEventListener('click', this.boundHandleOutsideClick);
-                });
-            }
-            this.options.onCancel();
+            this.cancel(editContext);
         };
 
         this.textarea.onkeydown = async (e: KeyboardEvent) => {
@@ -334,12 +217,8 @@ export class CommentInput {
 
                 try {
                     await this.options.onSave(content);
-                    // 保存成功后清理
-                    requestAnimationFrame(() => {
-                        document.removeEventListener('click', this.boundHandleOutsideClick);
-                        this.isProcessing = false;
-                        this.textarea.disabled = false;
-                    });
+                    // 保存成功后销毁
+                    this.destroy();
                 } catch (error) {
                     this.textarea.disabled = false;
                     this.isProcessing = false;
@@ -380,39 +259,28 @@ export class CommentInput {
                          !clickedElement.closest('.hi-note-actions-hint');
         
         if (isOutside) {
+            // 立即阻止事件传播，避免触发卡片点击
+            e.preventDefault();
+            e.stopPropagation();
+            
             this.isProcessing = true;
             const content = this.textarea.value.trim();
             
             if (content) {
-                // 有内容时阻止事件传播，避免干扰保存操作
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // 先保存内容的引用
-                const currentContent = content;
-                // 保持输入框状态直到保存完成
+                // 有内容时保存
                 this.textarea.disabled = true;
                 
-                this.options.onSave(currentContent)
+                this.options.onSave(content)
                     .then(() => {
-                        // 确保所有状态更新在一起完成
-                        requestAnimationFrame(() => {
-                            this.destroy();
-                            this.isProcessing = false;
-                        });
+                        this.destroy();
                     })
                     .catch(() => {
                         this.textarea.disabled = false;
                         this.isProcessing = false;
                     });
             } else {
-                // 没有内容时不阻止事件传播，允许高亮卡片接收点击事件
-                // 使用 requestAnimationFrame 确保状态更新的时机
-                requestAnimationFrame(() => {
-                    this.cancelEdit();
-                    this.destroy();
-                    this.isProcessing = false;
-                });
+                // 没有内容时取消
+                this.cancel();
             }
         }
     }
@@ -514,7 +382,48 @@ export class CommentInput {
         }
     }
 
+    /**
+     * 取消输入（不保存）
+     * @param editContext 编辑模式的上下文信息，用于恢复原始内容
+     */
+    private cancel(editContext?: { contentEl?: HTMLElement, footer?: Element } | null) {
+        // 立即通知 HighlightCard 输入框已关闭，确保状态同步
+        this.notifyInputClosed();
+        
+        if (this.existingComment && editContext?.contentEl && editContext?.footer) {
+            // 编辑模式：恢复原始内容
+            this.textarea.replaceWith(editContext.contentEl);
+            this.actionHint.remove();
+            editContext.footer.removeClass('hi-note-hidden');
+        } else {
+            // 创建模式：移除整个输入框容器
+            const inputContainer = this.textarea.closest('.hi-note-input');
+            if (inputContainer) {
+                inputContainer.remove();
+            }
+            
+            // 如果没有其他评论，移除评论区域
+            if (!this.card.querySelector('.hi-note')) {
+                this.card.querySelector('.hi-notes-section')?.remove();
+            }
+        }
+        
+        // 清理事件监听器
+        document.removeEventListener('click', this.boundHandleOutsideClick);
+        this.isProcessing = false;
+        
+        // 调用取消回调
+        this.options.onCancel();
+    }
+    
+    /**
+     * 销毁输入框（保存后调用）
+     */
     public destroy() {
+        // 立即通知 HighlightCard 输入框已关闭
+        this.notifyInputClosed();
+        
+        // 清理事件监听器
         document.removeEventListener('click', this.boundHandleOutsideClick);
         this.isProcessing = false;
         
@@ -533,8 +442,67 @@ export class CommentInput {
             this.commentEl.removeClass('editing');
             this.commentEl = null;
         }
+    }
+    
+    /**
+     * 设置操作提示区域（快捷键提示或保存按钮）
+     */
+    private setupActionHint() {
+        if (!Platform.isMobile) {
+            // 非移动端显示快捷键提示
+            this.actionHint.createEl('span', {
+                cls: 'hi-note-hint',
+                text: t('Tab AI, Shift + Enter Wrap, Enter Save')
+            });
+        } else {
+            // 移动端显示保存按钮
+            const saveButton = this.actionHint.createEl('button', {
+                cls: 'hi-note-save-button',
+                text: t('Submit')
+            });
+            
+            saveButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.handleSave();
+            });
+        }
+    }
+    
+    /**
+     * 处理保存逻辑
+     */
+    private async handleSave() {
+        if (this.isProcessing) return;
         
-        // 通知 HighlightCard 输入框已关闭
+        const content = this.textarea.value.trim();
+        if (!content) return;
+        
+        this.isProcessing = true;
+        this.textarea.disabled = true;
+        
+        try {
+            await this.options.onSave(content);
+            this.destroy();
+        } catch (error) {
+            this.isProcessing = false;
+            this.textarea.disabled = false;
+        }
+    }
+    
+    /**
+     * 通知 HighlightCard 输入框已显示
+     */
+    private notifyInputShown() {
+        const event = new CustomEvent('comment-input-shown', {
+            detail: { highlightId: this.highlight.id }
+        });
+        document.dispatchEvent(event);
+    }
+    
+    /**
+     * 通知 HighlightCard 输入框已关闭
+     */
+    private notifyInputClosed() {
         const event = new CustomEvent('comment-input-closed', {
             detail: { highlightId: this.highlight.id }
         });

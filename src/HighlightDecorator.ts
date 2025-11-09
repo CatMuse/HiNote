@@ -237,7 +237,6 @@ export class HighlightDecorator {
                     widget: new CommentWidget(
                         this.plugin,
                         highlight,
-                        highlightItems,
                         () => this.openCommentPanel(highlight)
                     ),
                     side: 2, // 将小部件放在文本右侧

@@ -5,22 +5,27 @@ import { setIcon, MarkdownRenderer, Component, App } from "obsidian";
 
 export class CommentWidget extends WidgetType {
     private app: App;
+    private comments: CommentItem[];
+    private resizeListener: (() => void) | null = null;
+    
+    // 常量定义
+    private static readonly POSITION_MATCH_THRESHOLD = 30;
+    private static readonly MAX_TOOLTIP_COMMENTS = 3;
     
     /**
      * 构造函数
      * @param plugin Obsidian 插件实例
      * @param highlight 当前高亮对象
-     * @param paragraphHighlights 同一段落中的所有高亮
      * @param onClick 点击评论按钮时的回调函数
      */
     constructor(
         private plugin: Plugin,
         private highlight: HiNote,
-        private highlightItems: HiNote[],
         private onClick: () => void
     ) {
         super();
         this.app = this.plugin.app;
+        this.comments = this.highlight.comments || [];
     }
 
     /**
@@ -36,22 +41,13 @@ export class CommentWidget extends WidgetType {
         // 不依赖 ID 匹配，因为每次提取高亮时 ID 可能会变化
         const positionMatch = typeof this.highlight.position === 'number' && 
                              typeof widget.highlight.position === 'number' &&
-                             Math.abs(this.highlight.position - widget.highlight.position) < 30;
+                             Math.abs(this.highlight.position - widget.highlight.position) < CommentWidget.POSITION_MATCH_THRESHOLD;
         
         const textMatch = this.highlight.text === widget.highlight.text;
         const commentsMatch = this.highlight.comments.length === widget.highlight.comments.length;
         
         // 只要位置匹配或文本匹配，且评论数量相同，就认为是同一个 widget
         const isEqual = (textMatch || positionMatch) && commentsMatch;
-        
-        // console.log('[HiNote Debug] CommentWidget.eq 比较:', {
-        //     thisId: this.highlight.id,
-        //     widgetId: widget.highlight.id,
-        //     isEqual,
-        //     textMatch,
-        //     positionMatch,
-        //     commentsMatch
-        // });
         
         return isEqual;
     }
@@ -83,26 +79,6 @@ export class CommentWidget extends WidgetType {
         // 添加高亮 ID 作为数据属性，确保每个 Widget 都有唯一标识
         wrapper.setAttribute('data-highlight-id', this.highlight.id);
         
-        // // 优先使用 blockId，如果没有则使用 paragraphId
-        // if (this.highlight.blockId) {
-        //     wrapper.setAttribute('data-block-id', this.highlight.blockId);
-        // }
-        
-        // // 保留 paragraphId 以保持兼容性
-        // if (this.highlight.paragraphId) {
-        //     wrapper.setAttribute('data-paragraph-id', this.highlight.paragraphId);
-        // }
-        
-        // wrapper.setAttribute('data-highlight-text', this.highlight.text);
-        
-        // 检查是否有评论
-        const hasComments = (this.highlight.comments || []).length > 0;
-        
-        // 如果没有评论，添加一个额外的类，但不完全隐藏
-        // if (!hasComments) {
-        //     wrapper.addClass("hi-note-widget-no-comments");
-        // }
-        
         this.createButton(wrapper);
         return wrapper;
     }
@@ -112,8 +88,7 @@ export class CommentWidget extends WidgetType {
      * @param wrapper 父容器元素
      */
     private createButton(wrapper: HTMLElement) {
-        // 检查是否有评论
-        const hasComments = (this.highlight.comments || []).length > 0;
+        const hasComments = this.comments.length > 0;
         
         // 创建按钮，如果没有评论，添加隐藏类
         // 添加 clickable-icon 类以避免在平板模式下被拉伸
@@ -142,16 +117,12 @@ export class CommentWidget extends WidgetType {
 
         // 使用 setIcon API 替代内联 SVG
         setIcon(iconContainer, "message-circle");
-        
-        // 直接使用当前高亮的评论数量，不从其他高亮中查找
-        const comments = this.highlight.comments || [];
-        const commentCount = comments.length;
 
         // 如果有评论，显示评论数量
-        if (commentCount > 0) {
+        if (this.comments.length > 0) {
             iconContainer.createEl("span", {
                 cls: "hi-note-count",
-                text: commentCount.toString()
+                text: this.comments.length.toString()
             });
         }
 
@@ -174,9 +145,8 @@ export class CommentWidget extends WidgetType {
             cls: "hi-note-tooltip-list"
         });
 
-        // 获取评论并渲染到工具提示中
-        const comments = this.highlight.comments || [];
-        this.renderTooltipContent(commentsList, comments, tooltip);
+        // 渲染评论到工具提示中
+        this.renderTooltipContent(commentsList, tooltip);
 
         document.body.appendChild(tooltip);
 
@@ -194,14 +164,13 @@ export class CommentWidget extends WidgetType {
     /**
      * 渲染工具提示的内容
      * @param commentsList 评论列表容器
-     * @param comments 评论数组
      * @param tooltip 工具提示容器
      */
-    private renderTooltipContent(commentsList: HTMLElement, comments: CommentItem[], tooltip: HTMLElement) {
-        if (comments.length === 0) return;
+    private renderTooltipContent(commentsList: HTMLElement, tooltip: HTMLElement) {
+        if (this.comments.length === 0) return;
 
-        // 最多显示 3 条评论
-        comments.slice(0, 3).forEach(comment => {
+        // 最多显示指定数量的评论
+        this.comments.slice(0, CommentWidget.MAX_TOOLTIP_COMMENTS).forEach(comment => {
             const commentItem = commentsList.createEl("div", {
                 cls: "hi-note-tooltip-item"
             });
@@ -221,11 +190,11 @@ export class CommentWidget extends WidgetType {
             });
         });
 
-        // 如果评论数超过 3 条，显示剩余数量
-        if (comments.length > 3) {
+        // 如果评论数超过最大显示数量，显示剩余数量
+        if (this.comments.length > CommentWidget.MAX_TOOLTIP_COMMENTS) {
             tooltip.createEl("div", {
                 cls: "hi-note-tooltip-more",
-                text: `还有 ${comments.length - 3} 条评论...`
+                text: `还有 ${this.comments.length - CommentWidget.MAX_TOOLTIP_COMMENTS} 条评论...`
             });
         }
     }
@@ -238,11 +207,9 @@ export class CommentWidget extends WidgetType {
      */
     private setupEventListeners(wrapper: HTMLElement, button: HTMLElement, tooltipData: { tooltip: HTMLElement, updateTooltipPosition: () => void }) {
         const { tooltip, updateTooltipPosition } = tooltipData;
-        const comments = this.highlight.comments || [];
-        const commentCount = comments.length;
 
         // 如果有评论，添加工具提示的显示/隐藏事件，并保持按钮始终可见
-        if (commentCount > 0) {
+        if (this.comments.length > 0) {
             button.removeClass("hi-note-button-hidden");
             
             button.addEventListener("mouseenter", () => {
@@ -280,7 +247,9 @@ export class CommentWidget extends WidgetType {
         });
 
         // 监听窗口大小改变事件，更新工具提示位置
-        window.addEventListener("resize", updateTooltipPosition);
+        // 保存监听器引用以便在销毁时清理
+        this.resizeListener = updateTooltipPosition;
+        window.addEventListener("resize", this.resizeListener);
     }
     
     /**
@@ -317,6 +286,12 @@ export class CommentWidget extends WidgetType {
      * @param dom 小部件的 DOM 元素
      */
     destroy(dom: HTMLElement): void {
+        // 移除 resize 监听器，防止内存泄漏
+        if (this.resizeListener) {
+            window.removeEventListener("resize", this.resizeListener);
+            this.resizeListener = null;
+        }
+        
         // 查找并移除对应的工具提示
         const tooltip = document.querySelector(`.hi-note-tooltip[data-highlight-id="${this.highlight.id}"]`);
         if (tooltip) {
