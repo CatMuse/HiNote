@@ -247,38 +247,27 @@ export class HiNoteDataManager {
                 const highlightsDir = FilePathUtils.getHighlightsDir(this.vaultPath);
                 const files = await this.app.vault.adapter.list(highlightsDir);
                 
-                // 从文件名反推原始路径
+                // 从文件名反推原始路径（优化：不读取文件内容）
                 const detectedFiles: string[] = [];
                 for (const file of files.files) {
                     if (file.endsWith('.json')) {
                         // 移除.json后缀并转换回原始路径格式
                         const baseName = file.replace(/\.json$/, '').replace(highlightsDir + '/', '');
                         
-                        // 尝试从文件内容中获取原始路径信息
-                        try {
-                            const content = await this.app.vault.adapter.read(file);
-                            const data = JSON.parse(content);
-                            
-                            // 检查是否有高亮数据
-                            if (data.highlights && Object.keys(data.highlights).length > 0) {
-                                // 通用转换逻辑：将下划线转换为空格
-                                const originalPath = baseName.replace(/_/g, ' ');
-                                detectedFiles.push(originalPath);
-                            }
-                        } catch (error) {
-                            console.warn(`无法读取高亮文件 ${file}:`, error);
-                        }
+                        // 直接从文件名转换，不读取文件内容（大幅提升性能）
+                        const originalPath = FilePathUtils.fromSafeFileName(baseName);
+                        detectedFiles.push(originalPath);
+                        
+                        // 更新映射
+                        this.fileMapping.set(originalPath, baseName);
                     }
                 }
                 
-                // 更新文件映射
-                for (const filePath of detectedFiles) {
-                    const safeFileName = FilePathUtils.toSafeFileName(filePath);
-                    this.fileMapping.set(filePath, safeFileName);
-                }
-                
+                // 异步保存映射，不阻塞
                 if (detectedFiles.length > 0) {
-                    await this.saveFileMapping();
+                    this.saveFileMapping().catch(err => 
+                        console.warn('保存文件映射失败:', err)
+                    );
                 }
                 
                 return detectedFiles;

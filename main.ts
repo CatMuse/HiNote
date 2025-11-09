@@ -25,48 +25,26 @@ export default class CommentPlugin extends Plugin {
 	public dataManager: HiNoteDataManager;
 	public canvasService: CanvasService;
 
-	async onload() {
+	// 延迟初始化标志
+	private isInitialized: boolean = false;
+	private initializationPromise: Promise<void> | null = null;
 
-		// 加载设置
+	async onload() {
+		// 只加载设置，其他全部延迟初始化
 		const loadedData = await this.loadData();
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
-		// 将 html2canvas 添加到全局对象
-		// 安全地扩展 Window 接口并添加 html2canvas
+		// 将 html2canvas 添加到全局对象（轻量级操作）
 		(window as Window & typeof globalThis & { html2canvas?: typeof html2canvas }).html2canvas = html2canvas;
 
-		// 初始化事件管理器（共享实例）
-		this.eventManager = new EventManager(this.app);
-
-		// 初始化数据管理器（共享实例）
-		this.dataManager = new HiNoteDataManager(this.app);
-
-		// 初始化高亮服务（共享实例）
-		this.highlightService = new HighlightService(this.app);
-		// 立即开始构建索引（异步，不阻塞插件加载），提升后续加载性能
-		this.highlightService.initialize();
-
-		// 初始化 Canvas 服务（共享实例）
-		this.canvasService = new CanvasService(this.app.vault);
-
-		// 初始化评论存储（传入共享的服务实例）
-		this.commentStore = new CommentStore(this, this.eventManager, this.dataManager, this.highlightService);
-		await this.commentStore.loadComments();
-
-		// 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
-		this.fsrsManager = new FSRSManager(this, this.dataManager);
-
-		// 初始化高亮匹配服务
-		this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
-
-		// 初始化高亮装饰器
-		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
-		this.highlightDecorator.enable();
-
-		// 注册视图
+		// 注册视图（延迟初始化）
 		this.registerView(
 			VIEW_TYPE_COMMENT,
-			(leaf) => new CommentView(leaf, this.commentStore)
+			(leaf) => {
+				// 在创建视图时才初始化
+				this.ensureInitialized();
+				return new CommentView(leaf, this.commentStore);
+			}
 		);
 
 		// 添加打开评论面板的功能按钮
@@ -74,6 +52,7 @@ export default class CommentPlugin extends Plugin {
 			'highlighter',
 			'HiNote',
 			async () => {
+				await this.ensureInitialized();
 				await this.openCommentPanelInSidebar();
 			}
 		);
@@ -83,6 +62,7 @@ export default class CommentPlugin extends Plugin {
 			id: 'open-comment-window',
 			name: t('Open in right sidebar'),
 			callback: async () => {
+				await this.ensureInitialized();
 				await this.openCommentPanelInSidebar();
 			}
 		});
@@ -91,39 +71,21 @@ export default class CommentPlugin extends Plugin {
 		this.addSettingTab(new AISettingTab(this.app, this));
 
 
-		// 监听文件重命名事件
+		// 监听文件重命名事件（延迟初始化）
 		this.registerEvent(
-			this.app.vault.on('rename', (file, oldPath) => {
-				this.commentStore.updateFilePath(oldPath, file.path);
+			this.app.vault.on('rename', async (file, oldPath) => {
+				if (this.isInitialized && this.commentStore) {
+					await this.commentStore.updateFilePath(oldPath, file.path);
+				}
 			})
 		);
-
-		// 添加数据恢复命令
-		this.addCommand({
-			id: 'recover-data',
-			name: t('Recover data from backup'),
-			callback: async () => {
-				const { DataRecovery } = await import('./src/storage/DataRecovery');
-				const recovery = new DataRecovery(this);
-				
-				new Notice(t('Starting data recovery from backup, please check console output'));
-				const success = await recovery.autoRecover();
-				
-				if (success) {
-					new Notice(t('Data recovery successful! Please reload the plugin to see the effects'));
-					// 重新加载CommentStore以显示恢复的数据
-					await this.commentStore.loadComments();
-				} else {
-					new Notice(t('Data recovery failed, please check console error messages'));
-				}
-			}
-		});
 
 		// 添加打开对话窗口的命令
 		this.addCommand({
 			id: 'open-chat-window',
 			name: t('Open AI chat window'),
-			callback: () => {
+			callback: async () => {
+				await this.ensureInitialized();
 				const chatView = ChatView.getInstance(this.app, this);
 				chatView.show();
 			}
@@ -134,6 +96,7 @@ export default class CommentPlugin extends Plugin {
 			id: 'open-comment-main-window',
 			name: t('Open in main window'),
 			callback: async () => {
+				await this.ensureInitialized();
 				const { workspace } = this.app;
 				
 				// 检查评论面板是否已经打开
@@ -196,11 +159,76 @@ export default class CommentPlugin extends Plugin {
 		});
 	}
 
+	/**
+	 * 确保插件已初始化（延迟初始化）
+	 * 只在用户首次使用功能时才执行初始化
+	 */
+	private async ensureInitialized(): Promise<void> {
+		// 如果已经初始化，直接返回
+		if (this.isInitialized) {
+			return;
+		}
+
+		// 如果正在初始化，等待完成
+		if (this.initializationPromise) {
+			return this.initializationPromise;
+		}
+
+		// 开始初始化
+		this.initializationPromise = this.initialize();
+		await this.initializationPromise;
+		this.isInitialized = true;
+	}
+
+	/**
+	 * 实际的初始化逻辑
+	 */
+	private async initialize(): Promise<void> {
+		console.log('[HiNote] 开始延迟初始化...');
+		const startTime = performance.now();
+
+		// 初始化事件管理器（共享实例）
+		this.eventManager = new EventManager(this.app);
+
+		// 初始化数据管理器（共享实例）
+		this.dataManager = new HiNoteDataManager(this.app);
+
+		// 初始化高亮服务（共享实例）
+		this.highlightService = new HighlightService(this.app);
+		// 异步构建索引，不阻塞初始化
+		this.highlightService.initialize();
+
+		// 初始化 Canvas 服务（共享实例）
+		this.canvasService = new CanvasService(this.app.vault);
+
+		// 初始化评论存储（传入共享的服务实例）
+		this.commentStore = new CommentStore(this, this.eventManager, this.dataManager, this.highlightService);
+		// 异步加载评论数据，不阻塞初始化
+		this.commentStore.loadComments().catch(error => {
+			console.error('[HiNote] 加载评论数据失败:', error);
+		});
+
+		// 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
+		this.fsrsManager = new FSRSManager(this, this.dataManager);
+
+		// 初始化高亮匹配服务
+		this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
+
+		// 初始化高亮装饰器
+		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
+		this.highlightDecorator.enable();
+
+		const duration = performance.now() - startTime;
+		console.log(`[HiNote] 延迟初始化完成，耗时: ${duration.toFixed(2)}ms`);
+	}
+
 	async onunload() {
 
         // 保存最终状态
 		try {
-			await this.commentStore.saveComments();
+			if (this.isInitialized && this.commentStore) {
+				await this.commentStore.saveComments();
+			}
 		} catch (error) {
 
 		}

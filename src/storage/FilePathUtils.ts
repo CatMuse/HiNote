@@ -20,10 +20,14 @@ export class FilePathUtils {
     /**
      * 从安全文件名恢复原始路径（需要配合映射文件）
      * @param safeFileName 安全文件名
-     * @returns 去除.json后缀的文件名
+     * @returns 恢复的原始路径（近似）
      */
     static fromSafeFileName(safeFileName: string): string {
-        return safeFileName.replace(/\.json$/, '');
+        // 移除 .json 后缀并将下划线转回空格
+        // 注意：这是近似恢复，无法完全还原特殊字符
+        return safeFileName
+            .replace(/\.json$/, '')
+            .replace(/_/g, ' ');
     }
 
     /**

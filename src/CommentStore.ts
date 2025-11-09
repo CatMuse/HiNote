@@ -2,7 +2,6 @@ import { Plugin, TFile, MarkdownView, Editor, App } from "obsidian";
 import { BlockIdService } from './services/BlockIdService';
 import { IdGenerator } from './utils/IdGenerator'; // 导入 IdGenerator
 import { HiNoteDataManager } from './storage/HiNoteDataManager';
-import { DataMigrationManager } from './storage/DataMigrationManager';
 
 export interface CommentItem {
     id: string;           // 评论的唯一ID
@@ -42,7 +41,6 @@ export class CommentStore {
     
     // 存储层
     private dataManager: HiNoteDataManager;
-    private migrationManager: DataMigrationManager;
 
     constructor(
         plugin: Plugin,
@@ -58,42 +56,53 @@ export class CommentStore {
         
         // 使用传入的共享数据管理器实例
         this.dataManager = dataManager;
-        this.migrationManager = new DataMigrationManager(plugin, this.dataManager);
     }
 
     async loadComments() {
-        // 检查是否需要数据迁移
-        const needsMigration = await this.migrationManager.needsMigration();
-        
-        if (needsMigration) {
-            console.log('[HiNote] 检测到旧数据，开始自动迁移...');
-            try {
-                const stats = await this.migrationManager.migrate();
-                console.log('[HiNote] 数据迁移成功:', stats);
-            } catch (error) {
-                console.error('[HiNote] 数据迁移失败:', error);
-                throw new Error('数据迁移失败，请查看控制台错误信息');
-            }
-        }
-        
         // 初始化并使用新存储层
         await this.dataManager.initialize();
-        await this.loadCommentsFromNewStorage();
+        // 延迟加载数据，不阻塞启动
+        this.loadCommentsFromNewStorageAsync();
     }
     
     /**
-     * 从新存储层加载数据
+     * 从新存储层加载数据（异步，不阻塞启动）
      */
-    private async loadCommentsFromNewStorage() {
-        this.comments = new Map();
-        
-        const highlightFiles = await this.dataManager.getAllHighlightFiles();
-        
-        for (const filePath of highlightFiles) {
+    private async loadCommentsFromNewStorageAsync() {
+        try {
+            const highlightFiles = await this.dataManager.getAllHighlightFiles();
+            
+            // 按需加载：只在访问时才加载具体文件的数据
+            // 这里只初始化文件列表，不加载内容
+            for (const filePath of highlightFiles) {
+                // 预先标记文件存在，但不加载数据
+                if (!this.comments.has(filePath)) {
+                    this.comments.set(filePath, []);
+                }
+            }
+            
+            // 异步加载每个文件的数据，不阻塞
+            for (const filePath of highlightFiles) {
+                this.loadFileHighlightsAsync(filePath);
+            }
+        } catch (error) {
+            console.error('[HiNote] 加载高亮文件列表失败:', error);
+        }
+    }
+    
+    /**
+     * 异步加载单个文件的高亮数据
+     */
+    private async loadFileHighlightsAsync(filePath: string) {
+        try {
             const highlights = await this.dataManager.getFileHighlights(filePath);
             if (highlights.length > 0) {
                 this.comments.set(filePath, highlights);
+            } else {
+                this.comments.delete(filePath);
             }
+        } catch (error) {
+            console.warn(`[HiNote] 加载文件 ${filePath} 的高亮数据失败:`, error);
         }
     }
     

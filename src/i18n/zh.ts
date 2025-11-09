@@ -262,12 +262,6 @@ export default {
     "search-prefix-comment": "只搜索带批注的高亮",
     "search-prefix-path": "按文件路径搜索高亮",
 
-    // 数据恢复
-    "Recover data from backup": "从备份恢复数据",
-    "Starting data recovery from backup, please check console output": "开始从备份恢复数据，请查看控制台输出",
-    "Data recovery successful! Please reload the plugin to see the effects": "数据恢复成功！请重新加载插件查看效果",
-    "Data recovery failed, please check console error messages": "数据恢复失败，请查看控制台错误信息",
-
     // 其他
 
     "Open (double-click)": "双击打开"
