@@ -1,246 +1,80 @@
-import { Plugin, TAbstractFile, TFile, WorkspaceLeaf, Notice } from 'obsidian';
+import { Plugin } from 'obsidian';
 import { CommentView, VIEW_TYPE_COMMENT } from './src/CommentView';
-import { CommentStore } from './src/CommentStore';
-import { HighlightDecorator } from './src/HighlightDecorator';
 import { AISettingTab } from './src/settings/SettingTab';
-import { PluginSettings, DEFAULT_SETTINGS, HighlightSettings } from './src/types';
+import { PluginSettings, DEFAULT_SETTINGS } from './src/types';
 import html2canvas from 'html2canvas';
 import { ChatView } from './src/components/ChatView';
-import { t } from './src/i18n';
-import { FSRSManager } from './src/flashcard/services/FSRSManager';
-import { HighlightMatchingService } from './src/services/HighlightMatchingService';
-import { HighlightService } from './src/services/HighlightService';
-import { HiNoteDataManager } from './src/storage/HiNoteDataManager';
-import { CanvasService } from './src/services/CanvasService';
-import { EventManager } from './src/services/EventManager';
+import { registerCommands, createWindowManager } from './src/commands';
+import { InitializationManager } from './src/services/InitializationManager';
+import { WindowManager } from './src/services/WindowManager';
 
 export default class CommentPlugin extends Plugin {
 	settings: PluginSettings;
-	public commentStore: CommentStore;
-	private highlightDecorator: HighlightDecorator;
-	public fsrsManager: FSRSManager;
-	public eventManager: EventManager;
-	public highlightMatchingService: HighlightMatchingService;
-	public highlightService: HighlightService;
-	public dataManager: HiNoteDataManager;
-	public canvasService: CanvasService;
+	private initManager: InitializationManager;
+	private windowManager: WindowManager;
 
-	// 延迟初始化标志
-	private isInitialized: boolean = false;
-	private initializationPromise: Promise<void> | null = null;
+	// 公开服务实例供外部访问（保持向后兼容）
+	get commentStore() { return this.initManager.commentStore; }
+	get highlightDecorator() { return this.initManager.highlightDecorator; }
+	get fsrsManager() { return this.initManager.fsrsManager; }
+	get eventManager() { return this.initManager.eventManager; }
+	get highlightMatchingService() { return this.initManager.highlightMatchingService; }
+	get highlightService() { return this.initManager.highlightService; }
+	get dataManager() { return this.initManager.dataManager; }
+	get canvasService() { return this.initManager.canvasService; }
 
 	async onload() {
-		// 只加载设置，其他全部延迟初始化
+		// 加载设置
 		const loadedData = await this.loadData();
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
 		// 将 html2canvas 添加到全局对象（轻量级操作）
 		(window as Window & typeof globalThis & { html2canvas?: typeof html2canvas }).html2canvas = html2canvas;
 
+		// 初始化管理器
+		this.initManager = new InitializationManager(this);
+		this.windowManager = createWindowManager(this);
+
 		// 注册视图（延迟初始化）
 		this.registerView(
 			VIEW_TYPE_COMMENT,
 			(leaf) => {
-				// 在创建视图时才初始化
-				this.ensureInitialized();
-				return new CommentView(leaf, this.commentStore);
+				this.initManager.ensureInitialized();
+				return new CommentView(leaf, this.initManager.commentStore);
 			}
 		);
 
-		// 添加打开评论面板的功能按钮
+		// 添加功能按钮
 		this.addRibbonIcon(
 			'highlighter',
 			'HiNote',
 			async () => {
-				await this.ensureInitialized();
-				await this.openCommentPanelInSidebar();
+				await this.initManager.ensureInitialized();
+				await this.windowManager.openCommentPanelInSidebar();
 			}
 		);
 
-		// 添加打开评论面板的命令
-		this.addCommand({
-			id: 'open-comment-window',
-			name: t('Open in right sidebar'),
-			callback: async () => {
-				await this.ensureInitialized();
-				await this.openCommentPanelInSidebar();
-			}
-		});
+		// 注册所有命令
+		registerCommands(this, this.windowManager, () => this.initManager.ensureInitialized());
 
 		// 添加设置标签页
 		this.addSettingTab(new AISettingTab(this.app, this));
 
-
-		// 监听文件重命名事件（延迟初始化）
+		// 监听文件重命名事件
 		this.registerEvent(
 			this.app.vault.on('rename', async (file, oldPath) => {
-				if (this.isInitialized && this.commentStore) {
+				if (this.initManager.initialized && this.commentStore) {
 					await this.commentStore.updateFilePath(oldPath, file.path);
 				}
 			})
 		);
-
-		// 添加打开对话窗口的命令
-		this.addCommand({
-			id: 'open-chat-window',
-			name: t('Open AI chat window'),
-			callback: async () => {
-				await this.ensureInitialized();
-				const chatView = ChatView.getInstance(this.app, this);
-				chatView.show();
-			}
-		});
-
-		// 添加在主窗口打开评论面板的命令
-		this.addCommand({
-			id: 'open-comment-main-window',
-			name: t('Open in main window'),
-			callback: async () => {
-				await this.ensureInitialized();
-				const { workspace } = this.app;
-				
-				// 检查评论面板是否已经打开
-				const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
-				if (existing.length) {
-					// 如果已经打开，尝试将其移动到主视图区域
-					const existingLeaf = existing[0];
-					
-					// 先激活现有视图
-					workspace.setActiveLeaf(existingLeaf, {focus: true});
-					
-					// 使用另一种方式将视图移动到主视图区域
-					// 先分离当前叶子
-					workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
-					
-					// 然后在主视图区域创建新的叶子（使用tab而不是split避免分屏）
-					const newLeaf = workspace.getLeaf('tab');
-					await newLeaf.setViewState({
-						type: VIEW_TYPE_COMMENT,
-						active: true,
-					});
-					
-					// 将视图标记为主窗口模式
-					const view = newLeaf.view;
-					if (view && view instanceof CommentView) {
-						(view as any).isDraggedToMainView = true;
-						// 强制刷新文件列表，确保显示最新的文件和高亮
-						if ((view as any).fileListManager) {
-							(view as any).fileListManager.invalidateCache();
-						}
-						(view as any).updateViewLayout();
-						(view as any).updateHighlights();
-					}
-					return;
-				}
-
-				// 如果评论面板未打开，在主视图区域创建新标签页
-				const leaf = workspace.getLeaf('tab');
-				if (leaf) {
-					await leaf.setViewState({
-						type: VIEW_TYPE_COMMENT,
-						active: true,
-					});
-					
-					// 将新创建的视图标记为主窗口模式
-					setTimeout(() => {
-						const view = leaf.view;
-						if (view && view instanceof CommentView) {
-							(view as any).isDraggedToMainView = true;
-							// 强制刷新文件列表，确保显示最新的文件和高亮
-							if ((view as any).fileListManager) {
-								(view as any).fileListManager.invalidateCache();
-							}
-							(view as any).updateViewLayout();
-							(view as any).updateHighlights();
-						}
-					}, 100);
-				}
-			}
-		});
 	}
 
-	/**
-	 * 确保插件已初始化（延迟初始化）
-	 * 只在用户首次使用功能时才执行初始化
-	 */
-	private async ensureInitialized(): Promise<void> {
-		// 如果已经初始化，直接返回
-		if (this.isInitialized) {
-			return;
-		}
-
-		// 如果正在初始化，等待完成
-		if (this.initializationPromise) {
-			return this.initializationPromise;
-		}
-
-		// 开始初始化
-		this.initializationPromise = this.initialize();
-		await this.initializationPromise;
-		this.isInitialized = true;
-	}
-
-	/**
-	 * 实际的初始化逻辑
-	 */
-	private async initialize(): Promise<void> {
-		console.log('[HiNote] 开始延迟初始化...');
-		const startTime = performance.now();
-
-		// 初始化事件管理器（共享实例）
-		this.eventManager = new EventManager(this.app);
-
-		// 初始化数据管理器（共享实例）
-		this.dataManager = new HiNoteDataManager(this.app);
-
-		// 初始化高亮服务（共享实例）
-		this.highlightService = new HighlightService(this.app);
-		// 异步构建索引，不阻塞初始化
-		this.highlightService.initialize();
-
-		// 初始化 Canvas 服务（共享实例）
-		this.canvasService = new CanvasService(this.app.vault);
-
-		// 初始化评论存储（传入共享的服务实例）
-		this.commentStore = new CommentStore(this, this.eventManager, this.dataManager, this.highlightService);
-		// 异步加载评论数据，不阻塞初始化
-		this.commentStore.loadComments().catch(error => {
-			console.error('[HiNote] 加载评论数据失败:', error);
-		});
-
-		// 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
-		this.fsrsManager = new FSRSManager(this, this.dataManager);
-
-		// 初始化高亮匹配服务
-		this.highlightMatchingService = new HighlightMatchingService(this.app, this.commentStore);
-
-		// 初始化高亮装饰器
-		this.highlightDecorator = new HighlightDecorator(this, this.commentStore);
-		this.highlightDecorator.enable();
-
-		const duration = performance.now() - startTime;
-		console.log(`[HiNote] 延迟初始化完成，耗时: ${duration.toFixed(2)}ms`);
-	}
 
 	async onunload() {
-
-        // 保存最终状态
-		try {
-			if (this.isInitialized && this.commentStore) {
-				await this.commentStore.saveComments();
-			}
-		} catch (error) {
-
-		}
-
-		// 清理高亮装饰器
-		if (this.highlightDecorator) {
-			this.highlightDecorator.disable();
-		}
-
-		// 清理高亮服务（注销事件监听器，清空索引）
-		if (this.highlightService) {
-			this.highlightService.destroy();
+		// 清理初始化管理器
+		if (this.initManager) {
+			await this.initManager.cleanup();
 		}
 
 		// 如果对话窗口打开，关闭它
@@ -249,64 +83,6 @@ export default class CommentPlugin extends Plugin {
 		}
 	}
 
-	/**
-	 * 在右侧侧边栏打开评论面板
-	 * 如果面板已在主视图中打开，则移动到侧边栏
-	 */
-	private async openCommentPanelInSidebar() {
-		const { workspace } = this.app;
-		
-		// 检查评论面板是否已经打开
-		const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
-		if (existing.length) {
-			// 如果已经打开，先检查当前视图是否在主视图区域
-			const existingLeaf = existing[0];
-			const view = existingLeaf.view;
-			
-			// 如果在主视图区域，则移动到右侧侧边栏
-			if (view && view instanceof CommentView && (view as any).isDraggedToMainView) {
-				// 先分离当前叶子
-				workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
-				
-				// 然后在右侧侧边栏创建新的叶子
-				const newLeaf = workspace.getRightLeaf(false);
-				if (newLeaf) {
-					await newLeaf.setViewState({
-						type: VIEW_TYPE_COMMENT,
-						active: true,
-					});
-					
-					// 将视图标记为侧边栏模式
-					const newView = newLeaf.view;
-					if (newView && newView instanceof CommentView) {
-						(newView as any).isDraggedToMainView = false;
-						(newView as any).updateViewLayout();
-						(newView as any).updateHighlights();
-					}
-				}
-			} else {
-				// 如果已经在侧边栏，则直接激活它
-				workspace.revealLeaf(existingLeaf);
-			}
-			return;
-		}
-
-		// 如果评论面板未打开，则在右侧打开评论面板
-		const leaf = workspace.getRightLeaf(false);
-		if (leaf) {
-			await leaf.setViewState({
-				type: VIEW_TYPE_COMMENT,
-				active: true,
-			});
-			
-			// 确保视图标记为侧边栏模式
-			const view = leaf.view;
-			if (view && view instanceof CommentView) {
-				(view as any).isDraggedToMainView = false;
-				(view as any).updateViewLayout();
-			}
-		}
-	}
 
 	async saveSettings() {
         // 确保基础设置存在
