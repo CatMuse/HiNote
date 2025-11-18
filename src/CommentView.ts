@@ -362,86 +362,30 @@ export class CommentView extends ItemView {
             cls: "highlight-search-icons"
         });
 
-        // 添加 message-square-plus 图标按钮
-        const addCommentButton = iconButtonsContainer.createEl("div", {
-            cls: "highlight-icon-button"
-        });
-        setIcon(addCommentButton, "message-square-plus");
-        addCommentButton.setAttribute("aria-label", t("Add File Comment"));
-
-        // 添加文件评论按钮点击事件
-        addCommentButton.addEventListener("click", async () => {
-            if (!this.currentFile) {
-                new Notice(t("Please open a file first."));
-                return;
-            }
-
-            // 生成唯一标识符
-            const timestamp = Date.now();
-            const uniqueId = `file-comment-${timestamp}`;
-            
-            // 创建虚拟高亮信息，在文档的最顶部创建了一个不可见的高亮内容
-            const virtualHighlight: HiNote = {
-                id: uniqueId,
-                text: `__virtual_highlight_${timestamp}__`,  // 这个文本不会显示给用户
-                filePath: this.currentFile.path,
-                fileType: this.currentFile.extension,
-                displayText: t("File Comment"),  // 这是显示给用户看的文本
-                isVirtual: true,  // 标记这是一个虚拟高亮
-                position: 0,  // 给一个默认位置
-                paragraphOffset: 0,  // 给一个默认偏移量
-                paragraphId: `${this.currentFile.path}#^virtual-${timestamp}`,  // 生成一个虚拟段落ID
-                createdAt: timestamp,
-                updatedAt: timestamp,
-                comments: []  // 初始化空的评论数组
-            };
-
-            // 先保存到 CommentStore
-            await this.commentStore.addComment(this.currentFile, virtualHighlight);
-
-            // 将虚拟高亮添加到高亮列表的最前面
-            this.highlights.unshift(virtualHighlight);
-            
-            // 重新渲染高亮列表
-            this.renderHighlights(this.highlights);
-
-            // 找到新创建的高亮卡片
-            setTimeout(() => {
-                const highlightCard = this.highlightContainer.querySelector('.highlight-card') as HTMLElement;
-                if (highlightCard) {
-                    // 自动打开评论输入框
-                    this.showCommentInput(highlightCard, virtualHighlight);
-                    // 滚动到顶部
-                    this.highlightContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        // 使用 VirtualHighlightManager 创建文件评论按钮
+        if (this.virtualHighlightManager) {
+            this.virtualHighlightManager.createFileCommentButton(
+                iconButtonsContainer,
+                {
+                    getCurrentFile: () => this.currentFile,
+                    getHighlights: () => this.highlights,
+                    onVirtualHighlightCreated: (vh) => {
+                        this.highlights.unshift(vh);
+                        this.renderHighlights(this.highlights);
+                    },
+                    onShowCommentInput: (card, highlight) => this.showCommentInput(card, highlight),
+                    getHighlightContainer: () => this.highlightContainer
                 }
-            }, 100);
-        });
+            );
+        }
 
-        // 添加 square-arrow-out-up-right 图标按钮
-        const exportButton = iconButtonsContainer.createEl("div", {
-            cls: "highlight-icon-button"
-        });
-        setIcon(exportButton, "file-symlink");
-        exportButton.setAttribute("aria-label", t("Export as notes"));
-
-        // 添加导出按钮点击事件
-        exportButton.addEventListener("click", async () => {
-            if (!this.currentFile) {
-                new Notice(t("Please open a file first."));
-                return;
-            }
-
-            try {
-                const newFile = await this.exportService.exportHighlightsToNote(this.currentFile);
-                new Notice(t("Successfully exported highlights to: ") + newFile.path);
-                
-                // 打开新创建的文件
-                const leaf = this.app.workspace.getLeaf();
-                await leaf.openFile(newFile);
-            } catch (error) {
-                new Notice(t("Failed to export highlights: ") + error.message);
-            }
-        });
+        // 使用 ExportManager 创建导出按钮
+        if (this.exportManager) {
+            this.exportManager.createExportButton(
+                iconButtonsContainer,
+                () => this.currentFile
+            );
+        }
 
         // 初始化搜索管理器
         this.searchManager = new SearchManager(
@@ -916,20 +860,24 @@ export class CommentView extends ItemView {
 
     private renderHighlights(highlightsToRender: HighlightInfo[], append = false) {
         // 使用 HighlightRenderManager 渲染
-        if (this.highlightRenderManager) {
+        if (this.highlightRenderManager && this.flashcardViewManager) {
             this.highlightRenderManager.updateState({
                 currentFile: this.currentFile,
                 isDraggedToMainView: this.isDraggedToMainView,
-                highlightsWithFlashcards: this.highlightsWithFlashcards,
-                currentBatch: this.currentBatch
+                highlightsWithFlashcards: this.flashcardViewManager.getFlashcardMarkers(),
+                currentBatch: this.infiniteScrollManager?.getCurrentBatch() || 0
             });
             this.highlightRenderManager.renderHighlights(
                 highlightsToRender,
                 append,
                 this.selectionManager ?? undefined
             );
-            // 同步 currentBatch
-            this.currentBatch = this.highlightRenderManager.getCurrentBatch();
+            // 同步 currentBatch 到 InfiniteScrollManager
+            if (this.infiniteScrollManager) {
+                this.infiniteScrollManager.setCurrentBatch(
+                    this.highlightRenderManager.getCurrentBatch()
+                );
+            }
         }
     }
 
@@ -953,15 +901,10 @@ export class CommentView extends ItemView {
         await this.locationService.jumpToHighlight(highlight, this.currentFile.path);
     }
 
-    // 修改导出图片功能的方法签名
+    // 修改导出图片功能的方法签名 - 使用 ExportManager
     private async exportHighlightAsImage(highlight: HighlightInfo & { comments?: CommentItem[] }) {
-        try {
-            // 动态导入 html2canvas
-            const html2canvas = (await import('html2canvas')).default;
-            new ExportPreviewModal(this.app, highlight, html2canvas).open();
-        } catch (error) {
-
-            new Notice(t("Export failed: Failed to load necessary components."));
+        if (this.exportManager) {
+            await this.exportManager.exportHighlightAsImage(highlight);
         }
     }
 
@@ -1339,25 +1282,14 @@ export class CommentView extends ItemView {
             this.highlights = [];
         }
         
-        // 保留原有的虚拟高亮和闪卡处理逻辑
-        const storedComments = this.commentStore.getFileComments(this.currentFile);
-        const usedCommentIds = new Set<string>();
-        
-        // 标记已使用的评论ID
-        this.highlights.forEach(h => {
-            if (h.id) usedCommentIds.add(h.id);
-        });
-        
-        // 添加虚拟高亮（这部分逻辑保留在这里，因为它依赖于 this.highlights）
-        const virtualHighlights = storedComments
-            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
-        
-        const uniqueVirtualHighlights = virtualHighlights.filter(vh => {
-            return !this.highlights.some(h => h.text === vh.text);
-        });
-        
-        uniqueVirtualHighlights.forEach(vh => usedCommentIds.add(vh.id));
-        this.highlights.unshift(...uniqueVirtualHighlights);
+        // 使用 VirtualHighlightManager 处理虚拟高亮
+        if (this.virtualHighlightManager && this.currentFile) {
+            const virtualHighlights = this.virtualHighlightManager.filterVirtualHighlights(
+                this.currentFile,
+                this.highlights
+            );
+            this.highlights.unshift(...virtualHighlights);
+        }
         
         // Canvas 标记处理
         if (isInCanvas && this.currentFile) {
@@ -1368,23 +1300,9 @@ export class CommentView extends ItemView {
             });
         }
         
-        // 创建一个映射来记录哪些高亮已经创建了闪卡
-        // 这避免了直接在 HighlightInfo 上添加属性
-        this.highlightsWithFlashcards = new Set<string>();
-        
-    if (this.plugin && this.plugin.fsrsManager) {
-            const fsrsManager = this.plugin.fsrsManager;
-            // 遍历所有高亮，记录已创建闪卡的高亮 ID
-            for (const highlight of this.highlights) {
-                if (highlight.id) {
-                    // 检查是否存在闪卡
-                    const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
-                    // 如果存在闪卡，将高亮 ID 添加到集合中
-                    if (existingCards && existingCards.length > 0) {
-                        this.highlightsWithFlashcards.add(highlight.id);
-                    }
-                }
-            }
+        // 使用 FlashcardViewManager 更新闪卡标记
+        if (this.flashcardViewManager) {
+            this.flashcardViewManager.updateFlashcardMarkers(this.highlights);
         }
         
         // 检查搜索框是否有内容
