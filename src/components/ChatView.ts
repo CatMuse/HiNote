@@ -3,6 +3,7 @@ import { ChatService, ChatMessage } from '../services/ChatService';
 import { HighlightInfo, ChatViewState, AIModel, DEFAULT_SILICONFLOW_MODELS } from '../types';
 import { ContextService, ContextOptions } from '../services/ContextService';
 import { t } from "src/i18n";
+import { AIProviderType } from '../services/ai';
 
 export class ChatView extends Component {
     public static instance: ChatView | null = null;
@@ -105,12 +106,14 @@ export class ChatView extends Component {
 
         // Create a temporary HighlightInfo object
         const dummyHighlight: HighlightInfo = {
+            id: `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             text: "",
             position: 0,
             paragraphOffset: 0,
             paragraphId: "chat",
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            comments: []
         };
 
         // Add drag event handlers to the entire history area
@@ -1472,7 +1475,7 @@ export class ChatView extends Component {
                 break;
             case 'openai':
                 try {
-                    const models = await this.chatService.aiService.listOpenAIModels();
+                    const models = await this.chatService.aiService.listModels(AIProviderType.OPENAI);
                     
                     // 分别添加预设模型和自定义模型
                     const defaultModels = models.filter((model: AIModel) => !model.isCustom);
@@ -1540,14 +1543,14 @@ export class ChatView extends Component {
 
             case 'ollama':
                 try {
-                    const models = await this.chatService.aiService.listOllamaModels();
-                    models.forEach(model => {
+                    const models = await this.chatService.aiService.listModels(AIProviderType.OLLAMA);
+                    models.forEach((model: AIModel) => {
                         menu.addItem((item: MenuItem) => {
-                            item.setTitle(model)
-                                .setChecked(aiSettings.ollama?.model === model)
+                            item.setTitle(model.name)
+                                .setChecked(aiSettings.ollama?.model === model.id)
                                 .onClick(async () => {
-                                    if (!aiSettings.ollama) aiSettings.ollama = { host: 'http://localhost:11434', model: model };
-                                    aiSettings.ollama.model = model;
+                                    if (!aiSettings.ollama) aiSettings.ollama = { host: 'http://localhost:11434', model: model.id };
+                                    aiSettings.ollama.model = model.id;
                                     await this.plugin.saveSettings();
                                     selector.textContent = this.getCurrentModelName();
                                 });
@@ -1560,10 +1563,9 @@ export class ChatView extends Component {
 
             case 'gemini':
                 try {
-                    const models = await this.chatService.aiService.listGeminiModels();
+                    const models = await this.chatService.aiService.listModels(AIProviderType.GEMINI);
                     
-                    // 添加预设模型
-                    models.forEach(model => {
+                    models.forEach((model: AIModel) => {
                         menu.addItem((item: MenuItem) => {
                             item.setTitle(model.name)
                                 .setChecked(aiSettings.gemini?.model === model.id)
@@ -1609,7 +1611,7 @@ export class ChatView extends Component {
 
             case 'deepseek':
                 try {
-                    const models = await this.chatService.aiService.listDeepseekModels();
+                    const models = await this.chatService.aiService.listModels(AIProviderType.DEEPSEEK);
                     
                     // 添加预设模型
                     models.forEach((model: { id: string, name: string }) => {

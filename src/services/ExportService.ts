@@ -257,12 +257,12 @@ export class ExportService {
             }
 
             return {
-                id: IdGenerator.generateHighlightId(
+                ...highlight,
+                id: highlight.id || IdGenerator.generateHighlightId(
                     file.path, 
                     highlight.position || 0, 
                     highlight.text
                 ),
-                ...highlight,
                 position: highlight.position ?? 0,
                 paragraphOffset: highlight.paragraphOffset ?? 0,
                 comments: [],

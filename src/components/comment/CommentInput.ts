@@ -1,7 +1,7 @@
 import { CommentItem, HighlightInfo } from "../../types";
 import { t } from "../../i18n";
 import { Platform, Notice, setIcon } from "obsidian";
-import { AIService } from "../../services/AIService";
+import { AIServiceManager } from "../../services/ai";
 import type CommentPlugin from "../../../main";
 
 export class CommentInput {
@@ -313,7 +313,7 @@ export class CommentInput {
             const fullPrompt = `${userPrompt}\n\n高亮文本：${highlightText}`;
             
             // 调用AI服务
-            const aiService = new AIService(this.plugin.settings.ai);
+            const aiService = new AIServiceManager(this.plugin.settings.ai);
             const response = await aiService.generateResponse(
                 fullPrompt,
                 highlightText,

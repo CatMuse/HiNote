@@ -10,6 +10,9 @@ export default {
     "Delete": "删除",
     "Custom Model": "自定义模型",
     "Checking...": "检查中...",
+    "Cloze card": "挖空卡片",
+    "Cloze card content": "挖空卡片内容",
+    "Cloze card answer": "挖空卡片答案",
    
     //AI 通用   
 
@@ -264,5 +267,27 @@ export default {
 
     // 其他
 
-    "Open (double-click)": "双击打开"
+    "Open (double-click)": "双击打开",
+
+    // AI 测试反馈相关
+    "Testing": "正在测试",
+    "connection": "连接",
+    "connection successful!": "连接成功！",
+    "connection failed. Please check your configuration.": "连接失败，请检查配置。",
+    "test failed": "测试失败",
+    "Please enter your": "请先输入",
+    "API Key first.": "API Key。",
+    "host address first.": "服务地址。",
+    
+    // 友好的错误消息
+    "Invalid API Key": "无效的 API Key",
+    "Access denied": "访问被拒绝",
+    "Rate limit exceeded": "超出速率限制",
+    "Connection timeout": "连接超时",
+    "Service unavailable": "服务不可用",
+    "Service not found": "服务未找到",
+    "Server error": "服务器错误",
+    
+    // Custom AI 相关（已存在则跳过）
+    "Detected API type": "检测到的 API 类型"
 };

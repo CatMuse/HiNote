@@ -83,7 +83,6 @@ export default class CommentPlugin extends Plugin {
 		}
 	}
 
-
 	async saveSettings() {
         // 确保基础设置存在
         if (!this.settings) {

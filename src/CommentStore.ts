@@ -1,40 +1,20 @@
 import { Plugin, TFile, MarkdownView, Editor, App } from "obsidian";
 import { BlockIdService } from './services/BlockIdService';
-import { IdGenerator } from './utils/IdGenerator'; // 导入 IdGenerator
+import { IdGenerator } from './utils/IdGenerator';
 import { HiNoteDataManager } from './storage/HiNoteDataManager';
-
-export interface CommentItem {
-    id: string;           // 评论的唯一ID
-    content: string;      // 评论内容
-    createdAt: number;    // 创建时间
-    updatedAt: number;    // 最后更新时间
-}
-
-export interface HiNote {
-    id: string;           
-    text: string;         
-    position: number;     
-    paragraphId?: string;  // 兼容旧数据，将被 blockId 替代
-    blockId?: string;     // 新增：纯 BlockID，不包含文件路径
-    comments: CommentItem[];  
-    createdAt: number;    
-    updatedAt: number;    
-    isVirtual?: boolean;  // 新增：是否是虚拟高亮
-    filePath?: string;    // 新增：文件路径
-    fileType?: string;    // 新增：文件类型
-    displayText?: string; // 新增：显示文本
-    paragraphOffset?: number; // 新增：段落偏移量
-    backgroundColor?: string; // 新增：背景颜色
-    isCloze?: boolean;    // 新增：标记是否为挖空格式
-}
-
-
+import { HighlightInfo, CommentItem } from './types';
 import { EventManager } from './services/EventManager';
 import { HighlightService } from './services/HighlightService';
 
+// 重新导出类型，供其他模块使用
+export type { CommentItem, HighlightInfo };
+
+// 类型别名：HiNote 是 HighlightInfo 的别名，用于向后兼容
+export type HiNote = HighlightInfo;
+
 export class CommentStore {
     private plugin: Plugin;
-    private comments: Map<string, HiNote[]> = new Map();
+    private comments: Map<string, HighlightInfo[]> = new Map();
     private eventManager: EventManager;
     private blockIdService: BlockIdService;
     private highlightService: HighlightService;
@@ -390,7 +370,7 @@ export class CommentStore {
         }
         
         // 触发事件通知
-        if (this.eventManager) {
+        if (this.eventManager && highlight.id) {
             // 如果有评论，触发评论删除事件
             if (highlight.comments && highlight.comments.length > 0) {
                 const latestComment = highlight.comments[highlight.comments.length - 1];

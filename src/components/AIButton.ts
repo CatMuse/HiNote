@@ -1,5 +1,5 @@
 import { setIcon, Notice, ItemView, Menu, MenuItem } from "obsidian";
-import { AIService } from "../services/AIService";
+import { AIServiceManager } from "../services/ai";
 import type CommentPlugin from "../../main";
 import { t } from "../i18n";
 import { CommentView } from "../CommentView";
@@ -161,7 +161,7 @@ export class AIButton {
         try {
             this.setLoading(true);
 
-            const aiService = new AIService(this.plugin.settings.ai);
+            const aiService = new AIServiceManager(this.plugin.settings.ai);
             const prompt = this.plugin.settings.ai.prompts[promptName];
             
             if (!prompt) {

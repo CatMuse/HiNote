@@ -9,7 +9,7 @@ import { VIEW_TYPE_COMMENT } from '../../CommentView';
 import { t } from "../../i18n";
 import { DragContentGenerator } from "./DragContentGenerator";
 import { AIButton } from "../AIButton";
-import { AIService } from "../../services/AIService";
+import { AIServiceManager } from "../../services/ai";
 import { LicenseManager } from "../../services/LicenseManager";
 import { SelectionManager } from "../../view/selection/SelectionManager";
 

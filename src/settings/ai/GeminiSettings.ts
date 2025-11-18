@@ -1,5 +1,6 @@
 import { Setting, Notice, requestUrl } from 'obsidian';
 import { BaseAIServiceSettings } from './AIServiceSettings';
+import { AITestHelper } from '../../services/ai';
 import { t } from '../../i18n';
 import { GeminiModel, GeminiModelState, DEFAULT_GEMINI_MODELS } from '../../types';
 
@@ -82,47 +83,14 @@ export class GeminiSettings extends BaseAIServiceSettings {
             const defaultUrl = 'https://generativelanguage.googleapis.com';
             const customUrl = this.plugin.settings.ai.gemini?.baseUrl;
             const baseUrl = customUrl && customUrl.trim() ? customUrl : defaultUrl;
-            
-            // 使用当前选择的模型来验证
             const modelId = this.modelState.selectedModel.id;
-            const url = `${baseUrl}/v1/models/${modelId}?key=${apiKey}`;
-
-            const response = await requestUrl({
-                url: url,
-                method: 'GET'
-            });
-
-            if (response.status === 200) {
-                const data = response.json;
-                if (data && data.name) {
-                    new Notice(t('API Key and the current model are both available!'));
-                    return true;
-                }
-            }
-
-            // 如果当前模型不可用，尝试用默认模型验证 API Key
-            if (modelId !== 'gemini-2.5-flash') {
-                const fallbackUrl = `${baseUrl}/v1/models/gemini-2.5-flash?key=${apiKey}`;
-                const fallbackResponse = await requestUrl({
-                    url: fallbackUrl,
-                    method: 'GET'
-                });
-                
-                if (fallbackResponse.status === 200) {
-                    if (this.modelState.selectedModel.isCustom) {
-                        new Notice(t('API Key is valid, but the custom model is not available. Please check the model ID and your access permissions.'));
-                    } else {
-                        new Notice(t('API Key is valid, but the selected model is not available. The model may not be released yet or you may not have access permissions.'));
-                    }
-                    return false;
-                }
-            }
             
-            // API Key 无效
-            new Notice(t('Invalid API Key or server error. Please verify your API Key.'));
-            return false;
+            const { GeminiService } = await import('../../services/ai/GeminiService');
+            const geminiService = new GeminiService(apiKey, modelId, baseUrl);
+            
+            return await AITestHelper.testConnection(geminiService, 'Gemini');
         } catch (error) {
-            new Notice(t('Failed to validate API Key. Please check your key and try again.'));
+            AITestHelper.showError(`Gemini ${t('test failed')}: ${error.message || 'Unknown error'}`);
             return false;
         }
     }
@@ -150,8 +118,7 @@ export class GeminiSettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
-                    if (!this.modelState.apiKey) {
-                        new Notice(t('Please enter an API Key first'));
+                    if (!AITestHelper.checkApiKey(this.modelState.apiKey, 'Gemini')) {
                         return;
                     }
 

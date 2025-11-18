@@ -1,5 +1,6 @@
 import { Setting, Notice } from 'obsidian';
 import { BaseAIServiceSettings } from './AIServiceSettings';
+import { AITestHelper } from '../../services/ai';
 import { t } from '../../i18n';
 
 export class CustomAISettings extends BaseAIServiceSettings {
@@ -98,12 +99,12 @@ export class CustomAISettings extends BaseAIServiceSettings {
                 return text;
             })
             .addButton(button => button
-                .setButtonText(t('Test Connection'))
+                .setButtonText(t('Check'))
                 .onClick(async () => {
                     if (!this.plugin.settings.ai.custom?.apiKey || 
                         !this.plugin.settings.ai.custom?.baseUrl ||
                         !this.plugin.settings.ai.custom?.model) {
-                        new Notice(t('Please fill in all required fields first'));
+                        AITestHelper.showWarning(t('Please fill in all required fields first'));
                         return;
                     }
                     
@@ -127,22 +128,34 @@ export class CustomAISettings extends BaseAIServiceSettings {
                                     'anthropic': 'Anthropic',
                                     'gemini': 'Gemini'
                                 };
-                                new Notice(t('Connection successful! Detected API type: ') + typeNames[apiType]);
+                                AITestHelper.showSuccess(`Custom AI ${t('connection successful!')} (${t('Detected API type')}: ${typeNames[apiType]})`);
                                 
-                                // 刷新界面以显示检测到的 API 类型
-                                this.containerEl.empty();
-                                this.display(this.containerEl);
+                                // 动态添加检测结果显示（如果还不存在）
+                                let infoEl = settingsContainer.querySelector('.custom-ai-info');
+                                if (!infoEl) {
+                                    infoEl = settingsContainer.createEl('div', {
+                                        cls: 'setting-item-description custom-ai-info'
+                                    });
+                                    infoEl.createEl('strong', { text: t('Detected API Type: ') });
+                                    infoEl.createEl('span', { text: typeNames[apiType] || apiType });
+                                } else {
+                                    // 更新已存在的显示
+                                    const span = infoEl.querySelector('span');
+                                    if (span) {
+                                        span.textContent = typeNames[apiType] || apiType;
+                                    }
+                                }
                             } else {
-                                new Notice(t('Connection successful!'));
+                                AITestHelper.showSuccess(`Custom AI ${t('connection successful!')}`);
                             }
                         } else {
-                            new Notice(t('Connection failed. Please check your settings.'));
+                            AITestHelper.showError(`Custom AI ${t('connection failed. Please check your settings.')}`);
                         }
                     } catch (error) {
-                        new Notice(t('Connection failed: ') + (error as Error).message);
+                        AITestHelper.showError(`Custom AI ${t('test failed')}: ${(error as Error).message}`);
                     } finally {
                         button.setDisabled(false);
-                        button.setButtonText(t('Test Connection'));
+                        button.setButtonText(t('Check'));
                     }
                 }));
 
@@ -238,7 +251,7 @@ export class CustomAISettings extends BaseAIServiceSettings {
     private async testConnection(): Promise<boolean> {
         try {
             // 动态导入 CustomAIService
-            const { CustomAIService } = await import('../../services/CustomAIService');
+            const { CustomAIService } = await import('../../services/ai/CustomAIService');
             
             // 创建临时的服务实例进行测试
             const customSettings = this.plugin.settings.ai.custom;

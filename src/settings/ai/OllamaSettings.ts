@@ -1,6 +1,7 @@
 import { Setting, Notice } from 'obsidian';
 import { BaseAIServiceSettings, AIModel } from './AIServiceSettings';
-import { OllamaService } from '../../services/OllamaService';
+import { AITestHelper } from '../../services/ai';
+import { OllamaService } from '../../services/ai/OllamaService';
 import { t } from '../../i18n';
 
 export class OllamaSettings extends BaseAIServiceSettings {
@@ -54,32 +55,19 @@ export class OllamaSettings extends BaseAIServiceSettings {
                     const originalText = checkButton.textContent;
                     checkButton.textContent = t('Checking...');
                     
-                    const ollamaService = new OllamaService(host);
                     try {
+                        const ollamaService = new OllamaService(host);
                         const models = await ollamaService.listModels();
-                        
-                        // 恢复按钮状态
-                        checkButton.disabled = false;
-                        checkButton.textContent = originalText;
-                        
                         if (models && models.length > 0) {
-                            // Update available models in settings
-                            this.plugin.settings.ai.ollama.availableModels = models;
-                            await this.plugin.saveSettings();
-
-                            // 验证成功后更新模型选择下拉框
-                            this.displayOllamaModelDropdown(settingsContainer, models);
-
-                            new Notice(t('Successfully connected to Ollama service'));
+                            AITestHelper.showSuccess(`Ollama ${t('connection successful!')}`);
                         } else {
-                            new Notice(t('No models found. Please download models using ollama'));
+                            AITestHelper.showWarning(t('No models found. Please download models using ollama'));
                         }
                     } catch (error) {
-                        // 恢复按钮状态
+                        AITestHelper.showError(`Ollama ${t('test failed')}: ${error.message || 'Unknown error'}`);
+                    } finally {
                         checkButton.disabled = false;
                         checkButton.textContent = originalText;
-                        
-                        new Notice(t('Failed to connect to Ollama service. Please check the server address.'));
                     }
                 });
         });

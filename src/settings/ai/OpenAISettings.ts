@@ -1,5 +1,6 @@
 import { Setting, Notice, requestUrl } from 'obsidian';
 import { BaseAIServiceSettings, AIModel } from './AIServiceSettings';
+import { AITestHelper } from '../../services/ai';
 import { t } from '../../i18n';
 
 interface OpenAIModelState {
@@ -110,8 +111,7 @@ export class OpenAISettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
-                    if (!this.modelState.apiKey) {
-                        new Notice(t('Please enter an API Key first'));
+                    if (!AITestHelper.checkApiKey(this.modelState.apiKey, 'OpenAI')) {
                         return;
                     }
                     
@@ -122,12 +122,12 @@ export class OpenAISettings extends BaseAIServiceSettings {
                     try {
                         const models = await this.fetchAvailableModels(this.modelState.apiKey);
                         if (models.length > 0) {
-                            new Notice(t('API Key is valid!'));
+                            AITestHelper.showSuccess(`OpenAI ${t('API Key is valid!')}`);
                         } else {
-                            new Notice(t('No models available. Please check your API Key.'));
+                            AITestHelper.showWarning(t('No models available. Please check your API Key.'));
                         }
                     } catch (error) {
-                        new Notice(t('Failed to validate API Key. Please check your key and try again.'));
+                        AITestHelper.showError(`OpenAI ${t('test failed')}: ${error.message || 'Unknown error'}`);
                     } finally {
                         // 恢复按钮状态
                         button.setDisabled(false);

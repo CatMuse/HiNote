@@ -1,5 +1,5 @@
 import { App, Notice } from 'obsidian';
-import { AIService } from './AIService';
+import { AIServiceManager, AIProviderType } from './ai';
 
 export interface ChatMessage {
     content: string;
@@ -8,16 +8,18 @@ export interface ChatMessage {
 }
 
 export class ChatService {
-    readonly aiService: AIService;
+    readonly aiService: AIServiceManager;
 
     constructor(private plugin: any) {
-        this.aiService = new AIService(this.plugin.settings.ai);
+        this.aiService = new AIServiceManager(this.plugin.settings.ai);
     }
 
     // 更新服务使用的模型
     updateModel(provider: string, model: string) {
         if (this.aiService) {
-            this.aiService.updateModel(provider, model);
+            // 将字符串转换为 AIProviderType
+            const providerType = provider as AIProviderType;
+            this.aiService.updateModel(providerType, model);
         }
     }
 

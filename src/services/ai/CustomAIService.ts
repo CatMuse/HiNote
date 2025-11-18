@@ -1,4 +1,5 @@
 import { BaseHTTPClient } from './BaseHTTPClient';
+import { AIProviderType } from './BaseAIService';
 
 /**
  * API 类型检测结果
@@ -345,6 +346,32 @@ export class CustomAIService {
      */
     getDetectedAPIType(): APIType | null {
         return this.detectedApiType;
+    }
+
+    /**
+     * 获取提供商类型
+     */
+    getProviderType(): AIProviderType {
+        return AIProviderType.CUSTOM;
+    }
+
+    /**
+     * 列出可用模型
+     */
+    async listModels(): Promise<any[]> {
+        // Custom 服务通常只有一个配置的模型
+        return [{
+            id: this.model,
+            name: this.model,
+            isCustom: true
+        }];
+    }
+
+    /**
+     * 检查是否已配置
+     */
+    isConfigured(): boolean {
+        return !!(this.apiKey && this.baseUrl && this.model);
     }
 
     /**

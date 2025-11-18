@@ -2,6 +2,7 @@ import { Setting, Notice, requestUrl } from 'obsidian';
 import { AIModel } from '../../types';
 import { DEFAULT_SILICONFLOW_MODELS } from '../../types';
 import { BaseAIServiceSettings } from './AIServiceSettings';
+import { AITestHelper } from '../../services/ai';
 import { t } from '../../i18n';
 
 interface SiliconFlowModelState {
@@ -167,22 +168,22 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
-                    const apiKey = this.modelState.apiKey;
-                    if (!apiKey) {
-                        new Notice(t('Please input API Key'));
+                    if (!AITestHelper.checkApiKey(this.modelState.apiKey, 'SiliconFlow')) {
                         return;
                     }
 
-                    button.setButtonText(t('Checking...'));
                     button.setDisabled(true);
+                    button.setButtonText(t('Checking...'));
 
-                    const result = await this.validateApiKey(apiKey);
-
-                    button.setButtonText(t('Check'));
-                    button.setDisabled(false);
-
-                    if (result.message) {
-                        new Notice(result.message);
+                    try {
+                        const { SiliconFlowService } = await import('../../services/ai/SiliconFlowService');
+                        const siliconflowService = new SiliconFlowService(this.plugin.settings.ai);
+                        await AITestHelper.testConnection(siliconflowService, 'SiliconFlow');
+                    } catch (error) {
+                        AITestHelper.showError(`SiliconFlow ${t('test failed')}: ${error.message || 'Unknown error'}`);
+                    } finally {
+                        button.setDisabled(false);
+                        button.setButtonText(t('Check'));
                     }
                 }));
 

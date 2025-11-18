@@ -1,7 +1,8 @@
+import { AITestHelper } from '../../services/ai';
 import { Setting, Notice } from 'obsidian';
 import { BaseAIServiceSettings, AIModel } from './AIServiceSettings';
 import { t } from '../../i18n';
-import { AnthropicService } from '../../services/AnthropicService';
+import { AnthropicService } from '../../services/ai/AnthropicService';
 
 const DEFAULT_ANTHROPIC_MODELS: AIModel[] = [
     { id: 'claude-opus-4-1-20250805', name: 'Claude Opus 4.1' },
@@ -113,37 +114,25 @@ export class AnthropicSettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
+                    if (!AITestHelper.checkApiKey(this.modelState.apiKey, 'Anthropic')) {
+                        return;
+                    }
+
+                    button.setDisabled(true);
+                    button.setButtonText(t('Checking...'));
+
                     try {
-                        const apiKey = this.modelState.apiKey;
-                        if (!apiKey) {
-                            new Notice(t('Please enter an API Key first'));
-                            return;
-                        }
-                        
-                        // 禁用按钮，防止重复点击
-                        button.setDisabled(true);
-                        button.setButtonText(t('Checking...'));
-                        
-                        // 创建临时服务实例进行验证
                         const apiAddress = this.plugin.settings.ai.anthropic?.apiAddress || 'https://api.anthropic.com';
                         const model = this.modelState.selectedModel.id;
+                        const { AnthropicService } = await import('../../services/ai/AnthropicService');
                         const anthropicService = new AnthropicService(
-                            apiKey, apiAddress, model
+                            this.modelState.apiKey, apiAddress, model
                         );
                         
-                        // 测试连接
-                        const isValid = await anthropicService.testConnection();
-                        
-                        if (isValid) {
-                            new Notice(t('API Key is valid!'));
-                        } else {
-                            new Notice(t('Failed to validate API Key. Please check your key and try again.'));
-                        }
+                        await AITestHelper.testConnection(anthropicService, 'Anthropic');
                     } catch (error) {
-                        console.error('Anthropic API validation error:', error);
-                        new Notice(t('Failed to validate API Key. Please check your key and try again.'));
+                        AITestHelper.showError(`Anthropic ${t('test failed')}: ${error.message || 'Unknown error'}`);
                     } finally {
-                        // 恢复按钮状态
                         button.setDisabled(false);
                         button.setButtonText(t('Check'));
                     }

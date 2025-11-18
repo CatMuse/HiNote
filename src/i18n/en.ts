@@ -10,6 +10,9 @@ export default {
     "Delete": "Delete",
     "Custom Model": "Custom model",
     "Checking...": "Checking...",
+    "Cloze card": "Cloze card",
+    "Cloze card content": "Cloze card content",
+    "Cloze card answer": "Cloze card answer",
   
 //AI 通用
 
@@ -257,6 +260,28 @@ export default {
 
     // 其他
 
-    "Open (DoubleClick)": "Open (double-click)"
+    "Open (DoubleClick)": "Open (double-click)",
+
+    // AI Test Feedback
+    "Testing": "Testing",
+    "connection": "connection",
+    "connection successful!": "connection successful!",
+    "connection failed. Please check your configuration.": "connection failed. Please check your configuration.",
+    "test failed": "test failed",
+    "Please enter your": "Please enter your",
+    "API Key first.": "API Key first.",
+    "host address first.": "host address first.",
+    
+    // Friendly Error Messages
+    "Invalid API Key": "Invalid API Key",
+    "Access denied": "Access denied",
+    "Rate limit exceeded": "Rate limit exceeded",
+    "Connection timeout": "Connection timeout",
+    "Service unavailable": "Service unavailable",
+    "Service not found": "Service not found",
+    "Server error": "Server error",
+    
+    // Custom AI
+    "Detected API type": "Detected API type"
 
 };

@@ -1,5 +1,6 @@
 import { Setting, Notice, requestUrl } from 'obsidian';
 import { BaseAIServiceSettings } from './AIServiceSettings';
+import { AITestHelper } from '../../services/ai';
 import { t } from '../../i18n';
 
 import { DeepseekModel, DeepseekModelState, DEFAULT_DEEPSEEK_MODELS } from '../../types';
@@ -84,62 +85,14 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             const defaultUrl = 'https://api.deepseek.com';
             const customUrl = this.plugin.settings.ai.deepseek?.apiAddress;
             const baseUrl = customUrl && customUrl.trim() ? customUrl : defaultUrl;
-            
-            // 使用当前选择的模型来验证
             const modelId = this.modelState.selectedModel.id;
-            const url = `${baseUrl}/models/${modelId}`;
-
-
-            const response = await requestUrl({
-                url: url,
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.status || response.status < 200 || response.status >= 300) {
-                // 如果是自定义模型，直接返回 false
-                if (this.modelState.selectedModel.isCustom) {
-                    new Notice(t('自定义模型不可用，请检查模型 ID 和 API 地址'));
-                    return false;
-                }
-                
-                // 如果是预设模型但不是 deepseek-chat，先检查 API Key 是否有效
-                if (modelId !== 'deepseek-chat') {
-
-                    const checkUrl = `${baseUrl}/models/deepseek-chat`;
-                    const checkResponse = await requestUrl({
-                        url: checkUrl,
-                        headers: {
-                            'Authorization': `Bearer ${apiKey}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (checkResponse.status && checkResponse.status >= 200 && checkResponse.status < 300) {
-                        // API Key 有效，但当前选择的模型不可用
-                        new Notice(t('当前选择的模型不可用，但 API Key 是有效的'));
-                        return false;
-                    }
-                }
-                
-                // 其他情况，API Key 无效
-                new Notice(t('Failed to validate API Key. Please check your key and try again.'));
-                return false;
-            }
             
-            const data = response.json;
-            const isValid = !!(data && data.id);
+            const { DeepseekService } = await import('../../services/ai/DeepseekService');
+            const deepseekService = new DeepseekService(apiKey, modelId, baseUrl);
             
-            if (isValid) {
-                new Notice(t('API Key and model available.'));
-            }
-            
-            return isValid;
+            return await AITestHelper.testConnection(deepseekService, 'Deepseek');
         } catch (error) {
-
-            new Notice(t('Failed to validate API Key. Please check your key and try again.'));
+            AITestHelper.showError(`Deepseek ${t('test failed')}: ${error.message || 'Unknown error'}`);
             return false;
         }
     }
@@ -167,8 +120,7 @@ export class DeepseekSettings extends BaseAIServiceSettings {
             .addButton(button => button
                 .setButtonText(t('Check'))
                 .onClick(async () => {
-                    if (!this.modelState.apiKey) {
-                        new Notice(t('Please enter an API Key first'));
+                    if (!AITestHelper.checkApiKey(this.modelState.apiKey, 'Deepseek')) {
                         return;
                     }
                     

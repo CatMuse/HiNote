@@ -7,7 +7,7 @@ import { ExportPreviewModal } from './templates/ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
 import { HighlightCard } from './components/highlight/HighlightCard';
 import CommentPlugin from '../main';
-import { AIService } from './services/AIService';
+import { AIServiceManager } from './services/ai';
 import { HighlightService } from './services/HighlightService';
 import { AIButton } from './components/AIButton';
 import { LocationService } from './services/LocationService';
