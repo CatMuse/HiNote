@@ -81,10 +81,7 @@ export class CommentView extends ItemView {
     private isMobileView: boolean = false;
     private isSmallScreen: boolean = false; // 是否为小屏幕设备
     private isShowingFileList: boolean = true; // 在移动端主视图中是否显示文件列表
-    private currentBatch: number = 0;
-    private isLoading: boolean = false;
     private loadingIndicator: HTMLElement;
-    private BATCH_SIZE = 20;
     private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
     private currentEditingHighlightId: string | null | undefined = null;
     private flashcardComponent: FlashcardComponent | null = null;
@@ -732,8 +729,13 @@ export class CommentView extends ItemView {
                 this.isDraggedToMainView = isInMainView;
                 
                 if (isInMainView) {
-                    // 拖拽到主视图
-                    if (this.layoutManager) {
+                    // 拖拽到主视图（使用 DeviceManager）
+                    if (this.deviceManager) {
+                        const deviceInfo = this.deviceManager.getDeviceInfo();
+                        if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
+                            this.isShowingFileList = true;
+                        }
+                    } else if (this.layoutManager) {
                         const deviceInfo = this.layoutManager.getDeviceInfo();
                         if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
                             this.isShowingFileList = true;
@@ -822,6 +824,12 @@ export class CommentView extends ItemView {
                 this.highlightContainer.removeClass('multi-select-mode');
             }
         });
+
+        // 初始化 InfiniteScrollManager
+        if (!this.infiniteScrollManager) {
+            this.infiniteScrollManager = new InfiniteScrollManager(this.highlightContainer);
+            this.infiniteScrollManager.setLoadingIndicator(this.loadingIndicator);
+        }
 
         // 初始化当前文件
         const activeFile = this.app.workspace.getActiveFile();
@@ -932,17 +940,25 @@ export class CommentView extends ItemView {
             });
             await this.layoutManager.updateViewLayout();
             
-            // 同步设备信息
-            const deviceInfo = this.layoutManager.getDeviceInfo();
-            this.isMobileView = deviceInfo.isMobile;
-            this.isSmallScreen = deviceInfo.isSmallScreen;
+            // 同步设备信息（使用 DeviceManager）
+            if (this.deviceManager) {
+                const deviceInfo = this.deviceManager.getDeviceInfo();
+                this.isMobileView = deviceInfo.isMobile;
+                this.isSmallScreen = deviceInfo.isSmallScreen;
+            } else {
+                const deviceInfo = this.layoutManager.getDeviceInfo();
+                this.isMobileView = deviceInfo.isMobile;
+                this.isSmallScreen = deviceInfo.isSmallScreen;
+            }
         }
     }
 
     // 添加新方法来更新全部高亮
     private async updateAllHighlights(searchTerm: string = '', searchType: string = '') {
-        // 重置批次计数
-        this.currentBatch = 0;
+        // 重置批次计数（使用 InfiniteScrollManager）
+        if (this.infiniteScrollManager) {
+            this.infiniteScrollManager.reset();
+        }
         this.highlights = [];
 
         // 清空容器并添加加载指示
@@ -979,98 +995,39 @@ export class CommentView extends ItemView {
 
 
     /**
-     * 加载更多高亮
+     * 加载更多高亮 - 使用 InfiniteScrollManager
      */
     private async loadMoreHighlights() {
-        if (this.isLoading) return;
-        this.isLoading = true;
-        this.loadingIndicator.addClass('highlight-display-block');
-
-        try {
-            const start = this.currentBatch * this.BATCH_SIZE;
-            const batch = this.highlights.slice(start, start + this.BATCH_SIZE);
-
-            if (batch.length === 0) {
-                this.loadingIndicator.remove();
-                return;
-            }
-
-            // 渲染新的高亮
-            await this.renderHighlights(batch, true);
-            this.currentBatch++;
-        } catch (error) {
-            new Notice("加载高亮内容时出错");
-        } finally {
-            this.isLoading = false;
-            this.loadingIndicator.addClass('highlight-display-none');
+        if (this.infiniteScrollManager) {
+            await this.infiniteScrollManager.loadMoreHighlights(
+                this.highlights,
+                async (batch, append) => await this.renderHighlights(batch, append)
+            );
         }
     }
     
     /**
-     * 加载内容直到容器可滚动
-     * 解决内容不满一屏时无法触发滚动加载的问题
+     * 加载内容直到容器可滚动 - 使用 InfiniteScrollManager
      */
     private async loadUntilScrollable() {
-        const maxAttempts = 10; // 最多尝试10次,避免无限循环
-        let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-            const { scrollHeight, clientHeight } = this.highlightContainer;
-            
-            // 检查是否可滚动(内容高度 > 容器高度)
-            if (scrollHeight > clientHeight) {
-                break; // 已经可滚动,退出
-            }
-            
-            // 检查是否还有更多内容
-            const start = this.currentBatch * this.BATCH_SIZE;
-            if (start >= this.highlights.length) {
-                break; // 没有更多内容了,退出
-            }
-            
-            // 加载下一批
-            await this.loadMoreHighlights();
-            attempts++;
-            
-            // 等待DOM更新
-            await new Promise(resolve => setTimeout(resolve, 50));
+        if (this.infiniteScrollManager) {
+            await this.infiniteScrollManager.loadUntilScrollable(
+                this.highlights,
+                async (batch, append) => await this.renderHighlights(batch, append)
+            );
         }
     }
     
     /**
-     * 设置无限滚动加载
-     * 使用 Intersection Observer 实现高性能的无限滚动
+     * 设置无限滚动加载 - 使用 InfiniteScrollManager
      */
     private setupInfiniteScroll() {
-        // 创建哨兵元素
-        const sentinel = this.highlightContainer.createEl('div', {
-            cls: 'scroll-sentinel'
-        });
-        sentinel.style.height = '1px';
-        sentinel.style.width = '100%';
-        
-        // 使用 Intersection Observer 监听哨兵元素
-        const observer = new IntersectionObserver(
-            async (entries) => {
-                const entry = entries[0];
-                if (entry.isIntersecting && !this.isLoading) {
-                    await this.loadMoreHighlights();
-                }
-            },
-            {
-                root: this.highlightContainer,
-                rootMargin: '300px', // 提前300px触发加载
-                threshold: 0
-            }
-        );
-        
-        observer.observe(sentinel);
-        
-        // 清理资源
-        this.register(() => {
-            observer.disconnect();
-            sentinel.remove();
-        });
+        if (this.infiniteScrollManager) {
+            this.infiniteScrollManager.setupInfiniteScroll(
+                this.highlights,
+                async (batch, append) => await this.renderHighlights(batch, append)
+            );
+        }
     }
 
 
