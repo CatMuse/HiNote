@@ -28,6 +28,15 @@ import { LayoutManager } from './view/layout/LayoutManager';
 import { ViewPositionDetector } from './view/layout/ViewPositionDetector';
 import { CanvasHighlightProcessor } from './view/canvas/CanvasHighlightProcessor';
 import { AllHighlightsManager } from './view/allhighlights/AllHighlightsManager';
+// 新增的 Manager
+import { ExportManager } from './view/export/ExportManager';
+import { VirtualHighlightManager } from './view/highlight/VirtualHighlightManager';
+import { InfiniteScrollManager } from './view/scroll/InfiniteScrollManager';
+import { FlashcardViewManager } from './view/flashcard/FlashcardViewManager';
+import { DeviceManager } from './view/device/DeviceManager';
+import { UIInitializer, UIElements } from './view/ui/UIInitializer';
+import { EventCoordinator } from './view/events/EventCoordinator';
+import { CallbackConfigurator } from './view/config/CallbackConfigurator';
 
 export const VIEW_TYPE_COMMENT = "comment-view";
 
@@ -84,6 +93,19 @@ export class CommentView extends ItemView {
     private canvasProcessor: CanvasHighlightProcessor | null = null;
     // 全局高亮管理器
     private allHighlightsManager: AllHighlightsManager | null = null;
+    
+    // === 新增的 Manager ===
+    private exportManager: ExportManager | null = null;
+    private virtualHighlightManager: VirtualHighlightManager | null = null;
+    private infiniteScrollManager: InfiniteScrollManager | null = null;
+    private flashcardViewManager: FlashcardViewManager | null = null;
+    private deviceManager: DeviceManager | null = null;
+    private uiInitializer: UIInitializer | null = null;
+    private eventCoordinator: EventCoordinator | null = null;
+    private callbackConfigurator: CallbackConfigurator | null = null;
+    
+    // UI 元素（从 UIInitializer 获取）
+    private uiElements: UIElements | null = null;
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -218,6 +240,15 @@ export class CommentView extends ItemView {
             text: t("Loading...")
         });
         this.loadingIndicator.addClass('highlight-display-none');
+        
+        // === 初始化新 Manager ===
+        this.deviceManager = new DeviceManager();
+        this.uiInitializer = new UIInitializer();
+        this.eventCoordinator = new EventCoordinator(this.app, this);
+        this.callbackConfigurator = new CallbackConfigurator();
+        this.exportManager = new ExportManager(this.app, this.exportService);
+        this.virtualHighlightManager = new VirtualHighlightManager(this.commentStore);
+        this.flashcardViewManager = new FlashcardViewManager(this.app, this.plugin);
     }
 
     getViewType(): string {
