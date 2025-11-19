@@ -204,11 +204,6 @@ export class HighlightRenderManager {
             }
         } else {
             cardElement.classList.remove('in-main-view');
-            // 添加点击提示
-            const textContent = cardElement.querySelector('.highlight-text-content');
-            if (textContent) {
-                textContent.setAttribute('title', t('Click to jump to highlight'));
-            }
         }
     }
     
