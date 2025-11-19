@@ -28,62 +28,82 @@ import { LayoutManager } from './view/layout/LayoutManager';
 import { ViewPositionDetector } from './view/layout/ViewPositionDetector';
 import { CanvasHighlightProcessor } from './view/canvas/CanvasHighlightProcessor';
 import { AllHighlightsManager } from './view/allhighlights/AllHighlightsManager';
+import { ExportManager } from './view/export/ExportManager';
+import { VirtualHighlightManager } from './view/highlight/VirtualHighlightManager';
+import { InfiniteScrollManager } from './view/scroll/InfiniteScrollManager';
+import { FlashcardViewManager } from './view/flashcard/FlashcardViewManager';
+import { DeviceManager } from './view/device/DeviceManager';
+import { UIInitializer, UIElements } from './view/ui/UIInitializer';
+import { EventCoordinator } from './view/events/EventCoordinator';
+import { CallbackConfigurator } from './view/config/CallbackConfigurator';
 
-export const VIEW_TYPE_COMMENT = "comment-view";
+export const VIEW_TYPE_HINOTE = "hinote-view";
 
-export class CommentView extends ItemView {
-    // 搜索管理器
-    private searchManager: SearchManager | null = null;
-    // 多选管理器
-    private selectionManager: SelectionManager | null = null;
-    // 批量操作处理器
-    private batchOperationsHandler: BatchOperationsHandler | null = null;
-    // 文件列表管理器
-    private fileListManager: FileListManager | null = null;
-    // 高亮渲染管理器
-    private highlightRenderManager: HighlightRenderManager | null = null;
-    // 高亮数据管理器
-    private highlightDataManager: HighlightDataManager | null = null;
-    // 评论操作管理器
-    private commentOperationManager: CommentOperationManager | null = null;
-    // 评论输入管理器
-    private commentInputManager: CommentInputManager | null = null;
-    // 布局管理器
-    private layoutManager: LayoutManager | null = null;
-    // 视图位置检测器
-    private viewPositionDetector: ViewPositionDetector | null = null;
-    private highlightContainer: HTMLElement;
-    private searchContainer: HTMLElement;
-    private fileListContainer: HTMLElement;
-    private mainContentContainer: HTMLElement;
-    private currentFile: TFile | null = null;
-    private isFlashcardMode: boolean = false;
-    private highlights: HighlightInfo[] = [];
-    private highlightsWithFlashcards: Set<string> = new Set<string>();
-    private commentStore: CommentStore;
-    private searchInput: HTMLInputElement;
-    private searchLoadingIndicator: HTMLElement;
+/**
+ * HiNote 主视图
+ * 负责显示和管理高亮、评论、闪卡等核心功能
+ */
+export class HiNoteView extends ItemView {
+    // === 常量定义 ===
+    private static readonly CANVAS_UPDATE_DELAY = 10; // Canvas 更新延迟（毫秒）
+    private static readonly COMMENT_INPUT_DELAY = 100; // 评论输入延迟（毫秒）
+
+    // === 核心服务 ===
     private plugin: CommentPlugin;
+    private commentStore: CommentStore;
     private locationService: LocationService;
     private exportService: ExportService;
     private highlightService: HighlightService;
     private licenseManager: LicenseManager;
+    private canvasService: CanvasService;
+
+    // === 功能管理器 ===
+    private searchManager: SearchManager | null = null;
+    private selectionManager: SelectionManager | null = null;
+    private batchOperationsHandler: BatchOperationsHandler | null = null;
+    private fileListManager: FileListManager | null = null;
+    private highlightRenderManager: HighlightRenderManager | null = null;
+    private highlightDataManager: HighlightDataManager | null = null;
+    private commentOperationManager: CommentOperationManager | null = null;
+    private commentInputManager: CommentInputManager | null = null;
+    private layoutManager: LayoutManager | null = null;
+    private viewPositionDetector: ViewPositionDetector | null = null;
+    private canvasProcessor: CanvasHighlightProcessor | null = null;
+    private allHighlightsManager: AllHighlightsManager | null = null;
+
+    // === 重构新增的 Manager ===
+    private exportManager: ExportManager | null = null;
+    private virtualHighlightManager: VirtualHighlightManager | null = null;
+    private infiniteScrollManager: InfiniteScrollManager | null = null;
+    private flashcardViewManager: FlashcardViewManager | null = null;
+    private deviceManager: DeviceManager | null = null;
+    private uiInitializer: UIInitializer | null = null;
+    private eventCoordinator: EventCoordinator | null = null;
+    private callbackConfigurator: CallbackConfigurator | null = null;
+
+    // === UI 元素（在 onOpen 中初始化）===
+    private highlightContainer!: HTMLElement;
+    private searchContainer!: HTMLElement;
+    private fileListContainer!: HTMLElement;
+    private mainContentContainer!: HTMLElement;
+    private searchInput!: HTMLInputElement;
+    private searchLoadingIndicator!: HTMLElement;
+    private loadingIndicator!: HTMLElement;
+
+    // === 状态数据 ===
+    private currentFile: TFile | null = null;
+    private highlights: HighlightInfo[] = [];
+    private highlightsWithFlashcards: Set<string> = new Set<string>();
+    private isFlashcardMode: boolean = false;
     private isDraggedToMainView: boolean = false;
     private isMobileView: boolean = false;
-    private isSmallScreen: boolean = false; // 是否为小屏幕设备
-    private isShowingFileList: boolean = true; // 在移动端主视图中是否显示文件列表
-    private currentBatch: number = 0;
-    private isLoading: boolean = false;
-    private loadingIndicator: HTMLElement;
-    private BATCH_SIZE = 20;
-    private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
+    private isSmallScreen: boolean = false;
+    private isShowingFileList: boolean = true;
     private currentEditingHighlightId: string | null | undefined = null;
+
+    // === 组件实例 ===
     private flashcardComponent: FlashcardComponent | null = null;
-    private canvasService: CanvasService;
-    // Canvas 高亮处理器
-    private canvasProcessor: CanvasHighlightProcessor | null = null;
-    // 全局高亮管理器
-    private allHighlightsManager: AllHighlightsManager | null = null;
+    private aiButtons: AIButton[] = [];
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -104,124 +124,58 @@ export class CommentView extends ItemView {
         this.licenseManager = new LicenseManager(this.plugin);
         this.canvasService = this.plugin.canvasService;
         
-        // 监听文档切换
-        this.registerEvent(
-            this.app.workspace.on('file-open', (file) => {
-                // 只在非主视图时同步文件
-                if (file && !this.isDraggedToMainView) {
-                    this.currentFile = file;
-                    
-                    // 检查是否是在 Canvas 中选中的文件节点
-                    const activeLeaf = this.app.workspace.activeLeaf;
-                    const isInCanvas = activeLeaf?.getViewState()?.state?.file !== file.path && 
-                                      activeLeaf?.view?.getViewType() === 'canvas';
-                    
-                    // 更新高亮，并传递额外信息
-                    this.updateHighlights(isInCanvas);
-                }
-            })
-        );
-
-        // 监听文档修改
-        this.registerEvent(
-            this.app.vault.on('modify', (file) => {
-                // 清除文件列表缓存(文件内容变化可能影响高亮)
-                if (this.fileListManager) {
-                    this.fileListManager.invalidateCache();
-                }
-                
-                // 只在非主视图时同步文件
-                if (file === this.currentFile && !this.isDraggedToMainView) {
-                    // 检查是否是在 Canvas 中选中的文件节点
-                    const activeLeaf = this.app.workspace.activeLeaf;
-                    const isInCanvas = activeLeaf?.getViewState()?.state?.file !== file.path && 
-                                      activeLeaf?.view?.getViewType() === 'canvas';
-                    
-                    this.updateHighlights(isInCanvas);
-                }
-            })
-        );
+        // === 初始化新 Manager（需要在事件注册前初始化）===
+        this.deviceManager = new DeviceManager();
+        this.uiInitializer = new UIInitializer();
+        this.eventCoordinator = new EventCoordinator(this.app, this);
+        this.callbackConfigurator = new CallbackConfigurator();
+        this.exportManager = new ExportManager(this.app, this.exportService);
+        this.virtualHighlightManager = new VirtualHighlightManager(this.commentStore);
+        this.flashcardViewManager = new FlashcardViewManager(this.app, this.plugin);
         
-        // 监听文件创建和删除,清除缓存
-        this.registerEvent(
-            this.app.vault.on('create', () => {
+        // 使用 EventCoordinator 注册所有事件
+        this.eventCoordinator.setCallbacks({
+            onFileOpen: (file, isInCanvas) => {
+                this.currentFile = file;
+                this.updateHighlights(isInCanvas);
+            },
+            onFileModify: (file, isInCanvas) => {
                 if (this.fileListManager) {
                     this.fileListManager.invalidateCache();
                 }
-            })
-        );
-        
-        this.registerEvent(
-            this.app.vault.on('delete', () => {
+                this.updateHighlights(isInCanvas);
+            },
+            onFileCreate: () => {
                 if (this.fileListManager) {
                     this.fileListManager.invalidateCache();
                 }
-            })
-        );
-
-        // 监听评论输入事件
-        const handleCommentInput = (e: CustomEvent) => {
-            const { highlightId, text } = e.detail;
-            
-            // 等待一下确保视图已经更新
-            setTimeout(() => {
-                // 移除所有卡片的选中状态
-                this.highlightContainer.querySelectorAll('.highlight-card').forEach(card => {
-                    card.removeClass('selected');
-                });
-
-                // 首先尝试直接通过高亮 ID 查找卡片实例
-                let cardInstance = HighlightCard.findCardInstanceByHighlightId(highlightId);
-                
-                // 如果没找到，尝试通过文本内容查找
-                if (!cardInstance) {
-                    // 找到对应的高亮卡片
-                    const highlightCard = Array.from(this.highlightContainer.querySelectorAll('.highlight-card'))
-                        .find(card => {
-                            const textContent = card.querySelector('.highlight-text-content')?.textContent;
-                            return textContent === text;
-                        });
-
-                    if (highlightCard) {
-                        // 添加选中状态
-                        highlightCard.addClass('selected');
-                        
-                        // 查找 HighlightCard 实例
-                        cardInstance = HighlightCard.findCardInstanceByElement(highlightCard as HTMLElement);
-                        
-                        // 滚动到评论区域
-                        highlightCard.scrollIntoView({ behavior: "smooth" });
-                    }
+            },
+            onFileDelete: () => {
+                if (this.fileListManager) {
+                    this.fileListManager.invalidateCache();
                 }
-                
-                // 如果找到了卡片实例，显示评论输入框
-                if (cardInstance) {
-                    // 调用 showCommentInput 方法直接触发评论输入框显示
-                    cardInstance.showCommentInput();
-                }
-            }, 100);
-        };
-
-        window.addEventListener("open-comment-input", handleCommentInput as EventListener);
-        this.register(() => window.removeEventListener("open-comment-input", handleCommentInput as EventListener));
-
-        // 添加视图位置变化的监听
-        this.registerEvent(
-            this.app.workspace.on('layout-change', () => {
+            },
+            onLayoutChange: () => {
                 this.checkViewPosition();
-            })
-        );
-
-        // 创建加载指示器
-        this.loadingIndicator = createEl("div", {
-            cls: "highlight-loading-indicator",
-            text: t("Loading...")
+            },
+            onCommentInput: (highlightId, text) => {
+                this.eventCoordinator!.handleCommentInputDisplay(
+                    highlightId,
+                    text,
+                    this.highlightContainer,
+                    (card, highlight) => this.showCommentInput(card, highlight)
+                );
+            }
         });
-        this.loadingIndicator.addClass('highlight-display-none');
+        
+        this.eventCoordinator.registerAllEvents(
+            () => this.currentFile,
+            () => this.isDraggedToMainView
+        );
     }
 
     getViewType(): string {
-        return VIEW_TYPE_COMMENT;
+        return VIEW_TYPE_HINOTE;
     }
 
     getDisplayText(): string {
@@ -233,48 +187,29 @@ export class CommentView extends ItemView {
     }
 
     async onOpen() {
-        const container = this.containerEl.children[1];
-        container.empty();
-        container.addClass("comment-view-container");
+        const container = this.containerEl.children[1] as HTMLElement;
         
         // 监听多选事件
-        container.addEventListener('highlight-multi-select', (e: CustomEvent) => {
+        container.addEventListener('highlight-multi-select', ((e: CustomEvent) => {
             if (this.selectionManager) {
                 this.selectionManager.updateSelectedHighlights();
             }
-        });
+        }) as EventListener);
 
-        // 创建主容器
-        const mainContainer = container.createEl("div", {
-            cls: "highlight-main-container"
-        });
-
-        // 创建文件列表区域（只在主视图中显示）
-        this.fileListContainer = mainContainer.createEl("div", {
-            cls: "highlight-file-list-container"
-        });
-
-        // 创建右侧内容区域
-        this.mainContentContainer = mainContainer.createEl("div", {
-            cls: "highlight-content-container"
-        });
+        // 使用 UIInitializer 创建所有 UI 元素
+        const uiElements = this.uiInitializer!.initializeUI(container);
         
-        // 创建返回按钮（仅在移动端显示）
-        const backButtonContainer = this.mainContentContainer.createEl("div", {
-            cls: "highlight-back-button-container"
-        });
+        // 保存 UI 元素引用
+        this.fileListContainer = uiElements.fileListContainer;
+        this.mainContentContainer = uiElements.mainContentContainer;
+        this.searchContainer = uiElements.searchContainer;
+        this.searchInput = uiElements.searchInput;
+        this.searchLoadingIndicator = uiElements.searchLoadingIndicator;
+        this.highlightContainer = uiElements.highlightContainer;
+        this.loadingIndicator = uiElements.loadingIndicator;
         
-        const backButton = backButtonContainer.createEl("div", {
-            cls: "highlight-back-button"
-        });
-        setIcon(backButton, "arrow-left");
-        backButton.createEl("span", {
-            text: t("BACK"),
-            cls: "highlight-back-button-text"
-        });
-        
-        // 添加返回按钮点击事件
-        backButton.addEventListener("click", () => {
+        // 设置返回按钮点击事件
+        uiElements.backButton.addEventListener("click", () => {
             if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
                 // 如果在闪卡模式下，实现逐级返回
                 if (this.isFlashcardMode && this.flashcardComponent) {
@@ -295,122 +230,31 @@ export class CommentView extends ItemView {
                 this.updateViewLayout();
             }
         });
-        
-        // 创建搜索区域
-        this.searchContainer = this.mainContentContainer.createEl("div", {
-            cls: "highlight-search-container"
-        });
 
-        // 创建搜索输入框
-        this.searchInput = this.searchContainer.createEl("input", {
-            cls: "highlight-search-input",
-            attr: {
-                type: "text",
-                placeholder: t("Search..."),
-            }
-        });
-
-        // 添加焦点和失焦事件
-        this.searchInput.addEventListener('focus', () => {
-            this.searchContainer.addClass('focused');
-        });
-
-        this.searchInput.addEventListener('blur', (e) => {
-            this.searchContainer.removeClass('focused');
-        });
-
-        // 创建搜索加载指示器
-        this.searchLoadingIndicator = this.searchContainer.createEl("div", {
-            cls: "highlight-search-loading"
-        });
-        this.searchLoadingIndicator.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="loading-spinner"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>`;
-        this.searchLoadingIndicator.style.display = "none";
-        
-        // 创建图标按钮容器
-        const iconButtonsContainer = this.searchContainer.createEl("div", {
-            cls: "highlight-search-icons"
-        });
-
-        // 添加 message-square-plus 图标按钮
-        const addCommentButton = iconButtonsContainer.createEl("div", {
-            cls: "highlight-icon-button"
-        });
-        setIcon(addCommentButton, "message-square-plus");
-        addCommentButton.setAttribute("aria-label", t("Add File Comment"));
-
-        // 添加文件评论按钮点击事件
-        addCommentButton.addEventListener("click", async () => {
-            if (!this.currentFile) {
-                new Notice(t("Please open a file first."));
-                return;
-            }
-
-            // 生成唯一标识符
-            const timestamp = Date.now();
-            const uniqueId = `file-comment-${timestamp}`;
-            
-            // 创建虚拟高亮信息，在文档的最顶部创建了一个不可见的高亮内容
-            const virtualHighlight: HiNote = {
-                id: uniqueId,
-                text: `__virtual_highlight_${timestamp}__`,  // 这个文本不会显示给用户
-                filePath: this.currentFile.path,
-                fileType: this.currentFile.extension,
-                displayText: t("File Comment"),  // 这是显示给用户看的文本
-                isVirtual: true,  // 标记这是一个虚拟高亮
-                position: 0,  // 给一个默认位置
-                paragraphOffset: 0,  // 给一个默认偏移量
-                paragraphId: `${this.currentFile.path}#^virtual-${timestamp}`,  // 生成一个虚拟段落ID
-                createdAt: timestamp,
-                updatedAt: timestamp,
-                comments: []  // 初始化空的评论数组
-            };
-
-            // 先保存到 CommentStore
-            await this.commentStore.addComment(this.currentFile, virtualHighlight);
-
-            // 将虚拟高亮添加到高亮列表的最前面
-            this.highlights.unshift(virtualHighlight);
-            
-            // 重新渲染高亮列表
-            this.renderHighlights(this.highlights);
-
-            // 找到新创建的高亮卡片
-            setTimeout(() => {
-                const highlightCard = this.highlightContainer.querySelector('.highlight-card') as HTMLElement;
-                if (highlightCard) {
-                    // 自动打开评论输入框
-                    this.showCommentInput(highlightCard, virtualHighlight);
-                    // 滚动到顶部
-                    this.highlightContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        // 使用 VirtualHighlightManager 创建文件评论按钮
+        if (this.virtualHighlightManager) {
+            this.virtualHighlightManager.createFileCommentButton(
+                uiElements.iconButtonsContainer,
+                {
+                    getCurrentFile: () => this.currentFile,
+                    getHighlights: () => this.highlights,
+                    onVirtualHighlightCreated: (vh) => {
+                        this.highlights.unshift(vh);
+                        this.renderHighlights(this.highlights);
+                    },
+                    onShowCommentInput: (card, highlight) => this.showCommentInput(card, highlight),
+                    getHighlightContainer: () => this.highlightContainer
                 }
-            }, 100);
-        });
+            );
+        }
 
-        // 添加 square-arrow-out-up-right 图标按钮
-        const exportButton = iconButtonsContainer.createEl("div", {
-            cls: "highlight-icon-button"
-        });
-        setIcon(exportButton, "file-symlink");
-        exportButton.setAttribute("aria-label", t("Export as notes"));
-
-        // 添加导出按钮点击事件
-        exportButton.addEventListener("click", async () => {
-            if (!this.currentFile) {
-                new Notice(t("Please open a file first."));
-                return;
-            }
-
-            try {
-                const newFile = await this.exportService.exportHighlightsToNote(this.currentFile);
-                new Notice(t("Successfully exported highlights to: ") + newFile.path);
-                
-                // 打开新创建的文件
-                const leaf = this.app.workspace.getLeaf();
-                await leaf.openFile(newFile);
-            } catch (error) {
-                new Notice(t("Failed to export highlights: ") + error.message);
-            }
-        });
+        // 使用 ExportManager 创建导出按钮
+        if (this.exportManager) {
+            this.exportManager.createExportButton(
+                uiElements.iconButtonsContainer,
+                () => this.currentFile
+            );
+        }
 
         // 初始化搜索管理器
         this.searchManager = new SearchManager(
@@ -420,30 +264,22 @@ export class CommentView extends ItemView {
             this.searchContainer
         );
         
-        // 设置搜索管理器的回调函数
-        this.searchManager.setCallbacks(
-            async (searchTerm: string, searchType: string) => {
-                await this.handleSearch(searchTerm, searchType);
-            },
-            () => this.highlights,
-            () => this.currentFile
-        );
+        // 使用 CallbackConfigurator 配置搜索管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureSearchManager(this.searchManager, {
+                onSearch: async (searchTerm: string, searchType: string) => {
+                    await this.handleSearch(searchTerm, searchType);
+                },
+                getHighlights: () => this.highlights,
+                getCurrentFile: () => this.currentFile
+            });
+        }
         
         // 初始化搜索功能
         this.searchManager.initialize();
-
-        // 创建高亮容器
-        this.highlightContainer = this.mainContentContainer.createEl("div", {
-            cls: "highlight-container"
-        });
         
         // 初始化多选管理器
         this.selectionManager = new SelectionManager(this.highlightContainer);
-        this.selectionManager.setOnSelectionChange((selectedCount) => {
-            if (this.batchOperationsHandler) {
-                this.batchOperationsHandler.showMultiSelectActions(selectedCount);
-            }
-        });
         this.selectionManager.initialize();
         
         // 添加全局点击事件监听器（在 selectionManager 初始化后）
@@ -470,13 +306,22 @@ export class CommentView extends ItemView {
             this.containerEl
         );
 
-        this.batchOperationsHandler.setCallbacks(
-            () => this.selectionManager!.getSelectedHighlights(),
-            () => this.selectionManager!.clearSelection(),
-            async () => {
-                await this.refreshView();
-            }
-        );
+        // 使用 CallbackConfigurator 配置批量操作和选择管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureSelectionManager(
+                this.selectionManager,
+                this.batchOperationsHandler
+            );
+            
+            this.callbackConfigurator.configureBatchOperationsHandler(
+                this.batchOperationsHandler,
+                {
+                    getSelectedHighlights: () => this.selectionManager!.getSelectedHighlights(),
+                    clearSelection: () => this.selectionManager!.clearSelection(),
+                    refreshView: async () => await this.refreshView()
+                }
+            );
+        }
         
         // 初始化文件列表管理器
         this.fileListManager = new FileListManager(
@@ -621,65 +466,74 @@ export class CommentView extends ItemView {
             this.commentStore
         );
         
-        this.commentOperationManager.setCallbacks({
-            onRefreshView: async () => await this.refreshView(),
-            onHighlightsUpdate: (highlights) => {
-                this.highlights = highlights;
-            },
-            onCardUpdate: (highlight) => {
-                // 同步更新 this.highlights 数组中的数据
-                const index = this.highlights.findIndex(h => h.id === highlight.id);
-                if (index !== -1) {
-                    this.highlights[index] = highlight;
-                }
-                
-                // 只更新单个卡片，而不是刷新整个视图
-                const cardInstance = HighlightCard.findCardInstanceByHighlightId(highlight.id || '');
-                if (cardInstance) {
-                    cardInstance.updateComments(highlight);
-                }
-            }
-        });
-        
         // 初始化评论输入管理器
         this.commentInputManager = new CommentInputManager(this.plugin);
         
-        this.commentInputManager.setCallbacks({
-            onCommentSave: async (highlight, content, existingComment) => {
-                if (this.commentOperationManager) {
-                    this.commentOperationManager.updateState({
-                        currentFile: this.currentFile,
-                        highlights: this.highlights
-                    });
-                    if (existingComment) {
-                        await this.commentOperationManager.updateComment(highlight, existingComment.id, content);
-                    } else {
-                        await this.commentOperationManager.addComment(highlight, content);
+        // 使用 CallbackConfigurator 配置评论管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureCommentOperationManager(
+                this.commentOperationManager,
+                {
+                    onRefreshView: async () => await this.refreshView(),
+                    onHighlightsUpdate: (highlights) => {
+                        this.highlights = highlights;
+                    },
+                    onCardUpdate: (highlight) => {
+                        // 同步更新 this.highlights 数组中的数据
+                        const index = this.highlights.findIndex(h => h.id === highlight.id);
+                        if (index !== -1) {
+                            this.highlights[index] = highlight;
+                        }
+                        
+                        // 只更新单个卡片，而不是刷新整个视图
+                        const cardInstance = HighlightCard.findCardInstanceByHighlightId(highlight.id || '');
+                        if (cardInstance) {
+                            cardInstance.updateComments(highlight);
+                        }
                     }
                 }
-            },
-            onCommentDelete: async (highlight, commentId) => {
-                if (this.commentOperationManager) {
-                    this.commentOperationManager.updateState({
-                        currentFile: this.currentFile,
-                        highlights: this.highlights
-                    });
-                    await this.commentOperationManager.deleteComment(highlight, commentId);
+            );
+            
+            this.callbackConfigurator.configureCommentInputManager(
+                this.commentInputManager,
+                {
+                    onCommentSave: async (highlight, content, existingComment) => {
+                        if (this.commentOperationManager) {
+                            this.commentOperationManager.updateState({
+                                currentFile: this.currentFile,
+                                highlights: this.highlights
+                            });
+                            if (existingComment) {
+                                await this.commentOperationManager.updateComment(highlight, existingComment.id, content);
+                            } else {
+                                await this.commentOperationManager.addComment(highlight, content);
+                            }
+                        }
+                    },
+                    onCommentDelete: async (highlight, commentId) => {
+                        if (this.commentOperationManager) {
+                            this.commentOperationManager.updateState({
+                                currentFile: this.currentFile,
+                                highlights: this.highlights
+                            });
+                            await this.commentOperationManager.deleteComment(highlight, commentId);
+                        }
+                    },
+                    onCommentCancel: async (highlight) => {
+                        if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
+                            if (this.commentOperationManager) {
+                                this.commentOperationManager.updateState({
+                                    currentFile: this.currentFile,
+                                    highlights: this.highlights
+                                });
+                                await this.commentOperationManager.deleteVirtualHighlight(highlight);
+                            }
+                        }
+                    },
+                    onViewUpdate: async () => await this.updateHighlights()
                 }
-            },
-            onCommentCancel: async (highlight) => {
-                if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
-                    if (this.commentOperationManager) {
-                        this.commentOperationManager.updateState({
-                            currentFile: this.currentFile,
-                            highlights: this.highlights
-                        });
-                        await this.commentOperationManager.deleteVirtualHighlight(highlight);
-                    }
-                }
-            },
-            onViewUpdate: async () => await this.updateHighlights()
-        });
+            );
+        }
         
         // 初始化布局管理器
         this.layoutManager = new LayoutManager(
@@ -689,22 +543,25 @@ export class CommentView extends ItemView {
             this.searchContainer
         );
         
-        this.layoutManager.setCallbacks({
-            onCreateFloatingButton: () => {},
-            onRemoveFloatingButton: () => {},
-            onUpdateFileList: async (forceRefresh?: boolean) => {
-                if (this.fileListManager) {
-                    this.fileListManager.updateState({
-                        currentFile: this.currentFile,
-                        isFlashcardMode: this.isFlashcardMode,
-                        isMobileView: this.isMobileView,
-                        isSmallScreen: this.isSmallScreen,
-                        isDraggedToMainView: this.isDraggedToMainView
-                    });
-                    await this.fileListManager.updateFileList(forceRefresh);
+        // 使用 CallbackConfigurator 配置布局管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureLayoutManager(this.layoutManager, {
+                onCreateFloatingButton: () => {},
+                onRemoveFloatingButton: () => {},
+                onUpdateFileList: async (forceRefresh?: boolean) => {
+                    if (this.fileListManager) {
+                        this.fileListManager.updateState({
+                            currentFile: this.currentFile,
+                            isFlashcardMode: this.isFlashcardMode,
+                            isMobileView: this.isMobileView,
+                            isSmallScreen: this.isSmallScreen,
+                            isDraggedToMainView: this.isDraggedToMainView
+                        });
+                        await this.fileListManager.updateFileList(forceRefresh);
+                    }
                 }
-            }
-        });
+            });
+        }
         
         // 初始化视图位置检测器
         this.viewPositionDetector = new ViewPositionDetector(this.app, this.leaf);
@@ -723,46 +580,47 @@ export class CommentView extends ItemView {
             this.highlightDataManager!
         );
         
-        this.canvasProcessor.setCallbacks({
-            onShowLoading: () => {
-                this.highlightContainer.empty();
-                if (this.loadingIndicator) {
-                    this.highlightContainer.appendChild(this.loadingIndicator);
-                    this.loadingIndicator.removeClass('highlight-display-none');
+        // 使用 CallbackConfigurator 配置 Canvas 处理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureCanvasProcessor(this.canvasProcessor, {
+                onShowLoading: () => {
+                    this.highlightContainer.empty();
+                    if (this.loadingIndicator) {
+                        this.highlightContainer.appendChild(this.loadingIndicator);
+                        this.loadingIndicator.removeClass('highlight-display-none');
+                    }
+                },
+                onHideLoading: () => {
+                    if (this.loadingIndicator) {
+                        this.loadingIndicator.addClass('highlight-display-none');
+                    }
+                },
+                onShowError: (message) => {
+                    this.highlightContainer.empty();
+                    this.highlightContainer.createDiv({
+                        cls: 'error-message',
+                        text: message
+                    });
+                },
+                onShowEmpty: (message) => {
+                    this.highlightContainer.empty();
+                    this.highlightContainer.createDiv({
+                        cls: 'no-highlights-message',
+                        text: message
+                    });
                 }
-            },
-            onHideLoading: () => {
-                if (this.loadingIndicator) {
-                    this.loadingIndicator.addClass('highlight-display-none');
-                }
-            },
-            onShowError: (message) => {
-                this.highlightContainer.empty();
-                this.highlightContainer.createDiv({
-                    cls: 'error-message',
-                    text: message
-                });
-            },
-            onShowEmpty: (message) => {
-                this.highlightContainer.empty();
-                this.highlightContainer.createDiv({
-                    cls: 'no-highlights-message',
-                    text: message
-                });
-            }
-        });
+            });
+        }
         
         this.viewPositionDetector.setCallbacks({
             onPositionChange: async (isInMainView, wasInAllHighlightsView) => {
                 this.isDraggedToMainView = isInMainView;
                 
                 if (isInMainView) {
-                    // 拖拽到主视图
-                    if (this.layoutManager) {
-                        const deviceInfo = this.layoutManager.getDeviceInfo();
-                        if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
-                            this.isShowingFileList = true;
-                        }
+                    // 拖拽到主视图（使用 DeviceManager）
+                    const deviceInfo = this.deviceManager!.getDeviceInfo();
+                    if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
+                        this.isShowingFileList = true;
                     }
                     
                     const activeFile = this.app.workspace.getActiveFile();
@@ -806,7 +664,7 @@ export class CommentView extends ItemView {
                             this.highlightContainer.appendChild(this.loadingIndicator);
                             setTimeout(() => {
                                 this.updateHighlights();
-                            }, 10);
+                            }, HiNoteView.CANVAS_UPDATE_DELAY);
                         } else {
                             this.currentFile = activeFile;
                             this.updateHighlights();
@@ -835,18 +693,16 @@ export class CommentView extends ItemView {
             }
         });
         
-        // 添加键盘事件监听，支持按住 Shift 键进行多选
-        this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
-            if (e.key === 'Shift') {
-                this.highlightContainer.addClass('multi-select-mode');
-            }
-        });
-        
-        this.registerDomEvent(document, 'keyup', (e: KeyboardEvent) => {
-            if (e.key === 'Shift') {
-                this.highlightContainer.removeClass('multi-select-mode');
-            }
-        });
+        // 使用 EventCoordinator 注册键盘事件
+        if (this.eventCoordinator) {
+            this.eventCoordinator.registerKeyboardEvents(this.highlightContainer);
+        }
+
+        // 初始化 InfiniteScrollManager
+        if (!this.infiniteScrollManager) {
+            this.infiniteScrollManager = new InfiniteScrollManager(this.highlightContainer);
+            this.infiniteScrollManager.setLoadingIndicator(this.loadingIndicator);
+        }
 
         // 初始化当前文件
         const activeFile = this.app.workspace.getActiveFile();
@@ -885,20 +741,24 @@ export class CommentView extends ItemView {
 
     private renderHighlights(highlightsToRender: HighlightInfo[], append = false) {
         // 使用 HighlightRenderManager 渲染
-        if (this.highlightRenderManager) {
+        if (this.highlightRenderManager && this.flashcardViewManager) {
             this.highlightRenderManager.updateState({
                 currentFile: this.currentFile,
                 isDraggedToMainView: this.isDraggedToMainView,
-                highlightsWithFlashcards: this.highlightsWithFlashcards,
-                currentBatch: this.currentBatch
+                highlightsWithFlashcards: this.flashcardViewManager.getFlashcardMarkers(),
+                currentBatch: this.infiniteScrollManager?.getCurrentBatch() || 0
             });
             this.highlightRenderManager.renderHighlights(
                 highlightsToRender,
                 append,
                 this.selectionManager ?? undefined
             );
-            // 同步 currentBatch
-            this.currentBatch = this.highlightRenderManager.getCurrentBatch();
+            // 同步 currentBatch 到 InfiniteScrollManager
+            if (this.infiniteScrollManager) {
+                this.infiniteScrollManager.setCurrentBatch(
+                    this.highlightRenderManager.getCurrentBatch()
+                );
+            }
         }
     }
 
@@ -922,15 +782,10 @@ export class CommentView extends ItemView {
         await this.locationService.jumpToHighlight(highlight, this.currentFile.path);
     }
 
-    // 修改导出图片功能的方法签名
+    // 修改导出图片功能的方法签名 - 使用 ExportManager
     private async exportHighlightAsImage(highlight: HighlightInfo & { comments?: CommentItem[] }) {
-        try {
-            // 动态导入 html2canvas
-            const html2canvas = (await import('html2canvas')).default;
-            new ExportPreviewModal(this.app, highlight, html2canvas).open();
-        } catch (error) {
-
-            new Notice(t("Export failed: Failed to load necessary components."));
+        if (this.exportManager) {
+            await this.exportManager.exportHighlightAsImage(highlight);
         }
     }
 
@@ -958,8 +813,8 @@ export class CommentView extends ItemView {
             });
             await this.layoutManager.updateViewLayout();
             
-            // 同步设备信息
-            const deviceInfo = this.layoutManager.getDeviceInfo();
+            // 同步设备信息（使用 DeviceManager）
+            const deviceInfo = this.deviceManager!.getDeviceInfo();
             this.isMobileView = deviceInfo.isMobile;
             this.isSmallScreen = deviceInfo.isSmallScreen;
         }
@@ -967,8 +822,10 @@ export class CommentView extends ItemView {
 
     // 添加新方法来更新全部高亮
     private async updateAllHighlights(searchTerm: string = '', searchType: string = '') {
-        // 重置批次计数
-        this.currentBatch = 0;
+        // 重置批次计数（使用 InfiniteScrollManager）
+        if (this.infiniteScrollManager) {
+            this.infiniteScrollManager.reset();
+        }
         this.highlights = [];
 
         // 清空容器并添加加载指示
@@ -1005,98 +862,39 @@ export class CommentView extends ItemView {
 
 
     /**
-     * 加载更多高亮
+     * 加载更多高亮 - 使用 InfiniteScrollManager
      */
     private async loadMoreHighlights() {
-        if (this.isLoading) return;
-        this.isLoading = true;
-        this.loadingIndicator.addClass('highlight-display-block');
-
-        try {
-            const start = this.currentBatch * this.BATCH_SIZE;
-            const batch = this.highlights.slice(start, start + this.BATCH_SIZE);
-
-            if (batch.length === 0) {
-                this.loadingIndicator.remove();
-                return;
-            }
-
-            // 渲染新的高亮
-            await this.renderHighlights(batch, true);
-            this.currentBatch++;
-        } catch (error) {
-            new Notice("加载高亮内容时出错");
-        } finally {
-            this.isLoading = false;
-            this.loadingIndicator.addClass('highlight-display-none');
+        if (this.infiniteScrollManager) {
+            await this.infiniteScrollManager.loadMoreHighlights(
+                this.highlights,
+                async (batch, append) => await this.renderHighlights(batch, append)
+            );
         }
     }
     
     /**
-     * 加载内容直到容器可滚动
-     * 解决内容不满一屏时无法触发滚动加载的问题
+     * 加载内容直到容器可滚动 - 使用 InfiniteScrollManager
      */
     private async loadUntilScrollable() {
-        const maxAttempts = 10; // 最多尝试10次,避免无限循环
-        let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-            const { scrollHeight, clientHeight } = this.highlightContainer;
-            
-            // 检查是否可滚动(内容高度 > 容器高度)
-            if (scrollHeight > clientHeight) {
-                break; // 已经可滚动,退出
-            }
-            
-            // 检查是否还有更多内容
-            const start = this.currentBatch * this.BATCH_SIZE;
-            if (start >= this.highlights.length) {
-                break; // 没有更多内容了,退出
-            }
-            
-            // 加载下一批
-            await this.loadMoreHighlights();
-            attempts++;
-            
-            // 等待DOM更新
-            await new Promise(resolve => setTimeout(resolve, 50));
+        if (this.infiniteScrollManager) {
+            await this.infiniteScrollManager.loadUntilScrollable(
+                this.highlights,
+                async (batch, append) => await this.renderHighlights(batch, append)
+            );
         }
     }
     
     /**
-     * 设置无限滚动加载
-     * 使用 Intersection Observer 实现高性能的无限滚动
+     * 设置无限滚动加载 - 使用 InfiniteScrollManager
      */
     private setupInfiniteScroll() {
-        // 创建哨兵元素
-        const sentinel = this.highlightContainer.createEl('div', {
-            cls: 'scroll-sentinel'
-        });
-        sentinel.style.height = '1px';
-        sentinel.style.width = '100%';
-        
-        // 使用 Intersection Observer 监听哨兵元素
-        const observer = new IntersectionObserver(
-            async (entries) => {
-                const entry = entries[0];
-                if (entry.isIntersecting && !this.isLoading) {
-                    await this.loadMoreHighlights();
-                }
-            },
-            {
-                root: this.highlightContainer,
-                rootMargin: '300px', // 提前300px触发加载
-                threshold: 0
-            }
-        );
-        
-        observer.observe(sentinel);
-        
-        // 清理资源
-        this.register(() => {
-            observer.disconnect();
-            sentinel.remove();
-        });
+        if (this.infiniteScrollManager) {
+            this.infiniteScrollManager.setupInfiniteScroll(
+                this.highlights,
+                async (batch, append) => await this.renderHighlights(batch, append)
+            );
+        }
     }
 
 
@@ -1308,25 +1106,14 @@ export class CommentView extends ItemView {
             this.highlights = [];
         }
         
-        // 保留原有的虚拟高亮和闪卡处理逻辑
-        const storedComments = this.commentStore.getFileComments(this.currentFile);
-        const usedCommentIds = new Set<string>();
-        
-        // 标记已使用的评论ID
-        this.highlights.forEach(h => {
-            if (h.id) usedCommentIds.add(h.id);
-        });
-        
-        // 添加虚拟高亮（这部分逻辑保留在这里，因为它依赖于 this.highlights）
-        const virtualHighlights = storedComments
-            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
-        
-        const uniqueVirtualHighlights = virtualHighlights.filter(vh => {
-            return !this.highlights.some(h => h.text === vh.text);
-        });
-        
-        uniqueVirtualHighlights.forEach(vh => usedCommentIds.add(vh.id));
-        this.highlights.unshift(...uniqueVirtualHighlights);
+        // 使用 VirtualHighlightManager 处理虚拟高亮
+        if (this.virtualHighlightManager && this.currentFile) {
+            const virtualHighlights = this.virtualHighlightManager.filterVirtualHighlights(
+                this.currentFile,
+                this.highlights
+            );
+            this.highlights.unshift(...virtualHighlights);
+        }
         
         // Canvas 标记处理
         if (isInCanvas && this.currentFile) {
@@ -1337,23 +1124,9 @@ export class CommentView extends ItemView {
             });
         }
         
-        // 创建一个映射来记录哪些高亮已经创建了闪卡
-        // 这避免了直接在 HighlightInfo 上添加属性
-        this.highlightsWithFlashcards = new Set<string>();
-        
-    if (this.plugin && this.plugin.fsrsManager) {
-            const fsrsManager = this.plugin.fsrsManager;
-            // 遍历所有高亮，记录已创建闪卡的高亮 ID
-            for (const highlight of this.highlights) {
-                if (highlight.id) {
-                    // 检查是否存在闪卡
-                    const existingCards = fsrsManager.findCardsBySourceId(highlight.id, 'highlight');
-                    // 如果存在闪卡，将高亮 ID 添加到集合中
-                    if (existingCards && existingCards.length > 0) {
-                        this.highlightsWithFlashcards.add(highlight.id);
-                    }
-                }
-            }
+        // 使用 FlashcardViewManager 更新闪卡标记
+        if (this.flashcardViewManager) {
+            this.flashcardViewManager.updateFlashcardMarkers(this.highlights);
         }
         
         // 检查搜索框是否有内容

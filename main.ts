@@ -1,5 +1,5 @@
 import { Plugin } from 'obsidian';
-import { CommentView, VIEW_TYPE_COMMENT } from './src/CommentView';
+import { HiNoteView, VIEW_TYPE_HINOTE } from './src/HiNoteView';
 import { AISettingTab } from './src/settings/SettingTab';
 import { PluginSettings, DEFAULT_SETTINGS } from './src/types';
 import html2canvas from 'html2canvas';
@@ -37,10 +37,10 @@ export default class CommentPlugin extends Plugin {
 
 		// 注册视图（延迟初始化）
 		this.registerView(
-			VIEW_TYPE_COMMENT,
+			VIEW_TYPE_HINOTE,
 			(leaf) => {
 				this.initManager.ensureInitialized();
-				return new CommentView(leaf, this.initManager.commentStore);
+				return new HiNoteView(leaf, this.initManager.commentStore);
 			}
 		);
 

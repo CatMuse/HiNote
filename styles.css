@@ -1,3 +1,39 @@
+/* ===================================
+   HINOTE PLUGIN - STYLES
+   
+   文件说明：
+   - 由于 Obsidian 插件不支持 CSS @import
+   - 所有样式都在这一个文件中
+   - 使用注释分隔不同的功能模块
+   
+   注意：
+   - 样式的实际位置可能与模块注释不完全对应
+   - 这是历史原因造成的，不影响功能
+   - 使用编辑器搜索功能查找特定样式
+   
+   目录：
+   1. Variables & Settings      - CSS 变量和插件设置
+   2. Base Styles               - 基础样式和通用规则
+   3. Layout & Containers       - 布局和容器
+   4. Highlight Cards           - 高亮卡片
+   5. Comments & Notes          - 评论和笔记
+   6. Search                    - 搜索功能
+   7. Export                    - 导出功能
+   8. Chat Window               - 聊天窗口
+   9. AI Features               - AI 功能
+   10. Flashcards               - 闪卡功能
+   11. Mobile Responsive        - 移动端适配
+   12. Animations               - 动画定义
+   
+   维护者：Kai
+   最后更新：2025-11-19
+   =================================== */
+
+/* ===================================
+   1. VARIABLES & SETTINGS
+   CSS 变量和插件设置
+   =================================== */
+
 /* @settings
 
 name: HiNote
@@ -51,8 +87,15 @@ settings:
         description: 调整评论文本的行间距
 */
 
-/* 只针对评论插件内容移除内边距 */
-.workspace-leaf-content[data-type="comment-view"] .view-content {
+/* ===================================
+   2. BASE STYLES
+   基础样式和通用规则
+   =================================== */
+
+/* === 视图基础样式 === */
+
+/* 只针对 HiNote 视图移除内边距 */
+.workspace-leaf-content[data-type="hinote-view"] .view-content {
     padding: 0 !important;
 }
 
@@ -210,6 +253,13 @@ settings:
     display: inline; /* 使段落内容与列表标记在同一行 */
 }
 
+/* ===================================
+   3. LAYOUT & CONTAINERS
+   布局和容器
+   =================================== */
+
+/* === 空状态和加载指示器 === */
+
 .highlight-empty-state,
 .no-highlights-message,
 .highlight-loading-indicator {
@@ -219,7 +269,13 @@ settings:
     font-size: 13px;
 }
 
-/* 搜索区域样式 */
+/* ===================================
+   4. SEARCH
+   搜索功能
+   =================================== */
+
+/* === 搜索容器 === */
+
 .highlight-search-container {
     position: sticky;
     top: 0;
@@ -277,6 +333,13 @@ settings:
     height: 20px;
     color: var(--text-muted);
 }
+
+/* ===================================
+   12. ANIMATIONS
+   动画定义
+   =================================== */
+
+/* === 旋转动画 === */
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -396,6 +459,13 @@ settings:
     column-gap: 12px;
 }
 
+/* ===================================
+   5. HIGHLIGHT CARDS
+   高亮卡片
+   =================================== */
+
+/* === 卡片基础样式 === */
+
 .highlight-card {
     border: 1px solid var(--background-modifier-border);
     border-radius: 8px;
@@ -461,6 +531,12 @@ settings:
     flex-shrink: 0;
 }
 
+/* ===================================
+   6. COMMENTS & NOTES
+   评论和笔记
+   =================================== */
+
+/* === 评论列表 === */
 
 .hi-note {
     padding: 8px;
@@ -842,6 +918,13 @@ settings:
 /* Flashcard styles */
 
 /* 闪卡统计面板样式 */
+/* ===================================
+   10. FLASHCARDS
+   闪卡功能
+   =================================== */
+
+/* === 闪卡统计面板 === */
+
 .flashcard-stats-panel {
     border-radius: 8px;
     background-color: var(--background-secondary);
@@ -1563,8 +1646,8 @@ settings:
 }
 
 /* 深色模式优化 */
-.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-front,
-.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-back {
+.theme-dark .workspace-leaf-content[data-type="hinote-view"] .highlight-container.flashcard-mode .flashcard-front,
+.theme-dark .workspace-leaf-content[data-type="hinote-view"] .highlight-container.flashcard-mode .flashcard-back {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
         0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
@@ -1604,7 +1687,13 @@ settings:
     box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
-/* 导出预览弹窗样式 */
+/* ===================================
+   7. EXPORT
+   导出功能
+   =================================== */
+
+/* === 导出模态框 === */
+
 .highlight-export-modal {
     max-width: 800px;
     min-height: 400px;  /* 设置最小高度 */
@@ -2039,7 +2128,13 @@ settings:
     display: none !important;
 }
 
-/* 聊天窗口基础样式 */
+/* ===================================
+   8. CHAT WINDOW
+   聊天窗口
+   =================================== */
+
+/* === 聊天窗口容器 === */
+
 .highlight-chat-window {
     position: fixed !important;
     min-height: 300px;
@@ -2469,7 +2564,13 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     opacity: 1;
 }
 
-/* AI 按钮和下拉菜单样式 */
+/* ===================================
+   9. AI FEATURES
+   AI 功能
+   =================================== */
+
+/* === AI 按钮和菜单 === */
+
 .highlight-ai-container {
     position: relative;
     z-index: 1000;
@@ -3865,8 +3966,14 @@ textarea.flashcard-modal-input {
     align-items: center;
 }
 
-/* 只在小屏幕移动端主视图模式下显示返回按钮 */
-.is-mobile .comment-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
+/* ===================================
+   11. MOBILE RESPONSIVE
+   移动端适配
+   =================================== */
+
+/* === 移动端布局 === */
+
+.is-mobile .hinote-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
     display: flex;
 }
 
@@ -3877,7 +3984,7 @@ textarea.flashcard-modal-input {
 }
 
 /* 小屏幕移动端主视图中调整主容器布局 */
-.is-mobile .comment-view-container.is-in-main-view.is-small-screen .highlight-main-container {
+.is-mobile .hinote-view-container.is-in-main-view.is-small-screen .highlight-main-container {
     display: flex;
     flex-direction: column;
 }
@@ -3890,7 +3997,7 @@ textarea.flashcard-modal-input {
         max-width: 300px;
     }
     
-    .is-mobile .comment-view-container .highlight-main-container {
+    .is-mobile .hinote-view-container .highlight-main-container {
         display: flex;
         flex-direction: row;
     }
