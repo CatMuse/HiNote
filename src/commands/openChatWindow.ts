@@ -1,6 +1,6 @@
 import { Plugin } from 'obsidian';
 import { t } from '../i18n';
-import { ChatView } from '../components/ChatView';
+import { ChatViewManager } from '../view/chat/ChatViewManager';
 
 /**
  * 打开 AI 对话窗口命令
@@ -10,7 +10,7 @@ export async function openChatWindow(
     ensureInitialized: () => Promise<void>
 ): Promise<void> {
     await ensureInitialized();
-    const chatView = ChatView.getInstance(plugin.app, plugin as any);
+    const chatView = ChatViewManager.getInstance(plugin.app, plugin as any);
     chatView.show();
 }
 
