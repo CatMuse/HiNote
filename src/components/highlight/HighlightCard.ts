@@ -12,6 +12,7 @@ import { AIButton } from "../AIButton";
 import { AIServiceManager } from "../../services/ai";
 import { LicenseManager } from "../../services/LicenseManager";
 import { SelectionManager } from "../../view/selection/SelectionManager";
+import { HighlightFlashcardManager, HighlightDeletionManager, HighlightIconManager } from "../../view/highlight";
 
 export class HighlightCard {
     // 为了让 CommentInput 能够访问到 findCardInstanceByHighlightId 方法
@@ -73,6 +74,10 @@ export class HighlightCard {
     private unfocusedInput: UnfocusedCommentInput | null = null;
     private hasFlashcard: boolean = false; // 保存闪卡状态
     private isShowingRealInput: boolean = false; // 是否正在显示真正的输入框
+    
+    // 管理器实例
+    private flashcardManager: HighlightFlashcardManager;
+    private deletionManager: HighlightDeletionManager;
 
     constructor(
         private container: HTMLElement,
@@ -94,6 +99,10 @@ export class HighlightCard {
         this.plugin = plugin;
         this.options = options;
         this.fileName = this.highlight.filePath?.split('/').pop();
+        
+        // 初始化管理器
+        this.flashcardManager = new HighlightFlashcardManager(plugin);
+        this.deletionManager = new HighlightDeletionManager(plugin);
         
         // 注册卡片实例
         HighlightCard.cardInstances.add(this);
@@ -755,14 +764,7 @@ export class HighlightCard {
      * @returns 是否已创建闪卡
      */
     private checkHasFlashcard(): boolean {
-        const fsrsManager = this.plugin.fsrsManager;
-        if (!fsrsManager || !this.highlight.id) {
-            return false;
-        }
-        
-        // 通过 sourceId 查找闪卡
-        const cards = fsrsManager.findCardsBySourceId(this.highlight.id, 'highlight');
-        return cards && cards.length > 0;
+        return this.flashcardManager.checkHasFlashcard(this.highlight.id || '');
     }
     
     /**
@@ -814,13 +816,19 @@ export class HighlightCard {
      * @returns 删除是否成功
      */
     public async deleteHiCardForHighlight(silent: boolean = false): Promise<boolean> {
-        try {
-            await this.handleDeleteHiCard(silent);
-            return true;
-        } catch (error) {
-            console.error('删除闪卡时出错:', error);
-            return false;
+        const result = await this.flashcardManager.deleteFlashcard(this.highlight, silent);
+        
+        if (result.success) {
+            this.hasFlashcard = false;
+            this.updateIconsAfterCardDeletion();
+            
+            // 如果需要删除高亮（没有批注）
+            if (result.shouldDeleteHighlight && !silent) {
+                await this.deletionManager.deleteHighlightCompletely(this.highlight);
+            }
         }
+        
+        return result.success;
     }
 
     /**
@@ -828,78 +836,14 @@ export class HighlightCard {
      * @param silent 是否静默模式（不显示通知，不触发事件）
      */
     private async handleDeleteHiCard(silent: boolean = false) {
-        try {
-            const fsrsManager = this.plugin.fsrsManager;
-            if (!fsrsManager) {
-                if (!silent) new Notice(t('FSRS 管理器未初始化'));
-                return;
-            }
-
-            // 根据 sourceId 删除闪卡
-            const deletedCount = fsrsManager.deleteCardsBySourceId(this.highlight.id || '', 'highlight');
-            
-            if (deletedCount > 0) {
-                // 更新闪卡状态
-                this.hasFlashcard = false;
-                
-                // 清理可能残留的无效卡片引用
-                const cleanedCount = fsrsManager.cleanupInvalidCardReferences();
-                
-                // 检查是否有批注，决定是否删除高亮
-                const hasComments = this.highlight.comments && this.highlight.comments.length > 0;
-                
-                if (!hasComments && !silent) {
-                    // 没有批注，删除整个高亮（在批量删除时不执行此操作）
-                    await this.deleteHighlightCompletely();
-                    if (!silent) new Notice(t('Flashcard and highlight deleted'));
-                } else if (!silent) {
-                    // 有批注，只删除闪卡，保留高亮和批注
-                    new Notice(t('Flashcard deleted, highlight and comments preserved'));
-                }
-                
-                // 更新闪卡状态和所有相关显示
-                this.updateIconsAfterCardDeletion();
-        
-                // 触发闪卡变化事件（在批量删除时不触发）
-                if (!silent) this.plugin.eventManager.emitFlashcardChanged();
-            } else if (!silent) {
-                new Notice(t('Flashcard not found'));
-            }
-        } catch (error) {
-            console.error('删除闪卡时出错:', error);
-            if (!silent) new Notice(t(`Failed to delete flashcard: ${error.message}`));
-        }
+        await this.deleteHiCardForHighlight(silent);
     }
 
     /**
      * 完全删除高亮（当没有批注时）
      */
     private async deleteHighlightCompletely() {
-        try {
-            if (this.highlight.filePath) {
-                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
-                if (file instanceof TFile) {
-                    // 从 CommentStore 中删除高亮
-                    const plugin = (window as any).app.plugins.plugins['hi-note'];
-                    if (plugin && plugin.commentStore) {
-                        await plugin.commentStore.removeComment(file, this.highlight as any);
-
-                    } else {
-                        console.warn('无法访问 commentStore');
-                    }
-                    
-                    // 触发高亮删除事件
-                    this.plugin.eventManager.emitHighlightDelete(
-                        this.highlight.filePath, 
-                        this.highlight.text || '', 
-                        this.highlight.id || ''
-                    );
-                }
-            }
-        } catch (error) {
-            console.error('删除高亮时出错:', error);
-            throw error;
-        }
+        await this.deletionManager.deleteHighlightCompletely(this.highlight);
     }
 
     /**
@@ -908,13 +852,18 @@ export class HighlightCard {
      * @returns 创建是否成功
      */
     public async createHiCardForHighlight(silent: boolean = false): Promise<boolean> {
-        try {
-            await this.handleCreateNewHiCard(silent);
-            return true;
-        } catch (error) {
-            console.error('创建闪卡时出错:', error);
-            return false;
+        const success = await this.flashcardManager.createFlashcard(
+            this.highlight,
+            this.fileName,
+            silent
+        );
+        
+        if (success) {
+            this.hasFlashcard = true;
+            this.updateIconsAfterCardCreation();
         }
+        
+        return success;
     }
 
     /**
@@ -922,145 +871,21 @@ export class HighlightCard {
      * @param silent 是否静默模式，如果为 true 则不显示通知
      */
     private async handleCreateNewHiCard(silent: boolean = false) {
-        const fsrsManager = this.plugin.fsrsManager;
-        if (!fsrsManager) {
-            new Notice(t('FSRS 管理器未初始化'));
-            return;
-        }
-
-        // 确保高亮有 ID
-        if (!this.highlight.id) {
-            console.warn('高亮缺少 ID，正在生成...');
-            this.highlight.id = `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        }
-        
-        // 如果高亮有文件路径，需要先保存到存储中
-        if (this.highlight.filePath) {
-            try {
-                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
-                if (file instanceof TFile) {
-
-                    // 创建 HiNote 对象
-                    const hiNote = {
-                        id: this.highlight.id,
-                        text: this.highlight.text || '',
-                        position: this.highlight.position || 0,
-                        comments: this.highlight.comments || [],
-                        createdAt: this.highlight.createdAt || Date.now(),
-                        updatedAt: this.highlight.updatedAt || Date.now(),
-                        isVirtual: this.highlight.isVirtual,
-                        filePath: this.highlight.filePath,
-                        fileType: this.highlight.fileType,
-                        displayText: this.highlight.displayText,
-                        paragraphOffset: this.highlight.paragraphOffset,
-                        backgroundColor: this.highlight.backgroundColor,
-                        isCloze: this.highlight.isCloze
-                    };
-                    
-
-                    const plugin = (window as any).app.plugins.plugins['hi-note'];
-                    if (plugin && plugin.commentStore) {
-                        await plugin.commentStore.addComment(file, hiNote);
-
-                    } else {
-                        console.warn('无法访问 commentStore');
-                    }
-                }
-            } catch (error) {
-                console.error('保存高亮时出错:', error);
-                // 继续创建闪卡，即使保存高亮失败
-            }
-        } else {
-            console.warn('高亮对象缺少文件路径');
-        }
-        
-        // 使用 addCard 方法创建闪卡
-        // 处理挂空格式的文本
-        let text = this.highlight.text || '';
-        let answer = '';
-        
-        // 检查是否为挂空格式（例如：{{content}})
-        const clozeRegex = /\{\{([^{}]+)\}\}/g;
-        let match;
-        let clozeAnswers: string[] = [];
-        
-        // 如果文本中包含挂空格式，提取挂空内容作为答案
-        while ((match = clozeRegex.exec(text)) !== null) {
-            clozeAnswers.push(match[1]);
-        }
-        
-        // 收集所有可能的答案部分
-        let answerParts = [];
-        
-        // 如果有挖空内容，添加到答案部分
-        if (clozeAnswers.length > 0) {
-            answerParts.push(clozeAnswers.join('\n'));
-        }
-        
-        // 如果有批注内容，添加到答案部分
-        if (this.highlight.comments && this.highlight.comments.length > 0) {
-            answerParts.push(this.highlight.comments.map(c => c.content || '').join('\n'));
-        }
-        
-        // 合并所有答案部分，如果没有内容则使用默认文本
-        answer = answerParts.length > 0 ? answerParts.join('\n\n') : t('Add answer');
-        
-        // 创建闪卡
-        const card = fsrsManager.addCard(
-            text, 
-            answer, 
-            this.highlight.filePath || this.fileName, 
-            this.highlight.id, 
-            'highlight'
-        );
-        
-        if (!card) {
-            new Notice(t('Failed to create flashcard, please check highlight content'));
-            return;
-        }
-        
-        // 触发事件，让 FSRSManager 来处理保存
-        this.plugin.eventManager.emitFlashcardChanged();
-        
-        // 只在非静默模式下显示成功消息
-        if (!silent) {
-            new Notice(t('Flashcard created successfully!'));
-        }
-        
-        // 更新闪卡状态
-        this.hasFlashcard = true;
-        
-        // 更新闪卡状态和所有相关显示
-        this.updateIconsAfterCardCreation();
-
+        await this.createHiCardForHighlight(silent);
     }
 
     /**
      * 更新删除闪卡后的图标显示
      */
     private updateIconsAfterCardDeletion() {
-        // 查找卡片中的所有图标元素
-        const fileIcons = this.card.querySelectorAll('.highlight-card-icon');
-        
-        // 更新所有图标为 file-text
-        fileIcons.forEach(icon => {
-            setIcon(icon as HTMLElement, 'file-text');
-            (icon as HTMLElement).removeClass('has-flashcard');
-        });
+        HighlightIconManager.updateCardIcons(this.card, false);
     }
 
     /**
      * 更新创建闪卡后的图标显示
      */
     private updateIconsAfterCardCreation() {
-        // 查找卡片中的所有图标元素
-        const fileIcons = this.card.querySelectorAll('.highlight-card-icon');
-        
-        // 更新所有图标为 book-heart
-        fileIcons.forEach(icon => {
-            setIcon(icon as HTMLElement, 'book-heart');
-            (icon as HTMLElement).addClass('has-flashcard');
-        });
+        HighlightIconManager.updateCardIcons(this.card, true);
     }
 
     /**
@@ -1083,54 +908,24 @@ export class HighlightCard {
      */
     public async handleDeleteHighlight(skipConfirmation: boolean = false, skipNotice: boolean = false) {
         try {
-            // 显示确认对话框
-            if (!skipConfirmation) {
-                const confirmDelete = confirm(t('Delete this highlight and all its data, including Comments and HiCards? Can\'t undo.'));
-                if (!confirmDelete) {
-                    return;
-                }
-            }
-            
             // 如果有闪卡，先删除闪卡
             if (this.hasFlashcard) {
                 await this.handleDeleteHiCard(true); // 静默模式，不显示通知
             }
             
-            if (this.highlight.filePath) {
-                const file = this.plugin.app.vault.getAbstractFileByPath(this.highlight.filePath);
-                if (file instanceof TFile) {
-                    // 1. 从 CommentStore 中删除高亮
-                    const plugin = (window as any).app.plugins.plugins['hi-note'];
-                    if (plugin && plugin.commentStore) {
-                        await plugin.commentStore.removeComment(file, this.highlight as any);
-                    } else {
-                        console.warn('无法访问 commentStore');
-                    }
-                    
-                    // 2. 从编辑器中删除高亮格式
-                    await this.removeHighlightFormatFromEditor(file);
-                    
-                    // 3. 触发高亮删除事件
-                    this.plugin.eventManager.emitHighlightDelete(
-                        this.highlight.filePath, 
-                        this.highlight.text || '', 
-                        this.highlight.id || ''
-                    );
-                    
-                    // 4. 显示成功通知（如果不跳过通知）
-                    if (!skipNotice) {
-                        new Notice(t('Successfully deleted'));
-                    }
-                    
-                    // 5. 移除卡片
-                    this.card.remove();
-                    
-                    // 6. 从卡片实例集合中移除
-                    HighlightCard.cardInstances.delete(this);
-                }
-            } else {
-                console.warn('高亮对象缺少文件路径');
-                new Notice(t('删除高亮失败：缺少文件路径'));
+            // 委托给删除管理器
+            const success = await this.deletionManager.deleteHighlight(
+                this.highlight,
+                skipConfirmation,
+                skipNotice
+            );
+            
+            if (success) {
+                // 移除卡片
+                this.card.remove();
+                
+                // 从卡片实例集合中移除
+                HighlightCard.cardInstances.delete(this);
             }
         } catch (error) {
             console.error('删除高亮时出错:', error);
@@ -1139,195 +934,14 @@ export class HighlightCard {
     }
     
     /**
-     * 从编辑器中删除高亮格式
-     * @param file 文件对象
-     */
-    private async removeHighlightFormatFromEditor(file: TFile) {
-        // 获取编辑器实例
-        let editor: Editor | null = null;
-        let fileContent: string = '';
-        
-        // 尝试获取当前打开的编辑器
-        const activeView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-        if (activeView && activeView.file && activeView.file.path === file.path) {
-            editor = activeView.editor;
-        }
-        
-        // 如果找不到编辑器，直接读取文件内容
-        if (!editor) {
-            fileContent = await this.plugin.app.vault.read(file);
-        } else {
-            fileContent = editor.getValue();
-        }
-        
-        // 查找高亮文本在文件中的位置
-        if (typeof this.highlight.position === 'number') {
-            // 使用位置信息定位高亮
-            const position = this.highlight.position;
-            const highlightText = this.highlight.text;
-            
-            // 获取高亮周围的文本上下文
-            const contextBefore = fileContent.substring(Math.max(0, position - 100), position);
-            const contextAfter = fileContent.substring(position + highlightText.length, Math.min(fileContent.length, position + highlightText.length + 100));
-            
-            // 尝试匹配可能的高亮格式
-            // 支持多种常见的高亮格式：==text==, <mark>text</mark>, <span class="highlight">text</span> 等
-            const possibleFormats = [
-                new RegExp(`==\\s*(${this.escapeRegExp(highlightText)})\\s*==`, 'g'),
-                new RegExp(`<mark[^>]*>(${this.escapeRegExp(highlightText)})</mark>`, 'g'),
-                new RegExp(`<span[^>]*>(${this.escapeRegExp(highlightText)})</span>`, 'g')
-            ];
-            
-            // 尝试使用位置信息和文本内容定位高亮
-            let newContent = fileContent;
-            let replaced = false;
-            
-            // 尝试在整个文件中查找高亮格式并替换
-            const searchRange = fileContent;
-            
-            // 首先尝试使用常见的高亮格式
-            for (const format of possibleFormats) {
-                const matches = searchRange.match(format);
-                if (matches) {
-                    // 找到匹配的格式，替换为纯文本
-                    newContent = searchRange.replace(format, highlightText);
-                    replaced = true;
-                    break;
-                }
-            }
-            
-            // 如果没有找到匹配的格式，尝试使用插件设置中的自定义正则表达式
-            if (!replaced) {
-                // 获取插件设置中的高亮正则表达式
-                const plugin = (window as any).app.plugins.plugins['hi-note'];
-                if (plugin && plugin.settings && plugin.settings.customHighlightRegex) {
-                    try {
-                        const customRegex = new RegExp(plugin.settings.customHighlightRegex, 'g');
-                        // 在整个文件中搜索自定义格式
-                        const matches = searchRange.match(customRegex);
-                        if (matches) {
-                            // 替换所有匹配项
-                            for (const match of matches) {
-                                // 检查匹配项是否包含高亮文本
-                                if (match.includes(highlightText)) {
-                                    newContent = newContent || searchRange;
-                                    newContent = newContent.replace(match, highlightText);
-                                    replaced = true;
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.error('自定义正则表达式错误:', error);
-                    }
-                }
-            }
-            
-            // 如果仍然没有找到匹配的格式，使用最简单的方法：直接替换各种高亮格式
-            if (!replaced) {
-                // 尝试多种高亮格式的替换
-                const escapedText = this.escapeRegExp(highlightText);
-                
-                // ==text== 格式
-                const markdownHighlightRegex = new RegExp(`==\\s*(${escapedText})\\s*==`, 'g');
-                newContent = fileContent.replace(markdownHighlightRegex, highlightText);
-                
-                // <mark>text</mark> 格式
-                const markTagRegex = new RegExp(`<mark[^>]*>(${escapedText})</mark>`, 'g');
-                newContent = newContent.replace(markTagRegex, highlightText);
-                
-                // <span class="highlight">text</span> 格式
-                const spanTagRegex = new RegExp(`<span[^>]*>(${escapedText})</span>`, 'g');
-                newContent = newContent.replace(spanTagRegex, highlightText);
-            }
-            
-            // 更新文件内容
-            if (editor) {
-                editor.setValue(newContent);
-            } else {
-                await this.plugin.app.vault.modify(file, newContent);
-            }
-        } else {
-            // 如果没有位置信息，尝试通过文本内容查找高亮
-            const highlightText = this.highlight.text;
-            const escapedText = this.escapeRegExp(highlightText);
-            
-            // 尝试匹配可能的高亮格式
-            const possibleFormats = [
-                new RegExp(`==\\s*(${escapedText})\\s*==`, 'g'),
-                new RegExp(`<mark[^>]*>(${escapedText})</mark>`, 'g'),
-                new RegExp(`<span[^>]*>(${escapedText})</span>`, 'g')
-            ];
-            
-            // 尝试替换所有匹配的高亮格式
-            let newContent = fileContent;
-            let replaced = false;
-            
-            for (const format of possibleFormats) {
-                const updatedContent = newContent.replace(format, highlightText);
-                if (updatedContent !== newContent) {
-                    newContent = updatedContent;
-                    replaced = true;
-                    break;
-                }
-            }
-            
-            // 如果没有找到匹配的格式，尝试使用插件设置中的自定义正则表达式
-            if (!replaced) {
-                // 获取插件设置中的高亮正则表达式
-                const plugin = (window as any).app.plugins.plugins['hi-note'];
-                if (plugin && plugin.settings && plugin.settings.customHighlightRegex) {
-                    try {
-                        const customRegex = new RegExp(plugin.settings.customHighlightRegex, 'g');
-                        const updatedContent = newContent.replace(customRegex, (match, ...groups) => {
-                            // 检查匹配的文本是否包含我们要查找的高亮文本
-                            for (const group of groups) {
-                                if (typeof group === 'string' && group.includes(highlightText)) {
-                                    return highlightText;
-                                }
-                            }
-                            return match; // 如果没有找到匹配的组，保持原样
-                        });
-                        
-                        if (updatedContent !== newContent) {
-                            newContent = updatedContent;
-                            replaced = true;
-                        }
-                    } catch (error) {
-                        console.error('自定义正则表达式错误:', error);
-                    }
-                }
-            }
-            
-            // 如果仍然没有找到匹配的格式，使用最简单的方法：直接替换 ==text== 格式
-            if (!replaced) {
-                const simpleHighlightRegex = new RegExp(`==\\s*${escapedText}\\s*==`, 'g');
-                newContent = fileContent.replace(simpleHighlightRegex, highlightText);
-            }
-            
-            // 更新文件内容
-            if (editor) {
-                editor.setValue(newContent);
-            } else {
-                await this.plugin.app.vault.modify(file, newContent);
-            }
-        }
-    }
-    
-    /**
-     * 转义正则表达式中的特殊字符
-     * @param string 要转义的字符串
-     * @returns 转义后的字符串
-     */
-    private escapeRegExp(string: string): string {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-    
-    /**
      * 更新评论列表（只更新评论部分，不重新渲染整个卡片）
      */
     public updateComments(updatedHighlight: HighlightInfo): void {
         // 更新高亮数据
         this.highlight = updatedHighlight;
+        
+        // 重置编辑状态，允许重新选中卡片
+        this.isEditing = false;
         
         // 查找评论列表容器
         const commentsSection = this.card.querySelector('.hi-notes-section');
