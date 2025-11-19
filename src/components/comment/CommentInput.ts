@@ -353,14 +353,21 @@ export class CommentInput {
             
             // 更新操作提示，只显示加载图标
             if (this.actionHint) {
+                // 隐藏删除按钮（编辑模式下），使用 visibility 保持占位避免布局闪动
+                const deleteLink = this.actionHint.querySelector('.hi-note-delete-link') as HTMLElement;
+                if (deleteLink) {
+                    deleteLink.style.visibility = 'hidden';
+                }
+                
+                // 显示加载图标
                 const loadingHint = this.actionHint.querySelector('.ai-loading-hint');
                 if (!loadingHint) {
-                    const hint = this.actionHint.createEl('span', {
+                    const hintEl = this.actionHint.createEl('span', {
                         cls: 'ai-loading-hint'
                     });
                     
                     // 添加加载图标
-                    const loadingIcon = hint.createEl('span', {
+                    const loadingIcon = hintEl.createEl('span', {
                         cls: 'ai-loading-icon'
                     });
                     setIcon(loadingIcon, 'loader');
@@ -376,6 +383,12 @@ export class CommentInput {
                 const loadingHint = this.actionHint.querySelector('.ai-loading-hint');
                 if (loadingHint) {
                     loadingHint.remove();
+                }
+                
+                // 恢复显示删除按钮（编辑模式下）
+                const deleteLink = this.actionHint.querySelector('.hi-note-delete-link') as HTMLElement;
+                if (deleteLink) {
+                    deleteLink.style.visibility = '';
                 }
             }
         }
