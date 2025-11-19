@@ -5,6 +5,7 @@ import { CommentStore, HiNote, CommentItem } from "./CommentStore";
 import { CommentWidget } from "./components/comment/CommentWidget";
 import { HighlightService } from './services/HighlightService';
 import { HighlightMatcher } from './utils/HighlightMatcher';
+import { PreviewWidgetRenderer } from './view/preview/PreviewWidgetRenderer';
 
 export class HighlightDecorator {
     private plugin: Plugin;
@@ -12,12 +13,19 @@ export class HighlightDecorator {
     private highlightPlugin: any;
     private highlightService: HighlightService;
     private currentViewPlugin: any; // 保存当前的 ViewPlugin 实例
+    private previewRenderer: PreviewWidgetRenderer; // 阅读模式渲染器
 
     constructor(plugin: Plugin, commentStore: CommentStore) {
         this.plugin = plugin;
         this.commentStore = commentStore;
         // 使用插件提供的共享服务实例
         this.highlightService = (plugin as any).highlightService;
+        // 初始化阅读模式渲染器
+        this.previewRenderer = new PreviewWidgetRenderer(
+            this.plugin,
+            this.commentStore,
+            this.highlightService
+        );
     }
 
     /**
@@ -51,6 +59,11 @@ export class HighlightDecorator {
         const plugin = this.plugin;
         const commentStore = this.commentStore;
         const highlightService = this.highlightService;
+
+        // 注册 Markdown Post Processor 用于阅读模式
+        this.plugin.registerMarkdownPostProcessor((element, context) => {
+            this.previewRenderer.processPreview(element, context);
+        });
 
         // 监听评论相关事件，当评论增删时刷新装饰器
         this.plugin.registerEvent(
@@ -253,7 +266,7 @@ export class HighlightDecorator {
 
             private async openCommentPanel(highlight: HiNote) {
                 const workspace = this.plugin.app.workspace;
-                const existing = workspace.getLeavesOfType("comment-view");
+                const existing = workspace.getLeavesOfType("hinote-view");
 
                 if (existing.length) {
                     workspace.revealLeaf(existing[0]);
@@ -263,7 +276,7 @@ export class HighlightDecorator {
                     const leaf = workspace.getRightLeaf(false);
                     if (leaf) {
                         await leaf.setViewState({
-                            type: "comment-view",
+                            type: "hinote-view",
                             active: true
                         });
                         // 等待视图完全渲染
@@ -301,26 +314,5 @@ export class HighlightDecorator {
 
         // 移除所有高亮评论按钮
         document.querySelectorAll('.hi-note-widget').forEach(el => el.remove());
-    }
-
-    private updateTooltipContent(tooltip: Element, comments: CommentItem[]) {
-        const list = tooltip.querySelector('.hi-note-tooltip-list');
-        if (!list) return;
-
-        // 清空现有内容
-        list.empty();
-
-        // 添加最新的评论
-        comments.slice(0, 3).forEach(comment => {
-            const item = list.createEl('div', { cls: 'hi-note-tooltip-item' });
-            item.createEl('div', {
-                cls: 'hi-note-tooltip-content',
-                text: comment.content
-            });
-            item.createEl('div', {
-                cls: 'hi-note-tooltip-time',
-                text: new Date(comment.createdAt).toLocaleString()
-            });
-        });
     }
 }

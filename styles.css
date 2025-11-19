@@ -915,6 +915,15 @@ settings:
     display: none !important;
 }
 
+/* === 阅读模式下的批注小部件样式 === */
+
+.hi-note-preview-widget {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 4px;
+    position: relative;
+}
+
 /* Flashcard styles */
 
 /* 闪卡统计面板样式 */

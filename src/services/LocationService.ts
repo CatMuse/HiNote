@@ -112,14 +112,30 @@ export class LocationService {
         const start = editor.offsetToPos(textPosition);
         const end = editor.offsetToPos(textPosition + matchedText.length);
         
-        // 1. 选中文本
-        editor.setSelection(start, end);
-        
-        // 2. 滚动到目标位置，并确保选中内容在编辑器中间位置显示
-        editor.scrollIntoView({from: start, to: end}, true);
-        
-        // 3. 聚焦编辑器，确保用户可以看到选中内容
-        this.app.workspace.setActiveLeaf(leaf, { focus: true });
+        // 检查视图模式
+        const mode = markdownView.getMode(); // 'source' | 'preview'
+
+        if (mode === 'preview') {
+            // 阅读模式下的处理
+            // 使用 setEphemeralState 滚动到指定行
+            // startLoc 和 endLoc 用于传递位置信息
+            leaf.setEphemeralState({
+                line: start.line,
+                startLoc: { line: start.line, col: start.ch },
+                endLoc: { line: end.line, col: end.ch },
+                scroll: start.line
+            });
+        } else {
+            // 编辑/实时预览模式下的处理
+            // 1. 选中文本
+            editor.setSelection(start, end);
+            
+            // 2. 滚动到目标位置，并确保选中内容在编辑器中间位置显示
+            editor.scrollIntoView({from: start, to: end}, true);
+            
+            // 3. 聚焦编辑器，确保用户可以看到选中内容
+            this.app.workspace.setActiveLeaf(leaf, { focus: true });
+        }
     }
 
 } 
