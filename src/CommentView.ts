@@ -171,13 +171,6 @@ export class CommentView extends ItemView {
             () => this.currentFile,
             () => this.isDraggedToMainView
         );
-
-        // 创建加载指示器
-        this.loadingIndicator = createEl("div", {
-            cls: "highlight-loading-indicator",
-            text: t("Loading...")
-        });
-        this.loadingIndicator.addClass('highlight-display-none');
     }
 
     getViewType(): string {
@@ -193,9 +186,7 @@ export class CommentView extends ItemView {
     }
 
     async onOpen() {
-        const container = this.containerEl.children[1];
-        container.empty();
-        container.addClass("comment-view-container");
+        const container = this.containerEl.children[1] as HTMLElement;
         
         // 监听多选事件
         container.addEventListener('highlight-multi-select', (e: CustomEvent) => {
@@ -204,37 +195,20 @@ export class CommentView extends ItemView {
             }
         });
 
-        // 创建主容器
-        const mainContainer = container.createEl("div", {
-            cls: "highlight-main-container"
-        });
-
-        // 创建文件列表区域（只在主视图中显示）
-        this.fileListContainer = mainContainer.createEl("div", {
-            cls: "highlight-file-list-container"
-        });
-
-        // 创建右侧内容区域
-        this.mainContentContainer = mainContainer.createEl("div", {
-            cls: "highlight-content-container"
-        });
+        // 使用 UIInitializer 创建所有 UI 元素
+        const uiElements = this.uiInitializer!.initializeUI(container);
         
-        // 创建返回按钮（仅在移动端显示）
-        const backButtonContainer = this.mainContentContainer.createEl("div", {
-            cls: "highlight-back-button-container"
-        });
+        // 保存 UI 元素引用
+        this.fileListContainer = uiElements.fileListContainer;
+        this.mainContentContainer = uiElements.mainContentContainer;
+        this.searchContainer = uiElements.searchContainer;
+        this.searchInput = uiElements.searchInput;
+        this.searchLoadingIndicator = uiElements.searchLoadingIndicator;
+        this.highlightContainer = uiElements.highlightContainer;
+        this.loadingIndicator = uiElements.loadingIndicator;
         
-        const backButton = backButtonContainer.createEl("div", {
-            cls: "highlight-back-button"
-        });
-        setIcon(backButton, "arrow-left");
-        backButton.createEl("span", {
-            text: t("BACK"),
-            cls: "highlight-back-button-text"
-        });
-        
-        // 添加返回按钮点击事件
-        backButton.addEventListener("click", () => {
+        // 设置返回按钮点击事件
+        uiElements.backButton.addEventListener("click", () => {
             if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
                 // 如果在闪卡模式下，实现逐级返回
                 if (this.isFlashcardMode && this.flashcardComponent) {
@@ -255,46 +229,11 @@ export class CommentView extends ItemView {
                 this.updateViewLayout();
             }
         });
-        
-        // 创建搜索区域
-        this.searchContainer = this.mainContentContainer.createEl("div", {
-            cls: "highlight-search-container"
-        });
-
-        // 创建搜索输入框
-        this.searchInput = this.searchContainer.createEl("input", {
-            cls: "highlight-search-input",
-            attr: {
-                type: "text",
-                placeholder: t("Search..."),
-            }
-        });
-
-        // 添加焦点和失焦事件
-        this.searchInput.addEventListener('focus', () => {
-            this.searchContainer.addClass('focused');
-        });
-
-        this.searchInput.addEventListener('blur', (e) => {
-            this.searchContainer.removeClass('focused');
-        });
-
-        // 创建搜索加载指示器
-        this.searchLoadingIndicator = this.searchContainer.createEl("div", {
-            cls: "highlight-search-loading"
-        });
-        this.searchLoadingIndicator.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="loading-spinner"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>`;
-        this.searchLoadingIndicator.style.display = "none";
-        
-        // 创建图标按钮容器
-        const iconButtonsContainer = this.searchContainer.createEl("div", {
-            cls: "highlight-search-icons"
-        });
 
         // 使用 VirtualHighlightManager 创建文件评论按钮
         if (this.virtualHighlightManager) {
             this.virtualHighlightManager.createFileCommentButton(
-                iconButtonsContainer,
+                uiElements.iconButtonsContainer,
                 {
                     getCurrentFile: () => this.currentFile,
                     getHighlights: () => this.highlights,
@@ -311,7 +250,7 @@ export class CommentView extends ItemView {
         // 使用 ExportManager 创建导出按钮
         if (this.exportManager) {
             this.exportManager.createExportButton(
-                iconButtonsContainer,
+                uiElements.iconButtonsContainer,
                 () => this.currentFile
             );
         }
@@ -335,11 +274,6 @@ export class CommentView extends ItemView {
         
         // 初始化搜索功能
         this.searchManager.initialize();
-
-        // 创建高亮容器
-        this.highlightContainer = this.mainContentContainer.createEl("div", {
-            cls: "highlight-container"
-        });
         
         // 初始化多选管理器
         this.selectionManager = new SelectionManager(this.highlightContainer);
