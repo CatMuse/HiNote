@@ -54,22 +54,20 @@ export class CallbackConfigurator {
 
     /**
      * 配置批量操作处理器回调
-     * 注意：需要根据 BatchOperationsHandler 的实际接口调整
      */
     configureBatchOperationsHandler(
         batchOperationsHandler: BatchOperationsHandler,
         callbacks: {
-            getSelectedHighlights: () => HighlightInfo[];
+            getSelectedHighlights: () => Set<HighlightInfo>;
             clearSelection: () => void;
             refreshView: () => Promise<void>;
         }
     ): void {
-        // TODO: 根据 BatchOperationsHandler 的实际 setCallbacks 接口调整
-        // batchOperationsHandler.setCallbacks(
-        //     callbacks.getSelectedHighlights,
-        //     callbacks.clearSelection,
-        //     callbacks.refreshView
-        // );
+        batchOperationsHandler.setCallbacks(
+            callbacks.getSelectedHighlights,
+            callbacks.clearSelection,
+            callbacks.refreshView
+        );
     }
 
     /**

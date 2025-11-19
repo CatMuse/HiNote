@@ -263,25 +263,22 @@ export class CommentView extends ItemView {
             this.searchContainer
         );
         
-        // 设置搜索管理器的回调函数
-        this.searchManager.setCallbacks(
-            async (searchTerm: string, searchType: string) => {
-                await this.handleSearch(searchTerm, searchType);
-            },
-            () => this.highlights,
-            () => this.currentFile
-        );
+        // 使用 CallbackConfigurator 配置搜索管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureSearchManager(this.searchManager, {
+                onSearch: async (searchTerm: string, searchType: string) => {
+                    await this.handleSearch(searchTerm, searchType);
+                },
+                getHighlights: () => this.highlights,
+                getCurrentFile: () => this.currentFile
+            });
+        }
         
         // 初始化搜索功能
         this.searchManager.initialize();
         
         // 初始化多选管理器
         this.selectionManager = new SelectionManager(this.highlightContainer);
-        this.selectionManager.setOnSelectionChange((selectedCount) => {
-            if (this.batchOperationsHandler) {
-                this.batchOperationsHandler.showMultiSelectActions(selectedCount);
-            }
-        });
         this.selectionManager.initialize();
         
         // 添加全局点击事件监听器（在 selectionManager 初始化后）
@@ -308,13 +305,22 @@ export class CommentView extends ItemView {
             this.containerEl
         );
 
-        this.batchOperationsHandler.setCallbacks(
-            () => this.selectionManager!.getSelectedHighlights(),
-            () => this.selectionManager!.clearSelection(),
-            async () => {
-                await this.refreshView();
-            }
-        );
+        // 使用 CallbackConfigurator 配置批量操作和选择管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureSelectionManager(
+                this.selectionManager,
+                this.batchOperationsHandler
+            );
+            
+            this.callbackConfigurator.configureBatchOperationsHandler(
+                this.batchOperationsHandler,
+                {
+                    getSelectedHighlights: () => this.selectionManager!.getSelectedHighlights(),
+                    clearSelection: () => this.selectionManager!.clearSelection(),
+                    refreshView: async () => await this.refreshView()
+                }
+            );
+        }
         
         // 初始化文件列表管理器
         this.fileListManager = new FileListManager(
@@ -459,65 +465,74 @@ export class CommentView extends ItemView {
             this.commentStore
         );
         
-        this.commentOperationManager.setCallbacks({
-            onRefreshView: async () => await this.refreshView(),
-            onHighlightsUpdate: (highlights) => {
-                this.highlights = highlights;
-            },
-            onCardUpdate: (highlight) => {
-                // 同步更新 this.highlights 数组中的数据
-                const index = this.highlights.findIndex(h => h.id === highlight.id);
-                if (index !== -1) {
-                    this.highlights[index] = highlight;
-                }
-                
-                // 只更新单个卡片，而不是刷新整个视图
-                const cardInstance = HighlightCard.findCardInstanceByHighlightId(highlight.id || '');
-                if (cardInstance) {
-                    cardInstance.updateComments(highlight);
-                }
-            }
-        });
-        
         // 初始化评论输入管理器
         this.commentInputManager = new CommentInputManager(this.plugin);
         
-        this.commentInputManager.setCallbacks({
-            onCommentSave: async (highlight, content, existingComment) => {
-                if (this.commentOperationManager) {
-                    this.commentOperationManager.updateState({
-                        currentFile: this.currentFile,
-                        highlights: this.highlights
-                    });
-                    if (existingComment) {
-                        await this.commentOperationManager.updateComment(highlight, existingComment.id, content);
-                    } else {
-                        await this.commentOperationManager.addComment(highlight, content);
+        // 使用 CallbackConfigurator 配置评论管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureCommentOperationManager(
+                this.commentOperationManager,
+                {
+                    onRefreshView: async () => await this.refreshView(),
+                    onHighlightsUpdate: (highlights) => {
+                        this.highlights = highlights;
+                    },
+                    onCardUpdate: (highlight) => {
+                        // 同步更新 this.highlights 数组中的数据
+                        const index = this.highlights.findIndex(h => h.id === highlight.id);
+                        if (index !== -1) {
+                            this.highlights[index] = highlight;
+                        }
+                        
+                        // 只更新单个卡片，而不是刷新整个视图
+                        const cardInstance = HighlightCard.findCardInstanceByHighlightId(highlight.id || '');
+                        if (cardInstance) {
+                            cardInstance.updateComments(highlight);
+                        }
                     }
                 }
-            },
-            onCommentDelete: async (highlight, commentId) => {
-                if (this.commentOperationManager) {
-                    this.commentOperationManager.updateState({
-                        currentFile: this.currentFile,
-                        highlights: this.highlights
-                    });
-                    await this.commentOperationManager.deleteComment(highlight, commentId);
+            );
+            
+            this.callbackConfigurator.configureCommentInputManager(
+                this.commentInputManager,
+                {
+                    onCommentSave: async (highlight, content, existingComment) => {
+                        if (this.commentOperationManager) {
+                            this.commentOperationManager.updateState({
+                                currentFile: this.currentFile,
+                                highlights: this.highlights
+                            });
+                            if (existingComment) {
+                                await this.commentOperationManager.updateComment(highlight, existingComment.id, content);
+                            } else {
+                                await this.commentOperationManager.addComment(highlight, content);
+                            }
+                        }
+                    },
+                    onCommentDelete: async (highlight, commentId) => {
+                        if (this.commentOperationManager) {
+                            this.commentOperationManager.updateState({
+                                currentFile: this.currentFile,
+                                highlights: this.highlights
+                            });
+                            await this.commentOperationManager.deleteComment(highlight, commentId);
+                        }
+                    },
+                    onCommentCancel: async (highlight) => {
+                        if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
+                            if (this.commentOperationManager) {
+                                this.commentOperationManager.updateState({
+                                    currentFile: this.currentFile,
+                                    highlights: this.highlights
+                                });
+                                await this.commentOperationManager.deleteVirtualHighlight(highlight);
+                            }
+                        }
+                    },
+                    onViewUpdate: async () => await this.updateHighlights()
                 }
-            },
-            onCommentCancel: async (highlight) => {
-                if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
-                    if (this.commentOperationManager) {
-                        this.commentOperationManager.updateState({
-                            currentFile: this.currentFile,
-                            highlights: this.highlights
-                        });
-                        await this.commentOperationManager.deleteVirtualHighlight(highlight);
-                    }
-                }
-            },
-            onViewUpdate: async () => await this.updateHighlights()
-        });
+            );
+        }
         
         // 初始化布局管理器
         this.layoutManager = new LayoutManager(
@@ -527,22 +542,25 @@ export class CommentView extends ItemView {
             this.searchContainer
         );
         
-        this.layoutManager.setCallbacks({
-            onCreateFloatingButton: () => {},
-            onRemoveFloatingButton: () => {},
-            onUpdateFileList: async (forceRefresh?: boolean) => {
-                if (this.fileListManager) {
-                    this.fileListManager.updateState({
-                        currentFile: this.currentFile,
-                        isFlashcardMode: this.isFlashcardMode,
-                        isMobileView: this.isMobileView,
-                        isSmallScreen: this.isSmallScreen,
-                        isDraggedToMainView: this.isDraggedToMainView
-                    });
-                    await this.fileListManager.updateFileList(forceRefresh);
+        // 使用 CallbackConfigurator 配置布局管理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureLayoutManager(this.layoutManager, {
+                onCreateFloatingButton: () => {},
+                onRemoveFloatingButton: () => {},
+                onUpdateFileList: async (forceRefresh?: boolean) => {
+                    if (this.fileListManager) {
+                        this.fileListManager.updateState({
+                            currentFile: this.currentFile,
+                            isFlashcardMode: this.isFlashcardMode,
+                            isMobileView: this.isMobileView,
+                            isSmallScreen: this.isSmallScreen,
+                            isDraggedToMainView: this.isDraggedToMainView
+                        });
+                        await this.fileListManager.updateFileList(forceRefresh);
+                    }
                 }
-            }
-        });
+            });
+        }
         
         // 初始化视图位置检测器
         this.viewPositionDetector = new ViewPositionDetector(this.app, this.leaf);
@@ -561,34 +579,37 @@ export class CommentView extends ItemView {
             this.highlightDataManager!
         );
         
-        this.canvasProcessor.setCallbacks({
-            onShowLoading: () => {
-                this.highlightContainer.empty();
-                if (this.loadingIndicator) {
-                    this.highlightContainer.appendChild(this.loadingIndicator);
-                    this.loadingIndicator.removeClass('highlight-display-none');
+        // 使用 CallbackConfigurator 配置 Canvas 处理器回调
+        if (this.callbackConfigurator) {
+            this.callbackConfigurator.configureCanvasProcessor(this.canvasProcessor, {
+                onShowLoading: () => {
+                    this.highlightContainer.empty();
+                    if (this.loadingIndicator) {
+                        this.highlightContainer.appendChild(this.loadingIndicator);
+                        this.loadingIndicator.removeClass('highlight-display-none');
+                    }
+                },
+                onHideLoading: () => {
+                    if (this.loadingIndicator) {
+                        this.loadingIndicator.addClass('highlight-display-none');
+                    }
+                },
+                onShowError: (message) => {
+                    this.highlightContainer.empty();
+                    this.highlightContainer.createDiv({
+                        cls: 'error-message',
+                        text: message
+                    });
+                },
+                onShowEmpty: (message) => {
+                    this.highlightContainer.empty();
+                    this.highlightContainer.createDiv({
+                        cls: 'no-highlights-message',
+                        text: message
+                    });
                 }
-            },
-            onHideLoading: () => {
-                if (this.loadingIndicator) {
-                    this.loadingIndicator.addClass('highlight-display-none');
-                }
-            },
-            onShowError: (message) => {
-                this.highlightContainer.empty();
-                this.highlightContainer.createDiv({
-                    cls: 'error-message',
-                    text: message
-                });
-            },
-            onShowEmpty: (message) => {
-                this.highlightContainer.empty();
-                this.highlightContainer.createDiv({
-                    cls: 'no-highlights-message',
-                    text: message
-                });
-            }
-        });
+            });
+        }
         
         this.viewPositionDetector.setCallbacks({
             onPositionChange: async (isInMainView, wasInAllHighlightsView) => {
