@@ -150,12 +150,28 @@ export class AIServiceManager {
     /**
      * 处理 Prompt 模板
      * 替换 {{highlight}} 和 {{comment}} 占位符
+     * 如果 prompt 中不包含占位符，则自动将高亮文本作为上下文添加到 prompt 末尾
      */
     private processPrompt(prompt: string, highlight: string, comment?: string): string {
-        let processed = prompt.replace('{{highlight}}', highlight);
-        if (comment) {
-            processed = processed.replace('{{comment}}', comment);
+        let processed = prompt;
+        
+        // 检查是否包含 {{highlight}} 占位符
+        const hasHighlightPlaceholder = prompt.includes('{{highlight}}');
+        const hasCommentPlaceholder = prompt.includes('{{comment}}');
+        
+        // 替换占位符
+        if (hasHighlightPlaceholder) {
+            processed = processed.replace(/\{\{highlight\}\}/g, highlight);
         }
+        if (hasCommentPlaceholder && comment) {
+            processed = processed.replace(/\{\{comment\}\}/g, comment);
+        }
+        
+        // 如果没有使用占位符，则将高亮文本作为上下文自动添加
+        if (!hasHighlightPlaceholder && highlight) {
+            processed = `${processed}\n\n${highlight}`;
+        }
+        
         return processed;
     }
     

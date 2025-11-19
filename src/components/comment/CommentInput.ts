@@ -309,13 +309,12 @@ export class CommentInput {
             // 获取高亮文本
             const highlightText = this.highlight.text || '';
             
-            // 构建完整的Prompt，将用户输入作为指令，高亮文本作为上下文
-            const fullPrompt = `${userPrompt}\n\n高亮文本：${highlightText}`;
-            
-            // 调用AI服务
+            // 用户输入作为指令，高亮文本默认作为上下文
+            // 如果用户输入中包含 {{highlight}} 占位符，则会被替换
+            // 否则，高亮文本会自动作为上下文传递给 AI
             const aiService = new AIServiceManager(this.plugin.settings.ai);
             const response = await aiService.generateResponse(
-                fullPrompt,
+                userPrompt,
                 highlightText,
                 this.existingComment?.content || ''
             );
