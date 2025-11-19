@@ -52,7 +52,7 @@ settings:
 */
 
 /* 只针对评论插件内容移除内边距 */
-.workspace-leaf-content[data-type="comment-view"] .view-content {
+.workspace-leaf-content[data-type="hinote-view"] .view-content {
     padding: 0 !important;
 }
 
@@ -1563,8 +1563,8 @@ settings:
 }
 
 /* 深色模式优化 */
-.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-front,
-.theme-dark .workspace-leaf-content[data-type="comment-view"] .highlight-container.flashcard-mode .flashcard-back {
+.theme-dark .workspace-leaf-content[data-type="hinote-view"] .highlight-container.flashcard-mode .flashcard-front,
+.theme-dark .workspace-leaf-content[data-type="hinote-view"] .highlight-container.flashcard-mode .flashcard-back {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
         0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
@@ -3866,7 +3866,7 @@ textarea.flashcard-modal-input {
 }
 
 /* 只在小屏幕移动端主视图模式下显示返回按钮 */
-.is-mobile .comment-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
+.is-mobile .hinote-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
     display: flex;
 }
 
@@ -3877,7 +3877,7 @@ textarea.flashcard-modal-input {
 }
 
 /* 小屏幕移动端主视图中调整主容器布局 */
-.is-mobile .comment-view-container.is-in-main-view.is-small-screen .highlight-main-container {
+.is-mobile .hinote-view-container.is-in-main-view.is-small-screen .highlight-main-container {
     display: flex;
     flex-direction: column;
 }
@@ -3890,7 +3890,7 @@ textarea.flashcard-modal-input {
         max-width: 300px;
     }
     
-    .is-mobile .comment-view-container .highlight-main-container {
+    .is-mobile .hinote-view-container .highlight-main-container {
         display: flex;
         flex-direction: row;
     }
