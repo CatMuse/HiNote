@@ -329,6 +329,13 @@ settings:
     color: var(--text-muted);
 }
 
+/* ===================================
+   12. ANIMATIONS
+   动画定义
+   =================================== */
+
+/* === 旋转动画 === */
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -906,6 +913,13 @@ settings:
 /* Flashcard styles */
 
 /* 闪卡统计面板样式 */
+/* ===================================
+   10. FLASHCARDS
+   闪卡功能
+   =================================== */
+
+/* === 闪卡统计面板 === */
+
 .flashcard-stats-panel {
     border-radius: 8px;
     background-color: var(--background-secondary);
@@ -1668,7 +1682,13 @@ settings:
     box-shadow: 0 0 0 2px var(--interactive-accent-hover);
 }
 
-/* 导出预览弹窗样式 */
+/* ===================================
+   7. EXPORT
+   导出功能
+   =================================== */
+
+/* === 导出模态框 === */
+
 .highlight-export-modal {
     max-width: 800px;
     min-height: 400px;  /* 设置最小高度 */
@@ -2103,7 +2123,13 @@ settings:
     display: none !important;
 }
 
-/* 聊天窗口基础样式 */
+/* ===================================
+   8. CHAT WINDOW
+   聊天窗口
+   =================================== */
+
+/* === 聊天窗口容器 === */
+
 .highlight-chat-window {
     position: fixed !important;
     min-height: 300px;
@@ -2533,7 +2559,13 @@ box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     opacity: 1;
 }
 
-/* AI 按钮和下拉菜单样式 */
+/* ===================================
+   9. AI FEATURES
+   AI 功能
+   =================================== */
+
+/* === AI 按钮和菜单 === */
+
 .highlight-ai-container {
     position: relative;
     z-index: 1000;
@@ -3929,7 +3961,13 @@ textarea.flashcard-modal-input {
     align-items: center;
 }
 
-/* 只在小屏幕移动端主视图模式下显示返回按钮 */
+/* ===================================
+   11. MOBILE RESPONSIVE
+   移动端适配
+   =================================== */
+
+/* === 移动端布局 === */
+
 .is-mobile .hinote-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
     display: flex;
 }
