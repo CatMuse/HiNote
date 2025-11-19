@@ -5,7 +5,7 @@ import { CommentList } from "./CommentList";
 import { UnfocusedCommentInput } from "../comment/UnfocusedCommentInput";
 import { MarkdownView, Notice, TFile, WorkspaceLeaf, HoverParent, HoverPopover, MarkdownPreviewView, setIcon, Menu, MenuItem, Editor } from "obsidian";
 import { DragPreview } from './DragPreview';
-import { VIEW_TYPE_COMMENT } from '../../CommentView';
+import { VIEW_TYPE_HINOTE } from '../../HiNoteView';
 import { t } from "../../i18n";
 import { DragContentGenerator } from "./DragContentGenerator";
 import { AIButton } from "../AIButton";

@@ -1,6 +1,6 @@
 import { App, WorkspaceLeaf } from 'obsidian';
-import { VIEW_TYPE_COMMENT } from '../CommentView';
-import { CommentView } from '../CommentView';
+import { VIEW_TYPE_HINOTE } from '../HiNoteView';
+import { HiNoteView } from '../HiNoteView';
 
 /**
  * 窗口管理服务
@@ -17,28 +17,28 @@ export class WindowManager {
         const { workspace } = this.app;
         
         // 检查评论面板是否已经打开
-        const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+        const existing = workspace.getLeavesOfType(VIEW_TYPE_HINOTE);
         if (existing.length) {
             // 如果已经打开，先检查当前视图是否在主视图区域
             const existingLeaf = existing[0];
             const view = existingLeaf.view;
             
             // 如果在主视图区域，则移动到右侧侧边栏
-            if (view && view instanceof CommentView && (view as any).isDraggedToMainView) {
+            if (view && view instanceof HiNoteView && (view as any).isDraggedToMainView) {
                 // 先分离当前叶子
-                workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
+                workspace.detachLeavesOfType(VIEW_TYPE_HINOTE);
                 
                 // 然后在右侧侧边栏创建新的叶子
                 const newLeaf = workspace.getRightLeaf(false);
                 if (newLeaf) {
                     await newLeaf.setViewState({
-                        type: VIEW_TYPE_COMMENT,
+                        type: VIEW_TYPE_HINOTE,
                         active: true,
                     });
                     
                     // 将视图标记为侧边栏模式
                     const newView = newLeaf.view;
-                    if (newView && newView instanceof CommentView) {
+                    if (newView && newView instanceof HiNoteView) {
                         (newView as any).isDraggedToMainView = false;
                         (newView as any).updateViewLayout();
                         (newView as any).updateHighlights();
@@ -55,13 +55,13 @@ export class WindowManager {
         const leaf = workspace.getRightLeaf(false);
         if (leaf) {
             await leaf.setViewState({
-                type: VIEW_TYPE_COMMENT,
+                type: VIEW_TYPE_HINOTE,
                 active: true,
             });
             
             // 确保视图标记为侧边栏模式
             const view = leaf.view;
-            if (view && view instanceof CommentView) {
+            if (view && view instanceof HiNoteView) {
                 (view as any).isDraggedToMainView = false;
                 (view as any).updateViewLayout();
             }
@@ -76,7 +76,7 @@ export class WindowManager {
         const { workspace } = this.app;
         
         // 检查评论面板是否已经打开
-        const existing = workspace.getLeavesOfType(VIEW_TYPE_COMMENT);
+        const existing = workspace.getLeavesOfType(VIEW_TYPE_HINOTE);
         if (existing.length) {
             // 如果已经打开，尝试将其移动到主视图区域
             const existingLeaf = existing[0];
@@ -86,18 +86,18 @@ export class WindowManager {
             
             // 使用另一种方式将视图移动到主视图区域
             // 先分离当前叶子
-            workspace.detachLeavesOfType(VIEW_TYPE_COMMENT);
+            workspace.detachLeavesOfType(VIEW_TYPE_HINOTE);
             
             // 然后在主视图区域创建新的叶子（使用tab而不是split避免分屏）
             const newLeaf = workspace.getLeaf('tab');
             await newLeaf.setViewState({
-                type: VIEW_TYPE_COMMENT,
+                type: VIEW_TYPE_HINOTE,
                 active: true,
             });
             
             // 将视图标记为主窗口模式
             const view = newLeaf.view;
-            if (view && view instanceof CommentView) {
+            if (view && view instanceof HiNoteView) {
                 this.updateViewToMainMode(view as any);
             }
             return;
@@ -107,14 +107,14 @@ export class WindowManager {
         const leaf = workspace.getLeaf('tab');
         if (leaf) {
             await leaf.setViewState({
-                type: VIEW_TYPE_COMMENT,
+                type: VIEW_TYPE_HINOTE,
                 active: true,
             });
             
             // 将新创建的视图标记为主窗口模式
             setTimeout(() => {
                 const view = leaf.view;
-                if (view && view instanceof CommentView) {
+                if (view && view instanceof HiNoteView) {
                     this.updateViewToMainMode(view as any);
                 }
             }, 100);

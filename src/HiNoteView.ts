@@ -28,7 +28,6 @@ import { LayoutManager } from './view/layout/LayoutManager';
 import { ViewPositionDetector } from './view/layout/ViewPositionDetector';
 import { CanvasHighlightProcessor } from './view/canvas/CanvasHighlightProcessor';
 import { AllHighlightsManager } from './view/allhighlights/AllHighlightsManager';
-// 新增的 Manager
 import { ExportManager } from './view/export/ExportManager';
 import { VirtualHighlightManager } from './view/highlight/VirtualHighlightManager';
 import { InfiniteScrollManager } from './view/scroll/InfiniteScrollManager';
@@ -38,60 +37,41 @@ import { UIInitializer, UIElements } from './view/ui/UIInitializer';
 import { EventCoordinator } from './view/events/EventCoordinator';
 import { CallbackConfigurator } from './view/config/CallbackConfigurator';
 
-export const VIEW_TYPE_COMMENT = "comment-view";
+export const VIEW_TYPE_HINOTE = "hinote-view";
 
-export class CommentView extends ItemView {
-    // 搜索管理器
-    private searchManager: SearchManager | null = null;
-    // 多选管理器
-    private selectionManager: SelectionManager | null = null;
-    // 批量操作处理器
-    private batchOperationsHandler: BatchOperationsHandler | null = null;
-    // 文件列表管理器
-    private fileListManager: FileListManager | null = null;
-    // 高亮渲染管理器
-    private highlightRenderManager: HighlightRenderManager | null = null;
-    // 高亮数据管理器
-    private highlightDataManager: HighlightDataManager | null = null;
-    // 评论操作管理器
-    private commentOperationManager: CommentOperationManager | null = null;
-    // 评论输入管理器
-    private commentInputManager: CommentInputManager | null = null;
-    // 布局管理器
-    private layoutManager: LayoutManager | null = null;
-    // 视图位置检测器
-    private viewPositionDetector: ViewPositionDetector | null = null;
-    private highlightContainer: HTMLElement;
-    private searchContainer: HTMLElement;
-    private fileListContainer: HTMLElement;
-    private mainContentContainer: HTMLElement;
-    private currentFile: TFile | null = null;
-    private isFlashcardMode: boolean = false;
-    private highlights: HighlightInfo[] = [];
-    private highlightsWithFlashcards: Set<string> = new Set<string>();
-    private commentStore: CommentStore;
-    private searchInput: HTMLInputElement;
-    private searchLoadingIndicator: HTMLElement;
+/**
+ * HiNote 主视图
+ * 负责显示和管理高亮、评论、闪卡等核心功能
+ */
+export class HiNoteView extends ItemView {
+    // === 常量定义 ===
+    private static readonly CANVAS_UPDATE_DELAY = 10; // Canvas 更新延迟（毫秒）
+    private static readonly COMMENT_INPUT_DELAY = 100; // 评论输入延迟（毫秒）
+
+    // === 核心服务 ===
     private plugin: CommentPlugin;
+    private commentStore: CommentStore;
     private locationService: LocationService;
     private exportService: ExportService;
     private highlightService: HighlightService;
     private licenseManager: LicenseManager;
-    private isDraggedToMainView: boolean = false;
-    private isMobileView: boolean = false;
-    private isSmallScreen: boolean = false; // 是否为小屏幕设备
-    private isShowingFileList: boolean = true; // 在移动端主视图中是否显示文件列表
-    private loadingIndicator: HTMLElement;
-    private aiButtons: AIButton[] = []; // 添加一个数组来跟踪所有的 AIButton 实例
-    private currentEditingHighlightId: string | null | undefined = null;
-    private flashcardComponent: FlashcardComponent | null = null;
     private canvasService: CanvasService;
-    // Canvas 高亮处理器
+
+    // === 功能管理器 ===
+    private searchManager: SearchManager | null = null;
+    private selectionManager: SelectionManager | null = null;
+    private batchOperationsHandler: BatchOperationsHandler | null = null;
+    private fileListManager: FileListManager | null = null;
+    private highlightRenderManager: HighlightRenderManager | null = null;
+    private highlightDataManager: HighlightDataManager | null = null;
+    private commentOperationManager: CommentOperationManager | null = null;
+    private commentInputManager: CommentInputManager | null = null;
+    private layoutManager: LayoutManager | null = null;
+    private viewPositionDetector: ViewPositionDetector | null = null;
     private canvasProcessor: CanvasHighlightProcessor | null = null;
-    // 全局高亮管理器
     private allHighlightsManager: AllHighlightsManager | null = null;
-    
-    // === 新增的 Manager ===
+
+    // === 重构新增的 Manager ===
     private exportManager: ExportManager | null = null;
     private virtualHighlightManager: VirtualHighlightManager | null = null;
     private infiniteScrollManager: InfiniteScrollManager | null = null;
@@ -100,9 +80,30 @@ export class CommentView extends ItemView {
     private uiInitializer: UIInitializer | null = null;
     private eventCoordinator: EventCoordinator | null = null;
     private callbackConfigurator: CallbackConfigurator | null = null;
-    
-    // UI 元素（从 UIInitializer 获取）
-    private uiElements: UIElements | null = null;
+
+    // === UI 元素（在 onOpen 中初始化）===
+    private highlightContainer!: HTMLElement;
+    private searchContainer!: HTMLElement;
+    private fileListContainer!: HTMLElement;
+    private mainContentContainer!: HTMLElement;
+    private searchInput!: HTMLInputElement;
+    private searchLoadingIndicator!: HTMLElement;
+    private loadingIndicator!: HTMLElement;
+
+    // === 状态数据 ===
+    private currentFile: TFile | null = null;
+    private highlights: HighlightInfo[] = [];
+    private highlightsWithFlashcards: Set<string> = new Set<string>();
+    private isFlashcardMode: boolean = false;
+    private isDraggedToMainView: boolean = false;
+    private isMobileView: boolean = false;
+    private isSmallScreen: boolean = false;
+    private isShowingFileList: boolean = true;
+    private currentEditingHighlightId: string | null | undefined = null;
+
+    // === 组件实例 ===
+    private flashcardComponent: FlashcardComponent | null = null;
+    private aiButtons: AIButton[] = [];
 
     constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
         super(leaf);
@@ -174,7 +175,7 @@ export class CommentView extends ItemView {
     }
 
     getViewType(): string {
-        return VIEW_TYPE_COMMENT;
+        return VIEW_TYPE_HINOTE;
     }
 
     getDisplayText(): string {
@@ -189,11 +190,11 @@ export class CommentView extends ItemView {
         const container = this.containerEl.children[1] as HTMLElement;
         
         // 监听多选事件
-        container.addEventListener('highlight-multi-select', (e: CustomEvent) => {
+        container.addEventListener('highlight-multi-select', ((e: CustomEvent) => {
             if (this.selectionManager) {
                 this.selectionManager.updateSelectedHighlights();
             }
-        });
+        }) as EventListener);
 
         // 使用 UIInitializer 创建所有 UI 元素
         const uiElements = this.uiInitializer!.initializeUI(container);
@@ -617,16 +618,9 @@ export class CommentView extends ItemView {
                 
                 if (isInMainView) {
                     // 拖拽到主视图（使用 DeviceManager）
-                    if (this.deviceManager) {
-                        const deviceInfo = this.deviceManager.getDeviceInfo();
-                        if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
-                            this.isShowingFileList = true;
-                        }
-                    } else if (this.layoutManager) {
-                        const deviceInfo = this.layoutManager.getDeviceInfo();
-                        if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
-                            this.isShowingFileList = true;
-                        }
+                    const deviceInfo = this.deviceManager!.getDeviceInfo();
+                    if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
+                        this.isShowingFileList = true;
                     }
                     
                     const activeFile = this.app.workspace.getActiveFile();
@@ -670,7 +664,7 @@ export class CommentView extends ItemView {
                             this.highlightContainer.appendChild(this.loadingIndicator);
                             setTimeout(() => {
                                 this.updateHighlights();
-                            }, 10);
+                            }, HiNoteView.CANVAS_UPDATE_DELAY);
                         } else {
                             this.currentFile = activeFile;
                             this.updateHighlights();
@@ -820,15 +814,9 @@ export class CommentView extends ItemView {
             await this.layoutManager.updateViewLayout();
             
             // 同步设备信息（使用 DeviceManager）
-            if (this.deviceManager) {
-                const deviceInfo = this.deviceManager.getDeviceInfo();
-                this.isMobileView = deviceInfo.isMobile;
-                this.isSmallScreen = deviceInfo.isSmallScreen;
-            } else {
-                const deviceInfo = this.layoutManager.getDeviceInfo();
-                this.isMobileView = deviceInfo.isMobile;
-                this.isSmallScreen = deviceInfo.isSmallScreen;
-            }
+            const deviceInfo = this.deviceManager!.getDeviceInfo();
+            this.isMobileView = deviceInfo.isMobile;
+            this.isSmallScreen = deviceInfo.isSmallScreen;
         }
     }
 

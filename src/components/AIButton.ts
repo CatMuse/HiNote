@@ -2,7 +2,7 @@ import { setIcon, Notice, ItemView, Menu, MenuItem } from "obsidian";
 import { AIServiceManager } from "../services/ai";
 import type CommentPlugin from "../../main";
 import { t } from "../i18n";
-import { CommentView } from "../CommentView";
+import { HiNoteView } from "../HiNoteView";
 
 /**
  * 内容提供者接口，用于获取 AI 分析所需的文本和评论
@@ -64,9 +64,9 @@ export class AIButton {
         this.initButton();
 
 
-        // 注册到 CommentView
-        const view = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view;
-        const commentView = view instanceof CommentView ? view : null;
+        // 注册到 HiNoteView
+        const view = this.plugin.app.workspace.getLeavesOfType('hinote-view')[0]?.view;
+        const commentView = view instanceof HiNoteView ? view : null;
         if (commentView?.registerAIButton) {
             commentView.registerAIButton(this);
         }
@@ -79,9 +79,9 @@ export class AIButton {
         // 移除事件监听器
         document.removeEventListener('click', this.boundClickHandler);
 
-        // 从 CommentView 注销
-        const view = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view;
-        const commentView = view instanceof CommentView ? view : null;
+        // 从 HiNoteView 注销
+        const view = this.plugin.app.workspace.getLeavesOfType('hinote-view')[0]?.view;
+        const commentView = view instanceof HiNoteView ? view : null;
         if (commentView?.unregisterAIButton) {
             commentView.unregisterAIButton(this);
         }

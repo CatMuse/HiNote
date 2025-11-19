@@ -1,6 +1,6 @@
 import { Setting, TextAreaComponent, Notice } from 'obsidian';
 import { setIcon } from 'obsidian';
-import { CommentView } from '../CommentView';
+import { HiNoteView } from '../HiNoteView';
 import { PluginSettings } from '../types';
 import { t } from '../i18n'; // 导入新的翻译系统
 
@@ -95,7 +95,7 @@ export class PromptSettingsTab {
                 new Notice(t('Prompt added'));
 
                 // 更新所有 AI 下拉菜单
-                const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
+                const commentView = this.plugin.app.workspace.getLeavesOfType('hinote-view')[0]?.view as HiNoteView;
                 if (commentView) {
                     commentView.updateAIDropdowns();
                 }
@@ -201,7 +201,7 @@ export class PromptSettingsTab {
                 promptItem.remove();
 
                 // 更新所有 AI 下拉菜单
-                const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
+                const commentView = this.plugin.app.workspace.getLeavesOfType('hinote-view')[0]?.view as HiNoteView;
                 if (commentView) {
                     commentView.updateAIDropdowns();
                 }
@@ -224,7 +224,7 @@ export class PromptSettingsTab {
                     new Notice(t('Prompt updated'));
 
                     // 更新所有 AI 下拉菜单
-                    const commentView = this.plugin.app.workspace.getLeavesOfType('comment-view')[0]?.view as CommentView;
+                    const commentView = this.plugin.app.workspace.getLeavesOfType('hinote-view')[0]?.view as HiNoteView;
                     if (commentView) {
                         commentView.updateAIDropdowns();
                     }
