@@ -268,12 +268,8 @@ export class BatchOperationsHandler {
             const selectedHighlightsArray = Array.from(selectedHighlights);
             const newFile = await this.exportService.exportHighlightsAsMarkdown(selectedHighlightsArray);
             
-            if (newFile) {
-                new Notice(t('Successfully exported selected highlights to: ') + newFile.path);
-                this.onClearSelectionCallback();
-            } else {
-                new Notice(t('No highlights to export'));
-            }
+            new Notice(t('Successfully exported selected highlights to: ') + newFile.path);
+            this.onClearSelectionCallback();
         } catch (error) {
             console.error('Failed to export highlights:', error);
             new Notice(t('Failed to export highlights: ') + (error instanceof Error ? error.message : String(error)));

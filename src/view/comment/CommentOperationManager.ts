@@ -272,15 +272,4 @@ export class CommentOperationManager {
             }
         }));
     }
-    
-    /**
-     * 生成高亮 ID
-     */
-    generateHighlightId(highlight: HighlightInfo): string {
-        return IdGenerator.generateHighlightId(
-            this.currentFile?.path || '', 
-            highlight.position || 0, 
-            highlight.text
-        );
-    }
 }

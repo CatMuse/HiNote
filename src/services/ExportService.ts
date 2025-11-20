@@ -16,19 +16,61 @@ export class ExportService {
     }
     
     /**
+     * 获取插件实例
+     */
+    private getPluginInstance(): any {
+        const plugins = (this.app as any).plugins;
+        return plugins && plugins.plugins ? plugins.plugins['hi-note'] : undefined;
+    }
+    
+    /**
+     * 创建导出文件
+     * @param fileName 文件名（不含扩展名）
+     * @param content 文件内容
+     * @param exportPath 导出路径
+     */
+    private async createExportFile(fileName: string, content: string, exportPath: string): Promise<TFile> {
+        // 如果设置了导出路径，确保目录存在
+        let fullPath = fileName;
+        if (exportPath) {
+            // 确保目录存在
+            const folderPath = this.app.vault.getAbstractFileByPath(exportPath);
+            if (!folderPath) {
+                await this.app.vault.createFolder(exportPath);
+            }
+            fullPath = `${exportPath}/${fileName}`;
+        }
+
+        // 创建新文件
+        try {
+            const newFile = await this.app.vault.create(
+                `${fullPath}.md`,
+                content
+            );
+            return newFile;
+        } catch (error) {
+            // 处理文件已存在的情况
+            if (error.message && error.message.includes("already exists")) {
+                throw new Error(t("Export file already exists. Please try again in a moment."));
+            }
+            // 处理其他文件创建错误
+            throw new Error(t("Failed to create export file: ") + error.message);
+        }
+    }
+    
+    /**
      * 导出选中的多个高亮为 Markdown 文件
      * @param highlights 要导出的高亮数组
      * @returns 返回创建的新文件
+     * @throws 如果没有高亮或创建文件失败
      */
-    async exportHighlightsAsMarkdown(highlights: HighlightInfo[]): Promise<TFile | null> {
+    async exportHighlightsAsMarkdown(highlights: HighlightInfo[]): Promise<TFile> {
         if (!highlights || highlights.length === 0) {
-            return null;
+            throw new Error(t("No highlights to export."));
         }
         
         // 获取插件实例和设置
-        const plugins = (this.app as any).plugins;
-        const hiNotePlugin = plugins && plugins.plugins ? 
-            plugins.plugins['hi-note'] : undefined;
+        const hiNotePlugin = this.getPluginInstance();
         
         // 按文件分组高亮
         const highlightsByFile: Record<string, HighlightInfo[]> = {};
@@ -56,8 +98,6 @@ export class ExportService {
             
             // 使用模板或默认方式生成内容
             const fileHighlights = highlightsByFile[filePath];
-            
-            // 获取插件实例和设置
             const customTemplate = hiNotePlugin?.settings?.export?.exportTemplate;
             
             // 如果有自定义模板且不为空，使用模板解析方式
@@ -75,106 +115,11 @@ export class ExportService {
         
         const content = contentParts.join("\n");
         
-        // 获取导出路径
+        // 获取导出路径并创建文件
         const exportPath = hiNotePlugin?.settings?.export?.exportPath || '';
+        const fileName = `Selected Highlights ${window.moment().format("YYYYMMDDHHmmss")}`;
         
-        // 创建新文件
-        const fileName = `Selected Highlights ${window.moment().format("YYYYMMDDHHmm")}`;
-        
-        // 如果设置了导出路径，确保目录存在
-        let fullPath = fileName;
-        if (exportPath) {
-            // 确保目录存在
-            const folderPath = this.app.vault.getAbstractFileByPath(exportPath);
-            if (!folderPath) {
-                await this.app.vault.createFolder(exportPath);
-            }
-            fullPath = `${exportPath}/${fileName}`;
-        }
-
-        // 创建新文件
-        const newFile = await this.app.vault.create(
-            `${fullPath}.md`,
-            content
-        );
-
-        return newFile;
-    }
-    
-    /**
-     * 为多个高亮生成导出内容
-     * @param highlights 高亮数组
-     * @returns 生成的内容
-     */
-    private async generateContentForMultipleHighlights(highlights: HighlightInfo[]): Promise<string> {
-        const lines: string[] = [];
-        
-        // 添加标题
-        lines.push(`# ${t("Selected Highlights")}`);
-        lines.push("");
-        lines.push(`*${t("Exported on")} ${window.moment().format("YYYY-MM-DD HH:mm:ss")}*`);
-        lines.push("");
-        
-        // 按文件分组高亮
-        const highlightsByFile: Record<string, HighlightInfo[]> = {};
-        
-        for (const highlight of highlights) {
-            if (!highlight.filePath) continue;
-            
-            if (!highlightsByFile[highlight.filePath]) {
-                highlightsByFile[highlight.filePath] = [];
-            }
-            
-            highlightsByFile[highlight.filePath].push(highlight);
-        }
-        
-        // 为每个文件生成内容
-        for (const filePath in highlightsByFile) {
-            const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!(file instanceof TFile)) continue;
-            
-            lines.push(`## ${file.basename}`);
-            lines.push("");
-            
-            // 为文件中的每个高亮生成内容
-            const fileHighlights = highlightsByFile[filePath];
-            for (const highlight of fileHighlights) {
-                // 添加高亮文本
-                lines.push(`> ${highlight.text}`);
-                lines.push("> ");
-                
-                // 如果有评论内容，添加分割线
-                if (highlight.comments && highlight.comments.length > 0) {
-                    lines.push("> ---");
-                    lines.push("> ");
-                    
-                    // 添加评论内容
-                    for (const comment of highlight.comments) {
-                        lines.push(">> [!note] Comment");
-                        // 处理多行内容，确保每行都有正确的缩进
-                        const commentLines = comment.content
-                            .split('\n')
-                            .map(line => {
-                                line = line.trim();
-                                // 如果是空行，返回带缩进的空行
-                                if (!line) return '>>';
-                                return `>> ${line}`;
-                            })
-                            .join('\n');
-                        lines.push(commentLines);
-                        
-                        if (comment.updatedAt) {
-                            const date = window.moment(comment.updatedAt);
-                            lines.push(`>> *${date.format("YYYY-MM-DD HH:mm:ss")}*`);
-                        }
-                        lines.push(">");
-                    }
-                }
-                lines.push("");
-            }
-        }
-        
-        return lines.join("\n");
+        return await this.createExportFile(fileName, content, exportPath);
     }
 
     /**
@@ -192,35 +137,12 @@ export class ExportService {
         // 生成导出内容
         const content = await this.generateExportContent(sourceFile, highlights);
 
-        // 获取导出路径
-        // 使用类型安全的方式获取导出路径
-        // 通过类型断言访问内部属性
-        const plugins = (this.app as any).plugins;
-        const hiNotePlugin = plugins && plugins.plugins ? 
-            plugins.plugins['hi-note'] : undefined;
+        // 获取导出路径并创建文件
+        const hiNotePlugin = this.getPluginInstance();
         const exportPath = hiNotePlugin?.settings?.export?.exportPath || '';
+        const fileName = `${sourceFile.basename} - HiNote ${window.moment().format("YYYYMMDDHHmmss")}`;
         
-        // 创建新文件
-        const fileName = `${sourceFile.basename} - HiNote ${window.moment().format("YYYYMMDDHHmm")}`;
-        
-        // 如果设置了导出路径，确保目录存在
-        let fullPath = fileName;
-        if (exportPath) {
-            // 确保目录存在
-            const folderPath = this.app.vault.getAbstractFileByPath(exportPath);
-            if (!folderPath) {
-                await this.app.vault.createFolder(exportPath);
-            }
-            fullPath = `${exportPath}/${fileName}`;
-        }
-
-        // 创建新文件
-        const newFile = await this.app.vault.create(
-            `${fullPath}.md`,
-            content
-        );
-
-        return newFile;
+        return await this.createExportFile(fileName, content, exportPath);
     }
 
     /**
@@ -280,9 +202,7 @@ export class ExportService {
      */
     private async generateExportContent(file: TFile, highlights: HighlightInfo[]): Promise<string> {
         // 获取插件实例和设置
-        const plugins = (this.app as any).plugins;
-        const hiNotePlugin = plugins && plugins.plugins ? 
-            plugins.plugins['hi-note'] : undefined;
+        const hiNotePlugin = this.getPluginInstance();
         
         // 检查是否有自定义模板
         const customTemplate = hiNotePlugin?.settings?.export?.exportTemplate;
@@ -444,25 +364,5 @@ export class ExportService {
         
         // 调用模板生成方法
         return this.generateContentFromTemplate(file, highlights, defaultTemplate);
-    }
-
-    /**
-     * 获取段落偏移量
-     */
-    private getParagraphOffset(content: string, position: number): number {
-        const beforeText = content.substring(0, position);
-        const lastNewline = beforeText.lastIndexOf("\n");
-        return lastNewline === -1 ? position : position - lastNewline;
-    }
-
-    /**
-     * 生成高亮ID
-     */
-    private generateHighlightId(highlight: HighlightInfo, filePath: string): string {
-        return IdGenerator.generateHighlightId(
-            filePath, 
-            highlight.position || 0, 
-            highlight.text
-        );
     }
 }
