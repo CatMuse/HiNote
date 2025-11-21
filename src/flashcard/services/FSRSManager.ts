@@ -1172,13 +1172,14 @@ export class FSRSManager {
             return;
         }
         
+        // 从 CommentStore 获取高亮的最新批注列表
+        const highlight = this.plugin.commentStore?.getHighlightById(sourceId);
+        const currentComments = highlight?.comments || [];
+        
         let updatedCount = 0;
         
         // 遍历所有找到的卡片
         for (const card of foundCards) {
-            // 保存原始答案
-            const originalAnswer = card.answer || '';
-            
             // 检查卡片文本是否包含挖空格式
             const clozeRegex = /\{\{([^{}]+)\}\}/g;
             let clozeAnswers: string[] = [];
@@ -1189,17 +1190,6 @@ export class FSRSManager {
                 clozeAnswers.push(match[1]);
             }
             
-            // 尝试从原始答案中提取其他批注内容
-            // 首先将原始答案按行分割
-            const answerLines = originalAnswer.split('\n');
-            
-            // 过滤掉旧的批注内容和空行
-            const otherComments = answerLines.filter(line => 
-                line.trim() !== '' && 
-                line.trim() !== oldComment.trim() && 
-                !clozeAnswers.includes(line.trim())
-            );
-            
             // 收集所有答案部分
             let answerParts: string[] = [];
             
@@ -1208,21 +1198,22 @@ export class FSRSManager {
                 answerParts.push(clozeAnswers.join('\n'));
             }
             
-            // 添加其他批注内容
-            if (otherComments.length > 0) {
-                answerParts.push(otherComments.join('\n'));
-            }
-            
-            // 添加新的批注内容
-            if (newComment && newComment.trim() !== '') {
-                answerParts.push(newComment);
+            // 添加所有当前批注内容（从 CommentStore 获取的最新数据）
+            if (currentComments.length > 0) {
+                const commentContents = currentComments
+                    .map((c: any) => c.content)
+                    .filter((content: string) => content && content.trim() !== '');
+                
+                if (commentContents.length > 0) {
+                    answerParts.push(commentContents.join('\n\n'));
+                }
             }
             
             // 合并所有答案部分
             const newAnswer = answerParts.length > 0 ? answerParts.join('\n\n') : '';
             
             // 更新卡片答案
-            if (newAnswer !== originalAnswer) {
+            if (newAnswer !== card.answer) {
                 card.answer = newAnswer;
                 card.updatedAt = Date.now();
                 updatedCount++;

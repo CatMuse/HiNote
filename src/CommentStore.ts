@@ -408,5 +408,24 @@ export class CommentStore {
         return fileHighlights.filter(highlight => highlight.blockId === blockId);
     }
 
+    /**
+     * 根据高亮 ID 获取高亮信息
+     * @param highlightId 高亮ID
+     * @returns 高亮信息，如果未找到则返回 null
+     */
+    getHighlightById(highlightId: string): HiNote | null {
+        if (!highlightId) return null;
+        
+        // 遍历所有文件的高亮
+        for (const fileHighlights of this.comments.values()) {
+            const highlight = fileHighlights.find(h => h.id === highlightId);
+            if (highlight) {
+                return highlight;
+            }
+        }
+        
+        return null;
+    }
+
     // addHighlightWithCloze 方法已移除，现在使用 Create HiCard 按钮手动创建闪卡
 }

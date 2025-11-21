@@ -69,10 +69,6 @@ export class AnthropicSettings extends BaseAIServiceSettings {
     }
 
     private async saveModelState() {
-        if (!this.plugin.settings.ai.anthropic) {
-            this.plugin.settings.ai.anthropic = {};
-        }
-        
         const settings = this.plugin.settings.ai.anthropic;
         const model = this.modelState.selectedModel;
         

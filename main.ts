@@ -106,26 +106,6 @@ export default class CommentPlugin extends Plugin {
         this.settings.ai = this.settings.ai || { ...DEFAULT_SETTINGS.ai };
         this.settings.export = this.settings.export || { ...DEFAULT_SETTINGS.export };
 
-        // 确保每个 AI 服务提供商的设置都存在
-        if (!this.settings.ai.openai && DEFAULT_SETTINGS.ai.openai) {
-            this.settings.ai.openai = { ...DEFAULT_SETTINGS.ai.openai };
-        }
-        if (!this.settings.ai.anthropic && DEFAULT_SETTINGS.ai.anthropic) {
-            this.settings.ai.anthropic = { ...DEFAULT_SETTINGS.ai.anthropic };
-        }
-        if (!this.settings.ai.gemini && DEFAULT_SETTINGS.ai.gemini) {
-            this.settings.ai.gemini = { ...DEFAULT_SETTINGS.ai.gemini };
-        }
-        if (!this.settings.ai.ollama && DEFAULT_SETTINGS.ai.ollama) {
-            this.settings.ai.ollama = { ...DEFAULT_SETTINGS.ai.ollama };
-        }
-        if (!this.settings.ai.deepseek && DEFAULT_SETTINGS.ai.deepseek) {
-            this.settings.ai.deepseek = { ...DEFAULT_SETTINGS.ai.deepseek };
-        }
-        if (!this.settings.ai.siliconflow && DEFAULT_SETTINGS.ai.siliconflow) {
-            this.settings.ai.siliconflow = { ...DEFAULT_SETTINGS.ai.siliconflow };
-        }
-        
         // 确保 prompts 对象存在
         if (!this.settings.ai.prompts) {
             this.settings.ai.prompts = { ...DEFAULT_SETTINGS.ai.prompts };

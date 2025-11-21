@@ -225,6 +225,13 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             model: 'deepseek-chat',
             baseUrl: ''
         },
+        siliconflow: {
+            apiKey: '',
+            model: DEFAULT_SILICONFLOW_MODELS[0].id,
+            baseUrl: '',
+            isCustomModel: false,
+            lastCustomModel: ''
+        },
         prompts: {
             '🤔 Key Insight': '{{highlight}}.Please reinterpret the above content from a fresh perspective and summarize its core idea within 200 characters.'
         }

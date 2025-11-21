@@ -56,10 +56,6 @@ export class DeepseekSettings extends BaseAIServiceSettings {
     }
 
     private async saveModelState() {
-        if (!this.plugin.settings.ai.deepseek) {
-            this.plugin.settings.ai.deepseek = {};
-        }
-        
         const settings = this.plugin.settings.ai.deepseek;
         const model = this.modelState.selectedModel;
         
@@ -76,8 +72,6 @@ export class DeepseekSettings extends BaseAIServiceSettings {
         
         // 立即保存设置
         await this.plugin.saveSettings();
-
-        
     }
 
     private async validateApiKey(apiKey: string): Promise<boolean> {

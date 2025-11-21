@@ -56,25 +56,15 @@ export class SiliconFlowSettings extends BaseAIServiceSettings {
     }
 
     private async saveModelState() {
-        if (!this.plugin.settings.ai.siliconflow) {
-            this.plugin.settings.ai.siliconflow = {
-                apiKey: this.modelState.apiKey || '',
-                model: this.modelState.selectedModel.id,
-                baseUrl: '',
-                isCustomModel: !!this.modelState.selectedModel.isCustom,
-                lastCustomModel: this.modelState.selectedModel.isCustom ? this.modelState.selectedModel.id : undefined
-            };
-        } else {
-            const settings = this.plugin.settings.ai.siliconflow;
-            const model = this.modelState.selectedModel;
-            
-            settings.model = model.id;
-            settings.isCustomModel = !!model.isCustom;
-            settings.apiKey = this.modelState.apiKey || '';
-            
-            if (model.isCustom && model.id) {
-                settings.lastCustomModel = model.id;
-            }
+        const settings = this.plugin.settings.ai.siliconflow;
+        const model = this.modelState.selectedModel;
+        
+        settings.model = model.id;
+        settings.isCustomModel = !!model.isCustom;
+        settings.apiKey = this.modelState.apiKey || '';
+        
+        if (model.isCustom && model.id) {
+            settings.lastCustomModel = model.id;
         }
         
         await this.plugin.saveSettings();

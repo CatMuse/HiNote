@@ -67,10 +67,6 @@ export class OpenAISettings extends BaseAIServiceSettings {
     }
 
     private async saveModelState() {
-        if (!this.plugin.settings.ai.openai) {
-            this.plugin.settings.ai.openai = {};
-        }
-        
         const settings = this.plugin.settings.ai.openai;
         const model = this.modelState.selectedModel;
         
