@@ -4,8 +4,6 @@ import { HiNote } from '../../CommentStore';
 import { HighlightService } from '../../services/HighlightService';
 import { CommentStore } from '../../CommentStore';
 import { IdGenerator } from '../../utils/IdGenerator';
-import { HighlightMatchingService } from '../../services/HighlightMatchingService';
-import { FileCommentsCache } from '../../services/FileCommentsCache';
 import CommentPlugin from '../../../main';
 
 /**
@@ -17,8 +15,6 @@ export class HighlightDataManager {
     private plugin: CommentPlugin;
     private highlightService: HighlightService;
     private commentStore: CommentStore;
-    private highlightMatchingService: HighlightMatchingService;
-    private fileCommentsCache: FileCommentsCache;
     
     constructor(
         app: App,
@@ -30,10 +26,6 @@ export class HighlightDataManager {
         this.plugin = plugin;
         this.highlightService = highlightService;
         this.commentStore = commentStore;
-        // 使用统一的高亮匹配服务
-        this.highlightMatchingService = new HighlightMatchingService(app, commentStore);
-        // 使用文件评论缓存服务
-        this.fileCommentsCache = new FileCommentsCache(app, commentStore);
     }
     
     /**
@@ -65,9 +57,6 @@ export class HighlightDataManager {
         if (searchType === 'path') {
             const highlightResults = await this.highlightService.getAllHighlights();
             
-            // 使用缓存的文件评论映射
-            const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
-            
             // 处理所有高亮
             for (const { file, highlights } of highlightResults) {
                 // 如果有搜索词，先检查文件路径是否匹配
@@ -75,8 +64,8 @@ export class HighlightDataManager {
                     continue;
                 }
                 
-                // 获取当前文件的所有批注
-                const fileComments = fileCommentsMap.get(file.path) || [];
+                // 直接从 CommentStore 获取文件评论
+                const fileComments = this.commentStore.getFileComments(file);
                 
                 // 合并高亮和评论
                 const mergedHighlights = this.mergeHighlightsWithComments(highlights, fileComments, file);
@@ -108,15 +97,13 @@ export class HighlightDataManager {
     
     /**
      * 合并高亮和评论数据
-     * 使用统一的 HighlightMatchingService 进行匹配
      */
     private mergeHighlightsWithComments(
         highlights: HighlightInfo[],
         storedComments: HiNote[],
         file: TFile
     ): HighlightInfo[] {
-        // 使用统一的匹配服务，避免重复代码
-        return this.highlightMatchingService.mergeHighlightsWithComments(highlights, storedComments, file);
+        return this.highlightService.mergeHighlightsWithComments(highlights, storedComments, file);
     }
     
     /**

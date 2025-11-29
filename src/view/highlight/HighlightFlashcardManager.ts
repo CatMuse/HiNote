@@ -75,9 +75,7 @@ export class HighlightFlashcardManager {
                         filePath: highlight.filePath,
                         fileName: highlight.fileName,
                         fileIcon: highlight.fileIcon,
-                        fileType: highlight.fileType,
                         backgroundColor: highlight.backgroundColor,
-                        displayText: highlight.displayText,
                         originalLength: highlight.originalLength,
                         isVirtual: highlight.isVirtual,
                         isCloze: highlight.isCloze
@@ -89,7 +87,7 @@ export class HighlightFlashcardManager {
             }
             
             // 构建闪卡内容
-            const text = highlight.displayText || highlight.text;
+            const text = highlight.text;
             let answer = '';
             const answerParts: string[] = [];
             

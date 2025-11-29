@@ -12,41 +12,33 @@ export interface CommentItem {
 }
 
 export interface HighlightInfo {
-    // 核心字段
-    id?: string;                   // 高亮的唯一ID（可选，添加评论时生成）
+    // ========== 核心字段 ==========
+    id?: string;                   // 高亮的唯一ID（添加评论时生成）
     text: string;                  // 高亮的文本内容（必填）
-    createdAt?: number;            // 创建时间（可选，添加评论时生成）
-    updatedAt?: number;            // 最后更新时间（可选，添加评论时生成）
-    comments?: CommentItem[];      // 评论列表（可选，添加评论时初始化）
-    
-    // 位置相关字段
     position: number;              // 文本位置（必填）
-    paragraphOffset?: number;      // 段落偏移量（可选）
-    blockId?: string;              // 纯 BlockID，不包含文件路径（可选）
-    paragraphId?: string;          // 兼容旧数据，将被 blockId 替代（可选）
+    createdAt?: number;            // 创建时间
+    updatedAt?: number;            // 最后更新时间
+    comments?: CommentItem[];      // 评论列表
     
-    // 文件相关字段
-    filePath?: string;             // 文件路径（可选）
-    fileName?: string;             // 文件名（可选）
-    fileIcon?: string;             // 文件图标（可选）
-    fileType?: string;             // 文件类型（可选）
+    // ========== 位置相关 ==========
+    paragraphOffset?: number;      // 段落偏移量
+    blockId?: string;              // Block ID（不包含文件路径）
     
-    // 显示相关字段
-    backgroundColor?: string;      // 背景颜色（可选）
-    displayText?: string;          // 显示给用户看的文本（可选）
-    originalLength?: number;       // 原始匹配文本的长度，包括标签（可选）
+    // ========== 文件相关 ==========
+    filePath?: string;             // 文件路径
+    fileName?: string;             // 文件名
+    fileIcon?: string;             // 文件图标
     
-    // 标记字段
-    isVirtual?: boolean;           // 标记是否为虚拟高亮（可选）
-    isCloze?: boolean;             // 标记是否为挖空格式（可选）
-    isGlobalSearch?: boolean;      // 标记是否为全局搜索结果（可选）
-    isFromCanvas?: boolean;        // 标记是否来自 Canvas 文件（可选）
+    // ========== 显示相关 ==========
+    backgroundColor?: string;      // 背景颜色
+    originalLength?: number;       // 原始匹配文本的长度（包括标签）
     
-    // Canvas 相关字段
-    canvasSource?: string;         // Canvas 文件的路径（可选）
-    
-    // 时间戳（兼容字段）
-    timestamp?: number;            // 添加时间戳（可选，与 createdAt 重复）
+    // ========== 标记字段 ==========
+    isVirtual?: boolean;           // 是否为虚拟高亮（只有评论没有高亮）
+    isCloze?: boolean;             // 是否为挖空格式
+    isGlobalSearch?: boolean;      // 是否为全局搜索结果
+    isFromCanvas?: boolean;        // 是否来自 Canvas 文件
+    canvasSource?: string;         // Canvas 文件的路径
 }
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'deepseek' | 'siliconflow' | 'custom';

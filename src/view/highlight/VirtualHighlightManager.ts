@@ -71,14 +71,12 @@ export class VirtualHighlightManager {
         // 创建虚拟高亮信息，在文档的最顶部创建了一个不可见的高亮内容
         const virtualHighlight: HiNote = {
             id: uniqueId,
-            text: `__virtual_highlight_${timestamp}__`,  // 这个文本不会显示给用户
+            text: t("File Comment"),  // 文件评论的显示文本
             filePath: currentFile.path,
-            fileType: currentFile.extension,
-            displayText: t("File Comment"),  // 这是显示给用户看的文本
             isVirtual: true,  // 标记这是一个虚拟高亮
             position: 0,  // 给一个默认位置
             paragraphOffset: 0,  // 给一个默认偏移量
-            paragraphId: `${currentFile.path}#^virtual-${timestamp}`,  // 生成一个虚拟段落ID
+            blockId: `virtual-${timestamp}`,  // 生成一个虚拟 block ID
             createdAt: timestamp,
             updatedAt: timestamp,
             comments: []  // 初始化空的评论数组

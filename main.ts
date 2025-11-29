@@ -18,7 +18,6 @@ export default class CommentPlugin extends Plugin {
 	get highlightDecorator() { return this.initManager.highlightDecorator; }
 	get fsrsManager() { return this.initManager.fsrsManager; }
 	get eventManager() { return this.initManager.eventManager; }
-	get highlightMatchingService() { return this.initManager.highlightMatchingService; }
 	get highlightService() { return this.initManager.highlightService; }
 	get dataManager() { return this.initManager.dataManager; }
 	get canvasService() { return this.initManager.canvasService; }

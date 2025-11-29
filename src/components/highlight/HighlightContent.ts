@@ -58,7 +58,7 @@ export class HighlightContent extends Component {
         });
 
         // 处理文本中的换行符，添加空值检查
-        const text = (this.highlight.isVirtual ? this.highlight.displayText : this.highlight.text) || '';
+        const text = this.highlight.text || '';
         
         try {
             // 使用 Obsidian 的 MarkdownRenderer.render 方法渲染 Markdown 内容
@@ -84,7 +84,7 @@ export class HighlightContent extends Component {
             
             // 如果渲染失败，回退到纯文本渲染
             const lines = text.split('\n');
-            lines.forEach((line, index) => {
+            lines.forEach((line: string, index: number) => {
                 const p = textContent.createEl("p", {
                     text: line,
                     cls: "highlight-text-line"

@@ -1,10 +1,9 @@
 import { App, TFile, normalizePath, EventRef } from "obsidian";
 import { HighlightInfo, PluginSettings } from '../types';
+import { HiNote, CommentStore } from '../CommentStore';
 import { t } from '../i18n';
 import { ExcludePatternMatcher } from './ExcludePatternMatcher';
-import { ColorExtractorService } from './ColorExtractorService';
 import { BlockIdService } from './BlockIdService';
-import { FileContentCache } from './FileContentCache';
 
 /**
  * 文件级高亮索引接口，用于加速全局搜索
@@ -29,9 +28,9 @@ export class HighlightService {
     private static readonly POSITION_SEARCH_OFFSET_BEFORE = 10; // 位置搜索前偏移量
     private static readonly POSITION_SEARCH_OFFSET_AFTER = 50; // 位置搜索后偏移量
     
-    private colorExtractor: ColorExtractorService;
     private blockIdService: BlockIdService;
-    private fileContentCache: FileContentCache;
+    // 文件内容缓存
+    private contentCache = new Map<string, {content: string, mtime: number}>();
     
     // 文件级高亮索引
     private fileIndex: FileHighlightIndex = {
@@ -61,9 +60,7 @@ export class HighlightService {
         const plugin = plugins && plugins.plugins ? 
             plugins.plugins['hi-note'] : undefined;
         this.settings = plugin?.settings;
-        this.colorExtractor = new ColorExtractorService();
         this.blockIdService = new BlockIdService(app);
-        this.fileContentCache = new FileContentCache(app);
     }
     
     /**
@@ -98,7 +95,7 @@ export class HighlightService {
         };
         
         // 清空文件内容缓存
-        this.fileContentCache.clear();
+        this.contentCache.clear();
     }
     
     /**
@@ -116,7 +113,7 @@ export class HighlightService {
         this.fileModifyEventRef = this.app.vault.on('modify', (file) => {
             if (file instanceof TFile && file.extension === 'md') {
                 // 使文件内容缓存失效
-                this.fileContentCache.invalidate(file.path);
+                this.contentCache.delete(file.path);
                 this.updateFileInIndex(file);
             }
         });
@@ -125,7 +122,7 @@ export class HighlightService {
         this.fileDeleteEventRef = this.app.vault.on('delete', (file) => {
             if (file instanceof TFile && file.extension === 'md') {
                 // 清除缓存
-                this.fileContentCache.invalidate(file.path);
+                this.contentCache.delete(file.path);
                 this.removeFileFromIndex(file.path);
             }
         });
@@ -134,7 +131,7 @@ export class HighlightService {
         this.fileRenameEventRef = this.app.vault.on('rename', (file, oldPath) => {
             if (file instanceof TFile && file.extension === 'md') {
                 // 清除旧路径的缓存
-                this.fileContentCache.invalidate(oldPath);
+                this.contentCache.delete(oldPath);
                 this.removeFileFromIndex(oldPath);
                 this.updateFileInIndex(file);
             }
@@ -262,10 +259,10 @@ export class HighlightService {
                 text = fullMatch; // 如果没有捕获组，则使用全部匹配内容
             }
             
-            // 尝试提取颜色（如果HTML元素中包含样式）
+            // 尝试提取颜色（内联逻辑）
             let extractedColor = null;
             if (fullMatch.includes('style=')) {
-                extractedColor = this.colorExtractor.extractColorFromElement(fullMatch);
+                extractedColor = this.extractColorFromElement(fullMatch);
             }
 
             // 检查是否已存在相同位置的高亮
@@ -327,7 +324,7 @@ export class HighlightService {
             }
 
             // 使用缓存读取文件内容
-            const content = await this.fileContentCache.getFileContent(file);
+            const content = await this.getCachedFileContent(file);
             const highlights = this.extractHighlights(content, file);
             if (highlights.length > 0) {
                 filesWithHighlights.push(file);
@@ -347,7 +344,7 @@ export class HighlightService {
         for (const file of files) {
             if (!this.shouldProcessFile(file)) continue;
             // 使用缓存读取文件内容
-            const content = await this.fileContentCache.getFileContent(file);
+            const content = await this.getCachedFileContent(file);
             const highlights = this.extractHighlights(content, file);
             if (highlights.length > 0) {
                 result.push({ file, highlights });
@@ -819,5 +816,186 @@ export class HighlightService {
      */
     private escapeRegExp(string: string): string {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    /**
+     * 从 HTML 元素中提取颜色（内联方法）
+     */
+    private extractColorFromElement(element: string): string | null {
+        const styleMatch = element.match(/style=["']([^"']*)["']/);
+        if (!styleMatch) return null;
+        
+        const bgColorMatch = styleMatch[1].match(
+            /background(?:-color)?:\s*((?:rgba?\(.*?\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\)))/
+        );
+        
+        return bgColorMatch ? bgColorMatch[1] : null;
+    }
+    
+    /**
+     * 获取缓存的文件内容（内联方法）
+     */
+    private async getCachedFileContent(file: TFile): Promise<string> {
+        const cached = this.contentCache.get(file.path);
+        if (cached && cached.mtime === file.stat.mtime) {
+            return cached.content;
+        }
+        
+        const content = await this.app.vault.read(file);
+        this.contentCache.set(file.path, {content, mtime: file.stat.mtime});
+        return content;
+    }
+    
+    // ==================== 高亮匹配功能（从 HighlightMatchingService 合并） ====================
+    
+    /**
+     * 查找与给定高亮最匹配的存储高亮
+     * 使用多种策略进行匹配：精确匹配、位置匹配、模糊文本匹配
+     */
+    public findMatchingHighlight(file: TFile, highlight: HiNote, commentStore: CommentStore): HiNote | null {
+        const fileHighlights = commentStore.getFileComments(file);
+        if (!fileHighlights || fileHighlights.length === 0) {
+            return null;
+        }
+        
+        // 1. 首先尝试精确匹配（文本和位置）
+        let matchingHighlight = fileHighlights.find(h => {
+            if (h.text !== highlight.text) return false;
+            if (typeof h.position === 'number' && typeof highlight.position === 'number') {
+                return Math.abs(h.position - highlight.position) < 10;
+            }
+            return false;
+        });
+        
+        if (matchingHighlight) return matchingHighlight;
+        
+        // 2. 如果没有精确匹配，尝试只匹配位置（允许文本有变化）
+        if (highlight.position !== undefined) {
+            matchingHighlight = fileHighlights.find(h => 
+                typeof h.position === 'number' && 
+                Math.abs(h.position - highlight.position) < 50
+            );
+            if (matchingHighlight) return matchingHighlight;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 批量合并高亮和评论数据（统一的匹配逻辑）
+     */
+    public mergeHighlightsWithComments(
+        highlights: HighlightInfo[],
+        storedComments: HiNote[],
+        file: TFile
+    ): HighlightInfo[] {
+        if (storedComments.length === 0) {
+            return highlights.map(h => this.createHighlightInfo(h, file));
+        }
+        
+        // 构建索引
+        const idIndex = new Map<string, HiNote>();
+        const textIndex = new Map<string, HiNote[]>();
+        const positionIndex = new Map<number, HiNote[]>();
+        
+        for (const comment of storedComments) {
+            if (comment.id) idIndex.set(comment.id, comment);
+            if (comment.text) {
+                if (!textIndex.has(comment.text)) textIndex.set(comment.text, []);
+                textIndex.get(comment.text)!.push(comment);
+            }
+            if (comment.position !== undefined) {
+                const bucket = Math.floor(comment.position / 50);
+                if (!positionIndex.has(bucket)) positionIndex.set(bucket, []);
+                positionIndex.get(bucket)!.push(comment);
+            }
+        }
+        
+        const usedCommentIds = new Set<string>();
+        
+        // 合并高亮和评论数据
+        const mergedHighlights = highlights.map(highlight => {
+            // 策略 1: ID 精确匹配
+            if (highlight.id && idIndex.has(highlight.id)) {
+                const storedComment = idIndex.get(highlight.id)!;
+                if (storedComment.id && !usedCommentIds.has(storedComment.id)) {
+                    usedCommentIds.add(storedComment.id);
+                    return this.createMergedHighlight(highlight, storedComment, file);
+                }
+            }
+            
+            // 策略 2: 文本+位置组合匹配
+            if (highlight.text && textIndex.has(highlight.text)) {
+                const candidates = textIndex.get(highlight.text)!;
+                for (const candidate of candidates) {
+                    if (candidate.id && 
+                        !usedCommentIds.has(candidate.id) &&
+                        highlight.position !== undefined &&
+                        candidate.position !== undefined &&
+                        Math.abs(candidate.position - highlight.position) < 100) {
+                        usedCommentIds.add(candidate.id);
+                        return this.createMergedHighlight(highlight, candidate, file);
+                    }
+                }
+            }
+            
+            // 策略 3: 位置模糊匹配
+            if (highlight.position !== undefined) {
+                const bucket = Math.floor(highlight.position / 50);
+                for (let b = bucket - 1; b <= bucket + 1; b++) {
+                    if (positionIndex.has(b)) {
+                        const candidates = positionIndex.get(b)!;
+                        for (const candidate of candidates) {
+                            if (candidate.id &&
+                                !usedCommentIds.has(candidate.id) &&
+                                candidate.position !== undefined &&
+                                Math.abs(candidate.position - highlight.position) < 50) {
+                                usedCommentIds.add(candidate.id);
+                                return this.createMergedHighlight(highlight, candidate, file);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return this.createHighlightInfo(highlight, file);
+        });
+
+        // 添加虚拟高亮
+        const virtualHighlights = storedComments
+            .filter(c => c.id && c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id))
+            .map(vh => this.createHighlightInfo(vh, file));
+        
+        return [...virtualHighlights, ...mergedHighlights];
+    }
+    
+    /**
+     * 创建合并后的高亮信息
+     */
+    private createMergedHighlight(highlight: HighlightInfo, storedComment: HiNote, file: TFile): HighlightInfo {
+        return {
+            ...highlight,
+            id: storedComment.id,
+            comments: storedComment.comments || [],
+            createdAt: storedComment.createdAt,
+            updatedAt: storedComment.updatedAt,
+            fileName: file.basename,
+            filePath: file.path,
+            fileIcon: 'file-text'
+        };
+    }
+    
+    /**
+     * 创建高亮信息对象
+     */
+    private createHighlightInfo(highlight: HighlightInfo | HiNote, file: TFile): HighlightInfo {
+        return {
+            ...highlight,
+            comments: highlight.comments || [],
+            fileName: file.basename,
+            filePath: file.path,
+            fileIcon: 'file-text',
+            position: highlight.position || 0
+        };
     }
 }

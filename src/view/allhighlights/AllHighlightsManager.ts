@@ -2,8 +2,6 @@ import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
 import { HiNote, CommentStore } from '../../CommentStore';
 import { HighlightService } from '../../services/HighlightService';
-import { HighlightMatchingService } from '../../services/HighlightMatchingService';
-import { FileCommentsCache } from '../../services/FileCommentsCache';
 
 /**
  * 全局高亮管理器
@@ -13,8 +11,6 @@ export class AllHighlightsManager {
     private app: App;
     private highlightService: HighlightService;
     private commentStore: CommentStore;
-    private highlightMatchingService: HighlightMatchingService;
-    private fileCommentsCache: FileCommentsCache;
     
     constructor(
         app: App,
@@ -24,10 +20,6 @@ export class AllHighlightsManager {
         this.app = app;
         this.highlightService = highlightService;
         this.commentStore = commentStore;
-        // 使用统一的高亮匹配服务
-        this.highlightMatchingService = new HighlightMatchingService(app, commentStore);
-        // 使用文件评论缓存服务
-        this.fileCommentsCache = new FileCommentsCache(app, commentStore);
     }
     
     /**
@@ -63,7 +55,6 @@ export class AllHighlightsManager {
         
         // 缓存不可用，从文件读取
         const allHighlights = await this.highlightService.getAllHighlights();
-        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
@@ -72,7 +63,7 @@ export class AllHighlightsManager {
                 continue;
             }
             
-            const fileComments = fileCommentsMap.get(file.path) || [];
+            const fileComments = this.commentStore.getFileComments(file);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -88,7 +79,6 @@ export class AllHighlightsManager {
      * 从缓存的高亮中按路径过滤
      */
     private filterCachedHighlightsByPath(cachedHighlights: HighlightInfo[], searchTerm: string): HighlightInfo[] {
-        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
@@ -112,7 +102,7 @@ export class AllHighlightsManager {
             const file = this.app.vault.getAbstractFileByPath(filePath);
             if (!(file instanceof TFile)) continue;
             
-            const fileComments = fileCommentsMap.get(filePath) || [];
+            const fileComments = this.commentStore.getFileComments(file);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -154,11 +144,10 @@ export class AllHighlightsManager {
         
         // 缓存不可用，从文件读取
         const allHighlights = await this.highlightService.getAllHighlights();
-        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
-            const fileComments = fileCommentsMap.get(file.path) || [];
+            const fileComments = this.commentStore.getFileComments(file);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -175,7 +164,6 @@ export class AllHighlightsManager {
      * 直接使用索引中的数据，合并评论信息
      */
     private processCachedHighlights(cachedHighlights: HighlightInfo[]): HighlightInfo[] {
-        const fileCommentsMap = this.fileCommentsCache.getFileCommentsMap();
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
@@ -193,7 +181,7 @@ export class AllHighlightsManager {
             const file = this.app.vault.getAbstractFileByPath(filePath);
             if (!(file instanceof TFile)) continue;
             
-            const fileComments = fileCommentsMap.get(filePath) || [];
+            const fileComments = this.commentStore.getFileComments(file);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -207,15 +195,13 @@ export class AllHighlightsManager {
     
     /**
      * 处理文件的高亮
-     * 使用统一的匹配服务
      */
     private processFileHighlights(
         highlights: HighlightInfo[],
         fileComments: HiNote[],
         file: TFile
     ): HighlightInfo[] {
-        // 使用统一的匹配服务，避免重复代码
-        return this.highlightMatchingService.mergeHighlightsWithComments(highlights, fileComments, file);
+        return this.highlightService.mergeHighlightsWithComments(highlights, fileComments, file);
     }
     
     /**

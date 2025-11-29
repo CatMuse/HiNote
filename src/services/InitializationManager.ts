@@ -2,7 +2,6 @@ import { Plugin } from 'obsidian';
 import { CommentStore } from '../CommentStore';
 import { HighlightDecorator } from '../HighlightDecorator';
 import { FSRSManager } from '../flashcard/services/FSRSManager';
-import { HighlightMatchingService } from './HighlightMatchingService';
 import { HighlightService } from './HighlightService';
 import { HiNoteDataManager } from '../storage/HiNoteDataManager';
 import { CanvasService } from './CanvasService';
@@ -24,7 +23,6 @@ export class InitializationManager {
     public canvasService!: CanvasService;
     public commentStore!: CommentStore;
     public fsrsManager!: FSRSManager;
-    public highlightMatchingService!: HighlightMatchingService;
     public highlightDecorator!: HighlightDecorator;
 
     constructor(private plugin: Plugin) {}
@@ -85,12 +83,6 @@ export class InitializationManager {
 
         // 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
         this.fsrsManager = new FSRSManager(this.plugin as any, this.dataManager);
-
-        // 初始化高亮匹配服务
-        this.highlightMatchingService = new HighlightMatchingService(
-            this.plugin.app,
-            this.commentStore
-        );
 
         // 初始化高亮装饰器
         this.highlightDecorator = new HighlightDecorator(this.plugin, this.commentStore);
