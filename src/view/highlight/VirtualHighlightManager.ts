@@ -124,7 +124,7 @@ export class VirtualHighlightManager {
         
         // 添加虚拟高亮（只添加有评论的虚拟高亮）
         const virtualHighlights = storedComments
-            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id));
+            .filter(c => c.isVirtual && c.comments && c.comments.length > 0 && c.id && !usedCommentIds.has(c.id));
         
         // 去重：确保虚拟高亮的文本不与现有高亮重复
         const uniqueVirtualHighlights = virtualHighlights.filter(vh => {
@@ -132,7 +132,9 @@ export class VirtualHighlightManager {
         });
         
         // 标记这些虚拟高亮为已使用
-        uniqueVirtualHighlights.forEach(vh => usedCommentIds.add(vh.id));
+        uniqueVirtualHighlights.forEach(vh => {
+            if (vh.id) usedCommentIds.add(vh.id);
+        });
         
         return uniqueVirtualHighlights;
     }

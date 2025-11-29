@@ -141,17 +141,18 @@ export class PreviewWidgetRenderer {
             block = block.parentElement;
         }
         
-        let sectionInfo = null;
+        let sectionInfo: { lineStart: number; lineEnd: number } | null = null;
         if (block) {
             sectionInfo = context.getSectionInfo(block);
         }
 
         // 根据是否有 section 信息进行匹配
         if (sectionInfo) {
+            const section = sectionInfo; // 保存到常量以便在回调中使用
             return highlightsWithComments.find(h => 
                 h.text === text && 
-                h.line >= sectionInfo!.lineStart && 
-                h.line <= sectionInfo!.lineEnd
+                h.line >= section.lineStart && 
+                h.line <= section.lineEnd
             ) || null;
         } else {
             return highlightsWithComments.find(h => h.text === text) || null;
@@ -171,13 +172,13 @@ export class PreviewWidgetRenderer {
      */
     private renderPreviewWidget(mark: HTMLElement, highlight: HiNote): void {
         const widget = mark.createSpan({ cls: 'hi-note-widget hi-note-preview-widget' });
-        const hasComments = highlight.comments && highlight.comments.length > 0;
+        const hasComments = !!(highlight.comments && highlight.comments.length > 0);
         
         // 使用辅助类创建按钮
         const button = CommentWidgetHelper.createButton(widget, hasComments);
         const iconContainer = button.querySelector('.hi-note-icon-container') as HTMLElement;
         
-        if (hasComments) {
+        if (hasComments && highlight.comments) {
             // 添加评论数量
             CommentWidgetHelper.addCommentCount(iconContainer, highlight.comments.length);
 

@@ -49,7 +49,13 @@ export class HighlightFlashcardManager {
             // 确保高亮有 ID
             if (!highlight.id) {
                 console.warn('高亮缺少 ID，正在生成...');
-                highlight.id = `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                // 使用 IdGenerator 生成稳定的 ID
+                const IdGenerator = (await import('../../utils/IdGenerator')).IdGenerator;
+                highlight.id = IdGenerator.generateHighlightId(
+                    highlight.filePath || '',
+                    highlight.position || 0,
+                    highlight.text
+                );
             }
             
             // 如果高亮有文件路径，需要先保存到存储中

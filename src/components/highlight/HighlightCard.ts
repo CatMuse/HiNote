@@ -40,7 +40,8 @@ export class HighlightCard {
     // 静态方法：根据高亮ID查找HighlightCard实例
     public static findCardInstanceByHighlightId(highlightId: string): HighlightCard | null {
         for (const instance of HighlightCard.cardInstances) {
-            if (instance.highlight.id === highlightId) {
+            // 确保 highlight.id 存在再进行比较
+            if (instance.highlight.id && instance.highlight.id === highlightId) {
                 return instance;
             }
         }
@@ -468,23 +469,23 @@ export class HighlightCard {
         // 先清除所有卡片上的不聚焦输入框
         HighlightCard.clearAllUnfocusedInputs();
         
-        // 必须有 SelectionManager 和 highlight.id 才能进行选择操作
-        if (!this.selectionManager || !this.highlight.id) {
-            console.error('[HighlightCard] SelectionManager 未传入或 highlight.id 不存在，无法进行选择操作');
+        // 必须有 SelectionManager 才能进行选择操作
+        if (!this.selectionManager) {
+            console.error('[HighlightCard] SelectionManager 未传入，无法进行选择操作');
             return;
         }
         
         // 如果按住 Shift 键，则进行多选或取消选择
         if (event && event.shiftKey) {
             // 检查当前卡片是否已经被选中
-            const isSelected = this.selectionManager.isCardSelected(this.highlight.id);
+            const isSelected = this.selectionManager.isCardSelected(this.card);
             
             if (isSelected) {
                 // 如果已经选中，则取消选择
-                this.selectionManager.unselectCard(this.highlight.id);
+                this.selectionManager.unselectCard(this.card);
             } else {
                 // 如果未选中，则添加到选中集合
-                this.selectionManager.selectCard(this.highlight.id, this.card, this.highlight);
+                this.selectionManager.selectCard(this.card, this.highlight);
             }
             
             // 多选模式下不显示输入框
@@ -493,7 +494,7 @@ export class HighlightCard {
             this.selectionManager.clearSelection();
             
             // 然后选中当前卡片
-            this.selectionManager.selectCard(this.highlight.id, this.card, this.highlight);
+            this.selectionManager.selectCard(this.card, this.highlight);
             
             // 在单选模式下显示不聚焦的批注输入框
             this.showUnfocusedCommentInput();

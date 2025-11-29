@@ -44,7 +44,7 @@ export class CommentWidget extends WidgetType {
                              Math.abs(this.highlight.position - widget.highlight.position) < CommentWidget.POSITION_MATCH_THRESHOLD;
         
         const textMatch = this.highlight.text === widget.highlight.text;
-        const commentsMatch = this.highlight.comments.length === widget.highlight.comments.length;
+        const commentsMatch = (this.highlight.comments?.length ?? 0) === (widget.highlight.comments?.length ?? 0);
         
         // 只要位置匹配或文本匹配，且评论数量相同，就认为是同一个 widget
         const isEqual = (textMatch || positionMatch) && commentsMatch;
@@ -77,7 +77,9 @@ export class CommentWidget extends WidgetType {
         wrapper.addClass("hi-note-widget");
         
         // 添加高亮 ID 作为数据属性，确保每个 Widget 都有唯一标识
-        wrapper.setAttribute('data-highlight-id', this.highlight.id);
+        if (this.highlight.id) {
+            wrapper.setAttribute('data-highlight-id', this.highlight.id);
+        }
         
         this.createButton(wrapper);
         return wrapper;
@@ -139,7 +141,9 @@ export class CommentWidget extends WidgetType {
         tooltip.addClass("hi-note-tooltip", "hi-note-tooltip-hidden");
         
         // 添加高亮 ID 作为工具提示的标识符
-        tooltip.setAttribute("data-highlight-id", this.highlight.id);
+        if (this.highlight.id) {
+            tooltip.setAttribute("data-highlight-id", this.highlight.id);
+        }
 
         const commentsList = tooltip.createEl("div", {
             cls: "hi-note-tooltip-list"
@@ -293,9 +297,11 @@ export class CommentWidget extends WidgetType {
         }
         
         // 查找并移除对应的工具提示
-        const tooltip = document.querySelector(`.hi-note-tooltip[data-highlight-id="${this.highlight.id}"]`);
-        if (tooltip) {
-            tooltip.remove();
+        if (this.highlight.id) {
+            const tooltip = document.querySelector(`.hi-note-tooltip[data-highlight-id="${this.highlight.id}"]`);
+            if (tooltip) {
+                tooltip.remove();
+            }
         }
         
         // 移除 DOM 元素

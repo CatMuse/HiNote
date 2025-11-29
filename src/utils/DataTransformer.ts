@@ -72,7 +72,7 @@ export class DataTransformer {
 
         return {
             ...highlight,
-            comments: [...highlight.comments, newComment],
+            comments: [...(highlight.comments || []), newComment],
             updatedAt: now,
         };
     }
@@ -86,7 +86,7 @@ export class DataTransformer {
         content: string
     ): HighlightInfo {
         const now = Date.now();
-        const updatedComments = highlight.comments.map(comment =>
+        const updatedComments = (highlight.comments || []).map(comment =>
             comment.id === commentId
                 ? { ...comment, content, updatedAt: now }
                 : comment
@@ -105,7 +105,7 @@ export class DataTransformer {
     static deleteComment(highlight: HighlightInfo, commentId: string): HighlightInfo {
         return {
             ...highlight,
-            comments: highlight.comments.filter(comment => comment.id !== commentId),
+            comments: (highlight.comments || []).filter(comment => comment.id !== commentId),
             updatedAt: Date.now(),
         };
     }
@@ -141,11 +141,11 @@ export class DataTransformer {
         createdAt: number;
     } {
         return {
-            id: highlight.id,
+            id: highlight.id || '',
             text: highlight.displayText || highlight.text,
-            commentCount: highlight.comments.length,
+            commentCount: highlight.comments?.length ?? 0,
             fileName: highlight.fileName,
-            createdAt: highlight.createdAt,
+            createdAt: highlight.createdAt ?? Date.now(),
         };
     }
 

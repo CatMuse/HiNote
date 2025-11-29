@@ -178,6 +178,7 @@ export class HiNoteDataManager {
         const optimizedHighlights: { [id: string]: OptimizedHighlight } = {};
         
         for (const highlight of highlights) {
+            if (!highlight.id) continue; // 跳过没有 ID 的高亮
             const optimized = this.convertToOptimizedFormat(highlight);
             optimizedHighlights[highlight.id] = optimized;
         }
@@ -328,11 +329,12 @@ export class HiNoteDataManager {
      * 转换为优化格式
      */
     private convertToOptimizedFormat(highlight: HiNote): OptimizedHighlight {
+        const now = Date.now();
         const optimized: OptimizedHighlight = {
             text: highlight.text,
             position: highlight.position,
-            created: highlight.createdAt,
-            updated: highlight.updatedAt
+            created: highlight.createdAt ?? now,
+            updated: highlight.updatedAt ?? now
         };
 
         // 只保存非默认值

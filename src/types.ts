@@ -13,11 +13,11 @@ export interface CommentItem {
 
 export interface HighlightInfo {
     // 核心字段
-    id: string;                    // 高亮的唯一ID（必填）
+    id?: string;                   // 高亮的唯一ID（可选，添加评论时生成）
     text: string;                  // 高亮的文本内容（必填）
-    createdAt: number;             // 创建时间（必填）
-    updatedAt: number;             // 最后更新时间（必填）
-    comments: CommentItem[];       // 评论列表（必填，可为空数组）
+    createdAt?: number;            // 创建时间（可选，添加评论时生成）
+    updatedAt?: number;            // 最后更新时间（可选，添加评论时生成）
+    comments?: CommentItem[];      // 评论列表（可选，添加评论时初始化）
     
     // 位置相关字段
     position: number;              // 文本位置（必填）

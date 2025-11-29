@@ -18,9 +18,9 @@ interface SelectedCardData {
 
 export class SelectionManager {
     private highlightContainer: HTMLElement;
-    // 使用 Map 存储选中的卡片，key 为 highlight.id，value 为卡片数据
-    // 这样可以快速访问，避免 JSON 解析，并确保数据一致性
-    private selectedCards: Map<string, SelectedCardData> = new Map();
+    // 使用 Map 存储选中的卡片，key 为 DOM 元素，value 为高亮数据
+    // 这样不依赖 highlight.id，即使高亮没有 ID 也能正常工作
+    private selectedCards: Map<HTMLElement, HighlightInfo> = new Map();
     
     // 选择模式相关
     private isSelectionMode: boolean = false;
@@ -56,7 +56,7 @@ export class SelectionManager {
      */
     clearSelection() {
         // 清除所有选中卡片的 DOM 状态
-        this.selectedCards.forEach(({ element }) => {
+        this.selectedCards.forEach((highlight, element) => {
             element.removeClass('selected');
         });
         
@@ -83,12 +83,8 @@ export class SelectionManager {
             if (highlightData) {
                 try {
                     const highlight = JSON.parse(highlightData) as HighlightInfo;
-                    if (highlight.id) {
-                        this.selectedCards.set(highlight.id, {
-                            element: cardElement as HTMLElement,
-                            highlight: highlight
-                        });
-                    }
+                    // 使用 DOM 元素作为 key，不再依赖 highlight.id
+                    this.selectedCards.set(cardElement as HTMLElement, highlight);
                 } catch (e) {
                     console.error('Error parsing highlight data:', e);
                 }
@@ -105,7 +101,7 @@ export class SelectionManager {
      */
     getSelectedHighlights(): Set<HighlightInfo> {
         const highlights = new Set<HighlightInfo>();
-        this.selectedCards.forEach(({ highlight }) => {
+        this.selectedCards.forEach((highlight) => {
             highlights.add(highlight);
         });
         return highlights;
@@ -120,13 +116,12 @@ export class SelectionManager {
     
     /**
      * 选中单个卡片
-     * @param id 高亮 ID
      * @param element 卡片元素
      * @param highlight 高亮数据
      */
-    selectCard(id: string, element: HTMLElement, highlight: HighlightInfo) {
+    selectCard(element: HTMLElement, highlight: HighlightInfo) {
         // 添加到选中集合
-        this.selectedCards.set(id, { element, highlight });
+        this.selectedCards.set(element, highlight);
         
         // 更新 DOM 状态
         element.addClass('selected');
@@ -137,16 +132,15 @@ export class SelectionManager {
     
     /**
      * 取消选中单个卡片
-     * @param id 高亮 ID
+     * @param element 卡片元素
      */
-    unselectCard(id: string) {
-        const cardData = this.selectedCards.get(id);
-        if (cardData) {
+    unselectCard(element: HTMLElement) {
+        if (this.selectedCards.has(element)) {
             // 更新 DOM 状态
-            cardData.element.removeClass('selected');
+            element.removeClass('selected');
             
             // 从选中集合中移除
-            this.selectedCards.delete(id);
+            this.selectedCards.delete(element);
             
             // 通知选择变化
             this.notifySelectionChange();
@@ -155,10 +149,10 @@ export class SelectionManager {
     
     /**
      * 检查卡片是否被选中
-     * @param id 高亮 ID
+     * @param element 卡片元素
      */
-    isCardSelected(id: string): boolean {
-        return this.selectedCards.has(id);
+    isCardSelected(element: HTMLElement): boolean {
+        return this.selectedCards.has(element);
     }
     
     /**

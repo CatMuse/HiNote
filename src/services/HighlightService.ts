@@ -276,54 +276,20 @@ export class HighlightService {
             );
 
             if (!isDuplicate && text) {
-                // 获取当前文件的元数据缓存
-                if (file) {
-                    const cache = this.app.metadataCache.getFileCache(file);
-                    if (cache?.sections) {
-                        // 找到对应的段落
-                        const section = cache.sections.find(section => 
-                            section.position.start.offset <= safeMatch.index &&
-                            section.position.end.offset >= safeMatch.index
-                        );
-                        
-                        // 只存储纯 BlockID，不存储完整路径
-                        let blockId = section?.id;
-                        
-                        // 如果没有直接的 section.id，尝试使用 BlockIdService 获取
-                        if (!blockId) {
-                            const paragraphIdRef = this.blockIdService.getParagraphBlockId(file, safeMatch.index);
-                            if (paragraphIdRef) {
-                                // 使用与 BlockIdService 一致的正则表达式提取 BlockID
-                                const match = paragraphIdRef.match(/#\^([a-zA-Z0-9-]+)/);
-                                if (match && match[1]) {
-                                    blockId = match[1];
-                                }
-                            }
-                        }
-                        
-                        // 检查是否包含挖空格式 {{}}
-                        // 直接使用正则表达式而不是引用常量
-                        const isCloze = /\{\{([^{}]+)\}\}/.test(text);
-                        
-                        // 创建高亮对象
-                        const highlight = {
-                            text,
-                            position: safeMatch.index,
-                            paragraphOffset: this.getParagraphOffset(content, safeMatch.index),
-                            backgroundColor: extractedColor || backgroundColor,
-                            id: `highlight-${Date.now()}-${safeMatch.index}`,
-                            comments: [],
-                            createdAt: Date.now(),
-                            updatedAt: Date.now(),
-                            originalLength: fullMatch.length,
-                            blockId: blockId,
-                            isCloze: isCloze, // 如果包含挖空格式，标记为 true
-                            filePath: file.path // 添加文件路径
-                        };
-                        
-                        highlights.push(highlight);
-                    }
-                }
+                // 检查是否包含挖空格式 {{}}
+                const isCloze = /\{\{([^{}]+)\}\}/.test(text);
+                
+                // 创建高亮对象（只包含提取阶段必需的字段）
+                const highlight = {
+                    text,
+                    position: safeMatch.index,
+                    backgroundColor: extractedColor || backgroundColor,
+                    isCloze: isCloze,
+                    filePath: file.path,
+                    originalLength: fullMatch.length
+                };
+                
+                highlights.push(highlight);
             }
         }
     }

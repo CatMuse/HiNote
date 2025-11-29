@@ -170,7 +170,14 @@ export class CommentOperationManager {
                 await this.commentStore.removeComment(file, highlight as HiNote);
                 
                 // 从当前高亮列表中移除
-                this.highlights = this.highlights.filter(h => h.id !== highlight.id);
+                this.highlights = this.highlights.filter(h => {
+                    // 如果有 ID，通过 ID 比较
+                    if (h.id && highlight.id) {
+                        return h.id !== highlight.id;
+                    }
+                    // 如果没有 ID，通过位置和文本比较
+                    return !(h.position === highlight.position && h.text === highlight.text);
+                });
                 
                 // 通知外部更新高亮列表
                 if (this.onHighlightsUpdate) {
@@ -208,7 +215,14 @@ export class CommentOperationManager {
         const file = await this.getFileForHighlight(highlight);
         if (file) {
             await this.commentStore.removeComment(file, highlight as HiNote);
-            this.highlights = this.highlights.filter(h => h.id !== highlight.id);
+            this.highlights = this.highlights.filter(h => {
+                // 如果有 ID，通过 ID 比较
+                if (h.id && highlight.id) {
+                    return h.id !== highlight.id;
+                }
+                // 如果没有 ID，通过位置和文本比较
+                return !(h.position === highlight.position && h.text === highlight.text);
+            });
             
             // 通知外部更新高亮列表
             if (this.onHighlightsUpdate) {
