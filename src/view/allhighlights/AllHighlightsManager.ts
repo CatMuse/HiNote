@@ -72,7 +72,8 @@ export class AllHighlightsManager {
             result.push(...virtualHighlights);
         }
         
-        return result;
+        // 添加稳定排序
+        return this.sortHighlights(result);
     }
     
     /**
@@ -111,7 +112,8 @@ export class AllHighlightsManager {
             result.push(...virtualHighlights);
         }
         
-        return result;
+        // 添加稳定排序
+        return this.sortHighlights(result);
     }
     
     /**
@@ -156,7 +158,8 @@ export class AllHighlightsManager {
             result.push(...virtualHighlights);
         }
         
-        return result;
+        // 添加稳定排序：按文件路径和位置排序
+        return this.sortHighlights(result);
     }
     
     /**
@@ -190,7 +193,8 @@ export class AllHighlightsManager {
             result.push(...virtualHighlights);
         }
         
-        return result;
+        // 添加稳定排序：按文件路径和位置排序
+        return this.sortHighlights(result);
     }
     
     /**
@@ -219,5 +223,49 @@ export class AllHighlightsManager {
     private extractFileNameFromPath(filePath?: string): string {
         if (!filePath) return '';
         return filePath.split('/').pop()?.replace('.md', '') || '';
+    }
+    
+    /**
+     * 对高亮进行稳定排序
+     * 排序规则：
+     * 1. 按文件路径字母顺序
+     * 2. 同一文件内按位置（position 字段）
+     * 3. 虚拟高亮排在文件最前面
+     */
+    private sortHighlights(highlights: HighlightInfo[]): HighlightInfo[] {
+        return highlights.sort((a, b) => {
+            // 获取文件路径，虚拟高亮使用其 filePath
+            const pathA = a.filePath || '';
+            const pathB = b.filePath || '';
+            
+            // 先按文件路径排序
+            if (pathA !== pathB) {
+                return pathA.localeCompare(pathB);
+            }
+            
+            // 同一文件内，虚拟高亮排在前面
+            if (a.isVirtual && !b.isVirtual) return -1;
+            if (!a.isVirtual && b.isVirtual) return 1;
+            
+            // 都是虚拟高亮或都不是，按位置排序
+            // position 是文本在文档中的位置（数字）
+            if (a.position !== undefined && b.position !== undefined) {
+                if (a.position !== b.position) {
+                    return a.position - b.position;
+                }
+            }
+            
+            // 如果位置相同或没有位置信息，按创建时间排序
+            if (a.createdAt !== undefined && b.createdAt !== undefined) {
+                if (a.createdAt !== b.createdAt) {
+                    return a.createdAt - b.createdAt;
+                }
+            }
+            
+            // 最后按 ID 排序（保证稳定性）
+            const idA = a.id || '';
+            const idB = b.id || '';
+            return idA.localeCompare(idB);
+        });
     }
 }
