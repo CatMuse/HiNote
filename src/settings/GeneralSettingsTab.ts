@@ -29,7 +29,7 @@ export class GeneralSettingsTab {
             }
             
             // 获取孤立数据数量
-            const stats = await this.plugin.commentStore.checkOrphanedDataCount();
+            const stats = await this.plugin.highlightManager.checkOrphanedDataCount();
             
             // 创建新的计数元素
             const countEl = document.createElement('div');
@@ -176,7 +176,7 @@ export class GeneralSettingsTab {
                 button.setDisabled(true);
                 try {
                     // 检查孤立数据数量
-                    const stats = await this.plugin.commentStore.checkOrphanedDataCount();
+                    const stats = await this.plugin.highlightManager.checkOrphanedDataCount();
                     orphanedCount = stats.orphanedHighlights;
                     affectedFiles = stats.affectedFiles;
                     isChecked = true;
@@ -197,7 +197,7 @@ export class GeneralSettingsTab {
                             button.setButtonText(t('Cleaning...'));
                             button.setDisabled(true);
                             try {
-                                const result = await this.plugin.commentStore.cleanOrphanedData();
+                                const result = await this.plugin.highlightManager.cleanOrphanedData();
                                 if (result.removedHighlights > 0) {
                                     new Notice(`Cleaned ${result.removedHighlights} orphaned highlights from ${result.affectedFiles} files.`);
                                 } else {

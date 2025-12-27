@@ -1172,8 +1172,8 @@ export class FSRSManager {
             return;
         }
         
-        // 从 CommentStore 获取高亮的最新批注列表
-        const highlight = this.plugin.commentStore?.getHighlightById(sourceId);
+        // 从 HighlightRepository 获取高亮的最新批注列表
+        const highlight = this.plugin.highlightRepository?.findHighlightById(sourceId);
         const currentComments = highlight?.comments || [];
         
         let updatedCount = 0;
@@ -1198,7 +1198,7 @@ export class FSRSManager {
                 answerParts.push(clozeAnswers.join('\n'));
             }
             
-            // 添加所有当前批注内容（从 CommentStore 获取的最新数据）
+            // 添加所有当前批注内容（从 HighlightRepository 获取的最新数据）
             if (currentComments.length > 0) {
                 const commentContents = currentComments
                     .map((c: any) => c.content)

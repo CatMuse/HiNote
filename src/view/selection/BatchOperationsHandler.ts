@@ -498,7 +498,7 @@ export class BatchOperationsHandler {
      * 重构后的批量删除逻辑:
      * 1. 先删除所有闪卡(如果存在)
      * 2. 批量删除文件中的高亮标记(一次性处理,避免多次文件读写)
-     * 3. 从 CommentStore 中删除数据
+     * 3. 从 HighlightManager 中删除数据
      * 4. 清理 DOM 和卡片实例
      */
     private async performDeleteSelectedHighlights() {
