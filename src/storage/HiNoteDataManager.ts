@@ -23,6 +23,7 @@ export interface OptimizedHighlight {
     backgroundColor?: string;
     blockId?: string;
     isCloze?: boolean;
+    isVirtual?: boolean;
     paragraphOffset?: number;
     comments?: OptimizedComment[];
 }
@@ -315,6 +316,7 @@ export class HiNoteDataManager {
             backgroundColor: highlight.backgroundColor,
             blockId: highlight.blockId,
             isCloze: highlight.isCloze || false,
+            isVirtual: highlight.isVirtual || false,
             paragraphOffset: highlight.paragraphOffset,
             comments: highlight.comments?.map(comment => ({
                 id: comment.id,
@@ -348,6 +350,10 @@ export class HiNoteDataManager {
         
         if (highlight.isCloze) {
             optimized.isCloze = highlight.isCloze;
+        }
+        
+        if (highlight.isVirtual) {
+            optimized.isVirtual = highlight.isVirtual;
         }
         
         if (highlight.paragraphOffset !== undefined) {
