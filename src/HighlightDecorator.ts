@@ -1,7 +1,8 @@
 import { EditorView, ViewPlugin, DecorationSet, Decoration } from "@codemirror/view";
 import type { Range } from "@codemirror/state";
 import { Plugin, MarkdownView, TFile } from "obsidian";
-import { CommentStore, HiNote, CommentItem } from "./CommentStore";
+import { HighlightInfo as HiNote, CommentItem } from "./types";
+import { HighlightRepository } from "./repositories/HighlightRepository";
 import { CommentWidget } from "./components/comment/CommentWidget";
 import { HighlightService } from './services/HighlightService';
 import { HighlightMatcher } from './utils/HighlightMatcher';
@@ -9,21 +10,21 @@ import { PreviewWidgetRenderer } from './view/preview/PreviewWidgetRenderer';
 
 export class HighlightDecorator {
     private plugin: Plugin;
-    private commentStore: CommentStore;
+    private highlightRepository: HighlightRepository;
     private highlightPlugin: any;
     private highlightService: HighlightService;
     private currentViewPlugin: any; // 保存当前的 ViewPlugin 实例
     private previewRenderer: PreviewWidgetRenderer; // 阅读模式渲染器
 
-    constructor(plugin: Plugin, commentStore: CommentStore) {
+    constructor(plugin: Plugin, highlightRepository: HighlightRepository) {
         this.plugin = plugin;
-        this.commentStore = commentStore;
+        this.highlightRepository = highlightRepository;
         // 使用插件提供的共享服务实例
         this.highlightService = (plugin as any).highlightService;
         // 初始化阅读模式渲染器
         this.previewRenderer = new PreviewWidgetRenderer(
             this.plugin,
-            this.commentStore,
+            this.highlightRepository,
             this.highlightService
         );
     }
@@ -57,7 +58,7 @@ export class HighlightDecorator {
 
     enable() {
         const plugin = this.plugin;
-        const commentStore = this.commentStore;
+        const highlightRepository = this.highlightRepository;
         const highlightService = this.highlightService;
 
         // 注册 Markdown Post Processor 用于阅读模式
@@ -93,12 +94,12 @@ export class HighlightDecorator {
         const highlightPlugin = ViewPlugin.fromClass(class {
             decorations: DecorationSet;
             plugin: Plugin;
-            commentStore: CommentStore;
+            highlightRepository: HighlightRepository;
             highlightService: HighlightService;
 
             constructor(view: EditorView) {
                 this.plugin = plugin;
-                this.commentStore = commentStore;
+                this.highlightRepository = highlightRepository;
                 // 使用外部传入的共享实例，避免重复创建
                 this.highlightService = highlightService;
                 this.decorations = this.buildDecorations(view);
@@ -162,7 +163,7 @@ export class HighlightDecorator {
                 let comments: CommentItem[] = [];
                 
                 if (highlight.blockId) {
-                    const blockComments = commentStore.getCommentsByBlockId(file, highlight.blockId);
+                    const blockComments = this.highlightRepository.findHighlightsByBlockId(file, highlight.blockId);
                     if (blockComments && blockComments.length > 0) {
                         // 使用 HighlightMatcher 进行匹配（支持精确匹配和位置匹配）
                         const bestMatch = HighlightMatcher.findMatch(highlight, blockComments);
@@ -175,10 +176,25 @@ export class HighlightDecorator {
                         }
                     }
                 } else {
-                    // getHiNotes 已经包含了精确匹配和位置匹配逻辑
-                    const storedHighlights = commentStore.getHiNotes(highlight);
+                    // 从缓存获取文件的所有高亮
+                    const fileHighlights = this.highlightRepository.getCachedHighlights(file.path) || [];
+                    // 使用 HighlightMatcher 进行匹配
+                    const storedHighlights = fileHighlights.filter(h => {
+                        const textMatch = h.text === highlight.text;
+                        if (textMatch) {
+                            if (typeof h.position === 'number' && typeof highlight.position === 'number') {
+                                return Math.abs(h.position - highlight.position) < 1000;
+                            }
+                            return true;
+                        }
+                        if (typeof h.position === 'number' && typeof highlight.position === 'number') {
+                            return Math.abs(h.position - highlight.position) < 30;
+                        }
+                        return false;
+                    });
+                    
                     if (storedHighlights && storedHighlights.length > 0) {
-                        // 取第一个匹配的高亮（getHiNotes 已经做了匹配）
+                        // 取第一个匹配的高亮
                         const matched = storedHighlights[0];
                         comments = matched.comments || [];
                         // 如果文本发生变化，更新存储

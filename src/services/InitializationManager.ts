@@ -1,11 +1,12 @@
 import { Plugin } from 'obsidian';
-import { CommentStore } from '../CommentStore';
 import { HighlightDecorator } from '../HighlightDecorator';
 import { FSRSManager } from '../flashcard/services/FSRSManager';
 import { HighlightService } from './HighlightService';
 import { HiNoteDataManager } from '../storage/HiNoteDataManager';
 import { CanvasService } from './CanvasService';
 import { EventManager } from './EventManager';
+import { HighlightManager } from './HighlightManager';
+import { HighlightRepository } from '../repositories/HighlightRepository';
 
 /**
  * 初始化管理器
@@ -21,9 +22,12 @@ export class InitializationManager {
     public dataManager!: HiNoteDataManager;
     public highlightService!: HighlightService;
     public canvasService!: CanvasService;
-    public commentStore!: CommentStore;
     public fsrsManager!: FSRSManager;
     public highlightDecorator!: HighlightDecorator;
+    
+    // 架构层实例
+    public highlightRepository!: HighlightRepository;
+    public highlightManager!: HighlightManager;
 
     constructor(private plugin: Plugin) {}
 
@@ -69,23 +73,25 @@ export class InitializationManager {
         // 初始化 Canvas 服务（共享实例）
         this.canvasService = new CanvasService(this.plugin.app.vault);
 
-        // 初始化评论存储（传入共享的服务实例）
-        this.commentStore = new CommentStore(
-            this.plugin as any,
+        // 初始化架构层
+        this.highlightRepository = new HighlightRepository(this.dataManager);
+        this.highlightManager = new HighlightManager(
+            this.plugin.app,
+            this.highlightRepository,
             this.eventManager,
-            this.dataManager,
             this.highlightService
         );
-        // 异步加载评论数据，不阻塞初始化
-        this.commentStore.loadComments().catch(error => {
-            console.error('[HiNote] 加载评论数据失败:', error);
+        
+        // 异步加载数据，不阻塞初始化
+        this.highlightRepository.initialize().catch(error => {
+            console.error('[HiNote] 加载高亮数据失败:', error);
         });
 
         // 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
         this.fsrsManager = new FSRSManager(this.plugin as any, this.dataManager);
 
         // 初始化高亮装饰器
-        this.highlightDecorator = new HighlightDecorator(this.plugin, this.commentStore);
+        this.highlightDecorator = new HighlightDecorator(this.plugin, this.highlightRepository);
         this.highlightDecorator.enable();
 
         const duration = performance.now() - startTime;
@@ -96,14 +102,7 @@ export class InitializationManager {
      * 清理资源
      */
     async cleanup(): Promise<void> {
-        // 保存最终状态
-        try {
-            if (this.isInitialized && this.commentStore) {
-                await this.commentStore.saveComments();
-            }
-        } catch (error) {
-            console.error('[HiNote] 保存评论数据失败:', error);
-        }
+        // 数据自动保存，无需手动保存
 
         // 清理高亮装饰器
         if (this.highlightDecorator) {

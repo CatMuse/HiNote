@@ -42,10 +42,10 @@ export class HighlightDeletionManager {
             if (highlight.filePath) {
                 await this.removeHighlightFromFile(highlight);
                 
-                // 从 CommentStore 中删除高亮
+                // 从 HighlightManager 中删除高亮
                 const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
                 if (file instanceof TFile) {
-                    await this.plugin.commentStore.removeComment(file, highlight as any);
+                    await this.plugin.highlightManager.removeHighlight(file, highlight as any);
                 }
                 
                 // 触发高亮删除事件
@@ -139,8 +139,8 @@ export class HighlightDeletionManager {
             if (highlight.filePath) {
                 const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
                 if (file instanceof TFile) {
-                    // 从 CommentStore 中删除高亮
-                    await this.plugin.commentStore.removeComment(file, highlight as any);
+                    // 从 HighlightManager 中删除高亮
+                    await this.plugin.highlightManager.removeHighlight(file, highlight as any);
                     
                     // 触发高亮删除事件
                     this.plugin.eventManager.emitHighlightDelete(

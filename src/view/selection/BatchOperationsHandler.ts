@@ -545,9 +545,9 @@ export class BatchOperationsHandler {
                 fileMarkFailed = result.failed;
             }
             
-            // 第三步: 从 CommentStore 中批量删除数据
-            const commentStore = this.plugin.commentStore;
-            if (commentStore) {
+            // 第三步: 从 HighlightManager 中批量删除数据
+            const highlightManager = this.plugin.highlightManager;
+            if (highlightManager) {
                 // 按文件分组,减少保存次数
                 const highlightsByFile = new Map<string, typeof highlightsArray>();
                 for (const highlight of highlightsArray) {
@@ -567,9 +567,9 @@ export class BatchOperationsHandler {
                             // 批量删除该文件的所有高亮
                             for (const highlight of fileHighlights) {
                                 try {
-                                    await commentStore.removeComment(file, highlight as any);
+                                    await highlightManager.removeHighlight(file, highlight as any);
                                 } catch (error) {
-                                    console.error('[BatchDelete] 从 CommentStore 删除失败:', highlight.id, error);
+                                    console.error('[BatchDelete] 从 HighlightManager 删除失败:', highlight.id, error);
                                     dataDeleteFailed++;
                                 }
                             }

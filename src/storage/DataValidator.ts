@@ -1,4 +1,4 @@
-import { HiNote, CommentItem } from '../CommentStore';
+import { HighlightInfo as HiNote, CommentItem } from '../types';
 import { FlashcardState, FSRSStorage } from '../flashcard/types/FSRSTypes';
 
 /**

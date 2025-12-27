@@ -1,5 +1,5 @@
 import { IdGenerator } from './IdGenerator';
-import { HiNote } from '../CommentStore';
+import { HighlightInfo as HiNote } from '../types';
 import { FlashcardState } from '../flashcard/types/FSRSTypes';
 
 /**

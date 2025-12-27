@@ -2,7 +2,9 @@ import { ItemView, WorkspaceLeaf, MarkdownView, TFile, Notice, Platform, Modal, 
 import { CanvasService } from './services/CanvasService';
 import { FlashcardComponent } from './flashcard/components/FlashcardComponent';
 import { FlashcardState } from './flashcard/types/FSRSTypes';
-import { CommentStore, HiNote, CommentItem } from './CommentStore';
+import { HighlightInfo as HiNote, CommentItem } from './types';
+import { HighlightManager } from './services/HighlightManager';
+import { HighlightRepository } from './repositories/HighlightRepository';
 import { ExportPreviewModal } from './templates/ExportModal';
 import { HighlightInfo, CommentUpdateEvent } from './types';
 import { HighlightCard } from './components/highlight/HighlightCard';
@@ -50,7 +52,8 @@ export class HiNoteView extends ItemView {
 
     // === 核心服务 ===
     private plugin: CommentPlugin;
-    private commentStore: CommentStore;
+    private highlightManager: HighlightManager;
+    private highlightRepository: HighlightRepository;
     private locationService: LocationService;
     private exportService: ExportService;
     private highlightService: HighlightService;
@@ -105,9 +108,10 @@ export class HiNoteView extends ItemView {
     private flashcardComponent: FlashcardComponent | null = null;
     private aiButtons: AIButton[] = [];
 
-    constructor(leaf: WorkspaceLeaf, commentStore: CommentStore) {
+    constructor(leaf: WorkspaceLeaf, highlightManager: HighlightManager, highlightRepository: HighlightRepository) {
         super(leaf);
-        this.commentStore = commentStore;
+        this.highlightManager = highlightManager;
+        this.highlightRepository = highlightRepository;
         // 使用类型安全的方式获取插件实例
         // 通过类型断言访问内部属性
         const plugins = (this.app as any).plugins;
@@ -118,7 +122,7 @@ export class HiNoteView extends ItemView {
         }
         // 初始化 LocationService（已移除 TextSimilarityService 依赖）
         this.locationService = new LocationService(this.app);
-        this.exportService = new ExportService(this.app, this.commentStore);
+        this.exportService = new ExportService(this.app, this.highlightRepository);
         // 使用插件提供的共享服务实例，避免重复创建
         this.highlightService = this.plugin.highlightService;
         this.licenseManager = new LicenseManager(this.plugin);
@@ -130,7 +134,7 @@ export class HiNoteView extends ItemView {
         this.eventCoordinator = new EventCoordinator(this.app, this);
         this.callbackConfigurator = new CallbackConfigurator();
         this.exportManager = new ExportManager(this.app, this.exportService);
-        this.virtualHighlightManager = new VirtualHighlightManager(this.commentStore);
+        this.virtualHighlightManager = new VirtualHighlightManager(this.highlightManager);
         this.flashcardViewManager = new FlashcardViewManager(this.app, this.plugin);
         
         // 使用 EventCoordinator 注册所有事件
@@ -456,14 +460,14 @@ export class HiNoteView extends ItemView {
             this.app,
             this.plugin,
             this.highlightService,
-            this.commentStore
+            this.highlightRepository
         );
         
         // 初始化评论操作管理器
         this.commentOperationManager = new CommentOperationManager(
             this.app,
             this.plugin,
-            this.commentStore
+            this.highlightManager
         );
         
         // 初始化评论输入管理器
@@ -570,7 +574,7 @@ export class HiNoteView extends ItemView {
         this.allHighlightsManager = new AllHighlightsManager(
             this.app,
             this.highlightService,
-            this.commentStore
+            this.highlightRepository
         );
         
         // 初始化 Canvas 处理器
@@ -1108,7 +1112,7 @@ export class HiNoteView extends ItemView {
         
         // 使用 VirtualHighlightManager 处理虚拟高亮
         if (this.virtualHighlightManager && this.currentFile) {
-            const virtualHighlights = this.virtualHighlightManager.filterVirtualHighlights(
+            const virtualHighlights = await this.virtualHighlightManager.filterVirtualHighlights(
                 this.currentFile,
                 this.highlights
             );

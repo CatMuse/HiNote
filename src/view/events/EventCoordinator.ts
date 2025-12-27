@@ -1,6 +1,6 @@
 import { App, TFile, Component } from "obsidian";
 import { HighlightCard } from "../../components/highlight/HighlightCard";
-import { HiNote } from "../../CommentStore";
+import { HighlightInfo as HiNote } from "../../types";
 
 /**
  * 事件回调接口

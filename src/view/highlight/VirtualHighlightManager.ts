@@ -1,6 +1,6 @@
 import { TFile, Notice, setIcon } from "obsidian";
-import { HiNote, CommentStore } from "../../CommentStore";
-import { HighlightInfo } from "../../types";
+import { HighlightInfo as HiNote, HighlightInfo } from "../../types";
+import { HighlightManager } from "../../services/HighlightManager";
 import { t } from "../../i18n";
 
 /**
@@ -14,7 +14,7 @@ export class VirtualHighlightManager {
     private addCommentButton: HTMLElement | null = null;
 
     constructor(
-        private commentStore: CommentStore
+        private highlightManager: HighlightManager
     ) {}
 
     /**
@@ -82,8 +82,8 @@ export class VirtualHighlightManager {
             comments: []  // 初始化空的评论数组
         };
 
-        // 先保存到 CommentStore
-        await this.commentStore.addComment(currentFile, virtualHighlight);
+        // 先保存到 HighlightManager
+        await this.highlightManager.addHighlight(currentFile, virtualHighlight);
 
         // 通知外部虚拟高亮已创建
         callbacks.onVirtualHighlightCreated(virtualHighlight);
@@ -108,11 +108,11 @@ export class VirtualHighlightManager {
      * @param existingHighlights 已存在的高亮列表
      * @returns 需要添加的虚拟高亮列表
      */
-    filterVirtualHighlights(
+    async filterVirtualHighlights(
         currentFile: TFile,
         existingHighlights: HighlightInfo[]
-    ): HiNote[] {
-        const storedComments = this.commentStore.getFileComments(currentFile);
+    ): Promise<HiNote[]> {
+        const storedComments = await this.highlightManager.getFileHighlights(currentFile);
         const usedCommentIds = new Set<string>();
         
         // 标记已使用的评论ID

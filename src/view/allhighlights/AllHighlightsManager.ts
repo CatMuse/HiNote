@@ -1,7 +1,8 @@
 import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
-import { HiNote, CommentStore } from '../../CommentStore';
+import { HighlightInfo as HiNote } from '../../types';
 import { HighlightService } from '../../services/HighlightService';
+import { HighlightRepository } from '../../repositories/HighlightRepository';
 
 /**
  * 全局高亮管理器
@@ -10,16 +11,16 @@ import { HighlightService } from '../../services/HighlightService';
 export class AllHighlightsManager {
     private app: App;
     private highlightService: HighlightService;
-    private commentStore: CommentStore;
+    private highlightRepository: HighlightRepository;
     
     constructor(
         app: App,
         highlightService: HighlightService,
-        commentStore: CommentStore
+        highlightRepository: HighlightRepository
     ) {
         this.app = app;
         this.highlightService = highlightService;
-        this.commentStore = commentStore;
+        this.highlightRepository = highlightRepository;
     }
     
     /**
@@ -63,7 +64,7 @@ export class AllHighlightsManager {
                 continue;
             }
             
-            const fileComments = this.commentStore.getFileComments(file);
+            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -103,7 +104,7 @@ export class AllHighlightsManager {
             const file = this.app.vault.getAbstractFileByPath(filePath);
             if (!(file instanceof TFile)) continue;
             
-            const fileComments = this.commentStore.getFileComments(file);
+            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -149,7 +150,7 @@ export class AllHighlightsManager {
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
-            const fileComments = this.commentStore.getFileComments(file);
+            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -184,7 +185,7 @@ export class AllHighlightsManager {
             const file = this.app.vault.getAbstractFileByPath(filePath);
             if (!(file instanceof TFile)) continue;
             
-            const fileComments = this.commentStore.getFileComments(file);
+            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             

@@ -1,5 +1,5 @@
 import { Component } from "obsidian";
-import { HiNote } from "../../CommentStore";
+import { HighlightInfo as HiNote } from "../../types";
 import { LicenseManager } from "../../services/LicenseManager";
 import { FSRSManager } from "../services/FSRSManager";
 import { 

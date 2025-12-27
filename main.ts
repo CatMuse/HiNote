@@ -13,14 +13,17 @@ export default class CommentPlugin extends Plugin {
 	private initManager: InitializationManager;
 	private windowManager: WindowManager;
 
-	// 公开服务实例供外部访问（保持向后兼容）
-	get commentStore() { return this.initManager.commentStore; }
+	// 公开服务实例供外部访问
 	get highlightDecorator() { return this.initManager.highlightDecorator; }
 	get fsrsManager() { return this.initManager.fsrsManager; }
 	get eventManager() { return this.initManager.eventManager; }
 	get highlightService() { return this.initManager.highlightService; }
 	get dataManager() { return this.initManager.dataManager; }
 	get canvasService() { return this.initManager.canvasService; }
+	
+	// 架构层实例
+	get highlightRepository() { return this.initManager.highlightRepository; }
+	get highlightManager() { return this.initManager.highlightManager; }
 
 	async onload() {
 		// 加载设置
@@ -39,7 +42,7 @@ export default class CommentPlugin extends Plugin {
 			VIEW_TYPE_HINOTE,
 			(leaf) => {
 				this.initManager.ensureInitialized();
-				return new HiNoteView(leaf, this.initManager.commentStore);
+				return new HiNoteView(leaf, this.initManager.highlightManager, this.initManager.highlightRepository);
 			}
 		);
 
@@ -62,8 +65,8 @@ export default class CommentPlugin extends Plugin {
 		// 监听文件重命名事件
 		this.registerEvent(
 			this.app.vault.on('rename', async (file, oldPath) => {
-				if (this.initManager.initialized && this.commentStore) {
-					await this.commentStore.updateFilePath(oldPath, file.path);
+				if (this.initManager.initialized && this.highlightManager) {
+					await this.highlightManager.handleFileRename(oldPath, file.path);
 				}
 			})
 		);

@@ -1,5 +1,5 @@
 import { TFile } from "obsidian";
-import { HiNote } from "../../CommentStore";
+import { HighlightInfo as HiNote } from "../../types";
 
 /**
  * 闪卡工具类，包含各种辅助方法

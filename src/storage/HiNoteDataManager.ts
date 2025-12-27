@@ -1,5 +1,5 @@
 import { App, TFile } from 'obsidian';
-import { HiNote, CommentItem } from '../CommentStore';
+import { HighlightInfo as HiNote, CommentItem } from '../types';
 import { FlashcardState, FSRSStorage, FSRSGlobalStats } from '../flashcard/types/FSRSTypes';
 import { FilePathUtils } from './FilePathUtils';
 import { DataValidator } from './DataValidator';
@@ -42,7 +42,12 @@ export interface FileMappingData {
 }
 
 /**
- * HiNote数据管理器 - 新的分离存储实现
+ * HiNote数据管理器 - 存储层（已重构）
+ * 职责：
+ * 1. 纯粹的文件系统操作
+ * 2. 数据序列化/反序列化
+ * 3. 文件路径映射管理
+ * 4. 不包含业务逻辑
  */
 export class HiNoteDataManager {
     private app: App;
@@ -282,25 +287,6 @@ export class HiNoteDataManager {
         return mappedFiles;
     }
 
-    /**
-     * 清理孤立的高亮数据
-     * @returns 清理统计
-     */
-    async cleanOrphanedHighlights(): Promise<{ removedFiles: number; totalFiles: number }> {
-        const allFiles = await this.getAllHighlightFiles();
-        let removedFiles = 0;
-
-        for (const filePath of allFiles) {
-            // 检查文件是否还存在于vault中
-            const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!file || !(file instanceof TFile)) {
-                await this.deleteFileHighlights(filePath);
-                removedFiles++;
-            }
-        }
-
-        return { removedFiles, totalFiles: allFiles.length };
-    }
 
     /**
      * 转换为旧格式（保持兼容性）
@@ -361,7 +347,7 @@ export class HiNoteDataManager {
         }
 
         if (highlight.comments && highlight.comments.length > 0) {
-            optimized.comments = highlight.comments.map(comment => ({
+            optimized.comments = highlight.comments.map((comment: any) => ({
                 id: comment.id,
                 content: comment.content,
                 created: comment.createdAt,

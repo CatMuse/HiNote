@@ -1,5 +1,6 @@
 import { Plugin, TFile, MarkdownPostProcessorContext } from "obsidian";
-import { CommentStore, HiNote, CommentItem } from "../../CommentStore";
+import { HighlightInfo as HiNote, CommentItem } from "../../types";
+import { HighlightRepository } from "../../repositories/HighlightRepository";
 import { HighlightService } from '../../services/HighlightService';
 import { HighlightMatcher } from '../../utils/HighlightMatcher';
 import { CommentWidgetHelper } from '../../components/comment/CommentWidgetHelper';
@@ -11,7 +12,7 @@ import { CommentWidgetHelper } from '../../components/comment/CommentWidgetHelpe
 export class PreviewWidgetRenderer {
     constructor(
         private plugin: Plugin,
-        private commentStore: CommentStore,
+        private highlightRepository: HighlightRepository,
         private highlightService: HighlightService
     ) {}
 
@@ -93,7 +94,7 @@ export class PreviewWidgetRenderer {
                 let comments: CommentItem[] = [];
                 
                 if (hiNote.blockId) {
-                    const blockComments = this.commentStore.getCommentsByBlockId(file, hiNote.blockId);
+                    const blockComments = this.highlightRepository.findHighlightsByBlockId(file, hiNote.blockId);
                     if (blockComments && blockComments.length > 0) {
                          const bestMatch = HighlightMatcher.findMatch(hiNote, blockComments);
                          if (bestMatch) {
@@ -102,10 +103,26 @@ export class PreviewWidgetRenderer {
                          }
                     }
                 } else {
-                    const storedHighlights = this.commentStore.getHiNotes(hiNote);
+                    // 从缓存获取文件的所有高亮
+                    const fileHighlights = this.highlightRepository.getCachedHighlights(file.path) || [];
+                    // 使用匹配逻辑
+                    const storedHighlights = fileHighlights.filter(h => {
+                        const textMatch = h.text === hiNote.text;
+                        if (textMatch) {
+                            if (typeof h.position === 'number' && typeof hiNote.position === 'number') {
+                                return Math.abs(h.position - hiNote.position) < 1000;
+                            }
+                            return true;
+                        }
+                        if (typeof h.position === 'number' && typeof hiNote.position === 'number') {
+                            return Math.abs(h.position - hiNote.position) < 30;
+                        }
+                        return false;
+                    });
+                    
                     if (storedHighlights && storedHighlights.length > 0) {
                         storedHighlight = storedHighlights[0];
-                        comments = storedHighlight.comments || [];
+                        comments = storedHighlight?.comments || [];
                     }
                 }
                 

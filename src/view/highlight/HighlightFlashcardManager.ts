@@ -1,6 +1,6 @@
 import { Notice, TFile } from 'obsidian';
 import { HighlightInfo } from '../../types';
-import { HiNote } from '../../CommentStore';
+import { HighlightInfo as HiNote } from '../../types';
 import CommentPlugin from '../../../main';
 import { t } from '../../i18n';
 
@@ -81,8 +81,8 @@ export class HighlightFlashcardManager {
                         isCloze: highlight.isCloze
                     };
                     
-                    // 保存到 CommentStore
-                    await this.plugin.commentStore.addComment(file, hiNote);
+                    // 保存到 HighlightManager
+                    await this.plugin.highlightManager.addHighlight(file, hiNote);
                 }
             }
             

@@ -1,6 +1,6 @@
 import { WidgetType } from "@codemirror/view";
 import type { Plugin } from "obsidian";
-import { HiNote, CommentItem } from "../../CommentStore";
+import { HighlightInfo as HiNote, CommentItem } from "../../types";
 import { setIcon, MarkdownRenderer, Component, App } from "obsidian";
 
 export class CommentWidget extends WidgetType {

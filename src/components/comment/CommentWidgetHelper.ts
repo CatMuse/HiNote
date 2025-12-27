@@ -1,5 +1,5 @@
 import { Plugin, MarkdownRenderer, Component, App } from "obsidian";
-import { HiNote, CommentItem } from "../../CommentStore";
+import { HighlightInfo as HiNote, CommentItem } from "../../types";
 import { setIcon } from "obsidian";
 
 /**

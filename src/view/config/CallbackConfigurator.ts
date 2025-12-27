@@ -1,6 +1,6 @@
 import { TFile } from "obsidian";
 import { HighlightInfo, CommentItem } from "../../types";
-import { HiNote } from "../../CommentStore";
+import { HighlightInfo as HiNote } from "../../types";
 import { SearchManager } from "../search/SearchManager";
 import { SelectionManager } from "../selection/SelectionManager";
 import { BatchOperationsHandler } from "../selection/BatchOperationsHandler";

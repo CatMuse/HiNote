@@ -1,6 +1,7 @@
 import { TFile, App, Notice } from 'obsidian';
 import { HighlightInfo, CommentItem } from '../../types';
-import { HiNote, CommentStore } from '../../CommentStore';
+import { HighlightInfo as HiNote } from '../../types';
+import { HighlightManager } from '../../services/HighlightManager';
 import { IdGenerator } from '../../utils/IdGenerator';
 import CommentPlugin from '../../../main';
 import { t } from '../../i18n';
@@ -12,7 +13,7 @@ import { t } from '../../i18n';
 export class CommentOperationManager {
     private app: App;
     private plugin: CommentPlugin;
-    private commentStore: CommentStore;
+    private highlightManager: HighlightManager;
     
     // 回调函数
     private onRefreshView: (() => Promise<void>) | null = null;
@@ -26,11 +27,11 @@ export class CommentOperationManager {
     constructor(
         app: App,
         plugin: CommentPlugin,
-        commentStore: CommentStore
+        highlightManager: HighlightManager
     ) {
         this.app = app;
         this.plugin = plugin;
-        this.commentStore = commentStore;
+        this.highlightManager = highlightManager;
     }
     
     /**
@@ -100,7 +101,7 @@ export class CommentOperationManager {
         highlight.comments.push(newComment);
         highlight.updatedAt = Date.now();
 
-        await this.commentStore.addComment(file, highlight as HiNote);
+        await this.highlightManager.addHighlight(file, highlight as HiNote);
 
         // 触发更新评论按钮
         this.dispatchCommentUpdateEvent(highlight);
@@ -128,7 +129,7 @@ export class CommentOperationManager {
             comment.content = content;
             comment.updatedAt = Date.now();
             highlight.updatedAt = Date.now();
-            await this.commentStore.addComment(file, highlight as HiNote);
+            await this.highlightManager.addHighlight(file, highlight as HiNote);
 
             // 触发更新评论按钮
             this.dispatchCommentUpdateEvent(highlight);
@@ -166,8 +167,8 @@ export class CommentOperationManager {
             
             // 如果是虚拟高亮或者没有关联闪卡，则删除整个高亮
             if (highlight.isVirtual || !hasFlashcard) {
-                // 从 CommentStore 中删除高亮
-                await this.commentStore.removeComment(file, highlight as HiNote);
+                // 从 HighlightManager 中删除高亮
+                await this.highlightManager.removeHighlight(file, highlight as HiNote);
                 
                 // 从当前高亮列表中移除
                 this.highlights = this.highlights.filter(h => {
@@ -185,11 +186,11 @@ export class CommentOperationManager {
                 }
             } else {
                 // 有关联闪卡，只更新评论
-                await this.commentStore.addComment(file, highlight as HiNote);
+                await this.highlightManager.addHighlight(file, highlight as HiNote);
             }
         } else {
             // 还有其他评论，只更新评论
-            await this.commentStore.addComment(file, highlight as HiNote);
+            await this.highlightManager.addHighlight(file, highlight as HiNote);
         }
 
         // 触发更新评论按钮
@@ -214,7 +215,7 @@ export class CommentOperationManager {
         
         const file = await this.getFileForHighlight(highlight);
         if (file) {
-            await this.commentStore.removeComment(file, highlight as HiNote);
+            await this.highlightManager.removeHighlight(file, highlight as HiNote);
             this.highlights = this.highlights.filter(h => {
                 // 如果有 ID，通过 ID 比较
                 if (h.id && highlight.id) {

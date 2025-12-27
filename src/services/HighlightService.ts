@@ -1,6 +1,7 @@
 import { App, TFile, normalizePath, EventRef } from "obsidian";
 import { HighlightInfo, PluginSettings } from '../types';
-import { HiNote, CommentStore } from '../CommentStore';
+import { HighlightInfo as HiNote } from '../types';
+import { HighlightRepository } from '../repositories/HighlightRepository';
 import { t } from '../i18n';
 import { ExcludePatternMatcher } from './ExcludePatternMatcher';
 import { BlockIdService } from './BlockIdService';
@@ -852,14 +853,14 @@ export class HighlightService {
      * 查找与给定高亮最匹配的存储高亮
      * 使用多种策略进行匹配：精确匹配、位置匹配、模糊文本匹配
      */
-    public findMatchingHighlight(file: TFile, highlight: HiNote, commentStore: CommentStore): HiNote | null {
-        const fileHighlights = commentStore.getFileComments(file);
+    public findMatchingHighlight(file: TFile, highlight: HiNote, highlightRepository: HighlightRepository): HiNote | null {
+        const fileHighlights = highlightRepository.getCachedHighlights(file.path) || [];
         if (!fileHighlights || fileHighlights.length === 0) {
             return null;
         }
         
         // 1. 首先尝试精确匹配（文本和位置）
-        let matchingHighlight = fileHighlights.find(h => {
+        let matchingHighlight = fileHighlights.find((h: HiNote) => {
             if (h.text !== highlight.text) return false;
             if (typeof h.position === 'number' && typeof highlight.position === 'number') {
                 return Math.abs(h.position - highlight.position) < 10;
@@ -871,7 +872,7 @@ export class HighlightService {
         
         // 2. 如果没有精确匹配，尝试只匹配位置（允许文本有变化）
         if (highlight.position !== undefined) {
-            matchingHighlight = fileHighlights.find(h => 
+            matchingHighlight = fileHighlights.find((h: HiNote) => 
                 typeof h.position === 'number' && 
                 Math.abs(h.position - highlight.position) < 50
             );

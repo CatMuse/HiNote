@@ -1,7 +1,7 @@
 import { App, Modal, Notice } from 'obsidian';
 import { HighlightInfo } from '../types';
 import { getTemplate, templates } from './index';
-import { CommentItem } from '../CommentStore';
+import { CommentItem } from '../types';
 import { t } from "../i18n";
 import { exportStyles } from './exportStyles';
 

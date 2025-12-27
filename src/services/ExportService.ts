@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import { HighlightInfo, CommentItem } from "../types";
-import { CommentStore } from "../CommentStore";
+import { HighlightRepository } from "../repositories/HighlightRepository";
 import { t } from "../i18n";
 import { HighlightService } from "./HighlightService";
 import { IdGenerator } from '../utils/IdGenerator';
@@ -10,7 +10,7 @@ export class ExportService {
 
     constructor(
         private app: App,
-        private commentStore: CommentStore
+        private highlightRepository: HighlightRepository
     ) {
         this.highlightService = new HighlightService(app);
     }
@@ -153,7 +153,7 @@ export class ExportService {
         const highlights = this.highlightService.extractHighlights(content, file);
         
         // 获取已存储的评论
-        const storedComments = this.commentStore.getFileComments(file);
+        const storedComments = this.highlightRepository.getCachedHighlights(file.path) || [];
         
         // 分离虚拟高亮和普通高亮
         const virtualHighlights = storedComments.filter(c => c.isVirtual && c.comments && c.comments.length > 0);

@@ -1,6 +1,6 @@
 import { FlashcardState, CardGroup } from '../types/FSRSTypes';
 import { FSRSService } from './FSRSService';
-import { HiNote } from '../../CommentStore';
+import { HighlightInfo as HiNote } from '../../types';
 
 /**
  * 闪卡工厂类，负责闪卡的创建、更新和管理

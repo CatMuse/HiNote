@@ -1,8 +1,8 @@
 import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
-import { HiNote } from '../../CommentStore';
+import { HighlightInfo as HiNote } from '../../types';
 import { HighlightService } from '../../services/HighlightService';
-import { CommentStore } from '../../CommentStore';
+import { HighlightRepository } from '../../repositories/HighlightRepository';
 import { IdGenerator } from '../../utils/IdGenerator';
 import CommentPlugin from '../../../main';
 
@@ -14,18 +14,18 @@ export class HighlightDataManager {
     private app: App;
     private plugin: CommentPlugin;
     private highlightService: HighlightService;
-    private commentStore: CommentStore;
+    private highlightRepository: HighlightRepository;
     
     constructor(
         app: App,
         plugin: CommentPlugin,
         highlightService: HighlightService,
-        commentStore: CommentStore
+        highlightRepository: HighlightRepository
     ) {
         this.app = app;
         this.plugin = plugin;
         this.highlightService = highlightService;
-        this.commentStore = commentStore;
+        this.highlightRepository = highlightRepository;
     }
     
     /**
@@ -41,7 +41,7 @@ export class HighlightDataManager {
         const highlights = this.highlightService.extractHighlights(content, file);
         
         // 获取已存储的评论
-        const storedComments = this.commentStore.getFileComments(file);
+        const storedComments = this.highlightRepository.getCachedHighlights(file.path) || [];
         
         // 合并高亮和评论数据
         return this.mergeHighlightsWithComments(highlights, storedComments, file);
@@ -64,8 +64,8 @@ export class HighlightDataManager {
                     continue;
                 }
                 
-                // 直接从 CommentStore 获取文件评论
-                const fileComments = this.commentStore.getFileComments(file);
+                // 直接从 Repository 获取文件评论
+                const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
                 
                 // 合并高亮和评论
                 const mergedHighlights = this.mergeHighlightsWithComments(highlights, fileComments, file);
@@ -76,7 +76,7 @@ export class HighlightDataManager {
             const highlightResults = await this.highlightService.getAllHighlights();
             
             for (const { file, highlights } of highlightResults) {
-                const fileComments = this.commentStore.getFileComments(file);
+                const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
                 const mergedHighlights = this.mergeHighlightsWithComments(highlights, fileComments, file);
                 
                 // 如果有搜索词，过滤高亮
