@@ -285,9 +285,6 @@ settings:
     gap: 8px;
     padding: 12px;
     border-bottom: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
 }
 
 /* 搜索框样式 */
@@ -561,6 +558,7 @@ settings:
 
 .hi-note-content:hover {
     background-color: var(--hi-note-hover-bg-color, var(--background-modifier-hover));
+    border-radius: 4px;
 }
 
 .hi-note-edit-hint {
@@ -568,11 +566,12 @@ settings:
     font-size: 11px;
     color: var(--text-faint);
     margin-left: 4px;
+    margin-top: 4px;
     opacity: 0.7;
 }
 
 /* 当鼠标悬停在内容区域时显示编辑提示 */
-.hi-note-content:hover + .hi-note-footer .hi-note-edit-hint {
+.hi-note:has(.hi-note-content:hover) .hi-note-edit-hint {
     display: inline-block;
 }
 
