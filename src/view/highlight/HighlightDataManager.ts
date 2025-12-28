@@ -64,8 +64,8 @@ export class HighlightDataManager {
                     continue;
                 }
                 
-                // 直接从 Repository 获取文件评论
-                const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
+                // 从 Repository 获取文件评论（如果缓存未命中会自动从存储层加载）
+                const fileComments = await this.highlightRepository.getFileHighlights(file.path);
                 
                 // 合并高亮和评论
                 const mergedHighlights = this.mergeHighlightsWithComments(highlights, fileComments, file);
@@ -76,7 +76,7 @@ export class HighlightDataManager {
             const highlightResults = await this.highlightService.getAllHighlights();
             
             for (const { file, highlights } of highlightResults) {
-                const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
+                const fileComments = await this.highlightRepository.getFileHighlights(file.path);
                 const mergedHighlights = this.mergeHighlightsWithComments(highlights, fileComments, file);
                 
                 // 如果有搜索词，过滤高亮

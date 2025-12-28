@@ -64,7 +64,7 @@ export class AllHighlightsManager {
                 continue;
             }
             
-            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
+            const fileComments = await this.highlightRepository.getFileHighlights(file.path);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -80,7 +80,7 @@ export class AllHighlightsManager {
     /**
      * 从缓存的高亮中按路径过滤
      */
-    private filterCachedHighlightsByPath(cachedHighlights: HighlightInfo[], searchTerm: string): HighlightInfo[] {
+    private async filterCachedHighlightsByPath(cachedHighlights: HighlightInfo[], searchTerm: string): Promise<HighlightInfo[]> {
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
@@ -104,7 +104,7 @@ export class AllHighlightsManager {
             const file = this.app.vault.getAbstractFileByPath(filePath);
             if (!(file instanceof TFile)) continue;
             
-            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
+            const fileComments = await this.highlightRepository.getFileHighlights(file.path);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -150,7 +150,7 @@ export class AllHighlightsManager {
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
-            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
+            const fileComments = await this.highlightRepository.getFileHighlights(file.path);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
@@ -167,7 +167,7 @@ export class AllHighlightsManager {
      * 处理缓存的高亮数据
      * 直接使用索引中的数据，合并评论信息
      */
-    private processCachedHighlights(cachedHighlights: HighlightInfo[]): HighlightInfo[] {
+    private async processCachedHighlights(cachedHighlights: HighlightInfo[]): Promise<HighlightInfo[]> {
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
@@ -185,7 +185,7 @@ export class AllHighlightsManager {
             const file = this.app.vault.getAbstractFileByPath(filePath);
             if (!(file instanceof TFile)) continue;
             
-            const fileComments = this.highlightRepository.getCachedHighlights(file.path) || [];
+            const fileComments = await this.highlightRepository.getFileHighlights(file.path);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
