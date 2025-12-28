@@ -18,18 +18,18 @@ import { CommentInput } from '../components/comment/CommentInput';
 import {t} from "../i18n";
 import { LicenseManager } from '../services/LicenseManager';
 import { IdGenerator } from '../utils/IdGenerator';
-import { SearchManager } from '../views/managers/SearchManager';
+import { SearchUIManager } from '../views/managers/SearchUIManager';
 import { SelectionManager } from '../views/selection/SelectionManager';
 import { BatchOperationsHandler } from '../views/selection/BatchOperationsHandler';
 import { FileListManager } from '../views/managers/FileListManager';
 import { HighlightRenderManager } from '../views/highlight/HighlightRenderManager';
-import { HighlightDataManager } from '../views/managers/HighlightDataManager';
-import { CommentOperationManager } from '../views/comment/CommentOperationManager';
+import { HighlightDataService } from '../services/highlight/HighlightDataService';
+import { CommentService } from '../services/comment/CommentService';
 import { CommentInputManager } from '../views/comment/CommentInputManager';
 import { LayoutManager } from '../views/layout/LayoutManager';
 import { ViewPositionDetector } from '../views/layout/ViewPositionDetector';
 import { CanvasHighlightProcessor } from '../views/canvas/CanvasHighlightProcessor';
-import { AllHighlightsManager } from '../views/managers/AllHighlightsManager';
+import { GlobalHighlightService } from '../services/highlight/GlobalHighlightService';
 import { ExportManager } from '../views/export/ExportManager';
 import { VirtualHighlightManager } from '../views/highlight/VirtualHighlightManager';
 import { InfiniteScrollManager } from '../views/scroll/InfiniteScrollManager';
@@ -61,18 +61,18 @@ export class HiNoteView extends ItemView {
     private canvasService: CanvasService;
 
     // === 功能管理器 ===
-    private searchManager: SearchManager | null = null;
+    private searchUIManager: SearchUIManager | null = null;
     private selectionManager: SelectionManager | null = null;
     private batchOperationsHandler: BatchOperationsHandler | null = null;
     private fileListManager: FileListManager | null = null;
     private highlightRenderManager: HighlightRenderManager | null = null;
-    private highlightDataManager: HighlightDataManager | null = null;
-    private commentOperationManager: CommentOperationManager | null = null;
+    private highlightDataService: HighlightDataService | null = null;
+    private commentService: CommentService | null = null;
     private commentInputManager: CommentInputManager | null = null;
     private layoutManager: LayoutManager | null = null;
     private viewPositionDetector: ViewPositionDetector | null = null;
     private canvasProcessor: CanvasHighlightProcessor | null = null;
-    private allHighlightsManager: AllHighlightsManager | null = null;
+    private globalHighlightService: GlobalHighlightService | null = null;
 
     // === 重构新增的 Manager ===
     private exportManager: ExportManager | null = null;
@@ -260,17 +260,17 @@ export class HiNoteView extends ItemView {
             );
         }
 
-        // 初始化搜索管理器
-        this.searchManager = new SearchManager(
+        // 初始化搜索 UI 管理器
+        this.searchUIManager = new SearchUIManager(
             this.plugin,
             this.searchInput,
             this.searchLoadingIndicator,
             this.searchContainer
         );
         
-        // 使用 CallbackConfigurator 配置搜索管理器回调
+        // 使用 CallbackConfigurator 配置搜索 UI 管理器回调
         if (this.callbackConfigurator) {
-            this.callbackConfigurator.configureSearchManager(this.searchManager, {
+            this.callbackConfigurator.configureSearchUIManager(this.searchUIManager, {
                 onSearch: async (searchTerm: string, searchType: string) => {
                     await this.handleSearch(searchTerm, searchType);
                 },
@@ -280,7 +280,7 @@ export class HiNoteView extends ItemView {
         }
         
         // 初始化搜索功能
-        this.searchManager.initialize();
+        this.searchUIManager.initialize();
         
         // 初始化多选管理器
         this.selectionManager = new SelectionManager(this.highlightContainer);
@@ -444,27 +444,26 @@ export class HiNoteView extends ItemView {
             onCommentEdit: (el, h, c) => this.showCommentInput(el, h, c),
             onExport: (h) => this.exportHighlightAsImage(h),
             onAIResponse: async (h, content) => {
-                if (this.commentOperationManager) {
-                    this.commentOperationManager.updateState({
+                if (this.commentService) {
+                    this.commentService.updateState({
                         currentFile: this.currentFile,
                         highlights: this.highlights
                     });
-                    await this.commentOperationManager.addComment(h, content);
+                    await this.commentService.addComment(h, content);
                 }
                 await this.updateHighlights();
             }
         });
         
-        // 初始化高亮数据管理器
-        this.highlightDataManager = new HighlightDataManager(
+        // 初始化高亮数据服务
+        this.highlightDataService = new HighlightDataService(
             this.app,
-            this.plugin,
             this.highlightService,
             this.highlightRepository
         );
         
-        // 初始化评论操作管理器
-        this.commentOperationManager = new CommentOperationManager(
+        // 初始化评论服务
+        this.commentService = new CommentService(
             this.app,
             this.plugin,
             this.highlightManager
@@ -475,8 +474,8 @@ export class HiNoteView extends ItemView {
         
         // 使用 CallbackConfigurator 配置评论管理器回调
         if (this.callbackConfigurator) {
-            this.callbackConfigurator.configureCommentOperationManager(
-                this.commentOperationManager,
+            this.callbackConfigurator.configureCommentService(
+                this.commentService!,
                 {
                     onRefreshView: async () => await this.refreshView(),
                     onHighlightsUpdate: (highlights) => {
@@ -502,35 +501,35 @@ export class HiNoteView extends ItemView {
                 this.commentInputManager,
                 {
                     onCommentSave: async (highlight, content, existingComment) => {
-                        if (this.commentOperationManager) {
-                            this.commentOperationManager.updateState({
+                        if (this.commentService) {
+                            this.commentService.updateState({
                                 currentFile: this.currentFile,
                                 highlights: this.highlights
                             });
                             if (existingComment) {
-                                await this.commentOperationManager.updateComment(highlight, existingComment.id, content);
+                                await this.commentService.updateComment(highlight, existingComment.id, content);
                             } else {
-                                await this.commentOperationManager.addComment(highlight, content);
+                                await this.commentService.addComment(highlight, content);
                             }
                         }
                     },
                     onCommentDelete: async (highlight, commentId) => {
-                        if (this.commentOperationManager) {
-                            this.commentOperationManager.updateState({
+                        if (this.commentService) {
+                            this.commentService.updateState({
                                 currentFile: this.currentFile,
                                 highlights: this.highlights
                             });
-                            await this.commentOperationManager.deleteComment(highlight, commentId);
+                            await this.commentService.deleteComment(highlight, commentId);
                         }
                     },
                     onCommentCancel: async (highlight) => {
                         if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
-                            if (this.commentOperationManager) {
-                                this.commentOperationManager.updateState({
+                            if (this.commentService) {
+                                this.commentService.updateState({
                                     currentFile: this.currentFile,
                                     highlights: this.highlights
                                 });
-                                await this.commentOperationManager.deleteVirtualHighlight(highlight);
+                                await this.commentService.deleteVirtualHighlight(highlight);
                             }
                         }
                     },
@@ -570,8 +569,8 @@ export class HiNoteView extends ItemView {
         // 初始化视图位置检测器
         this.viewPositionDetector = new ViewPositionDetector(this.app, this.leaf);
         
-        // 初始化全局高亮管理器
-        this.allHighlightsManager = new AllHighlightsManager(
+        // 初始化全局高亮服务
+        this.globalHighlightService = new GlobalHighlightService(
             this.app,
             this.highlightService,
             this.highlightRepository
@@ -581,7 +580,7 @@ export class HiNoteView extends ItemView {
         this.canvasProcessor = new CanvasHighlightProcessor(
             this.app,
             this.canvasService,
-            this.highlightDataManager!
+            this.highlightDataService!
         );
         
         // 使用 CallbackConfigurator 配置 Canvas 处理器回调
@@ -838,8 +837,8 @@ export class HiNoteView extends ItemView {
 
         try {
             // 使用 AllHighlightsManager 加载所有高亮
-            if (this.allHighlightsManager) {
-                this.highlights = await this.allHighlightsManager.updateAllHighlights(searchTerm, searchType);
+            if (this.globalHighlightService) {
+                this.highlights = await this.globalHighlightService.updateAllHighlights(searchTerm, searchType);
             }
             
             // 初始加载
@@ -906,9 +905,9 @@ export class HiNoteView extends ItemView {
     onunload() {
         
         // 清理搜索管理器
-        if (this.searchManager) {
-            this.searchManager.destroy();
-            this.searchManager = null;
+        if (this.searchUIManager) {
+            this.searchUIManager.destroy();
+            this.searchUIManager = null;
         }
         
         // 清理多选管理器
@@ -936,13 +935,13 @@ export class HiNoteView extends ItemView {
         }
         
         // 清理高亮数据管理器
-        if (this.highlightDataManager) {
-            this.highlightDataManager = null;
+        if (this.highlightDataService) {
+            this.highlightDataService = null;
         }
         
         // 清理评论操作管理器
-        if (this.commentOperationManager) {
-            this.commentOperationManager = null;
+        if (this.commentService) {
+            this.commentService = null;
         }
         
         // 清理评论输入管理器
@@ -967,8 +966,8 @@ export class HiNoteView extends ItemView {
         }
         
         // 清理全局高亮管理器
-        if (this.allHighlightsManager) {
-            this.allHighlightsManager = null;
+        if (this.globalHighlightService) {
+            this.globalHighlightService = null;
         }
     }
 
@@ -1025,7 +1024,7 @@ export class HiNoteView extends ItemView {
                 });
                 
                 // 使用实际搜索词过滤
-                const filteredHighlights = this.searchManager!.filterHighlightsByTerm(searchTerm, searchType);
+                const filteredHighlights = this.searchUIManager!.filterHighlightsByTerm(searchTerm, searchType);
                 
                 // 更新显示
                 this.renderHighlights(filteredHighlights);
@@ -1065,7 +1064,7 @@ export class HiNoteView extends ItemView {
                     highlight.isGlobalSearch = false;
                 });
                 
-                const filteredHighlights = this.searchManager!.filterHighlightsByTerm(searchTerm, searchType);
+                const filteredHighlights = this.searchUIManager!.filterHighlightsByTerm(searchTerm, searchType);
                 this.renderHighlights(filteredHighlights);
             }
         } catch (error) {
@@ -1104,8 +1103,8 @@ export class HiNoteView extends ItemView {
         }
 
         // 使用 HighlightDataManager 加载数据
-        if (this.highlightDataManager) {
-            this.highlights = await this.highlightDataManager.loadFileHighlights(this.currentFile);
+        if (this.highlightDataService) {
+            this.highlights = await this.highlightDataService.loadFileHighlights(this.currentFile);
         } else {
             this.highlights = [];
         }
@@ -1134,10 +1133,10 @@ export class HiNoteView extends ItemView {
         }
         
         // 检查搜索框是否有内容
-        if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchManager) {
+        if (this.searchInput && this.searchInput.value.trim() !== '' && this.searchUIManager) {
             // 如果有搜索内容，使用搜索管理器过滤
             const searchValue = this.searchInput.value.toLowerCase().trim();
-            const filteredHighlights = this.searchManager.filterHighlightsByTerm(searchValue, '');
+            const filteredHighlights = this.searchUIManager.filterHighlightsByTerm(searchValue, '');
             this.renderHighlights(filteredHighlights);
         } else {
             // 如果没有搜索内容，直接渲染所有高亮

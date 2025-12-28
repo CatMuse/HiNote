@@ -1,12 +1,12 @@
 import { TFile } from "obsidian";
 import { HighlightInfo, CommentItem } from "../../types";
 import { HighlightInfo as HiNote } from "../../types";
-import { SearchManager } from "../../views/managers/SearchManager";
+import { SearchUIManager } from "../../views/managers/SearchUIManager";
 import { SelectionManager } from "../selection/SelectionManager";
 import { BatchOperationsHandler } from "../selection/BatchOperationsHandler";
 import { FileListManager } from "../../views/managers/FileListManager";
 import { HighlightRenderManager } from "../highlight/HighlightRenderManager";
-import { CommentOperationManager } from "../comment/CommentOperationManager";
+import { CommentService } from "../../services/comment/CommentService";
 import { CommentInputManager } from "../comment/CommentInputManager";
 import { LayoutManager } from "../layout/LayoutManager";
 import { ViewPositionDetector } from "../layout/ViewPositionDetector";
@@ -21,17 +21,17 @@ import { CanvasHighlightProcessor } from "../canvas/CanvasHighlightProcessor";
  */
 export class CallbackConfigurator {
     /**
-     * 配置搜索管理器回调
+     * 配置搜索 UI 管理器回调
      */
-    configureSearchManager(
-        searchManager: SearchManager,
+    configureSearchUIManager(
+        searchUIManager: SearchUIManager,
         callbacks: {
             onSearch: (searchTerm: string, searchType: string) => Promise<void>;
             getHighlights: () => HighlightInfo[];
             getCurrentFile: () => TFile | null;
         }
     ): void {
-        searchManager.setCallbacks(
+        searchUIManager.setCallbacks(
             callbacks.onSearch,
             callbacks.getHighlights,
             callbacks.getCurrentFile
@@ -113,17 +113,17 @@ export class CallbackConfigurator {
     }
 
     /**
-     * 配置评论操作管理器回调
+     * 配置评论服务回调
      */
-    configureCommentOperationManager(
-        commentOperationManager: CommentOperationManager,
+    configureCommentService(
+        commentService: CommentService,
         callbacks: {
             onRefreshView: () => Promise<void>;
             onHighlightsUpdate: (highlights: HighlightInfo[]) => void;
             onCardUpdate: (highlight: HighlightInfo) => void;
         }
     ): void {
-        commentOperationManager.setCallbacks({
+        commentService.setCallbacks({
             onRefreshView: callbacks.onRefreshView,
             onHighlightsUpdate: callbacks.onHighlightsUpdate,
             onCardUpdate: callbacks.onCardUpdate

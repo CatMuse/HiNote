@@ -1,7 +1,7 @@
 import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
 import { CanvasService } from '../../services/CanvasService';
-import { HighlightDataManager } from '../../views/managers/HighlightDataManager';
+import { HighlightDataService } from '../../services/highlight/HighlightDataService';
 
 /**
  * Canvas 高亮处理器
@@ -10,7 +10,7 @@ import { HighlightDataManager } from '../../views/managers/HighlightDataManager'
 export class CanvasHighlightProcessor {
     private app: App;
     private canvasService: CanvasService;
-    private highlightDataManager: HighlightDataManager;
+    private highlightDataService: HighlightDataService;
     
     // 回调函数
     private onShowLoading: (() => void) | null = null;
@@ -21,11 +21,11 @@ export class CanvasHighlightProcessor {
     constructor(
         app: App,
         canvasService: CanvasService,
-        highlightDataManager: HighlightDataManager
+        highlightDataService: HighlightDataService
     ) {
         this.app = app;
         this.canvasService = canvasService;
-        this.highlightDataManager = highlightDataManager;
+        this.highlightDataService = highlightDataService;
     }
     
     /**
@@ -80,7 +80,7 @@ export class CanvasHighlightProcessor {
                 const targetFile = this.app.vault.getAbstractFileByPath(filePath);
                 if (targetFile instanceof TFile) {
                     // 加载该文件的高亮
-                    const fileHighlights = await this.highlightDataManager.loadFileHighlights(targetFile);
+                    const fileHighlights = await this.highlightDataService.loadFileHighlights(targetFile);
                     
                     // 添加文件信息
                     const highlightsWithFileInfo = fileHighlights.map(h => ({

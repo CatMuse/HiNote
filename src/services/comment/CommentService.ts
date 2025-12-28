@@ -1,16 +1,22 @@
 import { TFile, App, Notice } from 'obsidian';
 import { HighlightInfo, CommentItem } from '../../types';
 import { HighlightInfo as HiNote } from '../../types';
-import { HighlightManager } from '../../services/HighlightManager';
+import { HighlightManager } from '../HighlightManager';
 import { IdGenerator } from '../../utils/IdGenerator';
 import CommentPlugin from '../../../main';
 import { t } from '../../i18n';
 
 /**
- * 评论操作管理器
- * 负责评论的添加、更新、删除等操作
+ * 评论服务
+ * 负责评论的添加、更新、删除等业务逻辑
+ * 
+ * 职责：
+ * - 评论的 CRUD 操作
+ * - 虚拟高亮的管理
+ * - 闪卡关联检查
+ * - 文件查找逻辑
  */
-export class CommentOperationManager {
+export class CommentService {
     private app: App;
     private plugin: CommentPlugin;
     private highlightManager: HighlightManager;

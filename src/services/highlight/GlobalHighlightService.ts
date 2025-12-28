@@ -1,14 +1,20 @@
 import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
 import { HighlightInfo as HiNote } from '../../types';
-import { HighlightService } from '../../services/HighlightService';
+import { HighlightService } from '../HighlightService';
 import { HighlightRepository } from '../../repositories/HighlightRepository';
 
 /**
- * 全局高亮管理器
+ * 全局高亮服务
  * 负责加载和处理所有文件的高亮
+ * 
+ * 职责：
+ * - 加载所有文件的高亮数据
+ * - 按路径或关键词搜索高亮
+ * - 使用缓存优化性能
+ * - 对高亮进行排序
  */
-export class AllHighlightsManager {
+export class GlobalHighlightService {
     private app: App;
     private highlightService: HighlightService;
     private highlightRepository: HighlightRepository;

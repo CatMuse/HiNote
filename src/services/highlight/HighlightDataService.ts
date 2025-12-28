@@ -1,29 +1,29 @@
 import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
 import { HighlightInfo as HiNote } from '../../types';
-import { HighlightService } from '../../services/HighlightService';
+import { HighlightService } from '../HighlightService';
 import { HighlightRepository } from '../../repositories/HighlightRepository';
-import { IdGenerator } from '../../utils/IdGenerator';
-import CommentPlugin from '../../../main';
 
 /**
- * 高亮数据管理器
+ * 高亮数据服务
  * 负责高亮数据的加载、处理和匹配
+ * 
+ * 职责：
+ * - 加载单个文件或所有文件的高亮数据
+ * - 合并高亮文本和评论数据
+ * - 标记高亮的来源（全局搜索、Canvas等）
  */
-export class HighlightDataManager {
+export class HighlightDataService {
     private app: App;
-    private plugin: CommentPlugin;
     private highlightService: HighlightService;
     private highlightRepository: HighlightRepository;
     
     constructor(
         app: App,
-        plugin: CommentPlugin,
         highlightService: HighlightService,
         highlightRepository: HighlightRepository
     ) {
         this.app = app;
-        this.plugin = plugin;
         this.highlightService = highlightService;
         this.highlightRepository = highlightRepository;
     }

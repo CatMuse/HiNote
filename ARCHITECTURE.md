@@ -9,8 +9,15 @@ src/
 │   └── HighlightDecorator.ts # 编辑器高亮装饰器
 │
 ├── services/                  # 业务逻辑层
-│   ├── HighlightService.ts   # 高亮提取和索引
-│   ├── HighlightManager.ts   # 高亮业务逻辑
+│   ├── highlight/            # 高亮相关服务
+│   │   ├── HighlightService.ts      # 高亮提取和索引
+│   │   ├── HighlightManager.ts      # 高亮业务逻辑
+│   │   ├── HighlightDataService.ts  # 高亮数据加载和处理
+│   │   └── GlobalHighlightService.ts # 全局高亮加载和搜索
+│   ├── comment/              # 评论相关服务
+│   │   └── CommentService.ts        # 评论 CRUD 业务逻辑
+│   ├── search/               # 搜索相关服务
+│   │   └── SearchService.ts         # 搜索过滤和匹配逻辑
 │   ├── EventManager.ts       # 事件管理
 │   ├── ChatService.ts        # 聊天服务
 │   ├── ExportService.ts      # 导出服务
@@ -28,16 +35,16 @@ src/
 │   ├── DataValidator.ts      # 数据验证
 │   └── FilePathUtils.ts      # 文件路径工具
 │
-├── views/                     # 视图层
-│   ├── managers/             # 视图管理器（集中）
-│   │   ├── AllHighlightsManager.ts
-│   │   ├── HighlightDataManager.ts
-│   │   ├── SearchManager.ts
-│   │   └── FileListManager.ts
+├── views/                     # 视图层（仅 UI 逻辑）
+│   ├── managers/             # UI 管理器
+│   │   ├── SearchUIManager.ts       # 搜索 UI 和防抖
+│   │   └── FileListManager.ts       # 文件列表 UI
 │   ├── chat/                 # 聊天视图
 │   ├── highlight/            # 高亮视图组件
-│   ├── comment/              # 评论组件
+│   ├── comment/              # 评论 UI 组件
 │   ├── layout/               # 布局管理
+│   ├── canvas/               # Canvas 视图处理
+│   ├── export/               # 导出 UI
 │   └── ...
 │
 ├── components/                # UI 组件
@@ -84,15 +91,18 @@ src/
 - 处理生命周期
 
 **分类**:
-1. **业务 Manager** (`src/services/`)
-   - `HighlightManager` - 管理高亮业务逻辑
+1. **业务 Service** (`src/services/`)
+   - `HighlightService` - 高亮提取和索引
+   - `HighlightDataService` - 高亮数据加载
+   - `GlobalHighlightService` - 全局高亮搜索
+   - `CommentService` - 评论业务逻辑
+   - `SearchService` - 搜索过滤和匹配
    - `EventManager` - 管理事件
    - `WindowManager` - 管理窗口状态
 
 2. **视图 Manager** (`src/views/managers/`)
-   - `AllHighlightsManager` - 管理全局高亮视图
-   - `SearchManager` - 管理搜索状态
-   - `FileListManager` - 管理文件列表
+   - `SearchUIManager` - 搜索 UI 和防抖
+   - `FileListManager` - 文件列表 UI
 
 #### Handler（处理器）
 **位置**: `src/view/*/`
@@ -163,14 +173,14 @@ DataManager (存储层)
    ```
    onFileOpen
      → updateHighlights()
-       → HighlightDataManager.loadFileHighlights()
+       → HighlightDataService.loadFileHighlights()
          → getFileHighlights() (缓存未命中时自动加载)
    ```
 
 3. **全局视图**
    ```
    updateAllHighlights()
-     → AllHighlightsManager.updateAllHighlights()
+     → GlobalHighlightService.updateAllHighlights()
        → getFileHighlights() (确保数据加载)
    ```
 
