@@ -11,8 +11,8 @@ import { DragContentGenerator } from "./DragContentGenerator";
 import { AIButton } from "../AIButton";
 import { AIServiceManager } from "../../services/ai";
 import { LicenseManager } from "../../services/LicenseManager";
-import { SelectionManager } from "../../view/selection/SelectionManager";
-import { HighlightFlashcardManager, HighlightDeletionManager, HighlightIconManager } from "../../view/highlight";
+import { SelectionManager } from "../../views/selection/SelectionManager";
+import { HighlightFlashcardManager, HighlightDeletionManager, HighlightIconManager } from "../../views/highlight";
 
 export class HighlightCard {
     // 为了让 CommentInput 能够访问到 findCardInstanceByHighlightId 方法

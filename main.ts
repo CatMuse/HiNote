@@ -3,7 +3,7 @@ import { HiNoteView, VIEW_TYPE_HINOTE } from './src/core/HiNoteView';
 import { AISettingTab } from './src/settings/SettingTab';
 import { PluginSettings, DEFAULT_SETTINGS } from './src/types';
 import html2canvas from 'html2canvas';
-import { ChatViewManager } from './src/view/chat/ChatViewManager';
+import { ChatViewManager } from './src/views/chat/ChatViewManager';
 import { registerCommands, createWindowManager } from './src/commands';
 import { InitializationManager } from './src/services/InitializationManager';
 import { WindowManager } from './src/services/WindowManager';

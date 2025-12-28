@@ -1,6 +1,6 @@
 import { Plugin } from 'obsidian';
 import { t } from '../i18n';
-import { ChatViewManager } from '../view/chat/ChatViewManager';
+import { ChatViewManager } from '../views/chat/ChatViewManager';
 
 /**
  * 打开 AI 对话窗口命令

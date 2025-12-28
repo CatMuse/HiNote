@@ -6,7 +6,7 @@ import { HighlightRepository } from "../repositories/HighlightRepository";
 import { CommentWidget } from "../components/comment/CommentWidget";
 import { HighlightService } from '../services/HighlightService';
 import { HighlightMatcher } from '../utils/HighlightMatcher';
-import { PreviewWidgetRenderer } from '../view/preview/PreviewWidgetRenderer';
+import { PreviewWidgetRenderer } from '../views/preview/PreviewWidgetRenderer';
 
 export class HighlightDecorator {
     private plugin: Plugin;
