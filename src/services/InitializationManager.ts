@@ -56,9 +56,6 @@ export class InitializationManager {
      * 实际的初始化逻辑
      */
     private async initialize(): Promise<void> {
-        console.log('[HiNote] 开始延迟初始化...');
-        const startTime = performance.now();
-
         // 初始化事件管理器（共享实例）
         this.eventManager = new EventManager(this.plugin.app);
 
@@ -93,9 +90,6 @@ export class InitializationManager {
         // 初始化高亮装饰器
         this.highlightDecorator = new HighlightDecorator(this.plugin, this.highlightRepository);
         this.highlightDecorator.enable();
-
-        const duration = performance.now() - startTime;
-        console.log(`[HiNote] 延迟初始化完成，耗时: ${duration.toFixed(2)}ms`);
     }
 
     /**
