@@ -40,8 +40,8 @@ export class HighlightDataManager {
         const content = await this.app.vault.read(file);
         const highlights = this.highlightService.extractHighlights(content, file);
         
-        // 获取已存储的评论
-        const storedComments = this.highlightRepository.getCachedHighlights(file.path) || [];
+        // 获取已存储的评论（如果缓存未命中会自动从存储层加载）
+        const storedComments = await this.highlightRepository.getFileHighlights(file.path);
         
         // 合并高亮和评论数据
         return this.mergeHighlightsWithComments(highlights, storedComments, file);

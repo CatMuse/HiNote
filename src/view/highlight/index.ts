@@ -1,7 +1,7 @@
 /**
  * Highlight 模块统一导出
  */
-export { HighlightDataManager } from './HighlightDataManager';
+export { HighlightDataManager } from '../../views/managers/HighlightDataManager';
 export { HighlightRenderManager } from './HighlightRenderManager';
 export { VirtualHighlightManager } from './VirtualHighlightManager';
 export { HighlightFlashcardManager } from './HighlightFlashcardManager';

@@ -1,5 +1,5 @@
 import { Plugin } from 'obsidian';
-import { HighlightDecorator } from '../HighlightDecorator';
+import { HighlightDecorator } from '../core/HighlightDecorator';
 import { FSRSManager } from '../flashcard/services/FSRSManager';
 import { HighlightService } from './HighlightService';
 import { HiNoteDataManager } from '../storage/HiNoteDataManager';

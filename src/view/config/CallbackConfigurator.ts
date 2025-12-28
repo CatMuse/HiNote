@@ -1,10 +1,10 @@
 import { TFile } from "obsidian";
 import { HighlightInfo, CommentItem } from "../../types";
 import { HighlightInfo as HiNote } from "../../types";
-import { SearchManager } from "../search/SearchManager";
+import { SearchManager } from "../../views/managers/SearchManager";
 import { SelectionManager } from "../selection/SelectionManager";
 import { BatchOperationsHandler } from "../selection/BatchOperationsHandler";
-import { FileListManager } from "../filelist/FileListManager";
+import { FileListManager } from "../../views/managers/FileListManager";
 import { HighlightRenderManager } from "../highlight/HighlightRenderManager";
 import { CommentOperationManager } from "../comment/CommentOperationManager";
 import { CommentInputManager } from "../comment/CommentInputManager";

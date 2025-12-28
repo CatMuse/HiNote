@@ -1,12 +1,12 @@
 import { EditorView, ViewPlugin, DecorationSet, Decoration } from "@codemirror/view";
 import type { Range } from "@codemirror/state";
 import { Plugin, MarkdownView, TFile } from "obsidian";
-import { HighlightInfo as HiNote, CommentItem } from "./types";
-import { HighlightRepository } from "./repositories/HighlightRepository";
-import { CommentWidget } from "./components/comment/CommentWidget";
-import { HighlightService } from './services/HighlightService';
-import { HighlightMatcher } from './utils/HighlightMatcher';
-import { PreviewWidgetRenderer } from './view/preview/PreviewWidgetRenderer';
+import { HighlightInfo as HiNote, CommentItem } from "../types";
+import { HighlightRepository } from "../repositories/HighlightRepository";
+import { CommentWidget } from "../components/comment/CommentWidget";
+import { HighlightService } from '../services/HighlightService';
+import { HighlightMatcher } from '../utils/HighlightMatcher';
+import { PreviewWidgetRenderer } from '../view/preview/PreviewWidgetRenderer';
 
 export class HighlightDecorator {
     private plugin: Plugin;
@@ -135,20 +135,13 @@ export class HighlightDecorator {
              * @param currentHighlight 当前高亮
              */
             private handleTextChanges(file: TFile, bestMatch: HiNote, currentHighlight: HiNote) {
-                if (bestMatch.text !== currentHighlight.text) {
-                    (plugin as any).highlightMatchingService.recoverHighlight(
-                        file,
-                        bestMatch,
+                // 文本变化时触发更新事件
+                if (bestMatch.text !== currentHighlight.text && (plugin as any).eventManager) {
+                    (plugin as any).eventManager.emitHighlightUpdate(
+                        file.path,
+                        bestMatch.text,
                         currentHighlight.text
-                    ).then((recoveredHighlight: HiNote | null) => {
-                        if (recoveredHighlight) {
-                            (plugin as any).eventManager.emitHighlightUpdate(
-                                file.path,
-                                bestMatch.text,
-                                currentHighlight.text
-                            );
-                        }
-                    });
+                    );
                 }
             }
 
@@ -177,9 +170,14 @@ export class HighlightDecorator {
                     }
                 } else {
                     // 从缓存获取文件的所有高亮
-                    const fileHighlights = this.highlightRepository.getCachedHighlights(file.path) || [];
+                    const fileHighlights = this.highlightRepository.getCachedHighlights(file.path);
+                    if (!fileHighlights || fileHighlights.length === 0) {
+                        return comments;
+                    }
+                    
                     // 使用 HighlightMatcher 进行匹配
                     const storedHighlights = fileHighlights.filter(h => {
+                        if (!h || !h.text) return false;
                         const textMatch = h.text === highlight.text;
                         if (textMatch) {
                             if (typeof h.position === 'number' && typeof highlight.position === 'number') {

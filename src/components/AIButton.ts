@@ -1,8 +1,9 @@
-import { setIcon, Notice, ItemView, Menu, MenuItem } from "obsidian";
+import { setIcon, Notice, ItemView, Menu, MenuItem, App, MarkdownView, TFile, View } from "obsidian";
 import { AIServiceManager } from "../services/ai";
-import type CommentPlugin from "../../main";
+import { HiNoteView } from "../core/HiNoteView";
+import { HighlightInfo } from "../types";
 import { t } from "../i18n";
-import { HiNoteView } from "../HiNoteView";
+import CommentPlugin from "../../main";
 
 /**
  * 内容提供者接口，用于获取 AI 分析所需的文本和评论

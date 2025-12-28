@@ -1,5 +1,5 @@
 import { Plugin } from 'obsidian';
-import { HiNoteView, VIEW_TYPE_HINOTE } from './src/HiNoteView';
+import { HiNoteView, VIEW_TYPE_HINOTE } from './src/core/HiNoteView';
 import { AISettingTab } from './src/settings/SettingTab';
 import { PluginSettings, DEFAULT_SETTINGS } from './src/types';
 import html2canvas from 'html2canvas';

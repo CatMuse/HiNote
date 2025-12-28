@@ -1,7 +1,7 @@
 import { TFile, App } from 'obsidian';
 import { HighlightInfo } from '../../types';
 import { CanvasService } from '../../services/CanvasService';
-import { HighlightDataManager } from '../highlight/HighlightDataManager';
+import { HighlightDataManager } from '../../views/managers/HighlightDataManager';
 
 /**
  * Canvas 高亮处理器

@@ -1,6 +1,6 @@
 import { Setting, TextAreaComponent, Notice } from 'obsidian';
 import { setIcon } from 'obsidian';
-import { HiNoteView } from '../HiNoteView';
+import { HiNoteView } from '../core/HiNoteView';
 import { PluginSettings } from '../types';
 import { t } from '../i18n'; // 导入新的翻译系统
 
