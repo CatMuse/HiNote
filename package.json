@@ -1,6 +1,6 @@
 {
 	"name": "hi-note",
-	"version": "0.5.3",
+	"version": "0.5.4",
 	"description": "Enhance your highlighted notes with comment management and export features.",
 	"main": "main.js",
 	"scripts": {
