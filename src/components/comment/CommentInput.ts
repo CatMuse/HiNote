@@ -107,10 +107,23 @@ export class CommentInput {
                 if (this.isProcessing) return;
                 this.isProcessing = true;
                 
-                await this.options.onDelete?.();
+                // 先移除事件监听器，避免在删除过程中触发
+                document.removeEventListener('click', this.boundHandleOutsideClick);
                 
-                // 删除成功后销毁输入框
-                this.destroy();
+                try {
+                    await this.options.onDelete?.();
+                    
+                    // 删除成功后销毁输入框
+                    // 使用 setTimeout 延迟销毁，确保 DOM 更新完成
+                    setTimeout(() => {
+                        this.destroySafe();
+                    }, 0);
+                } catch (error) {
+                    console.error('删除评论失败:', error);
+                    // 如果删除失败，恢复事件监听器
+                    document.addEventListener('click', this.boundHandleOutsideClick);
+                    this.isProcessing = false;
+                }
             });
         }
 
@@ -453,6 +466,40 @@ export class CommentInput {
         if (this.commentEl) {
             this.commentEl.removeClass('editing');
             this.commentEl = null;
+        }
+    }
+    
+    /**
+     * 安全销毁输入框（用于删除评论后调用）
+     * 检查 DOM 元素是否仍然存在，避免操作已删除的元素
+     */
+    public destroySafe() {
+        try {
+            // 立即通知 HighlightCard 输入框已关闭
+            this.notifyInputClosed();
+            
+            // 清理事件监听器
+            document.removeEventListener('click', this.boundHandleOutsideClick);
+            this.isProcessing = false;
+            
+            // 检查 textarea 是否仍在 DOM 中
+            if (this.textarea && this.textarea.isConnected && this.textarea.parentElement) {
+                this.textarea.remove();
+            }
+            
+            // 检查 actionHint 是否仍在 DOM 中
+            if (this.actionHint && this.actionHint.isConnected && this.actionHint.parentElement) {
+                this.actionHint.remove();
+            }
+            
+            // 检查 commentEl 是否仍在 DOM 中
+            if (this.commentEl && this.commentEl.isConnected) {
+                this.commentEl.removeClass('editing');
+                this.commentEl = null;
+            }
+        } catch (error) {
+            // 捕获任何错误，避免应用冻结
+            console.error('[CommentInput] 安全销毁时出错:', error);
         }
     }
     
