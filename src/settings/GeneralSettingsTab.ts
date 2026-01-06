@@ -2,6 +2,7 @@ import { Setting, Notice, Modal } from 'obsidian';
 import { t } from '../i18n';
 import { DEFAULT_SETTINGS } from '../types';
 import { RegexRuleEditor } from './RegexRuleEditor';
+import { HighlightCard } from '../components/highlight/HighlightCard';
 
 export class GeneralSettingsTab {
     private plugin: any;
@@ -156,6 +157,8 @@ export class GeneralSettingsTab {
                 .onChange(async (value) => {
                     this.plugin.settings.displayAuthorInfo = value;
                     await this.plugin.saveSettings();
+                    // Refresh all comment UIs to reflect the new setting
+                    HighlightCard.refreshAllComments();
                 }));
 
         // 高亮提取设置组
