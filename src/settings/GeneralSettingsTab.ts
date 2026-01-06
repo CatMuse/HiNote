@@ -148,6 +148,16 @@ export class GeneralSettingsTab {
                     await this.plugin.saveSettings();
                 }));
 
+        new Setting(container)
+            .setName(t('Display author information'))
+            .setDesc(t('Show author name in comment footer when available'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.displayAuthorInfo ?? false)
+                .onChange(async (value) => {
+                    this.plugin.settings.displayAuthorInfo = value;
+                    await this.plugin.saveSettings();
+                }));
+
         // 高亮提取设置组
         new Setting(container)
             .setName(t('Custom text extraction'))

@@ -151,6 +151,7 @@ export interface PluginSettings extends HighlightSettings {
     };
     showCommentWidget?: boolean;
     authorName?: string;
+    displayAuthorInfo?: boolean;
 }
 
 // FileComment 接口已移除
@@ -240,7 +241,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         surroundingLines: 3
     },
     showCommentWidget: true,
-    authorName: ''
+    authorName: '',
+    displayAuthorInfo: false
 };
 
 // 添加自定义事件类型

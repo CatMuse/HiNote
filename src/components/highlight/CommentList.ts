@@ -121,14 +121,19 @@ export class CommentList extends Component {
                 cls: "hi-note-time"
             });
 
-            // 添加双击编辑提示（如果有作者信息则默认显示作者）
+            // 获取插件设置
+            const plugin = (window as any).app?.plugins?.plugins?.['hi-note'];
+            const displayAuthor = plugin?.settings?.displayAuthorInfo ?? false;
+
+            // 添加双击编辑提示（如果有作者信息且设置启用则默认显示作者）
+            const shouldShowAuthor = displayAuthor && comment.author;
             const editHint = footer.createEl("span", {
-                text: comment.author || "Double click to edit",
+                text: shouldShowAuthor ? comment.author : "Double click to edit",
                 cls: "hi-note-edit-hint"
             });
 
-            // 如果有作者信息，在hover时切换文本
-            if (comment.author) {
+            // 如果有作者信息且设置启用，在hover时切换文本
+            if (shouldShowAuthor) {
                 editHint.style.display = "inline-block";
 
                 contentEl.addEventListener("mouseenter", () => {
