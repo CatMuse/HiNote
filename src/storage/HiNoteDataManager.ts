@@ -33,6 +33,7 @@ export interface OptimizedComment {
     content: string;
     created: number;
     updated: number;
+    author?: string;
 }
 
 export interface FileMappingData {
@@ -308,7 +309,8 @@ export class HiNoteDataManager {
                 id: comment.id,
                 content: comment.content,
                 createdAt: comment.created,
-                updatedAt: comment.updated
+                updatedAt: comment.updated,
+                author: comment.author
             })) || []
         };
     }
@@ -351,7 +353,8 @@ export class HiNoteDataManager {
                 id: comment.id,
                 content: comment.content,
                 created: comment.createdAt,
-                updated: comment.updatedAt
+                updated: comment.updatedAt,
+                author: comment.author
             }));
         }
 

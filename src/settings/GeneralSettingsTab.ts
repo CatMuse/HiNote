@@ -136,6 +136,18 @@ export class GeneralSettingsTab {
                     }
                 }));
 
+        // 作者信息设置
+        new Setting(container)
+            .setName(t('Author name'))
+            .setDesc(t('Optional identifier associated with any comments you create'))
+            .addText(text => text
+                .setPlaceholder('Your name')
+                .setValue(this.plugin.settings.authorName || '')
+                .onChange(async (value) => {
+                    this.plugin.settings.authorName = value;
+                    await this.plugin.saveSettings();
+                }));
+
         // 高亮提取设置组
         new Setting(container)
             .setName(t('Custom text extraction'))

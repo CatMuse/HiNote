@@ -121,11 +121,24 @@ export class CommentList extends Component {
                 cls: "hi-note-time"
             });
 
-            // 添加双击编辑提示
-            footer.createEl("span", {
-                text: "Double click to edit",
+            // 添加双击编辑提示（如果有作者信息则默认显示作者）
+            const editHint = footer.createEl("span", {
+                text: comment.author || "Double click to edit",
                 cls: "hi-note-edit-hint"
             });
+
+            // 如果有作者信息，在hover时切换文本
+            if (comment.author) {
+                editHint.style.display = "inline-block";
+
+                contentEl.addEventListener("mouseenter", () => {
+                    editHint.textContent = "Double click to edit";
+                });
+
+                contentEl.addEventListener("mouseleave", () => {
+                    editHint.textContent = comment.author!;
+                });
+            }
 
             // 操作按钮容器
             footer.createEl("div", {
