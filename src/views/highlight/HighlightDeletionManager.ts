@@ -1,4 +1,4 @@
-import { TFile, Editor, Notice } from 'obsidian';
+import { TFile, Notice } from 'obsidian';
 import { HighlightInfo } from '../../types';
 import { HighlightRegexUtils } from '../../utils/HighlightRegexUtils';
 import CommentPlugin from '../../../main';
@@ -80,54 +80,31 @@ export class HighlightDeletionManager {
         const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
         if (!(file instanceof TFile)) return;
         
-        // 获取文件内容
-        const fileContent = await this.plugin.app.vault.read(file);
         const highlightText = highlight.text;
-        
-        // 尝试获取编辑器实例（如果文件已打开）
-        let editor: Editor | null = null;
-        const leaves = this.plugin.app.workspace.getLeavesOfType('markdown');
-        for (const leaf of leaves) {
-            const view = leaf.view;
-            if (view.getViewType() === 'markdown') {
-                const mdView = view as any;
-                if (mdView.file && mdView.file.path === file.path && mdView.editor) {
-                    editor = mdView.editor;
-                    break;
-                }
-            }
-        }
         
         // 获取自定义正则表达式（如果有）
         const customRegex = (this.plugin.settings as any)?.customHighlightRegex;
         
-        let newContent: string;
-        
-        // 如果有位置信息，在指定范围内移除格式
-        if (typeof highlight.position === 'number') {
-            const endPos = highlight.position + (highlight.originalLength || highlightText.length);
-            newContent = HighlightRegexUtils.removeHighlightFormatInRange(
-                fileContent,
-                highlightText,
-                highlight.position,
-                endPos,
-                customRegex
-            );
-        } else {
-            // 如果没有位置信息，在整个文件中移除格式
-            newContent = HighlightRegexUtils.removeHighlightFormat(
-                fileContent,
-                highlightText,
-                customRegex
-            );
-        }
-        
-        // 更新文件内容
-        if (editor) {
-            editor.setValue(newContent);
-        } else {
-            await this.plugin.app.vault.modify(file, newContent);
-        }
+        // 使用 vault.process() 原子性地修改文件内容
+        // 这会正确同步已打开的编辑器视图，不会导致编辑器状态重置或焦点丢失
+        await this.plugin.app.vault.process(file, (fileContent) => {
+            if (typeof highlight.position === 'number') {
+                const endPos = highlight.position + (highlight.originalLength || highlightText.length);
+                return HighlightRegexUtils.removeHighlightFormatInRange(
+                    fileContent,
+                    highlightText,
+                    highlight.position,
+                    endPos,
+                    customRegex
+                );
+            } else {
+                return HighlightRegexUtils.removeHighlightFormat(
+                    fileContent,
+                    highlightText,
+                    customRegex
+                );
+            }
+        });
     }
     
     /**

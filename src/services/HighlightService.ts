@@ -728,21 +728,20 @@ export class HighlightService {
                     return posB - posA; // 降序
                 });
                 
-                // 读取文件内容一次
-                let content = await this.app.vault.read(file);
-                
-                // 依次删除每个高亮（从后往前）
-                for (const highlight of sortedHighlights) {
-                    try {
-                        content = this.removeHighlightMarkFromContent(content, highlight);
-                        successCount++;
-                    } catch (error) {
-                        failedCount++;
+                // 使用 vault.process() 原子性地修改文件内容
+                // 这会正确同步已打开的编辑器视图，不会导致编辑器状态重置或焦点丢失
+                await this.app.vault.process(file, (content) => {
+                    // 依次删除每个高亮（从后往前）
+                    for (const highlight of sortedHighlights) {
+                        try {
+                            content = this.removeHighlightMarkFromContent(content, highlight);
+                            successCount++;
+                        } catch (error) {
+                            failedCount++;
+                        }
                     }
-                }
-                
-                // 写入文件一次
-                await this.app.vault.modify(file, content);
+                    return content;
+                });
                 
             } catch (error) {
                 failedCount += fileHighlights.length;
