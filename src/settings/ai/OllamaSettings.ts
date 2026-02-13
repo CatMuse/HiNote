@@ -41,35 +41,25 @@ export class OllamaSettings extends BaseAIServiceSettings {
                 return text;
             });
 
-        // 添加检查按钮，并保存引用以便更新状态
-        let checkButton: HTMLButtonElement;
+        // 添加检查按钮
         hostSetting.addButton(button => {
-            checkButton = button.buttonEl;
-            return button
-                .setButtonText(t('Check'))
-                .onClick(async () => {
-                    const host = this.plugin.settings.ai.ollama?.host || defaultHost;
-                    
-                    // 禁用按钮并显示检查中状态
-                    checkButton.disabled = true;
-                    const originalText = checkButton.textContent;
-                    checkButton.textContent = t('Checking...');
-                    
-                    try {
-                        const ollamaService = new OllamaService(host);
-                        const models = await ollamaService.listModels();
-                        if (models && models.length > 0) {
-                            AITestHelper.showSuccess(`Ollama ${t('connection successful!')}`);
-                        } else {
-                            AITestHelper.showWarning(t('No models found. Please download models using ollama'));
-                        }
-                    } catch (error) {
-                        AITestHelper.showError(`Ollama ${t('test failed')}: ${error.message || 'Unknown error'}`);
-                    } finally {
-                        checkButton.disabled = false;
-                        checkButton.textContent = originalText;
-                    }
-                });
+            button.setButtonText(t('Check'));
+            button.onClick(async () => {
+                const host = this.plugin.settings.ai.ollama?.host || defaultHost;
+                if (!host || host.trim() === '') {
+                    this.showButtonStatus(button.buttonEl, 'warning');
+                    return;
+                }
+
+                this.showButtonStatus(button.buttonEl, 'loading');
+                try {
+                    const ollamaService = new OllamaService(host);
+                    const models = await ollamaService.listModels();
+                    this.showButtonStatus(button.buttonEl, (models && models.length > 0) ? 'success' : 'error');
+                } catch (error) {
+                    this.showButtonStatus(button.buttonEl, 'error');
+                }
+            });
         });
 
         // 默认显示模型选择（如果有保存的模型列表）

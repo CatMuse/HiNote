@@ -7,10 +7,10 @@ import { BatchOperationsHandler } from "../selection/BatchOperationsHandler";
 import { FileListManager } from "../../views/managers/FileListManager";
 import { HighlightRenderManager } from "../highlight/HighlightRenderManager";
 import { CommentService } from "../../services/comment/CommentService";
-import { CommentInputManager } from "../comment/CommentInputManager";
+import { CommentInputManager } from "../highlight/CommentInputManager";
 import { LayoutManager } from "../layout/LayoutManager";
 import { ViewPositionDetector } from "../layout/ViewPositionDetector";
-import { CanvasHighlightProcessor } from "../canvas/CanvasHighlightProcessor";
+import { CanvasHighlightProcessor } from "../highlight/CanvasHighlightProcessor";
 
 /**
  * 回调配置器

@@ -25,19 +25,20 @@ import { FileListManager } from '../views/managers/FileListManager';
 import { HighlightRenderManager } from '../views/highlight/HighlightRenderManager';
 import { HighlightDataService } from '../services/highlight/HighlightDataService';
 import { CommentService } from '../services/comment/CommentService';
-import { CommentInputManager } from '../views/comment/CommentInputManager';
+import { CommentInputManager } from '../views/highlight/CommentInputManager';
 import { LayoutManager } from '../views/layout/LayoutManager';
 import { ViewPositionDetector } from '../views/layout/ViewPositionDetector';
-import { CanvasHighlightProcessor } from '../views/canvas/CanvasHighlightProcessor';
+import { CanvasHighlightProcessor } from '../views/highlight/CanvasHighlightProcessor';
 import { GlobalHighlightService } from '../services/highlight/GlobalHighlightService';
-import { ExportManager } from '../views/export/ExportManager';
+import { ExportManager } from '../views/highlight/ExportManager';
 import { VirtualHighlightManager } from '../views/highlight/VirtualHighlightManager';
-import { InfiniteScrollManager } from '../views/scroll/InfiniteScrollManager';
-import { FlashcardViewManager } from '../views/flashcard/FlashcardViewManager';
+import { InfiniteScrollManager } from '../views/highlight/InfiniteScrollManager';
+import { FlashcardViewManager } from '../views/highlight/FlashcardViewManager';
 import { DeviceManager } from '../views/device/DeviceManager';
 import { UIInitializer, UIElements } from '../views/ui/UIInitializer';
 import { EventCoordinator } from '../views/events/EventCoordinator';
 import { CallbackConfigurator } from '../views/config/CallbackConfigurator';
+import { ViewState } from './ViewState';
 
 export const VIEW_TYPE_HINOTE = "hinote-view";
 
@@ -49,6 +50,9 @@ export class HiNoteView extends ItemView {
     // === 常量定义 ===
     private static readonly CANVAS_UPDATE_DELAY = 10; // Canvas 更新延迟（毫秒）
     private static readonly COMMENT_INPUT_DELAY = 100; // 评论输入延迟（毫秒）
+
+    // === 视图状态（集中管理） ===
+    private state = new ViewState();
 
     // === 核心服务 ===
     private plugin: CommentPlugin;
@@ -93,17 +97,6 @@ export class HiNoteView extends ItemView {
     private searchLoadingIndicator!: HTMLElement;
     private loadingIndicator!: HTMLElement;
 
-    // === 状态数据 ===
-    private currentFile: TFile | null = null;
-    private highlights: HighlightInfo[] = [];
-    private highlightsWithFlashcards: Set<string> = new Set<string>();
-    private isFlashcardMode: boolean = false;
-    private isDraggedToMainView: boolean = false;
-    private isMobileView: boolean = false;
-    private isSmallScreen: boolean = false;
-    private isShowingFileList: boolean = true;
-    private currentEditingHighlightId: string | null | undefined = null;
-
     // === 组件实例 ===
     private flashcardComponent: FlashcardComponent | null = null;
     private aiButtons: AIButton[] = [];
@@ -140,7 +133,7 @@ export class HiNoteView extends ItemView {
         // 使用 EventCoordinator 注册所有事件
         this.eventCoordinator.setCallbacks({
             onFileOpen: (file, isInCanvas) => {
-                this.currentFile = file;
+                this.state.currentFile = file;
                 this.updateHighlights(isInCanvas);
             },
             onFileModify: (file, isInCanvas) => {
@@ -173,8 +166,8 @@ export class HiNoteView extends ItemView {
         });
         
         this.eventCoordinator.registerAllEvents(
-            () => this.currentFile,
-            () => this.isDraggedToMainView
+            () => this.state.currentFile,
+            () => this.state.isDraggedToMainView
         );
     }
 
@@ -214,9 +207,9 @@ export class HiNoteView extends ItemView {
         
         // 设置返回按钮点击事件
         uiElements.backButton.addEventListener("click", () => {
-            if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
+            if (this.state.isMobileView && this.state.isSmallScreen && this.state.isDraggedToMainView) {
                 // 如果在闪卡模式下，实现逐级返回
-                if (this.isFlashcardMode && this.flashcardComponent) {
+                if (this.state.isFlashcardMode && this.flashcardComponent) {
                     // 检查闪卡渲染器的状态
                     const renderer = this.flashcardComponent.getRenderer();
                     if (renderer) {
@@ -230,7 +223,7 @@ export class HiNoteView extends ItemView {
                 }
                 
                 // 如果不是闪卡模式或者已经在闪卡分组列表页面，返回到文件列表
-                this.isShowingFileList = true;
+                this.state.isShowingFileList = true;
                 this.updateViewLayout();
             }
         });
@@ -240,11 +233,11 @@ export class HiNoteView extends ItemView {
             this.virtualHighlightManager.createFileCommentButton(
                 uiElements.iconButtonsContainer,
                 {
-                    getCurrentFile: () => this.currentFile,
-                    getHighlights: () => this.highlights,
+                    getCurrentFile: () => this.state.currentFile,
+                    getHighlights: () => this.state.highlights,
                     onVirtualHighlightCreated: (vh) => {
-                        this.highlights.unshift(vh);
-                        this.renderHighlights(this.highlights);
+                        this.state.highlights.unshift(vh);
+                        this.renderHighlights(this.state.highlights);
                     },
                     onShowCommentInput: (card, highlight) => this.showCommentInput(card, highlight),
                     getHighlightContainer: () => this.highlightContainer
@@ -256,7 +249,7 @@ export class HiNoteView extends ItemView {
         if (this.exportManager) {
             this.exportManager.createExportButton(
                 uiElements.iconButtonsContainer,
-                () => this.currentFile
+                () => this.state.currentFile
             );
         }
 
@@ -274,8 +267,8 @@ export class HiNoteView extends ItemView {
                 onSearch: async (searchTerm: string, searchType: string) => {
                     await this.handleSearch(searchTerm, searchType);
                 },
-                getHighlights: () => this.highlights,
-                getCurrentFile: () => this.currentFile
+                getHighlights: () => this.state.highlights,
+                getCurrentFile: () => this.state.currentFile
             });
         }
         
@@ -338,8 +331,8 @@ export class HiNoteView extends ItemView {
         // 设置文件列表管理器的回调函数
         this.fileListManager.setCallbacks({
             onFileSelect: async (file: TFile | null) => {
-                this.currentFile = file;
-                this.isFlashcardMode = false;
+                this.state.currentFile = file;
+                this.state.isFlashcardMode = false;
                 if (this.flashcardComponent) {
                     this.flashcardComponent.deactivate();
                     this.flashcardComponent = null;
@@ -350,8 +343,8 @@ export class HiNoteView extends ItemView {
                 this.highlightContainer.removeClass('flashcard-mode');
                 
                 this.fileListManager!.updateState({
-                    currentFile: this.currentFile,
-                    isFlashcardMode: this.isFlashcardMode
+                    currentFile: this.state.currentFile,
+                    isFlashcardMode: this.state.isFlashcardMode
                 });
                 this.fileListManager!.updateFileListSelection();
                 this.searchContainer.removeClass('highlight-display-none');
@@ -359,18 +352,18 @@ export class HiNoteView extends ItemView {
                 if (iconButtons) {
                     iconButtons.removeClass('highlight-display-none');
                 }
-                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
-                    this.isShowingFileList = false;
+                if (this.state.isMobileView && this.state.isSmallScreen && this.state.isDraggedToMainView) {
+                    this.state.isShowingFileList = false;
                     this.updateViewLayout();
                 }
                 await this.updateHighlights();
             },
             onFlashcardModeToggle: async (enabled: boolean) => {
-                this.currentFile = null;
-                this.isFlashcardMode = enabled;
+                this.state.currentFile = null;
+                this.state.isFlashcardMode = enabled;
                 this.fileListManager!.updateState({
-                    currentFile: this.currentFile,
-                    isFlashcardMode: this.isFlashcardMode
+                    currentFile: this.state.currentFile,
+                    isFlashcardMode: this.state.isFlashcardMode
                 });
                 this.fileListManager!.updateFileListSelection();
                 this.searchContainer.addClass('highlight-display-none');
@@ -379,15 +372,15 @@ export class HiNoteView extends ItemView {
                     this.flashcardComponent = new FlashcardComponent(this.highlightContainer, this.plugin);
                     this.flashcardComponent.setLicenseManager(this.licenseManager);
                 }
-                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
-                    this.isShowingFileList = false;
+                if (this.state.isMobileView && this.state.isSmallScreen && this.state.isDraggedToMainView) {
+                    this.state.isShowingFileList = false;
                     this.updateViewLayout();
                 }
                 await this.flashcardComponent.activate();
             },
             onAllHighlightsSelect: async () => {
-                this.currentFile = null;
-                this.isFlashcardMode = false;
+                this.state.currentFile = null;
+                this.state.isFlashcardMode = false;
                 if (this.flashcardComponent) {
                     this.flashcardComponent.deactivate();
                     this.flashcardComponent = null;
@@ -398,8 +391,8 @@ export class HiNoteView extends ItemView {
                 this.highlightContainer.removeClass('flashcard-mode');
                 
                 this.fileListManager!.updateState({
-                    currentFile: this.currentFile,
-                    isFlashcardMode: this.isFlashcardMode
+                    currentFile: this.state.currentFile,
+                    isFlashcardMode: this.state.isFlashcardMode
                 });
                 this.fileListManager!.updateFileListSelection();
                 this.searchContainer.removeClass('highlight-display-none');
@@ -408,20 +401,20 @@ export class HiNoteView extends ItemView {
                 if (iconButtons) {
                     iconButtons.addClass('highlight-display-none');
                 }
-                if (this.isMobileView && this.isSmallScreen && this.isDraggedToMainView) {
-                    this.isShowingFileList = false;
+                if (this.state.isMobileView && this.state.isSmallScreen && this.state.isDraggedToMainView) {
+                    this.state.isShowingFileList = false;
                     this.updateViewLayout();
                 }
                 await this.updateAllHighlights();
             },
             onRefreshView: async () => {
                 // 根据当前状态刷新对应的视图
-                if (this.isFlashcardMode) {
+                if (this.state.isFlashcardMode) {
                     // 刷新闪卡视图
                     if (this.flashcardComponent) {
                         await this.flashcardComponent.activate();
                     }
-                } else if (this.currentFile === null) {
+                } else if (this.state.currentFile === null) {
                     // 刷新全部高亮视图
                     await this.updateAllHighlights();
                 } else {
@@ -446,8 +439,8 @@ export class HiNoteView extends ItemView {
             onAIResponse: async (h, content) => {
                 if (this.commentService) {
                     this.commentService.updateState({
-                        currentFile: this.currentFile,
-                        highlights: this.highlights
+                        currentFile: this.state.currentFile,
+                        highlights: this.state.highlights
                     });
                     await this.commentService.addComment(h, content);
                 }
@@ -479,13 +472,13 @@ export class HiNoteView extends ItemView {
                 {
                     onRefreshView: async () => await this.refreshView(),
                     onHighlightsUpdate: (highlights) => {
-                        this.highlights = highlights;
+                        this.state.highlights = highlights;
                     },
                     onCardUpdate: (highlight) => {
-                        // 同步更新 this.highlights 数组中的数据
-                        const index = this.highlights.findIndex(h => h.id === highlight.id);
+                        // 同步更新 this.state.highlights 数组中的数据
+                        const index = this.state.highlights.findIndex(h => h.id === highlight.id);
                         if (index !== -1) {
-                            this.highlights[index] = highlight;
+                            this.state.highlights[index] = highlight;
                         }
                         
                         // 只更新单个卡片，而不是刷新整个视图
@@ -503,8 +496,8 @@ export class HiNoteView extends ItemView {
                     onCommentSave: async (highlight, content, existingComment) => {
                         if (this.commentService) {
                             this.commentService.updateState({
-                                currentFile: this.currentFile,
-                                highlights: this.highlights
+                                currentFile: this.state.currentFile,
+                                highlights: this.state.highlights
                             });
                             if (existingComment) {
                                 await this.commentService.updateComment(highlight, existingComment.id, content);
@@ -516,8 +509,8 @@ export class HiNoteView extends ItemView {
                     onCommentDelete: async (highlight, commentId) => {
                         if (this.commentService) {
                             this.commentService.updateState({
-                                currentFile: this.currentFile,
-                                highlights: this.highlights
+                                currentFile: this.state.currentFile,
+                                highlights: this.state.highlights
                             });
                             await this.commentService.deleteComment(highlight, commentId);
                         }
@@ -526,8 +519,8 @@ export class HiNoteView extends ItemView {
                         if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
                             if (this.commentService) {
                                 this.commentService.updateState({
-                                    currentFile: this.currentFile,
-                                    highlights: this.highlights
+                                    currentFile: this.state.currentFile,
+                                    highlights: this.state.highlights
                                 });
                                 await this.commentService.deleteVirtualHighlight(highlight);
                             }
@@ -554,11 +547,11 @@ export class HiNoteView extends ItemView {
                 onUpdateFileList: async (forceRefresh?: boolean) => {
                     if (this.fileListManager) {
                         this.fileListManager.updateState({
-                            currentFile: this.currentFile,
-                            isFlashcardMode: this.isFlashcardMode,
-                            isMobileView: this.isMobileView,
-                            isSmallScreen: this.isSmallScreen,
-                            isDraggedToMainView: this.isDraggedToMainView
+                            currentFile: this.state.currentFile,
+                            isFlashcardMode: this.state.isFlashcardMode,
+                            isMobileView: this.state.isMobileView,
+                            isSmallScreen: this.state.isSmallScreen,
+                            isDraggedToMainView: this.state.isDraggedToMainView
                         });
                         await this.fileListManager.updateFileList(forceRefresh);
                     }
@@ -617,43 +610,43 @@ export class HiNoteView extends ItemView {
         
         this.viewPositionDetector.setCallbacks({
             onPositionChange: async (isInMainView, wasInAllHighlightsView) => {
-                this.isDraggedToMainView = isInMainView;
+                this.state.isDraggedToMainView = isInMainView;
                 
                 if (isInMainView) {
                     // 拖拽到主视图（使用 DeviceManager）
                     const deviceInfo = this.deviceManager!.getDeviceInfo();
                     if (deviceInfo.isMobile && deviceInfo.isSmallScreen) {
-                        this.isShowingFileList = true;
+                        this.state.isShowingFileList = true;
                     }
                     
                     const activeFile = this.app.workspace.getActiveFile();
                     if (activeFile) {
-                        this.currentFile = activeFile;
+                        this.state.currentFile = activeFile;
                         await this.updateHighlights();
                     } else {
-                        this.currentFile = null;
+                        this.state.currentFile = null;
                         await this.updateAllHighlights();
                     }
                     
                     if (this.fileListManager) {
                         this.fileListManager.updateState({
-                            currentFile: this.currentFile,
-                            isFlashcardMode: this.isFlashcardMode
+                            currentFile: this.state.currentFile,
+                            isFlashcardMode: this.state.isFlashcardMode
                         });
                         this.fileListManager.updateFileListSelection();
                     }
                 } else {
                     // 切换到侧边栏
-                    if (this.isFlashcardMode) {
-                        this.isFlashcardMode = false;
+                    if (this.state.isFlashcardMode) {
+                        this.state.isFlashcardMode = false;
                         if (this.flashcardComponent) {
                             this.flashcardComponent.deactivate();
                             this.flashcardComponent = null;
                         }
                         if (this.fileListManager) {
                             this.fileListManager.updateState({
-                                currentFile: this.currentFile,
-                                isFlashcardMode: this.isFlashcardMode
+                                currentFile: this.state.currentFile,
+                                isFlashcardMode: this.state.isFlashcardMode
                             });
                             this.fileListManager.updateFileListSelection();
                         }
@@ -662,18 +655,18 @@ export class HiNoteView extends ItemView {
                     const activeFile = this.app.workspace.getActiveFile();
                     if (activeFile) {
                         if (wasInAllHighlightsView) {
-                            this.currentFile = activeFile;
+                            this.state.currentFile = activeFile;
                             this.highlightContainer.empty();
                             this.highlightContainer.appendChild(this.loadingIndicator);
                             setTimeout(() => {
                                 this.updateHighlights();
                             }, HiNoteView.CANVAS_UPDATE_DELAY);
                         } else {
-                            this.currentFile = activeFile;
+                            this.state.currentFile = activeFile;
                             this.updateHighlights();
                         }
                     } else {
-                        this.highlights = [];
+                        this.state.highlights = [];
                         this.renderHighlights([]);
                     }
                 }
@@ -681,9 +674,9 @@ export class HiNoteView extends ItemView {
                 // 更新布局
                 if (this.layoutManager) {
                     this.layoutManager.updateState({
-                        isDraggedToMainView: this.isDraggedToMainView,
-                        isFlashcardMode: this.isFlashcardMode,
-                        isShowingFileList: this.isShowingFileList
+                        isDraggedToMainView: this.state.isDraggedToMainView,
+                        isFlashcardMode: this.state.isFlashcardMode,
+                        isShowingFileList: this.state.isShowingFileList
                     });
                     await this.layoutManager.updateViewLayout();
                 }
@@ -710,7 +703,7 @@ export class HiNoteView extends ItemView {
         // 初始化当前文件
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile) {
-            this.currentFile = activeFile;
+            this.state.currentFile = activeFile;
             await this.updateHighlights();
         }
 
@@ -720,7 +713,7 @@ export class HiNoteView extends ItemView {
 
         // 过滤并显示高亮评论
         const searchTerm = this.searchInput.value.toLowerCase().trim();
-        const filteredHighlights = this.highlights.filter(highlight => {
+        const filteredHighlights = this.state.highlights.filter(highlight => {
             // 搜索高亮文本
             if (highlight.text.toLowerCase().includes(searchTerm)) {
                 return true;
@@ -732,7 +725,7 @@ export class HiNoteView extends ItemView {
                 return true;
             }
             // 在全部视图中也索文件名
-            if (this.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
+            if (this.state.currentFile === null && highlight.fileName?.toLowerCase().includes(searchTerm)) {
                 return true;
             }
             return false;
@@ -746,8 +739,8 @@ export class HiNoteView extends ItemView {
         // 使用 HighlightRenderManager 渲染
         if (this.highlightRenderManager && this.flashcardViewManager) {
             this.highlightRenderManager.updateState({
-                currentFile: this.currentFile,
-                isDraggedToMainView: this.isDraggedToMainView,
+                currentFile: this.state.currentFile,
+                isDraggedToMainView: this.state.isDraggedToMainView,
                 highlightsWithFlashcards: this.flashcardViewManager.getFlashcardMarkers(),
                 currentBatch: this.infiniteScrollManager?.getCurrentBatch() || 0
             });
@@ -768,7 +761,7 @@ export class HiNoteView extends ItemView {
     // 评论操作方法已移至 CommentOperationManager 和 CommentInputManager
 
     private async jumpToHighlight(highlight: HighlightInfo) {
-        if (this.isDraggedToMainView) {
+        if (this.state.isDraggedToMainView) {
             // 如果在视图中，则不执行转
             return;
         }
@@ -778,11 +771,11 @@ export class HiNoteView extends ItemView {
             return;
         }
 
-        if (!this.currentFile) {
+        if (!this.state.currentFile) {
             new Notice(t("No corresponding file found."));
             return;
         }
-        await this.locationService.jumpToHighlight(highlight, this.currentFile.path);
+        await this.locationService.jumpToHighlight(highlight, this.state.currentFile.path);
     }
 
     // 修改导出图片功能的方法签名 - 使用 ExportManager
@@ -810,16 +803,16 @@ export class HiNoteView extends ItemView {
     private async updateViewLayout() {
         if (this.layoutManager) {
             this.layoutManager.updateState({
-                isDraggedToMainView: this.isDraggedToMainView,
-                isFlashcardMode: this.isFlashcardMode,
-                isShowingFileList: this.isShowingFileList
+                isDraggedToMainView: this.state.isDraggedToMainView,
+                isFlashcardMode: this.state.isFlashcardMode,
+                isShowingFileList: this.state.isShowingFileList
             });
             await this.layoutManager.updateViewLayout();
             
             // 同步设备信息（使用 DeviceManager）
             const deviceInfo = this.deviceManager!.getDeviceInfo();
-            this.isMobileView = deviceInfo.isMobile;
-            this.isSmallScreen = deviceInfo.isSmallScreen;
+            this.state.isMobileView = deviceInfo.isMobile;
+            this.state.isSmallScreen = deviceInfo.isSmallScreen;
         }
     }
 
@@ -829,7 +822,7 @@ export class HiNoteView extends ItemView {
         if (this.infiniteScrollManager) {
             this.infiniteScrollManager.reset();
         }
-        this.highlights = [];
+        this.state.highlights = [];
 
         // 清空容器并添加加载指示
         this.highlightContainer.empty();
@@ -838,7 +831,7 @@ export class HiNoteView extends ItemView {
         try {
             // 使用 AllHighlightsManager 加载所有高亮
             if (this.globalHighlightService) {
-                this.highlights = await this.globalHighlightService.updateAllHighlights(searchTerm, searchType);
+                this.state.highlights = await this.globalHighlightService.updateAllHighlights(searchTerm, searchType);
             }
             
             // 初始加载
@@ -870,7 +863,7 @@ export class HiNoteView extends ItemView {
     private async loadMoreHighlights() {
         if (this.infiniteScrollManager) {
             await this.infiniteScrollManager.loadMoreHighlights(
-                this.highlights,
+                this.state.highlights,
                 async (batch, append) => await this.renderHighlights(batch, append)
             );
         }
@@ -882,7 +875,7 @@ export class HiNoteView extends ItemView {
     private async loadUntilScrollable() {
         if (this.infiniteScrollManager) {
             await this.infiniteScrollManager.loadUntilScrollable(
-                this.highlights,
+                this.state.highlights,
                 async (batch, append) => await this.renderHighlights(batch, append)
             );
         }
@@ -894,7 +887,7 @@ export class HiNoteView extends ItemView {
     private setupInfiniteScroll() {
         if (this.infiniteScrollManager) {
             this.infiniteScrollManager.setupInfiniteScroll(
-                this.highlights,
+                this.state.highlights,
                 async (batch, append) => await this.renderHighlights(batch, append)
             );
         }
@@ -903,72 +896,27 @@ export class HiNoteView extends ItemView {
 
     // 在 onunload 方法中确保清理
     onunload() {
+        // 清理有 destroy 方法的管理器
+        this.searchUIManager?.destroy();
+        this.selectionManager?.destroy();
+        this.batchOperationsHandler?.destroy();
+        this.fileListManager?.destroy();
+        this.highlightRenderManager?.clear();
+        this.commentInputManager?.clearEditingState();
         
-        // 清理搜索管理器
-        if (this.searchUIManager) {
-            this.searchUIManager.destroy();
-            this.searchUIManager = null;
-        }
-        
-        // 清理多选管理器
-        if (this.selectionManager) {
-            this.selectionManager.destroy();
-            this.selectionManager = null;
-        }
-        
-        // 清理批量操作处理器
-        if (this.batchOperationsHandler) {
-            this.batchOperationsHandler.destroy();
-            this.batchOperationsHandler = null;
-        }
-        
-        // 清理文件列表管理器
-        if (this.fileListManager) {
-            this.fileListManager.destroy();
-            this.fileListManager = null;
-        }
-        
-        // 清理高亮渲染管理器
-        if (this.highlightRenderManager) {
-            this.highlightRenderManager.clear();
-            this.highlightRenderManager = null;
-        }
-        
-        // 清理高亮数据管理器
-        if (this.highlightDataService) {
-            this.highlightDataService = null;
-        }
-        
-        // 清理评论操作管理器
-        if (this.commentService) {
-            this.commentService = null;
-        }
-        
-        // 清理评论输入管理器
-        if (this.commentInputManager) {
-            this.commentInputManager.clearEditingState();
-            this.commentInputManager = null;
-        }
-        
-        // 清理布局管理器
-        if (this.layoutManager) {
-            this.layoutManager = null;
-        }
-        
-        // 清理视图位置检测器
-        if (this.viewPositionDetector) {
-            this.viewPositionDetector = null;
-        }
-        
-        // 清理 Canvas 处理器
-        if (this.canvasProcessor) {
-            this.canvasProcessor = null;
-        }
-        
-        // 清理全局高亮管理器
-        if (this.globalHighlightService) {
-            this.globalHighlightService = null;
-        }
+        // 置空所有管理器引用
+        this.searchUIManager = null;
+        this.selectionManager = null;
+        this.batchOperationsHandler = null;
+        this.fileListManager = null;
+        this.highlightRenderManager = null;
+        this.highlightDataService = null;
+        this.commentService = null;
+        this.commentInputManager = null;
+        this.layoutManager = null;
+        this.viewPositionDetector = null;
+        this.canvasProcessor = null;
+        this.globalHighlightService = null;
     }
 
     // Update AI-related dropdowns
@@ -996,7 +944,7 @@ export class HiNoteView extends ItemView {
 
     // 添加新方法来判断是否在全部高亮视图
     private isInAllHighlightsView(): boolean {
-        return this.currentFile === null;
+        return this.state.currentFile === null;
     }
     
     // 添加方法来更新高亮列表显示（搜索筛选）
@@ -1009,8 +957,8 @@ export class HiNoteView extends ItemView {
     private async handleSearch(searchTerm: string, searchType: string) {
         try {
             // 检查是否需要恢复到当前文件视图
-            const wasGlobalSearch = this.highlights.some(h => h.isGlobalSearch);
-            if (wasGlobalSearch && searchType !== 'all' && searchType !== 'path' && this.currentFile) {
+            const wasGlobalSearch = this.state.highlights.some(h => h.isGlobalSearch);
+            if (wasGlobalSearch && searchType !== 'all' && searchType !== 'path' && this.state.currentFile) {
                 // 恢复到当前文件视图
                 this.highlightContainer.empty();
                 this.highlightContainer.appendChild(this.loadingIndicator);
@@ -1019,7 +967,7 @@ export class HiNoteView extends ItemView {
                 await this.updateHighlights();
                 
                 // 标记所有高亮为非全局搜索结果
-                this.highlights.forEach(highlight => {
+                this.state.highlights.forEach(highlight => {
                     highlight.isGlobalSearch = false;
                 });
                 
@@ -1032,35 +980,35 @@ export class HiNoteView extends ItemView {
             }
             
             // 如果是全局搜索或路径搜索，且不在全局视图中
-            if ((searchType === 'all' || searchType === 'path') && this.currentFile !== null) {
+            if ((searchType === 'all' || searchType === 'path') && this.state.currentFile !== null) {
                 // 显示加载指示器
                 this.highlightContainer.empty();
                 this.highlightContainer.appendChild(this.loadingIndicator);
                 
                 // 保存当前文件引用
-                const originalFile = this.currentFile;
+                const originalFile = this.state.currentFile;
                 
                 try {
                     // 临时设置为 null 以启用全局搜索
-                    this.currentFile = null;
+                    this.state.currentFile = null;
                     
                     // 直接使用索引搜索
                     await this.updateAllHighlights(searchTerm, searchType);
                     
                     // 标记所有高亮为全局搜索结果
-                    this.highlights.forEach(highlight => {
+                    this.state.highlights.forEach(highlight => {
                         highlight.isGlobalSearch = true;
                     });
                     
                     // 直接渲染索引搜索结果
-                    this.renderHighlights(this.highlights);
+                    this.renderHighlights(this.state.highlights);
                 } finally {
                     // 恢复原始文件引用
-                    this.currentFile = originalFile;
+                    this.state.currentFile = originalFile;
                 }
             } else {
                 // 常规搜索逻辑
-                this.highlights.forEach(highlight => {
+                this.state.highlights.forEach(highlight => {
                     highlight.isGlobalSearch = false;
                 });
                 
@@ -1090,46 +1038,46 @@ export class HiNoteView extends ItemView {
         }
 
         // 以下是单文件视图的逻辑
-        if (!this.currentFile) {
+        if (!this.state.currentFile) {
             this.renderHighlights([]);
             return;
         }
         
         // 检查是否是 Canvas 文件
-        if (this.currentFile.extension === 'canvas') {
+        if (this.state.currentFile.extension === 'canvas') {
             // 如果是 Canvas 文件，使用专门的处理方法
-            await this.handleCanvasFile(this.currentFile);
+            await this.handleCanvasFile(this.state.currentFile);
             return;
         }
 
         // 使用 HighlightDataManager 加载数据
         if (this.highlightDataService) {
-            this.highlights = await this.highlightDataService.loadFileHighlights(this.currentFile);
+            this.state.highlights = await this.highlightDataService.loadFileHighlights(this.state.currentFile);
         } else {
-            this.highlights = [];
+            this.state.highlights = [];
         }
         
         // 使用 VirtualHighlightManager 处理虚拟高亮
-        if (this.virtualHighlightManager && this.currentFile) {
+        if (this.virtualHighlightManager && this.state.currentFile) {
             const virtualHighlights = await this.virtualHighlightManager.filterVirtualHighlights(
-                this.currentFile,
-                this.highlights
+                this.state.currentFile,
+                this.state.highlights
             );
-            this.highlights.unshift(...virtualHighlights);
+            this.state.highlights.unshift(...virtualHighlights);
         }
         
         // Canvas 标记处理
-        if (isInCanvas && this.currentFile) {
-            this.highlights.forEach(highlight => {
+        if (isInCanvas && this.state.currentFile) {
+            this.state.highlights.forEach(highlight => {
                 highlight.isFromCanvas = true;
                 highlight.isGlobalSearch = true;
-                highlight.fileName = this.currentFile?.name;
+                highlight.fileName = this.state.currentFile?.name;
             });
         }
         
         // 使用 FlashcardViewManager 更新闪卡标记
         if (this.flashcardViewManager) {
-            this.flashcardViewManager.updateFlashcardMarkers(this.highlights);
+            this.flashcardViewManager.updateFlashcardMarkers(this.state.highlights);
         }
         
         // 检查搜索框是否有内容
@@ -1140,15 +1088,15 @@ export class HiNoteView extends ItemView {
             this.renderHighlights(filteredHighlights);
         } else {
             // 如果没有搜索内容，直接渲染所有高亮
-            this.renderHighlights(this.highlights);
+            this.renderHighlights(this.state.highlights);
         }
     }
 
     // 处理 Canvas 文件的方法
     private async handleCanvasFile(file: TFile): Promise<void> {
         if (this.canvasProcessor) {
-            this.highlights = await this.canvasProcessor.processCanvasFile(file);
-            this.renderHighlights(this.highlights);
+            this.state.highlights = await this.canvasProcessor.processCanvasFile(file);
+            this.renderHighlights(this.state.highlights);
         }
     }
     

@@ -98,39 +98,32 @@ export class CustomAISettings extends BaseAIServiceSettings {
                 text.inputEl.type = 'password';
                 return text;
             })
-            .addButton(button => button
-                .setButtonText(t('Check'))
-                .onClick(async () => {
+            .addButton(button => {
+                button.setButtonText(t('Check'));
+                button.onClick(async () => {
                     if (!this.plugin.settings.ai.custom?.apiKey || 
                         !this.plugin.settings.ai.custom?.baseUrl ||
                         !this.plugin.settings.ai.custom?.model) {
-                        AITestHelper.showWarning(t('Please fill in all required fields first'));
+                        this.showButtonStatus(button.buttonEl, 'warning');
                         return;
                     }
                     
-                    button.setDisabled(true);
-                    button.setButtonText(t('Testing...'));
+                    this.showButtonStatus(button.buttonEl, 'loading');
                     
                     try {
-                        // 测试连接并自动检测 API 类型
                         const success = await this.testConnection();
+                        this.showButtonStatus(button.buttonEl, success ? 'success' : 'error');
                         
                         if (success) {
-                            // testConnection 方法已经保存了检测到的 API 类型
-                            // 直接从设置中读取
                             const apiType = this.plugin.settings.ai.custom?.detectedApiType;
                             if (apiType) {
                                 this.detectedApiType = apiType;
-                                
-                                // 显示检测结果
                                 const typeNames: Record<string, string> = {
                                     'openai': 'OpenAI',
                                     'anthropic': 'Anthropic',
                                     'gemini': 'Gemini'
                                 };
-                                AITestHelper.showSuccess(`Custom AI ${t('connection successful!')} (${t('Detected API type')}: ${typeNames[apiType]})`);
                                 
-                                // 动态添加检测结果显示（如果还不存在）
                                 let infoEl = settingsContainer.querySelector('.custom-ai-info');
                                 if (!infoEl) {
                                     infoEl = settingsContainer.createEl('div', {
@@ -139,25 +132,18 @@ export class CustomAISettings extends BaseAIServiceSettings {
                                     infoEl.createEl('strong', { text: t('Detected API Type: ') });
                                     infoEl.createEl('span', { text: typeNames[apiType] || apiType });
                                 } else {
-                                    // 更新已存在的显示
                                     const span = infoEl.querySelector('span');
                                     if (span) {
                                         span.textContent = typeNames[apiType] || apiType;
                                     }
                                 }
-                            } else {
-                                AITestHelper.showSuccess(`Custom AI ${t('connection successful!')}`);
                             }
-                        } else {
-                            AITestHelper.showError(`Custom AI ${t('connection failed. Please check your settings.')}`);
                         }
                     } catch (error) {
-                        AITestHelper.showError(`Custom AI ${t('test failed')}: ${(error as Error).message}`);
-                    } finally {
-                        button.setDisabled(false);
-                        button.setButtonText(t('Check'));
+                        this.showButtonStatus(button.buttonEl, 'error');
                     }
-                }));
+                });
+            });
 
         // 模型名称
         new Setting(settingsContainer)

@@ -4561,3 +4561,34 @@ border-color: var(--interactive-accent);
     background: var(--interactive-accent-hover);
     border-color: var(--interactive-accent-hover);
 }
+
+/* === AI Check 按钮状态图标样式 === */
+.check-btn-loading svg,
+.check-btn-success svg,
+.check-btn-error svg,
+.check-btn-warning svg {
+    width: 16px;
+    height: 16px;
+}
+
+.check-btn-loading svg {
+    animation: check-btn-spin 1s linear infinite;
+    color: var(--text-muted);
+}
+
+.check-btn-success svg {
+    color: var(--color-green);
+}
+
+.check-btn-error svg {
+    color: var(--color-red);
+}
+
+.check-btn-warning svg {
+    color: var(--color-yellow);
+}
+
+@keyframes check-btn-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
