@@ -869,7 +869,29 @@ export class HighlightService {
         
         if (matchingHighlight) return matchingHighlight;
         
-        // 2. 如果没有精确匹配，尝试只匹配位置（允许文本有变化）
+        // 2. 文本+位置组合匹配（容差 500，适应较大编辑偏移）
+        if (highlight.text && highlight.position !== undefined) {
+            const textCandidates = fileHighlights
+                .filter((h: HiNote) => h.text === highlight.text && typeof h.position === 'number')
+                .sort((a, b) => 
+                    Math.abs((a.position ?? 0) - (highlight.position ?? 0)) -
+                    Math.abs((b.position ?? 0) - (highlight.position ?? 0))
+                );
+            if (textCandidates.length > 0 && 
+                Math.abs((textCandidates[0].position ?? 0) - (highlight.position ?? 0)) < 500) {
+                return textCandidates[0];
+            }
+        }
+        
+        // 3. 纯文本精确匹配（当该文本只有唯一候选时）
+        if (highlight.text) {
+            const textOnlyCandidates = fileHighlights.filter((h: HiNote) => h.text === highlight.text);
+            if (textOnlyCandidates.length === 1) {
+                return textOnlyCandidates[0];
+            }
+        }
+        
+        // 4. 位置模糊匹配（允许文本有变化）
         if (highlight.position !== undefined) {
             matchingHighlight = fileHighlights.find((h: HiNote) => 
                 typeof h.position === 'number' && 
@@ -912,6 +934,8 @@ export class HighlightService {
         }
         
         const usedCommentIds = new Set<string>();
+        // 收集需要更新 position 的高亮，在合并完成后批量异步更新存储
+        const positionUpdates: { id: string; newPosition: number }[] = [];
         
         // 合并高亮和评论数据
         const mergedHighlights = highlights.map(highlight => {
@@ -920,26 +944,44 @@ export class HighlightService {
                 const storedComment = idIndex.get(highlight.id)!;
                 if (storedComment.id && !usedCommentIds.has(storedComment.id)) {
                     usedCommentIds.add(storedComment.id);
+                    this.trackPositionUpdate(positionUpdates, storedComment, highlight);
                     return this.createMergedHighlight(highlight, storedComment, file);
                 }
             }
             
-            // 策略 2: 文本+位置组合匹配
+            // 策略 2: 文本+位置组合匹配（容差 500，适应较大编辑偏移）
             if (highlight.text && textIndex.has(highlight.text)) {
                 const candidates = textIndex.get(highlight.text)!;
-                for (const candidate of candidates) {
-                    if (candidate.id && 
-                        !usedCommentIds.has(candidate.id) &&
+                // 按位置差异排序，优先匹配最近的
+                const sortedCandidates = candidates
+                    .filter(c => c.id && !usedCommentIds.has(c.id) &&
                         highlight.position !== undefined &&
-                        candidate.position !== undefined &&
-                        Math.abs(candidate.position - highlight.position) < 100) {
-                        usedCommentIds.add(candidate.id);
+                        c.position !== undefined)
+                    .sort((a, b) => 
+                        Math.abs((a.position ?? 0) - (highlight.position ?? 0)) -
+                        Math.abs((b.position ?? 0) - (highlight.position ?? 0))
+                    );
+                for (const candidate of sortedCandidates) {
+                    if (Math.abs((candidate.position ?? 0) - (highlight.position ?? 0)) < 500) {
+                        usedCommentIds.add(candidate.id!);
+                        this.trackPositionUpdate(positionUpdates, candidate, highlight);
                         return this.createMergedHighlight(highlight, candidate, file);
                     }
                 }
             }
             
-            // 策略 3: 位置模糊匹配
+            // 策略 3: 纯文本精确匹配（当该文本只有唯一候选时，无需位置验证）
+            if (highlight.text && textIndex.has(highlight.text)) {
+                const candidates = textIndex.get(highlight.text)!
+                    .filter(c => c.id && !usedCommentIds.has(c.id));
+                if (candidates.length === 1) {
+                    usedCommentIds.add(candidates[0].id!);
+                    this.trackPositionUpdate(positionUpdates, candidates[0], highlight);
+                    return this.createMergedHighlight(highlight, candidates[0], file);
+                }
+            }
+            
+            // 策略 4: 位置模糊匹配
             if (highlight.position !== undefined) {
                 const bucket = Math.floor(highlight.position / 50);
                 for (let b = bucket - 1; b <= bucket + 1; b++) {
@@ -951,6 +993,7 @@ export class HighlightService {
                                 candidate.position !== undefined &&
                                 Math.abs(candidate.position - highlight.position) < 50) {
                                 usedCommentIds.add(candidate.id);
+                                this.trackPositionUpdate(positionUpdates, candidate, highlight);
                                 return this.createMergedHighlight(highlight, candidate, file);
                             }
                         }
@@ -966,7 +1009,63 @@ export class HighlightService {
             .filter(c => c.id && c.isVirtual && c.comments && c.comments.length > 0 && !usedCommentIds.has(c.id))
             .map(vh => this.createHighlightInfo(vh, file));
         
+        // 异步更新存储中的 position，防止偏移累积
+        if (positionUpdates.length > 0) {
+            this.applyPositionUpdates(file.path, storedComments, positionUpdates);
+        }
+        
         return [...virtualHighlights, ...mergedHighlights];
+    }
+    
+    /**
+     * 记录需要更新 position 的高亮
+     */
+    private trackPositionUpdate(
+        updates: { id: string; newPosition: number }[],
+        storedComment: HiNote,
+        highlight: HighlightInfo
+    ): void {
+        if (storedComment.id &&
+            highlight.position !== undefined &&
+            storedComment.position !== undefined &&
+            highlight.position !== storedComment.position) {
+            updates.push({ id: storedComment.id, newPosition: highlight.position });
+        }
+    }
+    
+    /**
+     * 异步批量更新存储中的 position，防止偏移累积导致匹配失败
+     */
+    private applyPositionUpdates(
+        filePath: string,
+        storedComments: HiNote[],
+        updates: { id: string; newPosition: number }[]
+    ): void {
+        // 使用 setTimeout 异步执行，不阻塞合并流程
+        setTimeout(async () => {
+            try {
+                const updateMap = new Map(updates.map(u => [u.id, u.newPosition]));
+                let changed = false;
+                
+                for (const comment of storedComments) {
+                    if (comment.id && updateMap.has(comment.id)) {
+                        comment.position = updateMap.get(comment.id)!;
+                        changed = true;
+                    }
+                }
+                
+                if (changed) {
+                    // 获取 HighlightRepository 实例并保存
+                    const plugins = (this.app as any).plugins;
+                    const plugin = plugins?.plugins?.['hi-note'];
+                    if (plugin?.highlightRepository) {
+                        await plugin.highlightRepository.saveFileHighlights(filePath, storedComments);
+                    }
+                }
+            } catch (error) {
+                // 静默处理，position 更新失败不影响主流程
+            }
+        }, 100);
     }
     
     /**
