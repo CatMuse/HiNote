@@ -34,10 +34,10 @@ import { ExportManager } from '../views/highlight/ExportManager';
 import { VirtualHighlightManager } from '../views/highlight/VirtualHighlightManager';
 import { InfiniteScrollManager } from '../views/highlight/InfiniteScrollManager';
 import { FlashcardViewManager } from '../views/highlight/FlashcardViewManager';
-import { DeviceManager } from '../views/device/DeviceManager';
-import { UIInitializer, UIElements } from '../views/ui/UIInitializer';
-import { EventCoordinator } from '../views/events/EventCoordinator';
-import { CallbackConfigurator } from '../views/config/CallbackConfigurator';
+import { DeviceManager } from '../views/managers/DeviceManager';
+import { UIInitializer, UIElements } from '../views/managers/UIInitializer';
+import { EventCoordinator } from '../views/managers/EventCoordinator';
+import { CallbackConfigurator } from '../views/managers/CallbackConfigurator';
 import { ViewState } from './ViewState';
 
 export const VIEW_TYPE_HINOTE = "hinote-view";

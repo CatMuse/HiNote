@@ -11,7 +11,7 @@ export { BaseAIService } from './BaseAIService';
 export { BaseHTTPClient } from './BaseHTTPClient';
 
 // 工具类
-export { AITestHelper } from './utils/AITestHelper';
+export { AITestHelper } from './AITestHelper';
 
 // 类型定义
 export {

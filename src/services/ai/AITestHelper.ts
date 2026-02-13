@@ -1,6 +1,6 @@
 import { Notice } from 'obsidian';
-import { t } from '../../../i18n';
-import type { IAIService } from '../types';
+import { t } from '../../i18n';
+import type { IAIService } from './types';
 
 /**
  * AI 服务测试辅助工具
