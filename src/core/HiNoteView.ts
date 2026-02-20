@@ -1050,14 +1050,21 @@ export class HiNoteView extends ItemView {
             return;
         }
 
-        // 使用 HighlightDataManager 加载数据
-        if (this.highlightDataService) {
-            this.state.highlights = await this.highlightDataService.loadFileHighlights(this.state.currentFile);
+        // 对 Markdown 文件：提取高亮 + 加载虚拟高亮
+        // 对其他文件（PDF、图片等）：只加载虚拟高亮（文件批注）
+        if (this.state.currentFile.extension === 'md') {
+            // 使用 HighlightDataManager 加载数据
+            if (this.highlightDataService) {
+                this.state.highlights = await this.highlightDataService.loadFileHighlights(this.state.currentFile);
+            } else {
+                this.state.highlights = [];
+            }
         } else {
+            // 非 Markdown 文件，不做高亮提取
             this.state.highlights = [];
         }
         
-        // 使用 VirtualHighlightManager 处理虚拟高亮
+        // 使用 VirtualHighlightManager 处理虚拟高亮（所有文件类型都支持文件批注）
         if (this.virtualHighlightManager && this.state.currentFile) {
             const virtualHighlights = await this.virtualHighlightManager.filterVirtualHighlights(
                 this.state.currentFile,

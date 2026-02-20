@@ -41,6 +41,10 @@ export class HighlightExtractor {
      * @returns 如果文件应该被处理则返回 true
      */
     shouldProcessFile(file: TFile): boolean {
+        // 只处理 Markdown 文件，跳过 PDF 等非文本文件
+        if (file.extension !== 'md') {
+            return false;
+        }
         return !ExcludePatternMatcher.shouldExclude(file, this.settings?.excludePatterns || '');
     }
 
