@@ -32,11 +32,18 @@ export class HighlightCard {
                 instance.destroy();
             }
         });
-        
+
         // 清空实例集合
         HighlightCard.cardInstances.clear();
     }
-    
+
+    // 静态方法：刷新所有卡片的评论列表
+    public static refreshAllComments(): void {
+        HighlightCard.cardInstances.forEach(instance => {
+            instance.updateComments(instance.highlight);
+        });
+    }
+
     // 静态方法：根据高亮ID查找HighlightCard实例
     public static findCardInstanceByHighlightId(highlightId: string): HighlightCard | null {
         for (const instance of HighlightCard.cardInstances) {

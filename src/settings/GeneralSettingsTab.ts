@@ -2,6 +2,7 @@ import { Setting, Notice, Modal } from 'obsidian';
 import { t } from '../i18n';
 import { DEFAULT_SETTINGS } from '../types';
 import { RegexRuleEditor } from './RegexRuleEditor';
+import { HighlightCard } from '../components/highlight/HighlightCard';
 
 export class GeneralSettingsTab {
     private plugin: any;
@@ -134,6 +135,30 @@ export class GeneralSettingsTab {
                     if (this.plugin.highlightDecorator) {
                         this.plugin.highlightDecorator.refreshDecorations();
                     }
+                }));
+
+        // 作者信息设置
+        new Setting(container)
+            .setName(t('Author name'))
+            .setDesc(t('Optional identifier associated with any comments you create'))
+            .addText(text => text
+                .setPlaceholder('Your name')
+                .setValue(this.plugin.settings.authorName || '')
+                .onChange(async (value) => {
+                    this.plugin.settings.authorName = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(container)
+            .setName(t('Display author information'))
+            .setDesc(t('Show author name in comment footer when available'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.displayAuthorInfo ?? false)
+                .onChange(async (value) => {
+                    this.plugin.settings.displayAuthorInfo = value;
+                    await this.plugin.saveSettings();
+                    // Refresh all comment UIs to reflect the new setting
+                    HighlightCard.refreshAllComments();
                 }));
 
         // 高亮提取设置组

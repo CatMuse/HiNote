@@ -87,8 +87,8 @@ export class CommentService {
         // 确保高亮有 ID
         if (!highlight.id) {
             highlight.id = IdGenerator.generateHighlightId(
-                this.currentFile?.path || '', 
-                highlight.position || 0, 
+                this.currentFile?.path || '',
+                highlight.position || 0,
                 highlight.text
             );
         }
@@ -101,7 +101,8 @@ export class CommentService {
             id: IdGenerator.generateCommentId(),
             content,
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            author: this.plugin.settings.authorName || undefined
         };
 
         highlight.comments.push(newComment);

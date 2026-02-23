@@ -9,6 +9,7 @@ export interface CommentItem {
     content: string;
     createdAt: number;
     updatedAt: number;
+    author?: string;
 }
 
 export interface HighlightInfo {
@@ -149,6 +150,8 @@ export interface PluginSettings extends HighlightSettings {
         maxLength?: number;
     };
     showCommentWidget?: boolean;
+    authorName?: string;
+    displayAuthorInfo?: boolean;
 }
 
 // FileComment 接口已移除
@@ -237,7 +240,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
         maxLength: 2000,
         surroundingLines: 3
     },
-    showCommentWidget: true
+    showCommentWidget: true,
+    authorName: '',
+    displayAuthorInfo: false
 };
 
 // 添加自定义事件类型
