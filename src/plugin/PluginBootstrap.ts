@@ -39,9 +39,11 @@ export function registerPluginCommands(plugin: CommentPlugin, windowManager: Win
 export function registerPluginVaultEvents(plugin: CommentPlugin): void {
     plugin.registerEvent(
         plugin.app.vault.on('rename', async (file, oldPath) => {
-            const services = plugin.services;
-            if (services) {
+            try {
+                const services = await plugin.ensureServicesInitialized();
                 await services.highlightManager.handleFileRename(oldPath, file.path);
+            } catch (error) {
+                console.error('[HiNote] Failed to migrate highlights after file rename:', error);
             }
         })
     );

@@ -14,6 +14,7 @@ import {
     ensureHiNoteDirectoryStructure
 } from './HiNoteStorageLayout';
 import { FlashcardDataStore } from './FlashcardDataStore';
+import { FilePathUtils } from './FilePathUtils';
 
 /**
  * HiNote数据管理器 - 存储层（已重构）
@@ -152,7 +153,8 @@ export class HiNoteDataManager {
      */
     async handleFileRename(oldPath: string, newPath: string): Promise<void> {
         const oldStoragePath = this.getStoragePathForFile(oldPath);
-        const newStoragePath = this.getStoragePathForFile(newPath);
+        const newSafeFileName = FilePathUtils.toSafeFileName(newPath);
+        const newStoragePath = `${FilePathUtils.getHighlightsDir(this.vaultPath)}/${newSafeFileName}`;
 
         try {
             // 检查旧文件是否存在
@@ -162,13 +164,18 @@ export class HiNoteDataManager {
             await this.app.vault.adapter.write(newStoragePath, content);
             
             // 删除旧文件
-            await this.app.vault.adapter.remove(oldStoragePath);
+            if (oldStoragePath !== newStoragePath) {
+                await this.app.vault.adapter.remove(oldStoragePath);
+            }
             
             // 更新映射
             this.fileMappingStore.delete(oldPath);
+            this.fileMappingStore.set(newPath, newSafeFileName);
             await this.saveFileMapping();
         } catch {
-            // 旧文件可能不存在，忽略错误
+            // 旧文件可能不存在，确保旧路径不会继续指向不存在的数据
+            this.fileMappingStore.delete(oldPath);
+            await this.saveFileMapping();
         }
     }
 
