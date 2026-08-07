@@ -1,4 +1,4 @@
-import type { WorkspaceLeaf } from 'obsidian';
+import { TFile, type WorkspaceLeaf } from 'obsidian';
 import type CommentPlugin from '../../main';
 import { createWindowManager, registerCommands } from '../commands';
 import { WindowManager } from './WindowManager';
@@ -38,11 +38,17 @@ export function registerPluginCommands(plugin: CommentPlugin, windowManager: Win
 
 export function registerPluginVaultEvents(plugin: CommentPlugin): void {
     plugin.registerEvent(
-        plugin.app.vault.on('rename', async (file, oldPath) => {
-            const services = plugin.services;
-            if (services) {
-                await services.highlightManager.handleFileRename(oldPath, file.path);
+        plugin.app.vault.on('rename', (file, oldPath) => {
+            if (!(file instanceof TFile) || file.extension !== 'md') {
+                return;
             }
+
+            void (async () => {
+                const services = await plugin.ensureServicesInitialized();
+                await services.highlightManager.handleFileRename(oldPath, file.path);
+            })().catch(error => {
+                console.error('[HiNote] Failed to migrate highlights after file rename:', error);
+            });
         })
     );
 }

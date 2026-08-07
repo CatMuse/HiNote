@@ -47,6 +47,10 @@ export class FileMappingStore {
         this.fileMapping.set(originalPath, safeFileName);
     }
 
+    get(originalPath: string): string | undefined {
+        return this.fileMapping.get(originalPath);
+    }
+
     delete(originalPath: string): void {
         this.fileMapping.delete(originalPath);
     }

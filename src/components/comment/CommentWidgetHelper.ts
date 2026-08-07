@@ -128,7 +128,6 @@ export class CommentWidgetHelper {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
         const margin = this.TOOLTIP_MARGIN;
-        const maxTooltipWidth = Math.max(160, viewportWidth - margin * 2);
 
         tooltip.addClass("hi-note-tooltip-positioned");
 

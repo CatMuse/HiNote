@@ -81,13 +81,25 @@ export class HighlightRepository implements IHighlightRepository {
     }
 
     async handleFileRename(oldPath: string, newPath: string): Promise<void> {
+        await this.dataManager.initialize();
+
+        const cachedHighlights = this.cache.get(oldPath);
+        const oldPathHighlights = cachedHighlights && cachedHighlights.length > 0
+            ? cachedHighlights
+            : await this.dataManager.getFileHighlights(oldPath);
+
         await this.dataManager.handleFileRename(oldPath, newPath);
         
-        const oldPathHighlights = this.cache.get(oldPath) || [];
         oldPathHighlights.forEach(highlight => {
             highlight.filePath = newPath;
         });
-        this.cache.set(newPath, oldPathHighlights);
+
+        if (oldPathHighlights.length > 0) {
+            this.cache.set(newPath, oldPathHighlights);
+        } else {
+            this.cache.delete(newPath);
+        }
+
         this.cache.delete(oldPath);
     }
 

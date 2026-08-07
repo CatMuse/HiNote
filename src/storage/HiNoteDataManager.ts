@@ -14,6 +14,7 @@ import {
     ensureHiNoteDirectoryStructure
 } from './HiNoteStorageLayout';
 import { FlashcardDataStore } from './FlashcardDataStore';
+import { FilePathUtils } from './FilePathUtils';
 
 /**
  * HiNote数据管理器 - 存储层（已重构）
@@ -29,6 +30,8 @@ export class HiNoteDataManager {
     private fileMappingStore: FileMappingStore;
     private flashcardDataStore: FlashcardDataStore;
     private readonly CURRENT_VERSION = '2.0';
+    private initialized = false;
+    private initializePromise: Promise<void> | null = null;
 
     constructor(app: App) {
         this.app = app;
@@ -42,8 +45,22 @@ export class HiNoteDataManager {
      * 初始化数据管理器
      */
     async initialize(): Promise<void> {
-        await this.ensureDirectoryStructure();
-        await this.loadFileMapping();
+        if (this.initialized) {
+            return;
+        }
+
+        if (!this.initializePromise) {
+            this.initializePromise = (async () => {
+                await this.ensureDirectoryStructure();
+                await this.loadFileMapping();
+                this.initialized = true;
+            })().catch(error => {
+                this.initializePromise = null;
+                throw error;
+            });
+        }
+
+        await this.initializePromise;
     }
 
     /**
@@ -151,24 +168,39 @@ export class HiNoteDataManager {
      * @param newPath 新路径
      */
     async handleFileRename(oldPath: string, newPath: string): Promise<void> {
-        const oldStoragePath = this.getStoragePathForFile(oldPath);
-        const newStoragePath = this.getStoragePathForFile(newPath);
+        await this.initialize();
 
-        try {
-            // 检查旧文件是否存在
-            const content = await this.app.vault.adapter.read(oldStoragePath);
-            
-            // 写入新位置
-            await this.app.vault.adapter.write(newStoragePath, content);
-            
-            // 删除旧文件
-            await this.app.vault.adapter.remove(oldStoragePath);
-            
-            // 更新映射
-            this.fileMappingStore.delete(oldPath);
-            await this.saveFileMapping();
-        } catch {
-            // 旧文件可能不存在，忽略错误
+        const highlightsDir = FilePathUtils.getHighlightsDir(this.vaultPath);
+        const mappedOldSafeFileName = this.fileMappingStore.get(oldPath);
+        const oldSafeFileName = mappedOldSafeFileName ?? FilePathUtils.toSafeFileName(oldPath);
+        const newSafeFileName = FilePathUtils.toSafeFileName(newPath);
+        const oldStoragePath = `${highlightsDir}/${oldSafeFileName}`;
+        const newStoragePath = `${highlightsDir}/${newSafeFileName}`;
+
+        const oldStorageExists = await this.app.vault.adapter.exists(oldStoragePath);
+        if (!oldStorageExists) {
+            if (mappedOldSafeFileName) {
+                this.fileMappingStore.delete(oldPath);
+                await this.saveFileMapping();
+            }
+            return;
+        }
+
+        const content = await this.app.vault.adapter.read(oldStoragePath);
+        await this.app.vault.adapter.write(newStoragePath, content);
+
+        // Only publish the new mapping after the highlight data is safely written.
+        this.fileMappingStore.delete(oldPath);
+        this.fileMappingStore.set(newPath, newSafeFileName);
+        await this.saveFileMapping();
+
+        if (oldStoragePath !== newStoragePath) {
+            try {
+                await this.app.vault.adapter.remove(oldStoragePath);
+            } catch (error) {
+                // The new mapping is already valid; leaving an orphaned old file is safer than rollback.
+                console.warn('[HiNote] Failed to remove old highlight data after file rename:', error);
+            }
         }
     }
 
