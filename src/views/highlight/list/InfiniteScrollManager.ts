@@ -57,7 +57,8 @@ export class InfiniteScrollManager {
      */
     async loadMoreHighlights(
         allHighlights: HighlightInfo[],
-        renderCallback: (batch: HighlightInfo[], append: boolean) => Promise<void>
+        renderCallback: (batch: HighlightInfo[], append: boolean) => Promise<void>,
+        append: boolean = true
     ): Promise<void> {
         if (this.isLoading) return;
         
@@ -77,7 +78,7 @@ export class InfiniteScrollManager {
             }
 
             // 渲染新的高亮（追加模式）
-            await renderCallback(batch, true);
+            await renderCallback(batch, append);
             this.currentBatch++;
         } catch (error) {
             console.error('[InfiniteScrollManager] Error loading highlights:', error);

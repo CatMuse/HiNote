@@ -69,9 +69,7 @@ export class HighlightListController {
                 this.options.state.highlights = await globalHighlightService.updateAllHighlights(searchTerm, searchType);
             }
 
-            await this.loadMoreHighlights();
-            await this.loadUntilScrollable();
-            this.setupInfiniteScroll();
+            await this.renderHighlightsPaginated(this.options.state.highlights);
         } catch (error) {
             console.error('[HiNoteView] Error in updateAllHighlights:', error);
             new Notice(t("Error loading all highlights"));
@@ -99,16 +97,29 @@ export class HighlightListController {
 
         try {
             const wasGlobalSearch = this.options.state.highlights.some(h => h.isGlobalSearch);
+
+            if (searchTerm === '' && searchType === '') {
+                if (wasGlobalSearch && this.options.state.currentFile) {
+                    await this.updateHighlights(false, false);
+                }
+
+                this.options.state.highlights.forEach(highlight => {
+                    highlight.isGlobalSearch = false;
+                });
+                await this.renderSearchResults(this.options.state.highlights);
+                return;
+            }
+
             if (wasGlobalSearch && searchType !== 'all' && searchType !== 'path' && this.options.state.currentFile) {
                 this.showLoading();
-                await this.updateHighlights();
+                await this.updateHighlights(false, false);
 
                 this.options.state.highlights.forEach(highlight => {
                     highlight.isGlobalSearch = false;
                 });
 
                 const filteredHighlights = searchUIManager.filterHighlightsByTerm(searchTerm, searchType);
-                this.renderHighlights(filteredHighlights);
+                await this.renderSearchResults(filteredHighlights);
                 return;
             }
 
@@ -122,7 +133,6 @@ export class HighlightListController {
                     this.options.state.highlights.forEach(highlight => {
                         highlight.isGlobalSearch = true;
                     });
-                    this.renderHighlights(this.options.state.highlights);
                 } finally {
                     this.options.state.currentFile = originalFile;
                 }
@@ -132,26 +142,28 @@ export class HighlightListController {
                 });
 
                 const filteredHighlights = searchUIManager.filterHighlightsByTerm(searchTerm, searchType);
-                this.renderHighlights(filteredHighlights);
+                await this.renderSearchResults(filteredHighlights);
             }
         } catch (error) {
             console.error('[高亮搜索] 搜索过程中出错:', error);
         }
     }
 
-    async updateHighlights(isInCanvas: boolean = false): Promise<void> {
+    async updateHighlights(isInCanvas: boolean = false, render: boolean = true): Promise<void> {
         if (this.isInAllHighlightsView()) {
             await this.updateAllHighlights();
             return;
         }
 
         if (!this.options.state.currentFile) {
-            this.renderHighlights([]);
+            if (render) {
+                this.renderHighlights([]);
+            }
             return;
         }
 
         if (this.options.state.currentFile.extension === 'canvas') {
-            await this.handleCanvasFile(this.options.state.currentFile);
+            await this.handleCanvasFile(this.options.state.currentFile, render);
             return;
         }
 
@@ -182,49 +194,60 @@ export class HighlightListController {
         }
 
         this.options.getFlashcardViewManager()?.updateFlashcardMarkers(this.options.state.highlights);
-        this.renderWithCurrentSearch();
+        if (render) {
+            this.renderWithCurrentSearch();
+        }
     }
 
     isInAllHighlightsView(): boolean {
         return this.options.state.currentFile === null;
     }
 
-    private async loadMoreHighlights(): Promise<void> {
+    private async renderSearchResults(highlights: HighlightInfo[]): Promise<void> {
+        await this.renderHighlightsPaginated(highlights);
+    }
+
+    private async renderHighlightsPaginated(highlights: HighlightInfo[]): Promise<void> {
         const infiniteScrollManager = this.options.getInfiniteScrollManager();
-        if (!infiniteScrollManager) return;
+        if (!infiniteScrollManager) {
+            this.renderHighlights(highlights);
+            return;
+        }
+
+        infiniteScrollManager.reset();
+
+        if (highlights.length === 0) {
+            this.renderHighlights([]);
+            return;
+        }
+
+        this.showLoading();
 
         await infiniteScrollManager.loadMoreHighlights(
-            this.options.state.highlights,
-            async (batch, append) => this.renderHighlights(batch, append)
+            highlights,
+            async (batch, append) => this.renderHighlights(batch, append),
+            false
         );
-    }
-
-    private async loadUntilScrollable(): Promise<void> {
-        const infiniteScrollManager = this.options.getInfiniteScrollManager();
-        if (!infiniteScrollManager) return;
 
         await infiniteScrollManager.loadUntilScrollable(
-            this.options.state.highlights,
+            highlights,
             async (batch, append) => this.renderHighlights(batch, append)
         );
-    }
-
-    private setupInfiniteScroll(): void {
-        const infiniteScrollManager = this.options.getInfiniteScrollManager();
-        if (!infiniteScrollManager) return;
 
         infiniteScrollManager.setupInfiniteScroll(
-            this.options.state.highlights,
+            highlights,
             async (batch, append) => this.renderHighlights(batch, append)
         );
     }
 
-    private async handleCanvasFile(file: TFile): Promise<void> {
+    private async handleCanvasFile(file: TFile, render: boolean = true): Promise<void> {
         const canvasProcessor = this.options.getCanvasProcessor();
         if (!canvasProcessor) return;
 
         this.options.state.highlights = await canvasProcessor.processCanvasFile(file);
-        this.renderHighlights(this.options.state.highlights);
+        if (render) {
+            this.renderHighlights(this.options.state.highlights);
+        }
     }
 
     renderWithCurrentSearch(): void {
