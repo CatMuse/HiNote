@@ -5,10 +5,24 @@ export interface CommentInputKeyboardOptions {
     onSave: () => Promise<void>;
 }
 
+/** Ignore an Enter arriving this soon after compositionend (IME commit echo). */
+const COMPOSITION_GUARD_MS = 100;
+
 export function setupCommentInputKeyboard(
     textarea: HTMLTextAreaElement,
     options: CommentInputKeyboardOptions
 ): void {
+    let composing = false;
+    let compositionEndedAt = 0;
+
+    textarea.addEventListener('compositionstart', () => {
+        composing = true;
+    });
+    textarea.addEventListener('compositionend', () => {
+        composing = false;
+        compositionEndedAt = Date.now();
+    });
+
     textarea.onkeydown = async (event: KeyboardEvent) => {
         if (event.key === 'Tab') {
             event.preventDefault();
@@ -17,6 +31,21 @@ export function setupCommentInputKeyboard(
         }
 
         if (event.key !== 'Enter') {
+            return;
+        }
+
+        // Do not treat the Enter that confirms an IME conversion as "save".
+        // With CJK input (Japanese/Chinese/Korean), Enter is used to commit the
+        // candidate, so without this guard the comment is saved and the textarea
+        // closes in the middle of typing a word.
+        // keyCode 229 is the conventional value browsers report while an IME is
+        // handling the key, and some environments dispatch keydown right after
+        // compositionend with isComposing already false - hence the extra flag.
+        if (composing || event.isComposing || event.keyCode === 229) {
+            return;
+        }
+
+        if (Date.now() - compositionEndedAt < COMPOSITION_GUARD_MS) {
             return;
         }
 
