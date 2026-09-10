@@ -1,12 +1,13 @@
 {
 	"name": "hi-note",
-	"version": "0.5.8",
+	"version": "0.5.9",
 	"description": "Enhance your highlighted notes with comment management and export features.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
+		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"test:review": "node scripts/test-review-regressions.cjs"
 	},
 	"keywords": [],
 	"author": "",
@@ -16,14 +17,14 @@
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
 		"esbuild": "^0.25.0",
-		"obsidian": "latest",
+		"obsidian": "1.13.1",
 		"tslib": "2.4.0",
 		"typescript": "^4.7.4"
 	},
 	"dependencies": {
-		"@codemirror/view": "^6.42.1",
+		"@codemirror/view": "6.38.6",
 		"html2canvas": "^1.4.1",
-		"minimatch": "^10.0.1",
+		"minimatch": "^10.2.6",
 		"ts-fsrs": "^5.0.1"
 	}
 }

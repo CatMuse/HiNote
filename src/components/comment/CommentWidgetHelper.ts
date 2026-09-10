@@ -44,7 +44,7 @@ export class CommentWidgetHelper {
      * 创建工具提示
      */
     static createTooltip(app: App, highlight: HiNote): HTMLElement {
-        const tooltip = activeDocument.createElement("div");
+        const tooltip = createEl("div");
         tooltip.addClass("hi-note-tooltip", "hi-note-tooltip-hidden");
         if (highlight.id) {
             tooltip.setAttribute("data-highlight-id", highlight.id);

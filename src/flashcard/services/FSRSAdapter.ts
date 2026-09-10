@@ -191,7 +191,7 @@ export class FSRSAdapter {
         // 确保 tsRating 不是 Rating.Manual，因为 next 方法期望一个 Grade 类型
         // Grade 类型是排除了 Rating.Manual 的 Rating 类型
         if (tsRating !== Rating.Manual) {
-            const result = this.fsrsInstance.next(tsCard, now, tsRating as Grade);
+            const result = this.fsrsInstance.next(tsCard, now, tsRating);
             
             // 转换回 FlashcardState
             return this.fromTsFSRSCard(card, result);

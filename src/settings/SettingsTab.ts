@@ -1,4 +1,4 @@
-import { App, PluginSettingTab } from 'obsidian';
+import { App, PluginSettingTab, type SettingDefinitionItem } from 'obsidian';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { AIServiceTab } from './tabs/AIServiceTab';
 import { FlashcardSettingsTab } from '../flashcard';
@@ -17,74 +17,59 @@ export class AISettingTab extends PluginSettingTab {
         this.licenseManager = new LicenseManager(this.plugin);
     }
 
-    display(): void {
-        void this.render();
+    getSettingDefinitions(): SettingDefinitionItem[] {
+        return [
+            this.createSettingsPage(t('General'), [
+                'Export Path', 'Exclusions', 'Export template', 'Show Comment Widget',
+                'Custom text extraction', 'Use custom rules', 'Data management', 'Clean orphaned data'
+            ], container => new GeneralSettingsTab(this.plugin, container).display()),
+            this.createSettingsPage(t('AI service'), [
+                'AI service', 'API key', 'Server URL', 'Model', 'Prompt settings',
+                'OpenAI', 'Anthropic', 'Gemini', 'Deepseek', 'SiliconFlow', 'Ollama', 'Custom'
+            ], container => new AIServiceTab(this.plugin, container).display()),
+            this.createSettingsPage('HiCard', [
+                'Activate HiCard', 'Flashcard learning', 'New cards per day', 'Reviews per day',
+                'Target retention', 'Maximum interval', 'Reset daily stats', 'FSRS parameters',
+                'Reset algorithm parameters'
+            ], (container, isDisposed) => this.renderFlashcardTab(container, isDisposed))
+        ];
     }
 
-    private async render(): Promise<void> {
-        await this.plugin.ensureServicesInitialized();
-
-        const { containerEl } = this;
-        containerEl.empty();
-
-        // 创建标签页容器
-        const tabContainer = containerEl.createEl('div', { cls: 'setting-tabs' });
-        const contentContainer = containerEl.createEl('div', { cls: 'setting-tab-content' });
-
-        // 创建标签按钮
-        const generalTab = tabContainer.createEl('div', { 
-          text: t('General'),
-          cls: 'setting-tab-btn active',
-          attr: { role: 'button', tabindex: '0' }
-        });
-        const aiTab = tabContainer.createEl('div', { 
-          text: t('AI service'),
-          cls: 'setting-tab-btn',
-          attr: { role: 'button', tabindex: '0' }
-        });
-        // 内容容器
-        const generalContent = contentContainer.createEl('div', { cls: 'setting-tab-pane active' });
-        const aiContent = contentContainer.createEl('div', { cls: 'setting-tab-pane' });
-
-        // 添加标签切换事件
-        const switchTab = (targetTab: HTMLElement, targetContent: HTMLElement) => {
-            tabContainer.findAll('.setting-tab-btn').forEach(tab => tab.removeClass('active'));
-            contentContainer.findAll('.setting-tab-pane').forEach(pane => pane.removeClass('active'));
-            targetTab.addClass('active');
-            targetContent.addClass('active');
+    private createSettingsPage(
+        name: string,
+        terms: string[],
+        render: (container: HTMLElement, isDisposed: () => boolean) => void | Promise<void>
+    ): SettingDefinitionItem {
+        return {
+            type: 'page',
+            name,
+            items: [{
+                name,
+                aliases: [...new Set([...terms, ...terms.map(term => t(term))])],
+                render: setting => {
+                    const container = setting.settingEl;
+                    container.empty();
+                    container.addClass('hi-note-searchable-settings');
+                    let disposed = false;
+                    void this.plugin.ensureServicesInitialized().then(async () => {
+                        if (!disposed) await render(container, () => disposed);
+                    }).catch(error => {
+                        if (!disposed) container.createEl('p', { text: String(error) });
+                    });
+                    return () => { disposed = true; container.empty(); };
+                }
+            }]
         };
-
-        generalTab.onclick = () => switchTab(generalTab, generalContent);
-        aiTab.onclick = () => switchTab(aiTab, aiContent);
-
-        // 添加通用设置到 General 标签页
-        new GeneralSettingsTab(this.plugin, generalContent).display();
-        // 添加 AI 服务设置到 AI Service 标签页
-        new AIServiceTab(this.plugin, aiContent).display();
-
-        // HiCard 标签页始终显示
-        const flashcardTab = tabContainer.createEl('div', {
-            text: 'HiCard',
-            cls: 'setting-tab-btn',
-            attr: { role: 'button', tabindex: '0' }
-        });
-        const flashcardContent = contentContainer.createEl('div', { cls: 'setting-tab-pane' });
-        flashcardTab.onclick = () => {
-            void this.renderFlashcardTab(switchTab, flashcardTab, flashcardContent);
-        };
-        // 默认加载 HiCard 内容（可选，首次加载时自动判断）
-        // flashcardTab.onclick();
     }
 
     private async renderFlashcardTab(
-        switchTab: (targetTab: HTMLElement, targetContent: HTMLElement) => void,
-        flashcardTab: HTMLElement,
-        flashcardContent: HTMLElement
+        flashcardContent: HTMLElement,
+        isDisposed: () => boolean
     ): Promise<void> {
-            switchTab(flashcardTab, flashcardContent);
             flashcardContent.empty();
             // 检查激活状态
             const isFlashcardActivated = await this.licenseManager.isActivated();
+            if (isDisposed()) return;
             if (isFlashcardActivated) {
                 new FlashcardSettingsTab(this.plugin, flashcardContent).display();
             } else {

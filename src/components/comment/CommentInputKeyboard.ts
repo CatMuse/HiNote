@@ -24,6 +24,8 @@ export function setupCommentInputKeyboard(
     });
 
     textarea.onkeydown = async (event: KeyboardEvent) => {
+        if (composing || event.isComposing) return;
+
         if (event.key === 'Tab') {
             event.preventDefault();
             await options.onInlineAI();
@@ -38,10 +40,9 @@ export function setupCommentInputKeyboard(
         // With CJK input (Japanese/Chinese/Korean), Enter is used to commit the
         // candidate, so without this guard the comment is saved and the textarea
         // closes in the middle of typing a word.
-        // keyCode 229 is the conventional value browsers report while an IME is
-        // handling the key, and some environments dispatch keydown right after
+        // Some environments dispatch keydown right after
         // compositionend with isComposing already false - hence the extra flag.
-        if (composing || event.isComposing || event.keyCode === 229) {
+        if (composing || event.isComposing) {
             return;
         }
 

@@ -78,7 +78,7 @@ export class SelectionBoxController {
         this.cleanupMouseEvents();
         this.options.clearSelection();
 
-        this.selectionBox = activeDocument.createElement("div");
+        this.selectionBox = createEl("div");
         this.selectionBox.className = "selection-box";
         this.selectionBox.style.left = `${this.selectionStartX}px`;
         this.selectionBox.style.top = `${this.selectionStartY}px`;

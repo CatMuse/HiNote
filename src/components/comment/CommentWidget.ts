@@ -58,7 +58,7 @@ export class CommentWidget extends WidgetType {
      * @returns 包含评论按钮和预览的 HTML 元素
      */
     toDOM(): HTMLElement {
-        const wrapper = activeDocument.createElement("span");
+        const wrapper = createEl("span");
         wrapper.addClass("hi-note-widget");
         
         // 添加高亮 ID 作为数据属性，确保每个 Widget 都有唯一标识

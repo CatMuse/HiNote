@@ -17,11 +17,11 @@ export class DragPreview {
 
         this.clear();
 
-        this.instance = activeDocument.createElement('div');
+        this.instance = createEl('div');
         this.instance.className = 'highlight-dragging';
 
         // 创建内容容器
-        const content = activeDocument.createElement('div');
+        const content = createEl('div');
         content.className = 'highlight-dragging-content';
         
         // 限制预览文本长度

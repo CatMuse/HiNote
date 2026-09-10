@@ -3755,3 +3755,9 @@ textarea.flashcard-modal-input {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+/* Custom controls hosted by the declarative settings pages. */
+.hi-note-searchable-settings {
+    display: block;
+    border-top: none;
+}

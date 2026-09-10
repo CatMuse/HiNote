@@ -1,8 +1,8 @@
 {
 	"id": "hi-note",
 	"name": "HiNote",
-	"version": "0.5.8",
-	"minAppVersion": "1.8.0",
+	"version": "0.5.9",
+	"minAppVersion": "1.13.0",
 	"description": "Add comments to highlighted notes, use AI for thinking, and flashcards for memory.",
 	"author": "Kai",
 	"authorUrl": "https://github.com/CatMuse",

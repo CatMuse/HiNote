@@ -18,7 +18,7 @@ export interface FlashcardGroupModal {
 }
 
 export function createFlashcardGroupModal(group?: CardGroup): FlashcardGroupModal {
-    const modalOverlay = activeDocument.createElement('div');
+    const modalOverlay = createEl('div');
     modalOverlay.className = 'flashcard-modal-overlay';
     activeDocument.body.appendChild(modalOverlay);
 

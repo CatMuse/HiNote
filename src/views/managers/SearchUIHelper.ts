@@ -104,7 +104,7 @@ export class SearchUIHelper {
             window.setTimeout(() => {
                 if (!activeDocument.activeElement ||
                     (activeDocument.activeElement !== this.searchInput &&
-                     !hintsContainer.contains(activeDocument.activeElement as Node))) {
+                     !hintsContainer.contains(activeDocument.activeElement))) {
                     hintsContainer.remove();
                 }
             }, 200);

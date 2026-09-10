@@ -32,7 +32,7 @@ export class GeneralSettingsTab {
             const stats = await this.plugin.highlightManager.checkOrphanedDataCount();
             
             // 创建新的计数元素
-            const countEl = activeDocument.createElement('div');
+            const countEl = createEl('div');
             
             if (stats.orphanedHighlights > 0) {
                 countEl.className = 'orphaned-data-count';
@@ -177,7 +177,7 @@ export class GeneralSettingsTab {
                     // 移除现有的计数元素
                     const existingCount = descEl.querySelector('.orphaned-data-count, .no-orphaned-data');
                     if (existingCount) existingCount.remove();
-                    const countEl = activeDocument.createElement('div');
+                    const countEl = createEl('div');
                     if (orphanedCount > 0) {
                         countEl.className = 'orphaned-data-count';
                         countEl.textContent = `Found ${orphanedCount} orphaned highlights in ${affectedFiles} files.`;

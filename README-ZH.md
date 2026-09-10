@@ -7,6 +7,8 @@
 	<img src="https://img.shields.io/github/stars/CatMuse/HiNote?style=social" alt="GitHub stars" />
 </div>
 
+需要 Obsidian 1.13.0 或更高版本，支持 Obsidian 设置搜索。
+
 ---
 
 简体中文 | [English](./README.md)
