@@ -170,9 +170,8 @@ export class CommentService {
             // 检查高亮是否关联了闪卡
             const hasFlashcard = highlight.id ? this.checkHasFlashcard(highlight.id) : false;
             
-            // 如果是虚拟高亮或者没有关联闪卡，则删除整个高亮
-            if (highlight.isVirtual || !hasFlashcard) {
-                // 从 HighlightManager 中删除高亮
+            if (highlight.isVirtual) {
+                // 虚拟高亮没有对应的文档标记，最后一条评论删除后移除整个高亮
                 await this.highlightManager.removeHighlight(file, highlight);
                 removedHighlight = true;
                 
@@ -190,6 +189,10 @@ export class CommentService {
                 if (this.onHighlightsUpdate) {
                     this.onHighlightsUpdate(this.highlights);
                 }
+            } else if (!hasFlashcard) {
+                // 普通高亮仍然存在于 Markdown 文档中。可以清理不再需要的
+                // 评论存储记录，但必须保留侧边栏中的高亮卡片。
+                await this.highlightManager.removeHighlight(file, highlight);
             } else {
                 // 有关联闪卡，只更新评论
                 await this.highlightManager.addHighlight(file, highlight);
