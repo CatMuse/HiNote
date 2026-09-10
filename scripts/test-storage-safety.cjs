@@ -14,7 +14,7 @@ function load(file) {
     const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
         compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
     }).outputText;
-    vm.runInNewContext(code, { exports, console, crypto, Date, setTimeout, clearTimeout,
+    vm.runInNewContext(code, { exports, console, crypto, Date, window: { setTimeout, clearTimeout },
         require: name => {
             if (name === 'obsidian') return { normalizePath: s => s.replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''), Notice: class {} };
             if (!name.startsWith('.')) return require(name);

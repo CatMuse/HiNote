@@ -118,7 +118,6 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         state,
         searchInput,
         searchLoadingIndicator,
-        searchContainer,
         highlightContainer,
         highlightListController
     });

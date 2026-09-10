@@ -16,7 +16,6 @@ interface SearchAndSelectionOptions {
     state: ViewState;
     searchInput: HTMLInputElement;
     searchLoadingIndicator: HTMLElement;
-    searchContainer: HTMLElement;
     highlightContainer: HTMLElement;
     highlightListController: HighlightListController;
 }
@@ -35,7 +34,6 @@ export function setupSearchAndSelection(options: SearchAndSelectionOptions): {
         state,
         searchInput,
         searchLoadingIndicator,
-        searchContainer,
         highlightContainer,
         highlightListController
     } = options;

@@ -114,7 +114,7 @@ export class FSRSManager {
     private initialization: Promise<void> | null = null;
     private ready = false;
     private disposed = false;
-    private saveTimer: ReturnType<typeof setTimeout> | null = null;
+    private saveTimer: number | null = null;
     private readonly saveQueue = new StorageQueue();
 
     initialize(): Promise<void> {
@@ -132,7 +132,7 @@ export class FSRSManager {
     async dispose(): Promise<void> {
         this.disposed = true;
         if (this.saveTimer !== null) {
-            clearTimeout(this.saveTimer);
+            window.clearTimeout(this.saveTimer);
             this.saveTimer = null;
             if (this.ready) await this.saveStorage();
         }
@@ -166,8 +166,8 @@ export class FSRSManager {
 
     private saveStorageDebounced = (): void => {
         if (this.disposed) return;
-        if (this.saveTimer !== null) clearTimeout(this.saveTimer);
-        this.saveTimer = setTimeout(() => {
+        if (this.saveTimer !== null) window.clearTimeout(this.saveTimer);
+        this.saveTimer = window.setTimeout(() => {
             this.saveTimer = null;
             void this.saveStorage().catch(error => console.error('[HiNote] Flashcard save failed:', error));
         }, 1000);

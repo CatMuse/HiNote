@@ -38,32 +38,28 @@ export class FlashcardStorageService {
     private async readStorage(): Promise<FSRSStorage> {
         const defaultStorage = this.createDefaultStorage();
 
-        try {
-            if (this.dataManager) {
-                const data = await this.dataManager.getFlashcardData();
-                const storage = data || defaultStorage;
-                this.normalize(storage);
-                return storage;
-            }
-
-            const data = await this.plugin.loadData();
-            if (!data?.fsrs) {
-                return defaultStorage;
-            }
-
-            const storage = {
-                version: data.fsrs.version || defaultStorage.version,
-                cards: data.fsrs.cards || {},
-                globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
-                cardGroups: Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [],
-                uiState: data.fsrs.uiState || defaultStorage.uiState,
-                dailyStats: data.fsrs.dailyStats || []
-            };
+        if (this.dataManager) {
+            const data = await this.dataManager.getFlashcardData();
+            const storage = data || defaultStorage;
             this.normalize(storage);
             return storage;
-        } catch (error) {
-            throw error;
         }
+
+        const data = await this.plugin.loadData();
+        if (!data?.fsrs) {
+            return defaultStorage;
+        }
+
+        const storage = {
+            version: data.fsrs.version || defaultStorage.version,
+            cards: data.fsrs.cards || {},
+            globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
+            cardGroups: Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [],
+            uiState: data.fsrs.uiState || defaultStorage.uiState,
+            dailyStats: data.fsrs.dailyStats || []
+        };
+        this.normalize(storage);
+        return storage;
     }
 
     async save(storage: FSRSStorage): Promise<void> {
