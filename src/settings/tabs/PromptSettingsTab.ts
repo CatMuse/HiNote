@@ -13,12 +13,12 @@ export class PromptSettingsTab {
     }
 
     display(): void {
-        const container = this.containerEl.createEl('div', {
+        const container = this.containerEl.createDiv({
             cls: 'prompt-settings-container'
         });
 
         // 标题和添加按钮容器
-        const headerContainer = container.createEl('div', {
+        const headerContainer = container.createDiv({
             cls: 'prompt-settings-header setting-item-heading'
         });
 
@@ -54,7 +54,7 @@ export class PromptSettingsTab {
     }
 
     private createNewPromptForm(container: HTMLElement, beforeElement: HTMLElement) {
-        const newPromptSection = container.createEl('div', { cls: 'new-prompt-section' });
+        const newPromptSection = container.createDiv({ cls: 'new-prompt-section' });
         beforeElement.parentElement?.insertBefore(newPromptSection, beforeElement);
         
         const nameInput = newPromptSection.createEl('input', {
@@ -72,7 +72,7 @@ export class PromptSettingsTab {
         contentArea.inputEl.addClass('prompt-textarea');
 
         // Buttons container
-        const buttonsContainer = newPromptSection.createEl('div', { cls: 'prompt-buttons' });
+        const buttonsContainer = newPromptSection.createDiv({ cls: 'prompt-buttons' });
 
         // Save button
         const saveBtn = buttonsContainer.createEl('button', {
@@ -113,27 +113,27 @@ export class PromptSettingsTab {
             existingList.remove();
         }
 
-        const promptList = container.createEl('div', { cls: 'prompt-list' });
+        const promptList = container.createDiv({ cls: 'prompt-list' });
 
         const prompts = this.plugin.settings.ai.prompts || {};
         
         for (const [name, content] of Object.entries(prompts)) {
-            const promptItem = promptList.createEl('div', { cls: 'prompt-item' });
+            const promptItem = promptList.createDiv({ cls: 'prompt-item' });
             
             // Display mode elements
-            const displayContainer = promptItem.createEl('div', { cls: 'prompt-display-mode' });
+            const displayContainer = promptItem.createDiv({ cls: 'prompt-display-mode' });
             
-            const infoContainer = displayContainer.createEl('div', { cls: 'prompt-info' });
-            infoContainer.createEl('div', { cls: 'prompt-name', text: name });
+            const infoContainer = displayContainer.createDiv({ cls: 'prompt-info' });
+            infoContainer.createDiv({ cls: 'prompt-name', text: name });
             
             // 创建内容预览，移除换行符并限制显示
             const contentPreview = content.replace(/\n/g, ' ');
-            infoContainer.createEl('div', { 
+            infoContainer.createDiv({
                 cls: 'prompt-content-preview', 
                 text: contentPreview
             });
             
-            const buttonContainer = displayContainer.createEl('div', { cls: 'prompt-buttons' });
+            const buttonContainer = displayContainer.createDiv({ cls: 'prompt-buttons' });
             
             // Edit button
             const editBtn = buttonContainer.createEl('button', {
@@ -145,7 +145,7 @@ export class PromptSettingsTab {
             setIcon(editBtn, 'square-pen');
 
             // Edit mode elements (hidden by default)
-            const editContainer = promptItem.createEl('div', { 
+            const editContainer = promptItem.createDiv({
                 cls: 'prompt-edit-mode hi-note-hidden'
             });
 
@@ -160,7 +160,7 @@ export class PromptSettingsTab {
             contentArea.inputEl.addClass('prompt-textarea');
 
             // Edit mode buttons container
-            const editButtonsContainer = editContainer.createEl('div', { cls: 'prompt-edit-buttons' });
+            const editButtonsContainer = editContainer.createDiv({ cls: 'prompt-edit-buttons' });
             
             // Save button
             const saveBtn = editButtonsContainer.createEl('button', {

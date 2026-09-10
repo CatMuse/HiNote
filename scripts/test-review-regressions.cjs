@@ -16,6 +16,37 @@ function load(file, imports, globals = {}) {
     return exports;
 }
 
+function testReviewDomRules() {
+    let files = 0;
+    function scan(directory) {
+        for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+            const file = `${directory}/${entry.name}`;
+            if (entry.isDirectory()) { scan(file); continue; }
+            if (!file.endsWith('.ts')) continue;
+            files++;
+            const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+            function visit(node) {
+                if (ts.isCallExpression(node)) {
+                    const callee = node.expression;
+                    const name = ts.isPropertyAccessExpression(callee) ? callee.name.text
+                        : ts.isIdentifier(callee) ? callee.text : '';
+                    const tag = node.arguments[0];
+                    const location = source.getLineAndCharacterOfPosition(node.getStart(source));
+                    const at = `${file}:${location.line + 1}`;
+                    assert.ok(!(name === 'createEl' && tag && ts.isStringLiteral(tag)
+                        && ['div', 'span'].includes(tag.text)), `Use createDiv/createSpan at ${at}`);
+                    assert.ok(!['createElement', 'createElementNS', 'createDocumentFragment',
+                        'setDynamicTooltip'].includes(name), `Review-disallowed call ${name} at ${at}`);
+                }
+                ts.forEachChild(node, visit);
+            }
+            visit(source);
+        }
+    }
+    scan('src');
+    console.log(`Review DOM rules passed for ${files} TypeScript files.`);
+}
+
 async function testKeyboard() {
     const platform = { isMobile: false };
     let now = 1000;
@@ -83,6 +114,7 @@ async function testSettings() {
 }
 
 (async () => {
+    testReviewDomRules();
     await testKeyboard();
     await testSettings();
     const manifest = JSON.parse(fs.readFileSync('manifest.json'));

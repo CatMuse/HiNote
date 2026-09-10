@@ -8,6 +8,13 @@ import { createFlashcardGroupModal, FlashcardGroupFormValues } from "./Flashcard
  * 闪卡分组管理器，负责处理分组的创建、编辑和删除
  */
 export class FlashcardGroupManager {
+    private activeModal: ReturnType<typeof createFlashcardGroupModal> | null = null;
+
+    dispose(): void {
+        this.activeModal?.close();
+        this.activeModal = null;
+    }
+
     private component: FlashcardComponentContext;
 
     constructor(component: FlashcardComponentContext) {
@@ -26,7 +33,9 @@ export class FlashcardGroupManager {
      * @param group 要编辑的分组
      */
     public showEditGroupModal(group?: CardGroup) {
+        this.dispose();
         const modal = createFlashcardGroupModal(group);
+        this.activeModal = modal;
 
         modal.saveButton.addEventListener('click', () => {
             void this.saveGroupFromModal(modal, group);

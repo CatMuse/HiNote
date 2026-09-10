@@ -30,7 +30,7 @@ export class BatchHighlightDeletionOperations {
             text: t(`Are you sure you want to delete ${selectedHighlights.size} highlights and all their data, including Comments and HiCards? This action cannot be undone.`)
         });
 
-        const buttonContainer = modal.contentEl.createEl("div", {
+        const buttonContainer = modal.contentEl.createDiv({
             cls: "modal-button-container"
         });
 

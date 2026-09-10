@@ -31,7 +31,7 @@ class ConfirmModal extends Modal {
 
         contentEl.createEl("p", { text: this.options.message });
 
-        const buttonContainer = contentEl.createEl("div", { cls: "modal-button-container" });
+        const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
         const cancelButton = buttonContainer.createEl("button", {
             text: this.options.cancelText ?? t("Cancel")
         });

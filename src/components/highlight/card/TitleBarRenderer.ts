@@ -22,13 +22,13 @@ export class HighlightCardTitleBarRenderer {
     constructor(private options: HighlightCardTitleBarRendererOptions) {}
 
     render(card: HTMLElement): void {
-        const titleBar = card.createEl('div', {
+        const titleBar = card.createDiv({
             cls: 'highlight-card-title-bar'
         });
-        const titleBarLeft = titleBar.createEl('div', {
+        const titleBarLeft = titleBar.createDiv({
             cls: 'highlight-card-title-left'
         });
-        const titleBarRight = titleBar.createEl('div', {
+        const titleBarRight = titleBar.createDiv({
             cls: 'highlight-card-title-right'
         });
 
@@ -49,7 +49,7 @@ export class HighlightCardTitleBarRenderer {
     }
 
     private renderFileTitle(container: HTMLElement, highlight: HighlightInfo, fileName: string): void {
-        const fileIcon = container.createEl('div', {
+        const fileIcon = container.createDiv({
             cls: 'highlight-card-icon',
             attr: {
                 'aria-label': t('Open (DoubleClick)'),
@@ -59,7 +59,7 @@ export class HighlightCardTitleBarRenderer {
         this.setTitleIcon(fileIcon, 'file');
         this.options.fileNavigator.bindOpenOnDoubleClick(fileIcon);
 
-        const fileNameText = container.createEl('span', {
+        const fileNameText = container.createSpan({
             text: fileName.replace(/\.md$/, ''),
             cls: 'highlight-card-title-text'
         });
@@ -69,7 +69,7 @@ export class HighlightCardTitleBarRenderer {
     }
 
     private renderHighlightTitle(container: HTMLElement, highlight: HighlightInfo): void {
-        const highlightIcon = container.createEl('div', {
+        const highlightIcon = container.createDiv({
             cls: 'highlight-card-icon'
         });
 
@@ -97,10 +97,10 @@ export class HighlightCardTitleBarRenderer {
         }
 
         const pos = cachedLeaf.view.editor.offsetToPos(highlight.position);
-        const lineNumberBadge = container.createEl('div', {
+        const lineNumberBadge = container.createDiv({
             cls: 'highlight-line-number-badge',
         });
-        lineNumberBadge.createEl('span', {
+        lineNumberBadge.createSpan({
             text: `L${pos.line + 1}`,
             cls: 'highlight-line-number'
         });
@@ -125,10 +125,10 @@ export class HighlightCardTitleBarRenderer {
             }
         );
 
-        const moreActionsContainer = container.createEl('div', {
+        const moreActionsContainer = container.createDiv({
             cls: 'highlight-more-actions-container'
         });
-        const moreActionsBtn = moreActionsContainer.createEl('div', {
+        const moreActionsBtn = moreActionsContainer.createDiv({
             cls: 'highlight-title-btn highlight-more-btn',
             attr: { 'aria-label': t('More') }
         });

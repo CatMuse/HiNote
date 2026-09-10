@@ -68,7 +68,7 @@ export function renderCreateCommentInput(
     card: HTMLElement,
     callbacks: CommentInputViewCallbacks
 ): RenderedCommentInput {
-    const inputSection = createEl('div');
+    const inputSection = createDiv();
     inputSection.className = 'hi-note-input';
 
     const textarea = inputSection.createEl("textarea");
@@ -80,11 +80,11 @@ export function renderCreateCommentInput(
 
     let commentsSection = card.querySelector('.hi-notes-section');
     if (!commentsSection) {
-        commentsSection = card.createEl('div', {
+        commentsSection = card.createDiv({
             cls: 'hi-notes-section'
         });
 
-        commentsSection.createEl('div', {
+        commentsSection.createDiv({
             cls: 'hi-notes-list'
         });
     }

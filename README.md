@@ -125,3 +125,9 @@ If you find this plugin useful and would like to support its development:
 ## License
 
 This plugin is released under the MIT License. The basic features are free and open-source, while some advanced features require a Pro license.
+
+## Local data safety
+
+Existing `.hinote` mappings remain compatible. New highlight records use independent storage identifiers; renaming a note preserves its storage file. Before replacing existing highlight, flashcard, or mapping data, HiNote keeps the previous contents in a sibling `.bak` file. This is a single previous version, not a substitute for vault backups.
+
+Unreadable or invalid data stops the affected operation instead of being replaced with an empty library. If legacy mappings point multiple notes to the same file, or a missing mapping cannot be recovered unambiguously, restore the mapping/data from a vault backup before editing. HiNote does not guess ownership or automatically merge conflicting records.

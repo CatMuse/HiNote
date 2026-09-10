@@ -89,11 +89,11 @@ export class InlineAICommentHandler {
 
         const loadingHint = actionHint.querySelector(".ai-loading-hint");
         if (!loadingHint) {
-            const hintEl = actionHint.createEl("span", {
+            const hintEl = actionHint.createSpan({
                 cls: "ai-loading-hint"
             });
 
-            const loadingIcon = hintEl.createEl("span", {
+            const loadingIcon = hintEl.createSpan({
                 cls: "ai-loading-icon"
             });
             setIcon(loadingIcon, "loader");

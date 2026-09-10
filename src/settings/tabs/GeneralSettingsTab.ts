@@ -12,45 +12,8 @@ export class GeneralSettingsTab {
         this.containerEl = containerEl;
     }
     
-    /**
-     * 添加样式
-     */
-    // 样式已移动到全局 styles.css 文件中
-    
-    /**
-     * 更新孤立数据计数
-     */
-    private async updateOrphanedDataCount(descEl: HTMLElement) {
-        try {
-            // 移除现有的计数元素
-            const existingCount = descEl.querySelector('.orphaned-data-count, .no-orphaned-data');
-            if (existingCount) {
-                existingCount.remove();
-            }
-            
-            // 获取孤立数据数量
-            const stats = await this.plugin.highlightManager.checkOrphanedDataCount();
-            
-            // 创建新的计数元素
-            const countEl = createEl('div');
-            
-            if (stats.orphanedHighlights > 0) {
-                countEl.className = 'orphaned-data-count';
-                countEl.textContent = `Found ${stats.orphanedHighlights} orphaned highlights in ${stats.affectedFiles} files.`;
-            } else {
-                countEl.className = 'no-orphaned-data';
-                countEl.textContent = 'No orphaned data found.';
-            }
-            
-            // 添加到描述元素
-            descEl.appendChild(countEl);
-        } catch (error) {
-            console.error('[HiNote] Error updating orphaned data count:', error);
-        }
-    }
-
     display(): void {
-        const container = this.containerEl.createEl('div', {
+        const container = this.containerEl.createDiv({
             cls: 'general-settings-container'
         });
         
@@ -177,7 +140,7 @@ export class GeneralSettingsTab {
                     // 移除现有的计数元素
                     const existingCount = descEl.querySelector('.orphaned-data-count, .no-orphaned-data');
                     if (existingCount) existingCount.remove();
-                    const countEl = createEl('div');
+                    const countEl = createDiv();
                     if (orphanedCount > 0) {
                         countEl.className = 'orphaned-data-count';
                         countEl.textContent = `Found ${orphanedCount} orphaned highlights in ${affectedFiles} files.`;

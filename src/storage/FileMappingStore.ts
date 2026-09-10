@@ -13,20 +13,13 @@ export class FileMappingStore {
     ) {}
 
     async load(): Promise<void> {
-        try {
-            const content = await this.app.vault.adapter.read(this.getMappingPath());
-            const data: FileMappingData = JSON.parse(content);
-
-            const validation = DataValidator.validateFileMappingData(data);
-            if (!validation.valid) {
-                console.warn('文件映射数据验证失败:', validation.errors);
-                return;
-            }
-
-            this.fileMapping = new Map(Object.entries(data.mapping));
-        } catch {
-            this.fileMapping = new Map();
+        const path = this.getMappingPath();
+        if (!await this.app.vault.adapter.exists(path)) return;
+        const data: FileMappingData = JSON.parse(await this.app.vault.adapter.read(path));
+        if (!DataValidator.validateFileMappingData(data).valid) {
+            throw new Error('HiNote file mapping is invalid. Restore the mapping before saving.');
         }
+        this.fileMapping = new Map(Object.entries(data.mapping));
     }
 
     async save(): Promise<void> {
@@ -36,7 +29,15 @@ export class FileMappingStore {
             lastUpdated: Date.now()
         };
 
-        await this.app.vault.adapter.write(this.getMappingPath(), JSON.stringify(data, null, 2));
+        const path = this.getMappingPath();
+        if (await this.app.vault.adapter.exists(path)) {
+            const previous = await this.app.vault.adapter.read(path);
+            if (!DataValidator.validateFileMappingData(JSON.parse(previous)).valid) {
+                throw new Error('Refusing to overwrite invalid HiNote file mapping.');
+            }
+            await this.app.vault.adapter.write(`${path}.bak`, previous);
+        }
+        await this.app.vault.adapter.write(path, JSON.stringify(data, null, 2));
     }
 
     getMappedFiles(): string[] {
@@ -55,15 +56,29 @@ export class FileMappingStore {
         this.fileMapping.delete(originalPath);
     }
 
-    getStoragePathForFile(filePath: string): string {
+    async getStoragePathForFile(filePath: string): Promise<string> {
         let safeFileName = this.fileMapping.get(filePath);
-
-        if (!safeFileName) {
-            safeFileName = FilePathUtils.toSafeFileName(filePath);
+        if (safeFileName) {
+            if ([...this.fileMapping].some(([path, name]) => path !== filePath && name === safeFileName)) {
+                throw new Error('HiNote detected shared legacy storage. Restore or separate the affected notes before editing.');
+            }
+            if (safeFileName.includes('/') || safeFileName.includes('\\') || !safeFileName.endsWith('.json')) {
+                throw new Error('Invalid HiNote storage mapping.');
+            }
+        } else {
+            // Keep legacy mappings intact. New records get independent storage identities.
+            do {
+                safeFileName = `note-${crypto.randomUUID()}.json`;
+            } while ([...this.fileMapping.values()].includes(safeFileName)
+                || await this.app.vault.adapter.exists(`${FilePathUtils.getHighlightsDir(this.vaultPath)}/${safeFileName}`));
             this.fileMapping.set(filePath, safeFileName);
-            this.save().catch(console.error);
+            try {
+                await this.save();
+            } catch (error) {
+                this.fileMapping.delete(filePath);
+                throw error;
+            }
         }
-
         return `${FilePathUtils.getHighlightsDir(this.vaultPath)}/${safeFileName}`;
     }
 

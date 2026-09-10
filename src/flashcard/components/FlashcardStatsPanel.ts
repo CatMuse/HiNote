@@ -234,10 +234,4 @@ export class FlashcardStatsPanel {
         }
     }
     
-    /**
-     * 添加缩放控制 - 已删除，使用固定天数
-     */
-    private addZoomControl(container: HTMLElement, heatmapContainer: HTMLElement) {
-        // 不再需要缩放控制，使用固定天数
-    }
 }

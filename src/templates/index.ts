@@ -15,15 +15,15 @@ export const defaultTemplate: CardTemplate = {
     name: t('Default Template'),
     description: t('Modern minimalist knowledge card style'),
     render: (highlight: HighlightInfo) => {
-        const cardContainer = createEl('div');
+        const cardContainer = createDiv();
         cardContainer.className = 'highlight-export-card highlight-export-card-modern';
 
         // 引用区域
-        const quoteSection = createEl('div');
+        const quoteSection = createDiv();
         quoteSection.className = 'highlight-export-quote-section';
         
         // 引用装饰
-        const quoteDecoration = createEl('div');
+        const quoteDecoration = createDiv();
         quoteDecoration.className = 'highlight-export-quote-decoration';
 
         const quoteSvg = createSvg("svg");
@@ -47,7 +47,7 @@ export const defaultTemplate: CardTemplate = {
         quoteSection.appendChild(quoteDecoration);
         
         // 引用内容
-        const quoteContent = createEl('div');
+        const quoteContent = createDiv();
         quoteContent.className = 'highlight-export-quote';
         quoteContent.textContent = highlight.text;
         quoteSection.appendChild(quoteContent);
@@ -55,17 +55,17 @@ export const defaultTemplate: CardTemplate = {
         cardContainer.appendChild(quoteSection);
 
         // 底部信息
-        const footer = createEl('div');
+        const footer = createDiv();
         footer.className = 'highlight-export-footer';
 
         // 来源信息
-        const source = createEl('div');
+        const source = createDiv();
         source.className = 'highlight-export-source';
         source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
         footer.appendChild(source);
 
         // 日期信息
-        const date = createEl('div');
+        const date = createDiv();
         date.className = 'highlight-export-date';
         const now = new Date();
         const options: Intl.DateTimeFormatOptions = { 
@@ -88,23 +88,23 @@ export const academicTemplate: CardTemplate = {
     name: t('Academic Template'),
     description: t('Formal style suitable for academic citations'),
     render: (highlight: HighlightInfo) => {
-        const cardContainer = createEl('div');
+        const cardContainer = createDiv();
         cardContainer.className = 'highlight-export-card highlight-export-card-academic';
 
-        const quoteContent = createEl('div');
+        const quoteContent = createDiv();
         quoteContent.className = 'highlight-export-quote';
         quoteContent.textContent = `"${highlight.text}"`;
         cardContainer.appendChild(quoteContent);
 
-        const footer = createEl('div');
+        const footer = createDiv();
         footer.className = 'highlight-export-footer';
         
-        const source = createEl('div');
+        const source = createDiv();
         source.className = 'highlight-export-source';
         source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
         footer.appendChild(source);
 
-        const date = createEl('div');
+        const date = createDiv();
         date.className = 'highlight-export-date';
         date.textContent = `Retrieved: ${new Date().toLocaleDateString()}`;
         footer.appendChild(date);
@@ -120,13 +120,13 @@ export const socialTemplate: CardTemplate = {
     name: t('Social Template'),
     description: t('Modern style suitable for social media sharing'),
     render: (highlight: HighlightInfo) => {
-        const cardContainer = createEl('div');
+        const cardContainer = createDiv();
         cardContainer.className = 'highlight-export-card highlight-export-card-social';
 
-        const header = createEl('div');
+        const header = createDiv();
         header.className = 'highlight-export-header';
         
-        const logo = createEl('div');
+        const logo = createDiv();
         logo.className = 'highlight-export-logo';
 
         const logoSvg = createSvg("svg");
@@ -152,22 +152,22 @@ export const socialTemplate: CardTemplate = {
 
         header.appendChild(logo);
         
-        const appName = createEl('div');
+        const appName = createDiv();
         appName.className = 'highlight-export-app-name';
         appName.textContent = 'HiNote';
         header.appendChild(appName);
         
         cardContainer.appendChild(header);
 
-        const quoteContent = createEl('div');
+        const quoteContent = createDiv();
         quoteContent.className = 'highlight-export-quote';
         quoteContent.textContent = highlight.text;
         cardContainer.appendChild(quoteContent);
 
-        const footer = createEl('div');
+        const footer = createDiv();
         footer.className = 'highlight-export-footer';
         
-        const source = createEl('div');
+        const source = createDiv();
         source.className = 'highlight-export-source';
         source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
         footer.appendChild(source);

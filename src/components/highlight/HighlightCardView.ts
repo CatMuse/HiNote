@@ -7,7 +7,7 @@ export function createHighlightCardElement(
     container: HTMLElement,
     highlight: HighlightInfo
 ): HTMLElement {
-    return container.createEl("div", {
+    return container.createDiv({
         cls: `highlight-card ${highlight.isVirtual ? 'virtual-highlight-card' : ''}`,
         attr: {
             'data-highlight': JSON.stringify(highlight)
@@ -22,7 +22,7 @@ export function renderHighlightCardContent(
     isInMainView: boolean,
     onHighlightClick: (highlight: HighlightInfo) => Promise<void>
 ): void {
-    const highlightContentEl = card.createEl("div", {
+    const highlightContentEl = card.createDiv({
         cls: "highlight-content"
     });
 

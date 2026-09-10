@@ -74,14 +74,14 @@ export class AISettingTab extends PluginSettingTab {
                 new FlashcardSettingsTab(this.plugin, flashcardContent).display();
             } else {
                 // 显示激活输入框（结构更贴近主视图，含描述文案和 class）
-                const activationDiv = flashcardContent.createEl('div', { cls: 'flashcard-activation-container' });
-                activationDiv.createEl('div', { cls: 'flashcard-activation-header', text: t('Activate HiCard') });
+                const activationDiv = flashcardContent.createDiv({ cls: 'flashcard-activation-container' });
+                activationDiv.createDiv({ cls: 'flashcard-activation-header', text: t('Activate HiCard') });
                 
                 // 创建包含链接的描述文案
-                const descriptionDiv = activationDiv.createEl('div', { cls: 'flashcard-activation-description' });
-                descriptionDiv.createEl('span', { text: t('Enter your license key to activate HiCard feature.') + ' ' });
+                const descriptionDiv = activationDiv.createDiv({ cls: 'flashcard-activation-description' });
+                descriptionDiv.createSpan({ text: t('Enter your license key to activate HiCard feature.') + ' ' });
                 descriptionDiv.createEl('br');
-                descriptionDiv.createEl('span', { text: t('Get your license key from') + ' ' });
+                descriptionDiv.createSpan({ text: t('Get your license key from') + ' ' });
                 
                 // 根据语言设置不同的链接
                 const locale = ObsidianInternals.getMomentLocale();
@@ -94,10 +94,10 @@ export class AISettingTab extends PluginSettingTab {
                 });
                 link.setAttr('target', '_blank');
                 link.setAttr('rel', 'noopener noreferrer');
-                const inputContainer = activationDiv.createEl('div', { cls: 'flashcard-activation-input-container' });
+                const inputContainer = activationDiv.createDiv({ cls: 'flashcard-activation-input-container' });
                 const input = inputContainer.createEl('input', { cls: 'flashcard-activation-input', type: 'text', placeholder: t('Enter license key') });
                 const btn = inputContainer.createEl('button', { cls: 'flashcard-activation-button', text: t('Activate') });
-                const msg = activationDiv.createEl('div', { cls: 'activation-msg' });
+                const msg = activationDiv.createDiv({ cls: 'activation-msg' });
                 btn.onclick = () => {
                     void this.activateFlashcardLicense(input, btn, msg, flashcardContent);
                 };

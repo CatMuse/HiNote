@@ -135,7 +135,7 @@ export class InfiniteScrollManager {
         this.cleanup();
 
         // 创建哨兵元素
-        this.sentinel = this.highlightContainer.createEl('div', {
+        this.sentinel = this.highlightContainer.createDiv({
             cls: 'scroll-sentinel'
         });
         this.sentinel.setCssProps({

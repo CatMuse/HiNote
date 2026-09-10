@@ -22,7 +22,7 @@ export class StandardAIProviderSettings extends BaseAIServiceSettings {
     }
 
     display(containerEl: HTMLElement): void {
-        const settingsContainer = containerEl.createEl('div', {
+        const settingsContainer = containerEl.createDiv({
             cls: 'ai-service-settings'
         });
 

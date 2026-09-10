@@ -25,25 +25,25 @@ export class FileListItemRenderer {
 
     createAllHighlightsItem(fileList: HTMLElement): void {
         const state = this.options.getState();
-        const allFilesItem = fileList.createEl("div", {
+        const allFilesItem = fileList.createDiv({
             cls: `highlight-file-item highlight-file-item-all ${state.currentFile === null && !state.isFlashcardMode ? "is-active" : ""}`
         });
 
-        const allFilesLeft = allFilesItem.createEl("div", {
+        const allFilesLeft = allFilesItem.createDiv({
             cls: "highlight-file-item-left"
         });
 
-        const allIcon = allFilesLeft.createEl("span", {
+        const allIcon = allFilesLeft.createSpan({
             cls: "highlight-file-item-icon"
         });
         setIcon(allIcon, "square-library");
 
-        allFilesLeft.createEl("span", {
+        allFilesLeft.createSpan({
             text: t("All Highlight"),
             cls: "highlight-file-item-name"
         });
 
-        allFilesItem.createEl("span", {
+        allFilesItem.createSpan({
             text: `${this.options.dataSource.getTotalHighlightsCount()}`,
             cls: "highlight-file-item-count"
         });
@@ -55,25 +55,25 @@ export class FileListItemRenderer {
 
     createFlashcardItem(fileList: HTMLElement): void {
         const state = this.options.getState();
-        const flashcardItem = fileList.createEl("div", {
+        const flashcardItem = fileList.createDiv({
             cls: `highlight-file-item highlight-file-item-flashcard ${state.isFlashcardMode ? "is-active" : ""}`
         });
 
-        const flashcardLeft = flashcardItem.createEl("div", {
+        const flashcardLeft = flashcardItem.createDiv({
             cls: "highlight-file-item-left"
         });
 
-        const flashcardIcon = flashcardLeft.createEl("span", {
+        const flashcardIcon = flashcardLeft.createSpan({
             cls: "highlight-file-item-icon"
         });
         setIcon(flashcardIcon, "book-heart");
 
-        flashcardLeft.createEl("span", {
+        flashcardLeft.createSpan({
             text: t("HiCard"),
             cls: "highlight-file-item-name"
         });
 
-        const flashcardCount = flashcardItem.createEl("span", {
+        const flashcardCount = flashcardItem.createSpan({
             cls: "highlight-file-item-count"
         });
 
@@ -102,16 +102,16 @@ export class FileListItemRenderer {
 
     async createFileItem(fileList: HTMLElement, file: TFile): Promise<void> {
         const state = this.options.getState();
-        const fileItem = fileList.createEl("div", {
+        const fileItem = fileList.createDiv({
             cls: `highlight-file-item ${state.currentFile?.path === file.path ? "is-active" : ""}`
         });
         fileItem.setAttribute("data-path", file.path);
 
-        const fileItemLeft = fileItem.createEl("div", {
+        const fileItemLeft = fileItem.createDiv({
             cls: "highlight-file-item-left"
         });
 
-        const fileIcon = fileItemLeft.createEl("span", {
+        const fileIcon = fileItemLeft.createSpan({
             cls: "highlight-file-item-icon",
             attr: {
                 "aria-label": t("Open (DoubleClick)")
@@ -125,7 +125,7 @@ export class FileListItemRenderer {
             void leaf.openFile(file);
         });
 
-        const fileNameEl = fileItemLeft.createEl("span", {
+        const fileNameEl = fileItemLeft.createSpan({
             text: file.basename,
             cls: "highlight-file-item-name"
         });
@@ -133,7 +133,7 @@ export class FileListItemRenderer {
         this.addPagePreview(fileNameEl, file);
 
         const highlightCount = await this.options.dataSource.getFileHighlightsCount(file);
-        fileItem.createEl("span", {
+        fileItem.createSpan({
             text: `${highlightCount}`,
             cls: "highlight-file-item-count"
         });

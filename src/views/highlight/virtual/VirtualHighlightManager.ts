@@ -32,7 +32,7 @@ export class VirtualHighlightManager {
             getHighlightContainer: () => HTMLElement;
         }
     ): HTMLElement {
-        this.addCommentButton = container.createEl("div", {
+        this.addCommentButton = container.createDiv({
             cls: "highlight-icon-button"
         });
         

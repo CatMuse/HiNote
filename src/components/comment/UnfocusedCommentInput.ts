@@ -18,12 +18,12 @@ export class UnfocusedCommentInput {
 
     private render() {
         // 创建不聚焦的输入框容器
-        this.container = this.parent.createEl("div", {
+        this.container = this.parent.createDiv({
             cls: "unfocused-comment-input"
         });
 
         // 创建输入提示区域
-        const inputArea = this.container.createEl("div", {
+        const inputArea = this.container.createDiv({
             cls: "unfocused-input-area",
             attr: {
                 "placeholder": t("Add comment...")

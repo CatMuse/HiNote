@@ -54,7 +54,7 @@ export class FlashcardProgressManager {
         const progress = this.getGroupProgress();
         
         // 创建进度文本容器
-        const progressText = progressContainer.createEl("div", { cls: "flashcard-progress-text" });
+        const progressText = progressContainer.createDiv({ cls: "flashcard-progress-text" });
         
         // 添加分组名称
         progressText.createSpan({
@@ -85,7 +85,7 @@ export class FlashcardProgressManager {
                 });
             }
 
-            const statEl = progressText.createEl("div", { cls: "stat" });
+            const statEl = progressText.createDiv({ cls: "stat" });
             statEl.createSpan({ text: stat.label + ": " });
             statEl.createSpan({ 
                 text: stat.value.toString(),
@@ -104,10 +104,10 @@ export class FlashcardProgressManager {
         });
         
         // 创建进度条容器
-        const progressBarContainer = progressContainer.createEl('div', { cls: 'flashcard-progress-bar-container' });
+        const progressBarContainer = progressContainer.createDiv({ cls: 'flashcard-progress-bar-container' });
         
         // 创建进度条
-        const progressBar = progressBarContainer.createEl('div', { cls: 'flashcard-progress-bar' });
+        const progressBar = progressBarContainer.createDiv({ cls: 'flashcard-progress-bar' });
         
         const percent = calculateProgressPercent(progress, this.component.getCards().length);
         
@@ -115,7 +115,7 @@ export class FlashcardProgressManager {
         progressBar.setCssProps({ width: `${percent}%` });
         
         // 添加当前卡片索引信息
-        const indexContainer = progressContainer.createEl('div', { cls: 'flashcard-index-container' });
+        const indexContainer = progressContainer.createDiv({ cls: 'flashcard-index-container' });
         
         // 获取当前分组ID
         const groupId = this.component.getCurrentGroupId();

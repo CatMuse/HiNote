@@ -15,7 +15,6 @@ import { SearchService } from "../../services/search";
  * - 协调 SearchService 执行业务逻辑
  */
 export class SearchUIManager {
-    private plugin: CommentPlugin;
     private searchInput: HTMLInputElement;
     private searchLoadingIndicator: HTMLElement;
     private searchDebounceTimer: number | null = null;
@@ -35,13 +34,11 @@ export class SearchUIManager {
     constructor(
         plugin: CommentPlugin,
         searchInput: HTMLInputElement,
-        searchLoadingIndicator: HTMLElement,
-        searchContainer: HTMLElement
+        searchLoadingIndicator: HTMLElement
     ) {
-        this.plugin = plugin;
         this.searchInput = searchInput;
         this.searchLoadingIndicator = searchLoadingIndicator;
-        this.uiHelper = new SearchUIHelper(searchInput, searchContainer);
+        this.uiHelper = new SearchUIHelper(searchInput);
         this.searchService = new SearchService(plugin);
     }
     

@@ -29,10 +29,10 @@ export class FlashcardReviewService {
         const updatedCard = this.options.getFsrsService().reviewCard(card, rating);
         storage.cards[cardId] = updatedCard;
 
-        this.updateGlobalStats(rating, updatedCard.retrievability);
+        this.updateGlobalStats(updatedCard.retrievability);
         this.options.getDailyStatsService().updateDailyStats(isNewCard, rating);
 
-        void this.options.saveStorage();
+        void this.options.saveStorage().catch(error => console.error('[HiNote] Review save failed:', error));
         this.options.emitFlashcardChanged();
 
         return storage.cards[cardId];
@@ -47,7 +47,7 @@ export class FlashcardReviewService {
         return this.options.getFsrsService().getSchedulingCards(card);
     }
 
-    private updateGlobalStats(rating: FSRSRating, retrievability: number): void {
+    private updateGlobalStats(retrievability: number): void {
         const stats = this.options.getStorage().globalStats;
         const now = Date.now();
         const today = new Date(now).setHours(0, 0, 0, 0);

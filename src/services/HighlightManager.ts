@@ -1,3 +1,4 @@
+import { StorageQueue } from '../storage/StorageQueue';
 import { App, TFile } from 'obsidian';
 import { HighlightInfo as HiNote } from '../types/highlight';
 import { IHighlightRepository } from '../repositories/IHighlightRepository';
@@ -14,6 +15,7 @@ import { IdGenerator } from '../utils/IdGenerator';
  * 4. 协调多个服务和仓储
  */
 export class HighlightManager {
+    private readonly mutations = new StorageQueue();
     constructor(
         private app: App,
         private repository: IHighlightRepository,
@@ -27,7 +29,11 @@ export class HighlightManager {
      * @param highlight 高亮信息
      * @returns 添加的高亮
      */
-    async addHighlight(file: TFile, highlight: HiNote): Promise<HiNote> {
+    addHighlight(file: TFile, highlight: HiNote): Promise<HiNote> {
+        return this.mutations.run(() => this.persistHighlight(file, highlight));
+    }
+
+    private async persistHighlight(file: TFile, highlight: HiNote): Promise<HiNote> {
         if (!highlight.id) {
             highlight.id = IdGenerator.generateHighlightId(
                 file.path,
@@ -43,7 +49,7 @@ export class HighlightManager {
         highlight.updatedAt = now;
 
         const filePath = file.path;
-        const fileHighlights = await this.repository.getFileHighlights(filePath);
+        const fileHighlights = [...await this.repository.getFileHighlights(filePath)];
         const existingIndex = fileHighlights.findIndex(h => h.id === highlight.id);
 
         if (existingIndex >= 0) {
@@ -72,9 +78,13 @@ export class HighlightManager {
      * @param highlight 高亮信息
      * @returns 是否成功移除
      */
-    async removeHighlight(file: TFile, highlight: HiNote): Promise<boolean> {
+    removeHighlight(file: TFile, highlight: HiNote): Promise<boolean> {
+        return this.mutations.run(() => this.deleteHighlight(file, highlight));
+    }
+
+    private async deleteHighlight(file: TFile, highlight: HiNote): Promise<boolean> {
         const filePath = file.path;
-        const fileHighlights = await this.repository.getFileHighlights(filePath);
+        const fileHighlights = [...await this.repository.getFileHighlights(filePath)];
 
         const highlightExists = fileHighlights.some(h => h.id === highlight.id);
         if (!highlightExists) {
@@ -252,6 +262,6 @@ export class HighlightManager {
      * @param newPath 新路径
      */
     async handleFileRename(oldPath: string, newPath: string): Promise<void> {
-        await this.repository.handleFileRename(oldPath, newPath);
+        await this.mutations.run(() => this.repository.handleFileRename(oldPath, newPath));
     }
 }

@@ -6,8 +6,6 @@ export class HighlightContent extends Component {
     private container: HTMLElement;
     private textContainer: HTMLElement;
 
-    // 添加静态属性来跟踪预览元素
-    private static dragPreview: HTMLElement | null = null;
 
     constructor(
         parentEl: HTMLElement,
@@ -23,7 +21,7 @@ export class HighlightContent extends Component {
     }
 
     private async render(parentEl: HTMLElement) {
-        this.container = parentEl.createEl("div", {
+        this.container = parentEl.createDiv({
             cls: "highlight-content"
         });
 
@@ -32,12 +30,12 @@ export class HighlightContent extends Component {
 
     private async renderText() {
         // 高亮文本容器
-        this.textContainer = this.container.createEl("div", {
+        this.textContainer = this.container.createDiv({
             cls: "highlight-text-container"
         });
 
         // 添加竖线装饰
-        const decorator = this.textContainer.createEl("div", {
+        const decorator = this.textContainer.createDiv({
             cls: "highlight-text-decorator"
         });
 
@@ -47,12 +45,12 @@ export class HighlightContent extends Component {
         }
 
         // 高亮文本
-        const textEl = this.textContainer.createEl("div", {
+        const textEl = this.textContainer.createDiv({
             cls: "highlight-text"
         });
 
         // 创建文本内容元素，如果是虚拟高亮则使用 displayText
-        const textContent = textEl.createEl("div", {
+        const textContent = textEl.createDiv({
             cls: `highlight-text-content ${this.highlight.isVirtual ? 'virtual-highlight' : ''} markdown-rendered`
         });
 

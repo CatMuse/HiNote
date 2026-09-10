@@ -18,6 +18,7 @@ export class InitializationManager {
     private isInitialized: boolean = false;
     private initializationPromise: Promise<PluginServices> | null = null;
     private services: PluginServices | null = null;
+    private disposed = false;
 
     constructor(private plugin: CommentPlugin) {}
 
@@ -26,21 +27,24 @@ export class InitializationManager {
      * 只在用户首次使用功能时才执行初始化
      */
     async ensureInitialized(): Promise<PluginServices> {
-        // 如果已经初始化，直接返回
-        if (this.isInitialized && this.services) {
-            return this.services;
-        }
-
-        // 如果正在初始化，等待完成
-        if (this.initializationPromise) {
-            return this.initializationPromise;
-        }
-
-        // 开始初始化
+        if (this.disposed) throw new Error('HiNote has been unloaded.');
+        if (this.initializationPromise) return this.initializationPromise;
         this.services = this.initialize();
-        this.isInitialized = true;
-        this.initializationPromise = Promise.resolve(this.services);
-        return this.services;
+        const services = this.services;
+        this.initializationPromise = (async () => {
+            await services.highlightRepository.initialize();
+            await services.fsrsManager.initialize();
+            if (this.disposed) throw new Error('HiNote was unloaded during initialization.');
+            await services.highlightService.initialize();
+            if (this.disposed) {
+                services.highlightService.destroy();
+                throw new Error('HiNote was unloaded during initialization.');
+            }
+            services.highlightDecorator.enable();
+            this.isInitialized = true;
+            return services;
+        })();
+        return this.initializationPromise;
     }
 
     /**
@@ -62,8 +66,6 @@ export class InitializationManager {
             () => this.plugin.settings,
             () => highlightRepository
         );
-        // 异步构建索引，不阻塞初始化
-        void highlightService.initialize();
 
         // 初始化 Canvas 服务（共享实例）
         const canvasService = new CanvasService(this.plugin.app.vault);
@@ -75,17 +77,11 @@ export class InitializationManager {
             highlightService
         );
         
-        // 异步加载数据，不阻塞初始化
-        highlightRepository.initialize().catch(error => {
-            console.error('[HiNote] 加载高亮数据失败:', error);
-        });
-
         // 初始化 FSRS 管理器（传入数据管理器以使用新存储层）
         const fsrsManager = new FSRSManager(this.plugin, dataManager);
 
         // 初始化高亮装饰器
         const highlightDecorator = new HighlightDecorator(this.plugin, highlightRepository, highlightService, eventManager);
-        highlightDecorator.enable();
 
         return {
             eventManager,
@@ -103,7 +99,7 @@ export class InitializationManager {
      * 清理资源
      */
     async cleanup(): Promise<void> {
-        // 数据自动保存，无需手动保存
+        this.disposed = true;
 
         // 清理高亮装饰器
         if (this.services?.highlightDecorator) {
@@ -114,6 +110,7 @@ export class InitializationManager {
         if (this.services?.highlightService) {
             this.services.highlightService.destroy();
         }
+        await this.services?.fsrsManager.dispose();
     }
 
     /**

@@ -74,7 +74,7 @@ export class HighlightListController {
             console.error('[HiNoteView] Error in updateAllHighlights:', error);
             new Notice(t("Error loading all highlights"));
             this.options.highlightContainer.empty();
-            this.options.highlightContainer.createEl("div", {
+            this.options.highlightContainer.createDiv({
                 cls: "highlight-empty-state",
                 text: t("Error loading highlights. Please try again.")
             });

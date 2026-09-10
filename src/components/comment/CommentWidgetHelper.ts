@@ -19,7 +19,7 @@ export class CommentWidgetHelper {
             cls: `hi-note-button clickable-icon ${!hasComments ? 'hi-note-button-hidden' : ''}`
         });
 
-        const iconContainer = button.createEl("span", {
+        const iconContainer = button.createSpan({
             cls: "hi-note-icon-container"
         });
 
@@ -33,7 +33,7 @@ export class CommentWidgetHelper {
      */
     static addCommentCount(iconContainer: HTMLElement, count: number): void {
         if (count > 0) {
-            iconContainer.createEl("span", {
+            iconContainer.createSpan({
                 cls: "hi-note-count",
                 text: count.toString()
             });
@@ -44,13 +44,13 @@ export class CommentWidgetHelper {
      * 创建工具提示
      */
     static createTooltip(app: App, highlight: HiNote): HTMLElement {
-        const tooltip = createEl("div");
+        const tooltip = createDiv();
         tooltip.addClass("hi-note-tooltip", "hi-note-tooltip-hidden");
         if (highlight.id) {
             tooltip.setAttribute("data-highlight-id", highlight.id);
         }
 
-        const commentsList = tooltip.createEl("div", {
+        const commentsList = tooltip.createDiv({
             cls: "hi-note-tooltip-list"
         });
 
@@ -75,16 +75,16 @@ export class CommentWidgetHelper {
 
         // 最多显示3条评论
         comments.slice(0, this.MAX_TOOLTIP_COMMENTS).forEach(comment => {
-            const item = commentsList.createEl('div', { cls: 'hi-note-tooltip-item' });
+            const item = commentsList.createDiv({ cls: 'hi-note-tooltip-item' });
             
             // 使用 Markdown 渲染内容
-            const contentEl = item.createEl('div', { 
+            const contentEl = item.createDiv({
                 cls: 'hi-note-tooltip-content markdown-rendered' 
             });
             
             this.renderMarkdownContent(app, contentEl, comment.content);
 
-            item.createEl('div', {
+            item.createDiv({
                 cls: 'hi-note-tooltip-time',
                 text: new Date(comment.createdAt).toLocaleString()
             });
@@ -92,7 +92,7 @@ export class CommentWidgetHelper {
 
         // 显示剩余评论数量
         if (comments.length > this.MAX_TOOLTIP_COMMENTS) {
-            tooltip.createEl("div", {
+            tooltip.createDiv({
                 cls: "hi-note-tooltip-more",
                 text: `还有 ${comments.length - this.MAX_TOOLTIP_COMMENTS} 条评论...`
             });

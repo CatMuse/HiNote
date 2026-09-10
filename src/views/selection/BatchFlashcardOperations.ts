@@ -73,7 +73,7 @@ export class BatchFlashcardOperations {
             text: t("Are you sure you want to delete the HiCards of the selected highlights? This action cannot be undone.")
         });
 
-        const buttonContainer = modal.contentEl.createEl("div", {
+        const buttonContainer = modal.contentEl.createDiv({
             cls: "modal-button-container"
         });
 
@@ -170,7 +170,7 @@ export class BatchFlashcardOperations {
             return await action(existingCard);
         }
 
-        const tempContainer = createEl("div");
+        const tempContainer = createDiv();
         const tempCard = new HighlightCard(
             tempContainer,
             highlight,

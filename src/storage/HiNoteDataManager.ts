@@ -1,250 +1,140 @@
 import { App } from 'obsidian';
-import { HighlightInfo as HiNote } from '../types/highlight';
-import { FSRSStorage } from '../flashcard';
+import type { HighlightInfo as HiNote } from '../types/highlight';
+import type { FSRSStorage } from '../flashcard';
 import { DataValidator } from './DataValidator';
-import {
-    convertToLegacyHighlight,
-    convertToOptimizedHighlight,
-    OptimizedHighlight,
-    OptimizedHighlightData
-} from './HighlightDataFormat';
+import { convertToLegacyHighlight, convertToOptimizedHighlight, OptimizedHighlightData } from './HighlightDataFormat';
 import { FileMappingStore } from './FileMappingStore';
-import {
-    detectHighlightFilesFromStorage,
-    ensureHiNoteDirectoryStructure
-} from './HiNoteStorageLayout';
+import { detectHighlightFilesFromStorage, ensureHiNoteDirectoryStructure } from './HiNoteStorageLayout';
 import { FlashcardDataStore } from './FlashcardDataStore';
-import { FilePathUtils } from './FilePathUtils';
+import { StorageQueue } from './StorageQueue';
 
-/**
- * HiNote数据管理器 - 存储层（已重构）
- * 职责：
- * 1. 纯粹的文件系统操作
- * 2. 数据序列化/反序列化
- * 3. 文件路径映射管理
- * 4. 不包含业务逻辑
- */
+/** Vault-local storage. All mapping and highlight operations share a write order. */
 export class HiNoteDataManager {
-    private app: App;
-    private vaultPath: string;
-    private fileMappingStore: FileMappingStore;
-    private flashcardDataStore: FlashcardDataStore;
-    private readonly CURRENT_VERSION = '2.0';
-    private initialized = false;
+    private readonly version = '2.0';
+    private readonly fileMappingStore: FileMappingStore;
+    private readonly flashcardDataStore: FlashcardDataStore;
+    private readonly queue = new StorageQueue();
     private initializePromise: Promise<void> | null = null;
 
-    constructor(app: App) {
-        this.app = app;
-        // 对于Obsidian，我们直接使用相对路径，不需要获取绝对路径
-        this.vaultPath = '';
-        this.fileMappingStore = new FileMappingStore(app, this.vaultPath, this.CURRENT_VERSION);
-        this.flashcardDataStore = new FlashcardDataStore(app, this.vaultPath);
+    constructor(private app: App) {
+        this.fileMappingStore = new FileMappingStore(app, '', this.version);
+        this.flashcardDataStore = new FlashcardDataStore(app, '');
     }
 
-    /**
-     * 初始化数据管理器
-     */
-    async initialize(): Promise<void> {
-        if (this.initialized) {
-            return;
-        }
-
+    initialize(): Promise<void> {
         if (!this.initializePromise) {
-            this.initializePromise = (async () => {
-                await this.ensureDirectoryStructure();
-                await this.loadFileMapping();
-                this.initialized = true;
-            })().catch(error => {
-                this.initializePromise = null;
-                throw error;
-            });
+            this.initializePromise = this.initializeStorage();
         }
-
-        await this.initializePromise;
+        return this.initializePromise;
     }
 
-    /**
-     * 确保目录结构存在
-     */
-    private async ensureDirectoryStructure(): Promise<void> {
-        await ensureHiNoteDirectoryStructure(this.app, this.vaultPath);
-    }
-
-    /**
-     * 加载文件映射
-     */
-    private async loadFileMapping(): Promise<void> {
+    private async initializeStorage(): Promise<void> {
+        await ensureHiNoteDirectoryStructure(this.app, '');
         await this.fileMappingStore.load();
+        if (this.fileMappingStore.getMappedFiles().length === 0) {
+            const recovered = await detectHighlightFilesFromStorage(this.app, '', (path, name) => {
+                this.fileMappingStore.set(path, name);
+            });
+            if (recovered.length) await this.fileMappingStore.save();
+        }
     }
 
-    /**
-     * 保存文件映射
-     */
-    private async saveFileMapping(): Promise<void> {
-        await this.fileMappingStore.save();
-    }
-
-    /**
-     * 获取文件的安全存储路径
-     */
-    private getStoragePathForFile(filePath: string): string {
-        return this.fileMappingStore.getStoragePathForFile(filePath);
-    }
-
-    /**
-     * 获取文件的所有高亮数据
-     * @param filePath 文件路径
-     * @returns 高亮数组
-     */
     async getFileHighlights(filePath: string): Promise<HiNote[]> {
-        const storagePath = this.getStoragePathForFile(filePath);
-        
-        try {
-            const content = await this.app.vault.adapter.read(storagePath);
-            const data: OptimizedHighlightData = JSON.parse(content);
-            
-            // 验证数据格式
-            const validation = DataValidator.validateHighlightData(data);
-            if (!validation.valid) {
-                console.warn(`文件 ${filePath} 的高亮数据验证失败:`, validation.errors);
+        await this.initialize();
+        return this.queue.run(async () => {
+            // Reading an unannotated note must not create a mapping.
+            if (!this.fileMappingStore.get(filePath)) return [];
+            const path = await this.fileMappingStore.getStoragePathForFile(filePath);
+            if (!await this.app.vault.adapter.exists(path)) {
+                // Older versions created mappings even when a note had no stored comments.
                 return [];
             }
-
-            // 转换为旧格式以保持兼容性
-            return Object.entries(data.highlights).map(([id, highlight]) => 
-                convertToLegacyHighlight(id, highlight, filePath)
-            );
-        } catch {
-            // 文件不存在或读取失败
-            return [];
-        }
+            const data: OptimizedHighlightData = JSON.parse(await this.app.vault.adapter.read(path));
+            if (!DataValidator.validateHighlightData(data).valid) {
+                throw new Error('Invalid HiNote highlight data. Restore it before editing.');
+            }
+            return Object.entries(data.highlights).map(([id, highlight]) =>
+                convertToLegacyHighlight(id, highlight, filePath));
+        });
     }
 
-    /**
-     * 保存文件的高亮数据
-     * @param filePath 文件路径
-     * @param highlights 高亮数组
-     */
     async saveFileHighlights(filePath: string, highlights: HiNote[]): Promise<void> {
-        const storagePath = this.getStoragePathForFile(filePath);
-        
-        // 转换为优化格式
-        const optimizedHighlights: { [id: string]: OptimizedHighlight } = {};
-        
-        for (const highlight of highlights) {
-            if (!highlight.id) continue; // 跳过没有 ID 的高亮
-            const optimized = convertToOptimizedHighlight(highlight);
-            optimizedHighlights[highlight.id] = optimized;
-        }
-
+        // Snapshot before yielding: callers may mutate their array while a write is pending.
         const data: OptimizedHighlightData = {
-            version: this.CURRENT_VERSION,
+            version: this.version,
             lastModified: Date.now(),
-            highlights: optimizedHighlights
+            highlights: Object.fromEntries(highlights.map(highlight => {
+                if (!highlight.id) throw new Error('Cannot save a highlight without an ID.');
+                return [highlight.id, convertToOptimizedHighlight(highlight)];
+            }))
         };
-
-        await this.app.vault.adapter.write(storagePath, JSON.stringify(data, null, 2));
+        const content = JSON.stringify(data, null, 2);
+        await this.initialize();
+        await this.queue.run(async () => {
+            const existing = this.fileMappingStore.get(filePath);
+            const path = await this.fileMappingStore.getStoragePathForFile(filePath);
+            if (existing && await this.app.vault.adapter.exists(path)) {
+                const previous = await this.app.vault.adapter.read(path);
+                if (!DataValidator.validateHighlightData(JSON.parse(previous)).valid) {
+                    throw new Error('Refusing to overwrite invalid HiNote highlight data.');
+                }
+                await this.app.vault.adapter.write(`${path}.bak`, previous);
+            }
+            await this.app.vault.adapter.write(path, content);
+        });
     }
 
-    /**
-     * 删除文件的所有高亮数据
-     * @param filePath 文件路径
-     */
     async deleteFileHighlights(filePath: string): Promise<void> {
-        const storagePath = this.getStoragePathForFile(filePath);
-        
-        try {
-            await this.app.vault.adapter.remove(storagePath);
+        await this.initialize();
+        await this.queue.run(async () => {
+            if (!this.fileMappingStore.get(filePath)) return;
+            const path = await this.fileMappingStore.getStoragePathForFile(filePath);
+            const previous = this.fileMappingStore.get(filePath)!;
+            // Publish the removal first: failure leaves an orphan, never a dangling mapping.
             this.fileMappingStore.delete(filePath);
-            await this.saveFileMapping();
-        } catch {
-            // 文件可能不存在，忽略错误
-        }
+            try {
+                await this.fileMappingStore.save();
+            } catch (error) {
+                this.fileMappingStore.set(filePath, previous);
+                throw error;
+            }
+            if (await this.app.vault.adapter.exists(path)) await this.app.vault.adapter.remove(path);
+        });
     }
 
-    /**
-     * 处理文件重命名
-     * @param oldPath 旧路径
-     * @param newPath 新路径
-     */
     async handleFileRename(oldPath: string, newPath: string): Promise<void> {
         await this.initialize();
-
-        const highlightsDir = FilePathUtils.getHighlightsDir(this.vaultPath);
-        const mappedOldSafeFileName = this.fileMappingStore.get(oldPath);
-        const oldSafeFileName = mappedOldSafeFileName ?? FilePathUtils.toSafeFileName(oldPath);
-        const newSafeFileName = FilePathUtils.toSafeFileName(newPath);
-        const oldStoragePath = `${highlightsDir}/${oldSafeFileName}`;
-        const newStoragePath = `${highlightsDir}/${newSafeFileName}`;
-
-        const oldStorageExists = await this.app.vault.adapter.exists(oldStoragePath);
-        if (!oldStorageExists) {
-            if (mappedOldSafeFileName) {
-                this.fileMappingStore.delete(oldPath);
-                await this.saveFileMapping();
-            }
-            return;
-        }
-
-        const content = await this.app.vault.adapter.read(oldStoragePath);
-        await this.app.vault.adapter.write(newStoragePath, content);
-
-        // Only publish the new mapping after the highlight data is safely written.
-        this.fileMappingStore.delete(oldPath);
-        this.fileMappingStore.set(newPath, newSafeFileName);
-        await this.saveFileMapping();
-
-        if (oldStoragePath !== newStoragePath) {
+        await this.queue.run(async () => {
+            if (oldPath === newPath || !this.fileMappingStore.get(oldPath)) return;
+            // Validate uniqueness before changing ownership; keep the physical file unchanged.
+            const path = await this.fileMappingStore.getStoragePathForFile(oldPath);
+            if (!await this.app.vault.adapter.exists(path)) throw new Error('HiNote rename source data is missing.');
+            if (this.fileMappingStore.get(newPath)) throw new Error('HiNote rename destination already has stored data.');
+            const name = this.fileMappingStore.get(oldPath)!;
+            this.fileMappingStore.delete(oldPath);
+            this.fileMappingStore.set(newPath, name);
             try {
-                await this.app.vault.adapter.remove(oldStoragePath);
+                await this.fileMappingStore.save();
             } catch (error) {
-                // The new mapping is already valid; leaving an orphaned old file is safer than rollback.
-                console.warn('[HiNote] Failed to remove old highlight data after file rename:', error);
+                this.fileMappingStore.delete(newPath);
+                this.fileMappingStore.set(oldPath, name);
+                throw error;
             }
-        }
+        });
     }
 
-    /**
-     * 获取所有高亮文件列表
-     */
     async getAllHighlightFiles(): Promise<string[]> {
-        // 首先从文件映射获取
-        const mappedFiles = this.fileMappingStore.getMappedFiles();
-        
-        // 如果映射为空，尝试扫描高亮目录
-        if (mappedFiles.length === 0) {
-            const detectedFiles = await detectHighlightFilesFromStorage(
-                this.app,
-                this.vaultPath,
-                (originalPath, baseName) => {
-                    this.fileMappingStore.set(originalPath, baseName);
-                }
-            );
-                
-            if (detectedFiles.length > 0) {
-                this.saveFileMapping().catch(err =>
-                    console.warn('保存文件映射失败:', err)
-                );
-            }
-
-            return detectedFiles;
-        }
-        
-        return mappedFiles;
+        await this.initialize();
+        return this.queue.run(async () => this.fileMappingStore.getMappedFiles());
     }
 
-
-    /**
-     * 获取闪卡数据
-     */
     async getFlashcardData(): Promise<FSRSStorage | null> {
+        await this.initialize();
         return this.flashcardDataStore.load();
     }
 
-    /**
-     * 保存闪卡数据
-     */
     async saveFlashcardData(data: FSRSStorage): Promise<void> {
+        await this.initialize();
         await this.flashcardDataStore.save(data);
     }
 }

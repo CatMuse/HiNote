@@ -8,7 +8,6 @@ interface AnthropicResponse {
  * Anthropic Claude AI 服务
  */
 export class AnthropicService extends BaseAIService {
-    private apiAddress: string;
 
     constructor(
         apiKey: string,
@@ -23,7 +22,6 @@ export class AnthropicService extends BaseAIService {
             maxTokens: 4096
         };
         super(config);
-        this.apiAddress = apiAddress || 'https://api.anthropic.com';
     }
 
     protected getDefaultBaseUrl(): string {

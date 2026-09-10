@@ -143,7 +143,7 @@ export class HighlightRenderManager {
     private ensureHighlightList(): HTMLElement {
         let highlightList = this.container.querySelector<HTMLElement>('.highlight-list');
         if (!highlightList) {
-            highlightList = this.container.createEl("div", {
+            highlightList = this.container.createDiv({
                 cls: "highlight-list"
             });
         }
@@ -163,7 +163,7 @@ export class HighlightRenderManager {
         highlightList.empty();
 
         for (let index = 0; index < expectedColumnCount; index++) {
-            highlightList.createEl('div', {
+            highlightList.createDiv({
                 cls: 'highlight-masonry-column'
             });
         }
@@ -305,7 +305,7 @@ export class HighlightRenderManager {
         // 检查是否有搜索内容
         const hasSearchTerm = this.searchInput && this.searchInput.value.trim() !== '';
         
-        this.container.createEl("div", {
+        this.container.createDiv({
             cls: "highlight-empty-state",
             text: hasSearchTerm 
                 ? t("No matching highlights found for your search.")

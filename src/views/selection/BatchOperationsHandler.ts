@@ -87,7 +87,7 @@ export class BatchOperationsHandler {
         
         // 创建多选操作容器
         if (!this.multiSelectActionsContainer) {
-            this.multiSelectActionsContainer = this.containerEl.createEl('div', {
+            this.multiSelectActionsContainer = this.containerEl.createDiv({
                 cls: 'multi-select-actions'
             });
         }
@@ -96,7 +96,7 @@ export class BatchOperationsHandler {
         this.multiSelectActionsContainer.empty();
         
         // 添加标题
-        this.multiSelectActionsContainer.createEl('div', {
+        this.multiSelectActionsContainer.createDiv({
             cls: 'selected-count',
             text: `selected ${selectedCount}`
         });
@@ -127,7 +127,7 @@ export class BatchOperationsHandler {
     private createExportButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const exportButton = this.multiSelectActionsContainer.createEl('div', {
+        const exportButton = this.multiSelectActionsContainer.createDiv({
             cls: 'multi-select-action-button'
         });
         exportButton.setAttribute('aria-label', t('Export'));
@@ -178,7 +178,7 @@ export class BatchOperationsHandler {
     private createDefaultFlashcardButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const button = this.multiSelectActionsContainer.createEl('div', {
+        const button = this.multiSelectActionsContainer.createDiv({
             cls: 'multi-select-action-button'
         });
         button.setAttribute('aria-label', t('Create HiCard'));
@@ -194,7 +194,7 @@ export class BatchOperationsHandler {
     private createFlashcardCreateButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const createButton = this.multiSelectActionsContainer.createEl('div', {
+        const createButton = this.multiSelectActionsContainer.createDiv({
             cls: 'multi-select-action-button'
         });
         createButton.setAttribute('aria-label', t('Create HiCard'));
@@ -234,7 +234,7 @@ export class BatchOperationsHandler {
     private createFlashcardDeleteButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const deleteButton = this.multiSelectActionsContainer.createEl('div', {
+        const deleteButton = this.multiSelectActionsContainer.createDiv({
             cls: 'multi-select-action-button delete-flashcard-button'
         });
         deleteButton.setAttribute('aria-label', t('Delete HiCard'));
@@ -250,7 +250,7 @@ export class BatchOperationsHandler {
     private createFlashcardManageButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const manageButton = this.multiSelectActionsContainer.createEl('div', {
+        const manageButton = this.multiSelectActionsContainer.createDiv({
             cls: 'multi-select-action-button'
         });
         manageButton.setAttribute('aria-label', t('Manage HiCard'));
@@ -266,7 +266,7 @@ export class BatchOperationsHandler {
     private createDeleteButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const deleteButton = this.multiSelectActionsContainer.createEl('div', {
+        const deleteButton = this.multiSelectActionsContainer.createDiv({
             cls: 'multi-select-action-button'
         });
         deleteButton.setAttribute('aria-label', t('Delete'));

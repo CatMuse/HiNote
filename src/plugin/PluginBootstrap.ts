@@ -12,7 +12,7 @@ export function registerPluginViews(plugin: CommentPlugin): void {
     plugin.registerView(
         VIEW_TYPE_HINOTE,
         (leaf: WorkspaceLeaf) => {
-            void plugin.ensureServicesInitialized();
+            void plugin.ensureServicesInitialized().catch(error => console.error('[HiNote] Initialization failed:', error));
             const services = plugin.requireInitializedServices();
             return new HiNoteView(leaf, plugin, services);
         }

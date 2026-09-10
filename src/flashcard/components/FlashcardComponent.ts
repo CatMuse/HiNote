@@ -108,6 +108,7 @@ export class FlashcardComponent extends Component {
      * 清理组件
      */
     public cleanup() {
+        this.groupManager.dispose();
         // 键盘事件监听器已移除
     }
     
@@ -147,6 +148,7 @@ export class FlashcardComponent extends Component {
      * 停用组件
      */
     public deactivate() {
+        this.groupManager.dispose();
         this.isActive = false;
         this.container.empty();
         this.container.removeClass('flashcard-mode');
@@ -157,6 +159,7 @@ export class FlashcardComponent extends Component {
      * 销毁组件
      */
     public destroy() {
+        this.groupManager.dispose();
         // 键盘事件监听器已移除
         this.container.removeClass('flashcard-mode');
         this.container.empty();

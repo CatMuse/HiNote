@@ -74,7 +74,7 @@ export class AIButton {
      */
     private initButton() {
         // AI 按钮和下拉菜单容器
-        const aiContainer = this.container.createEl("div", {
+        const aiContainer = this.container.createDiv({
             cls: "highlight-ai-container"
         });
         this.aiContainer = aiContainer;
@@ -85,7 +85,7 @@ export class AIButton {
         }
 
         // AI 按钮
-        const aiButton = aiContainer.createEl("div", {
+        const aiButton = aiContainer.createDiv({
             cls: this.options.buttonClass,
             attr: { 'aria-label': this.options.buttonLabel }
         });

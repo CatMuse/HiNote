@@ -27,7 +27,7 @@ export class ExportPreviewModal extends Modal {
         contentEl.addClass('highlight-export-modal');
 
         // 创建主容器
-        const mainContainer = contentEl.createEl('div', {
+        const mainContainer = contentEl.createDiv({
             cls: 'highlight-export-main-container'
         });
 
@@ -56,7 +56,7 @@ export class ExportPreviewModal extends Modal {
         });
 
         // 创建预览容器
-        this.previewContainer = mainContainer.createEl('div', {
+        this.previewContainer = mainContainer.createDiv({
             cls: 'highlight-export-preview-container'
         });
 
@@ -64,13 +64,13 @@ export class ExportPreviewModal extends Modal {
         this.updatePreview();
 
         // 按钮组
-        const buttonContainer = contentEl.createEl('div', {
+        const buttonContainer = contentEl.createDiv({
             cls: 'highlight-export-modal-buttons'
         });
         
         // 在按钮组左侧添加批注显示复选框
         if (this.highlight.comments && this.highlight.comments.length > 0) {
-            const showCommentsContainer = buttonContainer.createEl('div', {
+            const showCommentsContainer = buttonContainer.createDiv({
                 cls: 'highlight-export-checkbox-container'
             });
 
@@ -117,7 +117,7 @@ export class ExportPreviewModal extends Modal {
     private async downloadImage(): Promise<void> {
         try {
             // 创建临时容器用于导出
-            const exportContainer = createEl('div');
+            const exportContainer = createDiv();
             exportContainer.className = 'highlight-export-container';
 
             const template = getTemplate(this.selectedTemplateId);
@@ -184,29 +184,29 @@ export class ExportPreviewModal extends Modal {
         if (!footerElement) return;
         
         // 创建批注区域
-        const commentsContainer = createEl('div');
+        const commentsContainer = createDiv();
         commentsContainer.className = 'highlight-export-comments-section';
         
         // 添加批注列表
-        const commentsList = createEl('div');
+        const commentsList = createDiv();
         commentsList.className = 'highlight-export-comments-list';
         commentsContainer.appendChild(commentsList);
         
         // 渲染每条批注
         if (this.highlight.comments) {
             this.highlight.comments.forEach(comment => {
-                const commentItem = createEl('div');
+                const commentItem = createDiv();
                 commentItem.className = 'highlight-export-comment-item';
                 
                 // 批注内容
-                const content = createEl('div');
+                const content = createDiv();
                 content.className = 'highlight-export-comment-content';
                 content.textContent = comment.content;
                 commentItem.appendChild(content);
                 
                 // 批注时间
                 if (comment.createdAt) {
-                    const time = createEl('div');
+                    const time = createDiv();
                     time.className = 'highlight-export-comment-time';
                     time.textContent = new Date(comment.createdAt).toLocaleString();
                     commentItem.appendChild(time);

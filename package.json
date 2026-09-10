@@ -7,7 +7,8 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
-		"test:review": "node scripts/test-review-regressions.cjs"
+		"test:review": "node scripts/test-review-regressions.cjs",
+		"test:storage": "node scripts/test-storage-safety.cjs"
 	},
 	"keywords": [],
 	"author": "",
@@ -24,7 +25,6 @@
 	"dependencies": {
 		"@codemirror/view": "6.38.6",
 		"html2canvas": "^1.4.1",
-		"minimatch": "^10.2.6",
 		"ts-fsrs": "^5.0.1"
 	}
 }

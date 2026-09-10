@@ -23,7 +23,6 @@ export class LicenseManager {
     private readonly STORAGE_KEY = 'flashcard-license';
     private readonly VAULT_ID_KEY = 'vault-id';
     private readonly API_URL = 'https://hi-note-license-server-production.up.railway.app';
-    private readonly FEATURES = ['flashcard'];
     private readonly VERIFICATION_INTERVAL_DAYS = 7; // 验证间隔天数
     private licenseToken: string | null = null;
 

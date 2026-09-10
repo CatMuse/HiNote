@@ -27,7 +27,7 @@ export class ExportManager {
         container: HTMLElement,
         getCurrentFile: () => TFile | null
     ): HTMLElement {
-        this.exportButton = container.createEl("div", {
+        this.exportButton = container.createDiv({
             cls: "highlight-icon-button"
         });
         

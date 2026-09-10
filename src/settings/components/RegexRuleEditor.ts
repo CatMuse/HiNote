@@ -8,13 +8,11 @@ import type CommentPlugin from '../../../main';
  * 用于管理高亮匹配的正则表达式规则列表
  */
 export class RegexRuleEditor {
-  private containerEl: HTMLElement;
   private plugin: CommentPlugin;
   private rules: RegexRule[];
   private rulesContainer: HTMLElement;
 
   constructor(containerEl: HTMLElement, plugin: CommentPlugin) {
-    this.containerEl = containerEl;
     this.plugin = plugin;
     this.rules = plugin.settings.regexRules || [];
     this.rulesContainer = containerEl.createDiv({ cls: 'regex-rules-container' });

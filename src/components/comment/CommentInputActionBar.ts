@@ -14,7 +14,7 @@ export class CommentInputActionBar {
     ) {}
 
     render(): HTMLElement {
-        const actionHint = this.container.createEl("div", {
+        const actionHint = this.container.createDiv({
             cls: "hi-note-actions-hint"
         });
 
@@ -30,7 +30,7 @@ export class CommentInputActionBar {
 
     private renderSaveHint(actionHint: HTMLElement): void {
         if (!Platform.isMobile) {
-            actionHint.createEl("span", {
+            actionHint.createSpan({
                 cls: "hi-note-hint",
                 text: this.options.saveHintText || t("Tab AI, Shift + Enter Wrap, Enter Save")
             });
@@ -51,7 +51,7 @@ export class CommentInputActionBar {
     private renderDeleteAction(actionHint: HTMLElement): void {
         if (!this.options.onDelete) return;
 
-        const deleteLink = actionHint.createEl("div", {
+        const deleteLink = actionHint.createDiv({
             cls: "hi-note-delete-link",
             text: t("Delete comment")
         });

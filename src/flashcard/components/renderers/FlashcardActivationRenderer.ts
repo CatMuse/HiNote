@@ -17,21 +17,21 @@ export class FlashcardActivationRenderer {
         container.empty();
         container.addClass("flashcard-mode");
 
-        const activationContainer = container.createEl("div", {
+        const activationContainer = container.createDiv({
             cls: "flashcard-activation-container"
         });
 
-        activationContainer.createEl("div", {
+        activationContainer.createDiv({
             cls: "flashcard-activation-header",
             text: t("Activate HiCard")
         });
 
-        const description = activationContainer.createEl("div", {
+        const description = activationContainer.createDiv({
             cls: "flashcard-activation-description"
         });
-        description.createEl("span", { text: t("Enter your license key to activate HiCard feature.") + " " });
+        description.createSpan({ text: t("Enter your license key to activate HiCard feature.") + " " });
         description.createEl("br");
-        description.createEl("span", { text: t("Get your license key from") + " " });
+        description.createSpan({ text: t("Get your license key from") + " " });
 
         const locale = (window as Window & { moment?: { locale(): string } }).moment?.locale() || "en";
         const websiteUrl = locale.startsWith("zh")
@@ -46,7 +46,7 @@ export class FlashcardActivationRenderer {
         link.setAttr("target", "_blank");
         link.setAttr("rel", "noopener noreferrer");
 
-        const inputContainer = activationContainer.createEl("div", {
+        const inputContainer = activationContainer.createDiv({
             cls: "flashcard-activation-input-container"
         });
 

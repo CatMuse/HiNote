@@ -102,8 +102,8 @@ export class FlashcardRenderer {
         this.applyResponsiveClasses(container);
         this.renderProgress(container);
 
-        const mainContainer = container.createEl("div", { cls: "flashcard-main-container" });
-        const sidebar = mainContainer.createEl("div", { cls: "flashcard-sidebar" });
+        const mainContainer = container.createDiv({ cls: "flashcard-main-container" });
+        const sidebar = mainContainer.createDiv({ cls: "flashcard-sidebar" });
         this.groupListRenderer.render(sidebar, container, {
             isMobileView: this.isMobileView,
             onGroupSelected: () => {
@@ -112,8 +112,8 @@ export class FlashcardRenderer {
             rerender: () => this.render()
         });
 
-        const contentArea = mainContainer.createEl("div", { cls: "flashcard-content-area" });
-        const cardContainer = contentArea.createEl("div", { cls: "flashcard-container" });
+        const contentArea = mainContainer.createDiv({ cls: "flashcard-content-area" });
+        const cardContainer = contentArea.createDiv({ cls: "flashcard-container" });
 
         if (this.emptyStateRenderer.render(cardContainer)) {
             return;
@@ -140,7 +140,7 @@ export class FlashcardRenderer {
             return;
         }
 
-        const progressContainer = container.createEl("div", { cls: "flashcard-progress-container" });
+        const progressContainer = container.createDiv({ cls: "flashcard-progress-container" });
         this.component.setProgressContainer(progressContainer);
         this.component.updateProgress();
     }

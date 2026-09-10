@@ -31,11 +31,11 @@ export class FlashcardEmptyStateRenderer {
     }
 
     private renderNoGroups(cardContainer: HTMLElement): void {
-        const noGroupContainer = cardContainer.createEl("div", {
+        const noGroupContainer = cardContainer.createDiv({
             cls: "flashcard-completion-message flashcard-no-group"
         });
 
-        const iconEl = noGroupContainer.createEl("div", { cls: "completion-icon" });
+        const iconEl = noGroupContainer.createDiv({ cls: "completion-icon" });
         setIcon(iconEl, "folder-plus");
 
         noGroupContainer.createEl("h3", {
@@ -57,11 +57,11 @@ export class FlashcardEmptyStateRenderer {
     }
 
     private renderEmptyGroup(cardContainer: HTMLElement): void {
-        const emptyContainer = cardContainer.createEl("div", {
+        const emptyContainer = cardContainer.createDiv({
             cls: "flashcard-completion-message flashcard-empty-group"
         });
 
-        const iconEl = emptyContainer.createEl("div", { cls: "completion-icon" });
+        const iconEl = emptyContainer.createDiv({ cls: "completion-icon" });
         setIcon(iconEl, "circle-slash-2");
 
         emptyContainer.createEl("h3", {
@@ -74,11 +74,11 @@ export class FlashcardEmptyStateRenderer {
     }
 
     private renderCompletion(cardContainer: HTMLElement, groupName: string, currentGroup?: CardGroup): void {
-        const completionContainer = cardContainer.createEl("div", {
+        const completionContainer = cardContainer.createDiv({
             cls: "flashcard-completion-message"
         });
 
-        const iconEl = completionContainer.createEl("div", { cls: "completion-icon" });
+        const iconEl = completionContainer.createDiv({ cls: "completion-icon" });
         setIcon(iconEl, "check-circle");
 
         completionContainer.createEl("h3", {

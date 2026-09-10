@@ -9,7 +9,6 @@ import { t } from "../../i18n";
  */
 export class SearchUIHelper {
     private searchInput: HTMLInputElement;
-    private searchContainer: HTMLElement;
     private searchHintsEventHandlers: {
         input: (e: Event) => void;
         blur: (e: FocusEvent) => void;
@@ -17,9 +16,8 @@ export class SearchUIHelper {
     } | null = null;
     private documentClickTimer: number | null = null;
     
-    constructor(searchInput: HTMLInputElement, searchContainer: HTMLElement) {
+    constructor(searchInput: HTMLInputElement) {
         this.searchInput = searchInput;
-        this.searchContainer = searchContainer;
     }
     
     /**

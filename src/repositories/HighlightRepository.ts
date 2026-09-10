@@ -1,3 +1,4 @@
+import { StorageQueue } from '../storage/StorageQueue';
 import { TFile } from 'obsidian';
 import { HighlightInfo as HiNote } from '../types/highlight';
 import { HiNoteDataManager } from '../storage/HiNoteDataManager';
@@ -11,6 +12,7 @@ import { IHighlightRepository } from './IHighlightRepository';
  * 3. 提供统一的数据访问接口
  */
 export class HighlightRepository implements IHighlightRepository {
+    private readonly mutations = new StorageQueue();
     private cache: Map<string, HiNote[]> = new Map();
     private dataManager: HiNoteDataManager;
 
@@ -18,46 +20,19 @@ export class HighlightRepository implements IHighlightRepository {
         this.dataManager = dataManager;
     }
 
-    async initialize(): Promise<void> {
-        await this.dataManager.initialize();
-        await this.loadAllHighlightsToCache();
-    }
+    private initialization: Promise<void> | null = null;
+    private readonly reads = new Map<string, Promise<HiNote[]>>();
 
-    /**
-     * 从存储层加载所有高亮到缓存
-     */
-    private async loadAllHighlightsToCache(): Promise<void> {
-        try {
-            const highlightFiles = await this.dataManager.getAllHighlightFiles();
-            
-            for (const filePath of highlightFiles) {
-                if (!this.cache.has(filePath)) {
-                    this.cache.set(filePath, []);
+    initialize(): Promise<void> {
+        if (!this.initialization) {
+            this.initialization = (async () => {
+                await this.dataManager.initialize();
+                for (const path of await this.dataManager.getAllHighlightFiles()) {
+                    await this.getFileHighlights(path);
                 }
-            }
-            
-            for (const filePath of highlightFiles) {
-                void this.loadFileHighlightsAsync(filePath);
-            }
-        } catch (error) {
-            console.error('[HighlightRepository] 加载高亮文件列表失败:', error);
+            })();
         }
-    }
-
-    /**
-     * 异步加载单个文件的高亮数据
-     */
-    private async loadFileHighlightsAsync(filePath: string): Promise<void> {
-        try {
-            const highlights = await this.dataManager.getFileHighlights(filePath);
-            if (highlights.length > 0) {
-                this.cache.set(filePath, highlights);
-            } else {
-                this.cache.delete(filePath);
-            }
-        } catch (error) {
-            console.warn(`[HighlightRepository] 加载文件 ${filePath} 的高亮数据失败:`, error);
-        }
+        return this.initialization;
     }
 
     async getFileHighlights(filePath: string): Promise<HiNote[]> {
@@ -65,22 +40,40 @@ export class HighlightRepository implements IHighlightRepository {
             return this.cache.get(filePath) || [];
         }
         
-        const highlights = await this.dataManager.getFileHighlights(filePath);
-        this.cache.set(filePath, highlights);
-        return highlights;
+        let pending = this.reads.get(filePath);
+        if (!pending) {
+            pending = this.dataManager.getFileHighlights(filePath).then(highlights => {
+                this.cache.set(filePath, highlights);
+                return highlights;
+            }).finally(() => this.reads.delete(filePath));
+            this.reads.set(filePath, pending);
+        }
+        return pending;
     }
 
     async saveFileHighlights(filePath: string, highlights: HiNote[]): Promise<void> {
-        this.cache.set(filePath, highlights);
-        await this.dataManager.saveFileHighlights(filePath, highlights);
+        await this.mutations.run(async () => {
+            await this.getFileHighlights(filePath);
+            await this.dataManager.saveFileHighlights(filePath, highlights);
+            this.cache.set(filePath, highlights);
+        });
     }
 
     async deleteFileHighlights(filePath: string): Promise<void> {
-        this.cache.delete(filePath);
-        await this.dataManager.deleteFileHighlights(filePath);
+        await this.mutations.run(async () => {
+            await this.reads.get(filePath);
+            await this.dataManager.deleteFileHighlights(filePath);
+            this.cache.delete(filePath);
+        });
     }
 
-    async handleFileRename(oldPath: string, newPath: string): Promise<void> {
+    handleFileRename(oldPath: string, newPath: string): Promise<void> {
+        return this.mutations.run(() => this.renameFile(oldPath, newPath));
+    }
+
+    private async renameFile(oldPath: string, newPath: string): Promise<void> {
+        await this.reads.get(oldPath);
+        await this.reads.get(newPath);
         await this.dataManager.initialize();
 
         const cachedHighlights = this.cache.get(oldPath);

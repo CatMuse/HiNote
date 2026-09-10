@@ -15,7 +15,7 @@ export class FlashcardSettingsTab {
     }
 
     display(): void {
-        const container = this.containerEl.createEl('div', {
+        const container = this.containerEl.createDiv({
             cls: 'flashcard-settings-container'
         });
 
@@ -32,7 +32,6 @@ export class FlashcardSettingsTab {
                 slider
                     .setLimits(1, 200, 1)
                     .setValue(params.newCardsPerDay)
-                    .setDynamicTooltip()
                     .onChange(async (value) => {
                         const params = this.fsrsService.getParameters();
                         params.newCardsPerDay = value;
@@ -41,7 +40,7 @@ export class FlashcardSettingsTab {
                     });
                 
                 // 添加数值显示
-                const valueDisplay = createEl('span', {
+                const valueDisplay = createSpan({
                     cls: 'slider-value',
                     text: String(params.newCardsPerDay)
                 });
@@ -62,7 +61,6 @@ export class FlashcardSettingsTab {
                 slider
                     .setLimits(10, 500, 10)
                     .setValue(params.reviewsPerDay)
-                    .setDynamicTooltip()
                     .onChange(async (value) => {
                         const params = this.fsrsService.getParameters();
                         params.reviewsPerDay = value;
@@ -71,7 +69,7 @@ export class FlashcardSettingsTab {
                     });
                 
                 // 添加数值显示
-                const valueDisplay = createEl('span', {
+                const valueDisplay = createSpan({
                     cls: 'slider-value',
                     text: String(params.reviewsPerDay)
                 });
@@ -92,7 +90,6 @@ export class FlashcardSettingsTab {
                 slider
                     .setLimits(0.7, 0.95, 0.01)
                     .setValue(params.request_retention)
-                    .setDynamicTooltip()
                     .onChange(async (value) => {
                         const params = this.fsrsService.getParameters();
                         params.request_retention = value;
@@ -101,7 +98,7 @@ export class FlashcardSettingsTab {
                     });
                 
                 // 添加数值显示
-                const valueDisplay = createEl('span', {
+                const valueDisplay = createSpan({
                     cls: 'slider-value',
                     text: `${Math.round(params.request_retention * 100)}%`
                 });
@@ -139,7 +136,7 @@ export class FlashcardSettingsTab {
                 inputEl.setCssProps({ width: '80px' });
                 
                 // 添加天数后缀
-                const suffixEl = createEl('span', {
+                const suffixEl = createSpan({
                     text: ` ${t('days')}`,
                     cls: 'setting-item-suffix'
                 });
@@ -227,7 +224,7 @@ export class FlashcardSettingsTab {
                 }));
 
         // FSRS 算法参数编辑
-        const fsrsParamsContainer = container.createEl('div', {
+        const fsrsParamsContainer = container.createDiv({
             cls: 'fsrs-params-container'
         });
 

@@ -11,7 +11,6 @@ import { FileListItemRenderer } from "./FileListItemRenderer";
  */
 export class FileListManager {
     private container: HTMLElement;
-    private plugin: CommentPlugin;
     private dataSource: FileListDataSource;
     private itemRenderer: FileListItemRenderer;
     
@@ -35,7 +34,6 @@ export class FileListManager {
         _licenseManager: LicenseManager
     ) {
         this.container = container;
-        this.plugin = plugin;
         this.dataSource = new FileListDataSource(plugin, highlightService);
         this.itemRenderer = new FileListItemRenderer({
             plugin,
@@ -128,11 +126,11 @@ export class FileListManager {
         this.container.empty();
         
         // 创建文件列表标题
-        const titleContainer = this.container.createEl("div", {
+        const titleContainer = this.container.createDiv({
             cls: "highlight-file-list-header"
         });
 
-        const titleEl = titleContainer.createEl("div", {
+        const titleEl = titleContainer.createDiv({
             text: "HiNote",
             cls: "highlight-file-list-title"
         });
@@ -144,7 +142,7 @@ export class FileListManager {
         });
 
         // 创建文件列表
-        const fileList = this.container.createEl("div", {
+        const fileList = this.container.createDiv({
             cls: "highlight-file-list"
         });
 
@@ -155,7 +153,7 @@ export class FileListManager {
         this.itemRenderer.createFlashcardItem(fileList);
 
         // 添加分隔线
-        fileList.createEl("div", {
+        fileList.createDiv({
             cls: "highlight-file-list-separator"
         });
 

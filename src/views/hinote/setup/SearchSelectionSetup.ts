@@ -43,8 +43,7 @@ export function setupSearchAndSelection(options: SearchAndSelectionOptions): {
     const searchUIManager = new SearchUIManager(
         plugin,
         searchInput,
-        searchLoadingIndicator,
-        searchContainer
+        searchLoadingIndicator
     );
     searchUIManager.setCallbacks(
         async (searchTerm: string, searchType: string) => {

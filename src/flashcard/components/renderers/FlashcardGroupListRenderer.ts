@@ -19,13 +19,13 @@ export class FlashcardGroupListRenderer {
         container: HTMLElement,
         options: FlashcardGroupListRendererOptions
     ): void {
-        const statsContainer = sidebar.createEl("div", { cls: "flashcard-stats-container" });
+        const statsContainer = sidebar.createDiv({ cls: "flashcard-stats-container" });
         const statsPanel = new FlashcardStatsPanel(statsContainer, this.component.getFsrsManager());
         statsPanel.render();
 
-        const customGroups = sidebar.createEl("div", { cls: "flashcard-groups" });
-        const customGroupHeader = customGroups.createEl("div", { cls: "flashcard-groups-header" });
-        const addButton = customGroupHeader.createEl("div", {
+        const customGroups = sidebar.createDiv({ cls: "flashcard-groups" });
+        const customGroupHeader = customGroups.createDiv({ cls: "flashcard-groups-header" });
+        const addButton = customGroupHeader.createDiv({
             cls: "flashcard-add-group",
             attr: { "aria-label": t("Add Group") }
         });
@@ -33,7 +33,7 @@ export class FlashcardGroupListRenderer {
         setIcon(addButton, "plus");
         addButton.addEventListener("click", () => this.component.getGroupManager().showCreateGroupModal());
 
-        const customGroupList = customGroups.createEl("div", { cls: "flashcard-group-list" });
+        const customGroupList = customGroups.createDiv({ cls: "flashcard-group-list" });
         const groupItems = this.component.getFsrsManager().getCardGroups() || [];
 
         groupItems.forEach((group: CardGroup) => {
@@ -47,20 +47,20 @@ export class FlashcardGroupListRenderer {
         group: CardGroup,
         options: FlashcardGroupListRendererOptions
     ): void {
-        const groupItem = customGroupList.createEl("div", {
+        const groupItem = customGroupList.createDiv({
             cls: `flashcard-group-item ${group.name === this.component.getCurrentGroupName() ? "active" : ""}`
         });
 
-        const header = groupItem.createEl("div", { cls: "flashcard-group-item-header" });
-        const title = header.createEl("div", { cls: "flashcard-group-title" });
-        const iconSpan = title.createEl("span", { cls: "flashcard-group-icon" });
+        const header = groupItem.createDiv({ cls: "flashcard-group-item-header" });
+        const title = header.createDiv({ cls: "flashcard-group-title" });
+        const iconSpan = title.createSpan({ cls: "flashcard-group-icon" });
         setIcon(iconSpan, group.filter.startsWith("#") ? "hash" : "gallery-horizontal-end");
-        title.createEl("span", {
+        title.createSpan({
             cls: "flashcard-group-name",
             text: group.name
         });
 
-        const actions = header.createEl("div", { cls: "flashcard-group-actions" });
+        const actions = header.createDiv({ cls: "flashcard-group-actions" });
         this.renderEditButton(actions, group);
         this.renderDeleteButton(actions, group, options.rerender);
         this.renderGroupStats(groupItem, group);
@@ -78,7 +78,7 @@ export class FlashcardGroupListRenderer {
     }
 
     private renderEditButton(actions: HTMLElement, group: CardGroup): void {
-        const editButton = actions.createEl("div", {
+        const editButton = actions.createDiv({
             cls: "flashcard-group-action",
             attr: { "aria-label": t("Edit Group") }
         });
@@ -90,7 +90,7 @@ export class FlashcardGroupListRenderer {
     }
 
     private renderDeleteButton(actions: HTMLElement, group: CardGroup, rerender: () => void): void {
-        const deleteButton = actions.createEl("div", {
+        const deleteButton = actions.createDiv({
             cls: "flashcard-group-action",
             attr: { "aria-label": t("Delete Group") }
         });
@@ -131,20 +131,20 @@ export class FlashcardGroupListRenderer {
             return;
         }
 
-        const statsSection = groupItem.createEl("div", { cls: "flashcard-group-stats" });
+        const statsSection = groupItem.createDiv({ cls: "flashcard-group-stats" });
         this.renderStat(statsSection, "calendar-clock", t("Due Today"), groupStats.due);
         this.renderStat(statsSection, "sparkle", t("New Cards"), groupStats.newCards);
         this.renderStat(statsSection, "check-small", t("Learned"), groupStats.learned);
     }
 
     private renderStat(statsSection: HTMLElement, icon: string, tooltip: string, value: number): void {
-        const stat = statsSection.createEl("div", {
+        const stat = statsSection.createDiv({
             cls: "flashcard-group-stat",
             attr: { "data-tooltip": tooltip }
         });
-        const iconEl = stat.createEl("span", { cls: "flashcard-stat-icon" });
+        const iconEl = stat.createSpan({ cls: "flashcard-stat-icon" });
         setIcon(iconEl, icon);
-        stat.createEl("span", { text: value.toString() });
+        stat.createSpan({ text: value.toString() });
     }
 
     private selectGroup(groupItem: HTMLElement, container: HTMLElement, group: CardGroup): void {

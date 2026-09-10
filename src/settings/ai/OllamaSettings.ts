@@ -20,7 +20,7 @@ export class OllamaSettings extends BaseAIServiceSettings {
     }
 
     private async render(containerEl: HTMLElement): Promise<void> {
-        const settingsContainer = containerEl.createEl('div', {
+        const settingsContainer = containerEl.createDiv({
             cls: 'ai-service-settings'
         });
 

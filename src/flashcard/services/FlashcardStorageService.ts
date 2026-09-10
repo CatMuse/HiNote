@@ -3,6 +3,7 @@ import type { HiNoteDataManager } from '../../storage/HiNoteDataManager';
 import type { FSRSStorage } from '../types/FSRSTypes';
 
 export class FlashcardStorageService {
+    private loaded = false;
     constructor(
         private plugin: CommentPlugin,
         private dataManager?: HiNoteDataManager
@@ -29,6 +30,12 @@ export class FlashcardStorageService {
     }
 
     async load(): Promise<FSRSStorage> {
+        const storage = await this.readStorage();
+        this.loaded = true;
+        return storage;
+    }
+
+    private async readStorage(): Promise<FSRSStorage> {
         const defaultStorage = this.createDefaultStorage();
 
         try {
@@ -55,12 +62,12 @@ export class FlashcardStorageService {
             this.normalize(storage);
             return storage;
         } catch (error) {
-            console.error('Loading storage data failed:', error);
-            return defaultStorage;
+            throw error;
         }
     }
 
     async save(storage: FSRSStorage): Promise<void> {
+        if (!this.loaded) throw new Error('Flashcard storage must load successfully before saving.');
         this.normalize(storage);
 
         try {

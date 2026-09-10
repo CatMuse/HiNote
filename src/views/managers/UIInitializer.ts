@@ -38,17 +38,17 @@ export class UIInitializer {
         container.addClass("hinote-view-container");
 
         // 创建主容器
-        const mainContainer = container.createEl("div", {
+        const mainContainer = container.createDiv({
             cls: "highlight-main-container"
         });
 
         // 创建文件列表区域（只在主视图中显示）
-        const fileListContainer = mainContainer.createEl("div", {
+        const fileListContainer = mainContainer.createDiv({
             cls: "highlight-file-list-container"
         });
 
         // 创建右侧内容区域
-        const mainContentContainer = mainContainer.createEl("div", {
+        const mainContentContainer = mainContainer.createDiv({
             cls: "highlight-content-container"
         });
 
@@ -56,7 +56,7 @@ export class UIInitializer {
         const { backButtonContainer, backButton } = this.createBackButton(mainContentContainer);
 
         // 创建搜索区域
-        const searchContainer = mainContentContainer.createEl("div", {
+        const searchContainer = mainContentContainer.createDiv({
             cls: "highlight-search-container"
         });
 
@@ -67,12 +67,12 @@ export class UIInitializer {
         const searchLoadingIndicator = this.createSearchLoadingIndicator(searchContainer);
 
         // 创建图标按钮容器
-        const iconButtonsContainer = searchContainer.createEl("div", {
+        const iconButtonsContainer = searchContainer.createDiv({
             cls: "highlight-search-icons"
         });
 
         // 创建高亮容器
-        const highlightContainer = mainContentContainer.createEl("div", {
+        const highlightContainer = mainContentContainer.createDiv({
             cls: "highlight-container"
         });
 
@@ -98,16 +98,16 @@ export class UIInitializer {
      * 创建返回按钮
      */
     private createBackButton(parent: HTMLElement): { backButtonContainer: HTMLElement; backButton: HTMLElement } {
-        const backButtonContainer = parent.createEl("div", {
+        const backButtonContainer = parent.createDiv({
             cls: "highlight-back-button-container"
         });
 
-        const backButton = backButtonContainer.createEl("div", {
+        const backButton = backButtonContainer.createDiv({
             cls: "highlight-back-button"
         });
 
         setIcon(backButton, "arrow-left");
-        backButton.createEl("span", {
+        backButton.createSpan({
             text: t("BACK"),
             cls: "highlight-back-button-text"
         });
@@ -143,7 +143,7 @@ export class UIInitializer {
      * 创建搜索加载指示器
      */
     private createSearchLoadingIndicator(parent: HTMLElement): HTMLElement {
-        const indicator = parent.createEl("div", {
+        const indicator = parent.createDiv({
             cls: "highlight-search-loading"
         });
 
@@ -158,7 +158,7 @@ export class UIInitializer {
      * 创建加载指示器
      */
     private createLoadingIndicator(): HTMLElement {
-        const loadingIndicator = createEl("div", {
+        const loadingIndicator = createDiv({
             cls: "highlight-loading-indicator",
             text: t("Loading...")
         });

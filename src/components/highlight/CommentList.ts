@@ -21,11 +21,11 @@ export class CommentList extends Component {
         const comments = this.highlight.comments || [];
         if (comments.length === 0) return;
 
-        const commentsSection = parentEl.createEl("div", {
+        const commentsSection = parentEl.createDiv({
             cls: "hi-notes-section"
         });
 
-        this.container = commentsSection.createEl("div", {
+        this.container = commentsSection.createDiv({
             cls: "hi-notes-list"
         });
 
@@ -47,18 +47,18 @@ export class CommentList extends Component {
         
         // 使用 for...of 循环以支持 await
         for (const comment of comments) {
-            const commentEl = this.container.createEl("div", {
+            const commentEl = this.container.createDiv({
                 cls: "hi-note",
                 attr: { 'data-comment-id': comment.id }
             });
 
             // 创建内容包装器（用于展开/收起功能）
-            const contentWrapper = commentEl.createEl("div", {
+            const contentWrapper = commentEl.createDiv({
                 cls: "hi-note-content-wrapper"
             });
 
             // 评论内容 - 添加双击事件
-            const contentEl = contentWrapper.createEl("div", {
+            const contentEl = contentWrapper.createDiv({
                 cls: "hi-note-content markdown-rendered"
             });
 
@@ -113,24 +113,24 @@ export class CommentList extends Component {
             });
 
             // 创建底部操作栏
-            const footer = commentEl.createEl("div", {
+            const footer = commentEl.createDiv({
                 cls: "hi-note-footer"
             });
 
             // 评论时间
-            footer.createEl("div", {
+            footer.createDiv({
                 text: new Date(comment.updatedAt).toLocaleString(),
                 cls: "hi-note-time"
             });
 
             // 添加双击编辑提示
-            footer.createEl("span", {
+            footer.createSpan({
                 text: "Double click to edit",
                 cls: "hi-note-edit-hint"
             });
 
             // 操作按钮容器
-            footer.createEl("div", {
+            footer.createDiv({
                 cls: "hi-note-actions"
             });
         }
@@ -157,17 +157,17 @@ export class CommentList extends Component {
             wrapper.addClass('collapsed');
 
             // 添加渐变遮罩
-            wrapper.createEl("div", {
+            wrapper.createDiv({
                 cls: "content-fade-out"
             });
 
             // 添加展开/收起按钮
-            const toggleBtn = wrapper.createEl("div", {
+            const toggleBtn = wrapper.createDiv({
                 cls: "toggle-content-btn"
             });
 
             // 创建按钮文本和图标
-            const btnText = toggleBtn.createEl("span", {
+            const btnText = toggleBtn.createSpan({
                 text: t("Expand")
             });
 

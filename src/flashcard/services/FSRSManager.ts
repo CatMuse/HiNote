@@ -20,7 +20,8 @@ import { FlashcardReviewService } from './FlashcardReviewService';
 import { FlashcardCardService } from './FlashcardCardService';
 import { FlashcardUIStateService } from './FlashcardUIStateService';
 import { FlashcardGroupService } from './FlashcardGroupService';
-import { debounce } from 'obsidian';
+import { Notice } from 'obsidian';
+import { StorageQueue } from '../../storage/StorageQueue';
 import { HiNoteDataManager } from '../../storage/HiNoteDataManager';
 import type CommentPlugin from '../../../main';
 
@@ -45,7 +46,7 @@ export class FSRSManager {
         this.storageService = new FlashcardStorageService(plugin, dataManager);
         this.fsrsService = new FSRSService();
         this.cardFactory = new FlashcardFactory(
-            () => this.storage,
+            () => this.requireStorage(),
             () => this.plugin.eventManager.emitFlashcardChanged(),
             this.fsrsService
         );
@@ -60,25 +61,25 @@ export class FSRSManager {
             saveDebounced: () => this.saveStorageDebounced()
         });
         this.sourceCardService = new SourceCardService({
-            getStorage: () => this.storage,
+            getStorage: () => this.requireStorage(),
             removeCardFromGroup: (cardId: string, groupId: string) => this.removeCardFromGroup(cardId, groupId),
             saveDebounced: () => this.saveStorageDebounced()
         });
         this.studyService = new FlashcardStudyService({
-            getStorage: () => this.storage,
+            getStorage: () => this.requireStorage(),
             getGroupRepository: () => this.groupRepository,
             getRemainingNewCardsToday: (groupId?: string) => this.getRemainingNewCardsToday(groupId),
             getRemainingReviewsToday: (groupId?: string) => this.getRemainingReviewsToday(groupId)
         });
         this.reviewService = new FlashcardReviewService({
-            getStorage: () => this.storage,
+            getStorage: () => this.requireStorage(),
             getFsrsService: () => this.fsrsService,
             getDailyStatsService: () => this.dailyStatsService,
             saveStorage: async () => await this.saveStorage(),
             emitFlashcardChanged: () => this.plugin.eventManager.emitFlashcardChanged()
         });
         this.cardService = new FlashcardCardService({
-            getStorage: () => this.storage,
+            getStorage: () => this.requireStorage(),
             getCardFactory: () => this.cardFactory,
             getGroupRepository: () => this.groupRepository,
             addCardToGroup: (cardId: string, groupId: string) => this.addCardToGroup(cardId, groupId),
@@ -87,12 +88,12 @@ export class FSRSManager {
             emitFlashcardChanged: () => this.plugin.eventManager.emitFlashcardChanged()
         });
         this.uiStateService = new FlashcardUIStateService({
-            getStorage: () => this.storage,
+            getStorage: () => this.requireStorage(),
             saveStorage: async () => await this.saveStorage(),
             saveDebounced: () => this.saveStorageDebounced()
         });
         this.groupService = new FlashcardGroupService({
-            getStorage: () => this.storage,
+            getStorage: () => this.requireStorage(),
             getGroupRepository: () => this.groupRepository,
             saveStorage: async () => await this.saveStorage(),
             saveDebounced: () => this.saveStorageDebounced()
@@ -108,28 +109,39 @@ export class FSRSManager {
         // 初始化为空对象，稍后会被加载的数据替换
         this.storage = this.storageService.createDefaultStorage();
         
-        // 自动保存更改
-        this.saveStorageDebounced = debounce(this.saveStorage.bind(this), 1000, true);
-        
-        // 异步加载存储数据
-        this.storageService.load().then(storage => {
-    
-            this.storage = storage;
-            
-            // 在加载完成后初始化分组仓库
-            this.groupRepository = this.createGroupRepository();
-            
-            // 注册事件监听
-            this.eventSyncService.registerEventListeners();
-        }).catch(error => {
-            console.error('Loading storage data failed:', error);
-            
-            // Even if it fails, initialize the group repository
-            this.groupRepository = this.createGroupRepository();
-            
-            // 注册事件监听
-            this.eventSyncService.registerEventListeners();
-        });
+    }
+
+    private initialization: Promise<void> | null = null;
+    private ready = false;
+    private disposed = false;
+    private saveTimer: ReturnType<typeof setTimeout> | null = null;
+    private readonly saveQueue = new StorageQueue();
+
+    initialize(): Promise<void> {
+        if (!this.initialization) {
+            this.initialization = this.storageService.load().then(storage => {
+                this.storage = storage;
+                this.groupRepository = this.createGroupRepository();
+                this.ready = true;
+                if (!this.disposed) this.eventSyncService.registerEventListeners();
+            });
+        }
+        return this.initialization;
+    }
+
+    async dispose(): Promise<void> {
+        this.disposed = true;
+        if (this.saveTimer !== null) {
+            clearTimeout(this.saveTimer);
+            this.saveTimer = null;
+            if (this.ready) await this.saveStorage();
+        }
+        await this.saveQueue.drain();
+    }
+
+    private requireStorage(): FSRSStorage {
+        if (!this.ready || this.disposed) throw new Error('Flashcard storage is not available.');
+        return this.storage;
     }
 
     private createGroupRepository(): CardGroupRepository {
@@ -141,11 +153,25 @@ export class FSRSManager {
         });
     }
 
-    private async saveStorage() {
-        await this.storageService.save(this.storage);
+    private async saveStorage(): Promise<void> {
+        if (!this.ready) throw new Error('Flashcards are not ready to save.');
+        const snapshot: FSRSStorage = JSON.parse(JSON.stringify(this.storage));
+        try {
+            await this.saveQueue.run(() => this.storageService.save(snapshot));
+        } catch (error) {
+            new Notice('HiNote could not save flashcards. Check vault storage before continuing.');
+            throw error;
+        }
     }
 
-    private saveStorageDebounced: () => void;
+    private saveStorageDebounced = (): void => {
+        if (this.disposed) return;
+        if (this.saveTimer !== null) clearTimeout(this.saveTimer);
+        this.saveTimer = setTimeout(() => {
+            this.saveTimer = null;
+            void this.saveStorage().catch(error => console.error('[HiNote] Flashcard save failed:', error));
+        }, 1000);
+    };
 
     /**
      * 添加卡片

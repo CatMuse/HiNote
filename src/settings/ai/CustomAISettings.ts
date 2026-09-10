@@ -28,7 +28,7 @@ export class CustomAISettings extends BaseAIServiceSettings {
     }
 
     display(containerEl: HTMLElement): void {
-        const settingsContainer = containerEl.createEl('div', {
+        const settingsContainer = containerEl.createDiv({
             cls: 'ai-service-settings'
         });
         const customSettings = this.getCustomSettings();
@@ -39,7 +39,7 @@ export class CustomAISettings extends BaseAIServiceSettings {
             .setHeading();
 
         // 添加说明文本
-        const descEl = settingsContainer.createEl('div', {
+        const descEl = settingsContainer.createDiv({
             cls: 'setting-item-description custom-ai-description'
         });
         descEl.createEl('p', {
@@ -212,11 +212,11 @@ export class CustomAISettings extends BaseAIServiceSettings {
             return;
         }
 
-        const newInfoEl = container.createEl('div', {
+        const newInfoEl = container.createDiv({
             cls: 'setting-item-description custom-ai-info'
         });
         newInfoEl.createEl('strong', { text: t('Detected API Type: ') });
-        newInfoEl.createEl('span', { text: label });
+        newInfoEl.createSpan({ text: label });
     }
 
     private async testConnection(): Promise<boolean> {

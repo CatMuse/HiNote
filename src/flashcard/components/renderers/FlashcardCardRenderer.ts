@@ -18,7 +18,7 @@ export class FlashcardCardRenderer {
 
     public render(cardContainer: HTMLElement, currentCard: FlashcardState | null): void {
         if (!currentCard) {
-            cardContainer.createEl("div", {
+            cardContainer.createDiv({
                 cls: "flashcard-empty-state",
                 text: t("No cards available")
             });
@@ -30,7 +30,7 @@ export class FlashcardCardRenderer {
             cardClasses.push("is-flipped");
         }
 
-        const card = cardContainer.createEl("div", { cls: cardClasses.join(" ") });
+        const card = cardContainer.createDiv({ cls: cardClasses.join(" ") });
         this.renderCardSides(card, currentCard);
         card.addEventListener("click", () => this.component.flipCard());
 
@@ -49,16 +49,16 @@ export class FlashcardCardRenderer {
         const frontContent = isReversed ? currentCard.answer : currentCard.text;
         const backContent = isReversed ? currentCard.text : currentCard.answer;
 
-        const frontEl = card.createEl("div", {
+        const frontEl = card.createDiv({
             cls: "flashcard-side flashcard-front"
-        }).createEl("div", {
+        }).createDiv({
             cls: "flashcard-content markdown-rendered"
         });
         void this.markdownRenderer.render(frontEl, frontContent, currentCard.filePath);
 
-        const backEl = card.createEl("div", {
+        const backEl = card.createDiv({
             cls: "flashcard-side flashcard-back"
-        }).createEl("div", {
+        }).createDiv({
             cls: "flashcard-content markdown-rendered"
         });
 
@@ -82,7 +82,7 @@ export class FlashcardCardRenderer {
     }
 
     private renderRatingButtons(cardContainer: HTMLElement, currentCard: FlashcardState): void {
-        const ratingContainer = cardContainer.createEl("div", { cls: "flashcard-rating" });
+        const ratingContainer = cardContainer.createDiv({ cls: "flashcard-rating" });
         const predictions = this.component.getFsrsManager().getCardPredictions(currentCard.id);
 
         this.component.getRatingButtons().forEach((buttonConfig: FlashcardRatingButton) => {
@@ -125,7 +125,7 @@ export class FlashcardCardRenderer {
         const totalToShow = Math.max(totalTodayCards, remainingCards);
         const currentCardNumber = totalToShow - remainingCards + 1;
 
-        cardContainer.createEl("div", {
+        cardContainer.createDiv({
             cls: "flashcard-counter",
             text: `${currentCardNumber}/${totalToShow}`
         });
@@ -137,10 +137,10 @@ export class FlashcardCardRenderer {
         }
 
         const filePath = currentCard.filePath;
-        const sourceEl = cardContainer.createEl("div", {
+        const sourceEl = cardContainer.createDiv({
             cls: "flashcard-source"
         });
-        const fileNameText = sourceEl.createEl("span", {
+        const fileNameText = sourceEl.createSpan({
             text: filePath.split("/").pop() || ""
         });
 
@@ -167,7 +167,7 @@ export class FlashcardCardRenderer {
         container.removeClass("markdown-rendered");
         container.addClass("flashcard-answer-empty-state");
 
-        const emptyPrompt = container.createEl("div", {
+        const emptyPrompt = container.createDiv({
             cls: "flashcard-answer-empty-prompt",
             attr: {
                 role: "button",
@@ -228,7 +228,7 @@ export class FlashcardCardRenderer {
             saveHintText: t("Shift + Enter Wrap, Enter Save")
         }).render();
 
-        const cancelLink = actionHint.createEl("div", {
+        const cancelLink = actionHint.createDiv({
             cls: "hi-note-delete-link",
             text: t("Cancel")
         });
