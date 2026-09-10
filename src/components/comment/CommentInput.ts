@@ -116,7 +116,7 @@ export class CommentInput {
         setupCommentInputKeyboard(this.textarea, {
             onInlineAI: async () => await this.inlineAI.generate(),
             onSave: async () => {
-                await this.saveController.saveCurrentContent();
+                await this.handleSave();
             }
         });
     }
@@ -208,7 +208,14 @@ export class CommentInput {
      * 处理保存逻辑
      */
     private async handleSave() {
-        await this.saveController.saveCurrentContent();
+        const saved = await this.saveController.saveCurrentContent();
+
+        // Empty comments are not persisted. Close the empty editor and restore
+        // the existing comment (or remove a new-comment input) instead of
+        // leaving an empty textarea that looks like a saved comment.
+        if (!saved && !this.textarea.value.trim()) {
+            this.cancelEdit();
+        }
     }
 
     private async handleDelete(): Promise<void> {
