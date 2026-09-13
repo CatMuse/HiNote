@@ -76,6 +76,7 @@ export class HighlightFlashcardManager {
                         fileName: highlight.fileName,
                         fileIcon: highlight.fileIcon,
                         backgroundColor: highlight.backgroundColor,
+                        syntax: highlight.syntax,
                         originalLength: highlight.originalLength,
                         isVirtual: highlight.isVirtual,
                         isCloze: highlight.isCloze

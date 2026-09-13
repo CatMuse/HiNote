@@ -108,6 +108,12 @@ export class HighlightMatcher {
         }
 
         const patch: Partial<HiNote> = {};
+        if (highlight.syntax && highlight.syntax !== storedComment.syntax) {
+            patch.syntax = highlight.syntax;
+        }
+        if (highlight.backgroundColor !== storedComment.backgroundColor) {
+            patch.backgroundColor = highlight.backgroundColor;
+        }
         if (highlight.position !== undefined && highlight.position !== storedComment.position) {
             patch.position = highlight.position;
         }

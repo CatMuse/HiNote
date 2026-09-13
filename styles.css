@@ -270,9 +270,14 @@ settings:
 }
 
 /* 搜索框样式 */
-.highlight-search-input {
-    flex: 1 0 auto;
-    width: 0;
+.highlight-search-field {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.highlight-search-container input.highlight-search-input {
+    width: 100%;
     min-width: 0;
     padding: 6px 12px;
     border-radius: 6px;
@@ -284,11 +289,7 @@ settings:
     position: relative;
 }
 
-.highlight-search-container.focused .highlight-search-input {
-    width: 100%;
-}
-
-.highlight-search-input:focus {
+.highlight-search-container input.highlight-search-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
     box-shadow: 0 0 0 2px var(--background-modifier-border-hover);
@@ -297,13 +298,56 @@ settings:
 /* 搜索加载指示器 */
 .highlight-search-loading {
     position: absolute;
-    right: 50px;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 20px;
     height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2;
+    pointer-events: none;
+}
+
+.highlight-search-field:has(.highlight-search-loading:not(.highlight-display-none)) input.highlight-search-input {
+    padding-right: 36px;
+}
+
+.highlight-search-container:has(.highlight-search-field:focus-within) .highlight-search-icons {
+    display: none;
+}
+
+.highlight-search-field button.highlight-search-finish {
+    display: none;
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-muted);
+}
+
+.highlight-search-field:focus-within button.highlight-search-finish {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.highlight-search-field:focus-within input.highlight-search-input {
+    padding-right: 40px;
+}
+
+.highlight-search-field:focus-within .highlight-search-loading {
+    right: 40px;
+}
+
+.highlight-search-field:focus-within:has(.highlight-search-loading:not(.highlight-display-none)) input.highlight-search-input {
+    padding-right: 68px;
 }
 
 .loading-spinner {
@@ -328,12 +372,9 @@ settings:
 /* 搜索框图标容器 */
 .highlight-search-icons {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 8px;
-    will-change: transform, opacity; /* 提示浏览器优化动画性能 */
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: right center;
 }
 
 /* 搜索前缀提示容器 */
@@ -397,16 +438,6 @@ settings:
 .search-prefix-description {
     font-size: 12px;
     color: var(--text-normal);
-}
-
-/* 搜索框获得焦点时的图标状态 */
-.highlight-search-container.focused .highlight-search-icons {
-    opacity: 0;
-    transform: scaleX(0);
-    margin-left: 0;
-    pointer-events: none; /* 确保在动画过程中无法点击 */
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .highlight-icon-button {
@@ -3761,3 +3792,28 @@ textarea.flashcard-modal-input {
     display: block;
     border-top: none;
 }
+
+.hi-note-settings-tabs {
+    display: flex;
+    gap: 16px;
+    padding: 4px 12px;
+    background: var(--background-secondary);
+    border-radius: var(--radius-m);
+    flex-wrap: wrap;
+}
+.hi-note-settings-tabs button {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+}
+.hi-note-settings-tabs button[aria-selected="true"] {
+    border-bottom-color: var(--text-accent);
+    color: var(--text-accent);
+}
+.hi-note-settings-tabs button:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+.hi-note-searchable-settings[hidden] { display: none; }

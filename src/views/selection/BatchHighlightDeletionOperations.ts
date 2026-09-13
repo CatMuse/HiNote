@@ -103,7 +103,8 @@ export class BatchHighlightDeletionOperations {
                 text: h.text,
                 position: h.position,
                 filePath: h.filePath!,
-                originalLength: h.originalLength
+                originalLength: h.originalLength,
+                syntax: h.syntax
             }));
 
         if (highlightsToRemove.length === 0) {

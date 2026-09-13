@@ -1,0 +1,139 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const ts = require('typescript');
+const modules = new Map();
+class TFile {}
+function load(file) {
+    file = path.resolve(file);
+    if (modules.has(file)) return modules.get(file);
+    const exports = {};
+    modules.set(file, exports);
+    const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
+    }).outputText;
+    vm.runInNewContext(code, { exports, console, window: { setTimeout: () => 0 }, require: name => {
+        if (name === 'obsidian') return { TFile, moment: { locale: () => 'en' } };
+        if (name === '../../../services/highlight') return load('src/services/highlight/HighlightCommentResolver.ts');
+        if (!name.startsWith('.')) return require(name);
+        const target = path.resolve(path.dirname(file), name);
+        return load(fs.existsSync(target + '.ts') ? target + '.ts' : path.join(target, 'index.ts'));
+    } }, { filename: file });
+    return exports;
+}
+const { HighlightExtractor } = load('src/services/highlight/HighlightExtractor.ts');
+const { highlightColorStyle } = load('src/services/highlight/HighlightColor.ts');
+const { HighlightMatcher } = load('src/services/highlight/HighlightMatcher.ts');
+const { HighlightBatchOps } = load('src/services/highlight/HighlightBatchOps.ts');
+const { findStoredHighlightMatch } = load('src/services/highlight/HighlightMatchStrategies.ts');
+const { convertToOptimizedHighlight, convertToLegacyHighlight } = load('src/storage/HighlightDataFormat.ts');
+const file = Object.assign(new TFile(), { path: 'example.md', extension: 'md', basename: 'example' });
+const app = { metadataCache: { getFileCache: () => null } };
+const extractor = new HighlightExtractor(app);
+const extract = source => extractor.extractHighlights(source, file);
+const batch = new HighlightBatchOps(app, extractor);
+const pairs = [['🔴🟥','red'], ['🟠🟧','orange'], ['🟡🟨','yellow'], ['🟢🟩','green'], ['🔵🟦','blue'], ['🟣🟪','purple']];
+for (const [markers, color] of pairs) for (const marker of markers) {
+    const source = `before ==${marker}正文== after`;
+    const [h] = extract(source);
+    assert.equal(h.text, '正文');
+    assert.equal(h.backgroundColor, highlightColorStyle(color));
+    assert.equal(h.position, 7);
+    assert.equal(h.originalLength, `==${marker}正文==`.length);
+    assert.equal(batch.removeHighlightMarkFromContent(source, h), 'before 正文 after');
+    const roundTrip = convertToLegacyHighlight('saved-id', convertToOptimizedHighlight(h), file.path);
+    assert.equal(roundTrip.syntax, 'markdown');
+    assert.equal(roundTrip.backgroundColor, h.backgroundColor);
+}
+assert.equal(extract('==字==')[0].text, '字');
+assert.equal(extract('==🔴字====🔵字==').length, 0); // Extra equals are deliberately excluded.
+assert.equal(extract('==🔴字== ==🔵字==').length, 2);
+assert.equal(extract('==🔴==').length, 0);
+assert.equal(extract('==🔴🔵正文==')[0].text, '🔵正文');
+for (const text of [' 🔴正文', '正文🔴', '🔶正文']) {
+    assert.equal(extract(`==${text}==`)[0].text, text);
+    assert.equal(extract(`==${text}==`)[0].backgroundColor, '#ffeb3b');
+}
+const html = extract('<mark style="background-color: #abc">🔴正文</mark>')[0];
+assert.equal(html.text, '🔴正文');
+assert.equal(html.backgroundColor, '#abc');
+assert.equal(html.syntax, 'html');
+const custom = new HighlightExtractor(app, () => ({ useCustomPattern: true, regexRules: [
+    { enabled: true, pattern: '==(.+?)==', color: '#123456' }
+] }));
+assert.equal(custom.extractHighlights('==普通==', file)[0].backgroundColor, '#123456');
+assert.equal(custom.extractHighlights('==🟢正文==', file)[0].backgroundColor, highlightColorStyle('green'));
+const codeExtractor = new HighlightExtractor({ metadataCache: { getFileCache: () => ({ sections: [
+    { type: 'code', position: { start: { offset: 0 }, end: { offset: 20 } } }
+] }) } });
+assert.equal(codeExtractor.extractHighlights('==🔴代码==', file).length, 0);
+
+const [red] = extract('==🔴相同正文==');
+const old = { ...red, id: 'saved-comment', text: '🔴相同正文', syntax: undefined,
+    comments: [{ id: 'comment', content: 'Keep me' }] };
+const matcher = new HighlightMatcher();
+for (const source of ['==🔵相同正文==', '==相同正文==']) {
+    const current = extract(source)[0];
+    const [merged] = matcher.mergeHighlightsWithComments([current], [old], file);
+    assert.equal(merged.id, 'saved-comment');
+    assert.equal(merged.comments[0].content, 'Keep me');
+    assert.equal(merged.text, '相同正文');
+    assert.equal(merged.backgroundColor, current.backgroundColor);
+}
+const double = extract('==🔴🔵正文==')[0];
+assert.equal(findStoredHighlightMatch(double, [{ ...double, id: 'normalized' }]).highlight.id, 'normalized');
+assert.equal(findStoredHighlightMatch(extract('==正文==')[0], [{ ...html, id: 'html' }]), null);
+assert.equal(findStoredHighlightMatch(extract('==正文==')[0], [{ ...html, syntax: undefined, isVirtual: true }]), null);
+const source = '==🔴重复== and ==🔵重复==';
+const current = extract(source);
+const legacy = current.map((h, i) => ({ ...h, syntax: undefined, text: ['🔴重复','🔵重复'][i], id: `old-${i}` }));
+const merged = matcher.mergeHighlightsWithComments(current, legacy, file);
+assert.equal(merged[0].id, 'old-0');
+assert.equal(merged[1].id, 'old-1');
+assert.equal(batch.removeHighlightMarkFromContent(source, current[1]), '==🔴重复== and 重复');
+assert.equal(batch.removeHighlightMarkFromContent(source, { text: '重复' }), source);
+assert.equal(batch.removeHighlightMarkFromContent('==🔴正文==', { text: '🔴正文', position: 0 }), '正文');
+
+const { PreviewHighlightResolver } = load('src/views/highlight/preview/PreviewHighlightResolver.ts');
+const preview = new PreviewHighlightResolver({ getCachedHighlights: () => [old] });
+const blueSource = '==🔵相同正文==';
+const enriched = preview.enrichHighlightsWithComments(extract(blueSource), file, blueSource);
+assert.equal(enriched.length, 1);
+const root = { tagName: 'P' };
+const mark = { parentElement: root, getAttribute: () => 'blue' };
+assert.equal(preview.findMatchingHighlight('相同正文', mark, root,
+    { getSectionInfo: () => ({ lineStart: 0, lineEnd: 0 }) }, enriched).id, 'saved-comment');
+const coloredDuplicates = current.map((h, i) => ({ ...h, id: `duplicate-${i}`, line: 0 }));
+assert.equal(preview.findMatchingHighlight('重复', mark, root,
+    { getSectionInfo: () => ({ lineStart: 0, lineEnd: 0 }) }, coloredDuplicates).id, 'duplicate-1');
+const { DataValidator } = load('src/storage/DataValidator.ts');
+assert.equal(DataValidator.sanitizeHighlight(red).syntax, 'markdown');
+assert.equal(DataValidator.sanitizeHighlight({ syntax: 'invalid' }).syntax, undefined);
+const { ExportContentRenderer } = load('src/services/export/ExportContentRenderer.ts');
+(async () => {
+    let anchor;
+    const renderer = new ExportContentRenderer({ createBlockIdForHighlight: async (...args) => {
+        anchor = args;
+        return 'example#^test';
+    } });
+    const result = await renderer.generateExportContent(file, [red]);
+    assert.ok(result.includes('相同正文'));
+    assert.ok(!result.includes('🔴'));
+    await renderer.generateExportContent(file, [red], '{{highlightText}} {{highlightBlockRef}}');
+    assert.equal(anchor[1], red.position);
+    assert.equal(anchor[2], '==🔴相同正文=='.length);
+    let content = source;
+    const operations = new HighlightBatchOps({ vault: {
+        getAbstractFileByPath: () => file,
+        process: async (file, callback) => { content = callback(content); }
+    } }, extractor);
+    const removed = await operations.batchRemoveHighlightMarks(current);
+    assert.equal(removed.success, 2);
+    assert.equal(content, '重复 and 重复');
+    content = source;
+    const ambiguous = await operations.batchRemoveHighlightMarks([{ text: '重复', filePath: file.path }]);
+    assert.equal(ambiguous.failed, 1);
+    assert.equal(content, source);
+    console.log('Highlight colors passed: 12 markers, source spans, legacy comments, recoloring, duplicates, storage, preview, export and removal.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

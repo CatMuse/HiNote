@@ -17,6 +17,7 @@ export interface OptimizedHighlight {
     created: number;
     updated: number;
     backgroundColor?: string;
+    syntax?: HiNote['syntax'];
     blockId?: string;
     isCloze?: boolean;
     isVirtual?: boolean;
@@ -56,6 +57,7 @@ export function convertToLegacyHighlight(
         updatedAt: highlight.updated,
         filePath,
         backgroundColor: highlight.backgroundColor,
+        syntax: highlight.syntax,
         blockId: highlight.blockId,
         isCloze: highlight.isCloze || false,
         isVirtual: highlight.isVirtual || false,
@@ -87,6 +89,7 @@ export function convertToOptimizedHighlight(highlight: HiNote): OptimizedHighlig
     if (highlight.backgroundColor) {
         optimized.backgroundColor = highlight.backgroundColor;
     }
+    if (highlight.syntax) optimized.syntax = highlight.syntax;
 
     if (highlight.blockId) {
         optimized.blockId = highlight.blockId;

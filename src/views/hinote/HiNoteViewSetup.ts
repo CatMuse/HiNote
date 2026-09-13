@@ -45,7 +45,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
     let highlightRendering: ReturnType<typeof setupHighlightRendering> | null = null;
     let layoutAndCanvas: ReturnType<typeof setupLayoutAndCanvas> | null = null;
 
-    const uiElements = uiInitializer.initializeUI(container);
+    const uiElements = uiInitializer.initializeUI(container, component);
     const {
         fileListContainer,
         mainContentContainer,

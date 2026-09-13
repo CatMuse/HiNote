@@ -1,3 +1,4 @@
+import { SettingsTabNavigation } from './SettingsTabNavigation';
 import { App, PluginSettingTab, type SettingDefinitionItem } from 'obsidian';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { AIServiceTab } from './tabs/AIServiceTab';
@@ -9,6 +10,7 @@ import { ObsidianInternals } from '../utils/ObsidianInternals';
 
 export class AISettingTab extends PluginSettingTab {
     plugin: CommentPlugin;
+    private readonly navigation = new SettingsTabNavigation();
     private licenseManager: LicenseManager;
 
     constructor(app: App, plugin: CommentPlugin) {
@@ -19,15 +21,24 @@ export class AISettingTab extends PluginSettingTab {
 
     getSettingDefinitions(): SettingDefinitionItem[] {
         return [
-            this.createSettingsPage(t('General'), [
+            {
+                name: 'HiNote',
+                searchable: false,
+                render: (setting, group) => this.navigation.render(setting, group, [
+                    { id: 'general', name: t('General') },
+                    { id: 'ai', name: t('AI service') },
+                    { id: 'hicard', name: 'HiCard' }
+                ])
+            },
+            this.createSettingsSection('general', t('General'), [
                 'Export Path', 'Exclusions', 'Export template', 'Show Comment Widget',
                 'Custom text extraction', 'Use custom rules', 'Data management', 'Clean orphaned data'
             ], container => new GeneralSettingsTab(this.plugin, container).display()),
-            this.createSettingsPage(t('AI service'), [
+            this.createSettingsSection('ai', t('AI service'), [
                 'AI service', 'API key', 'Server URL', 'Model', 'Prompt settings',
                 'OpenAI', 'Anthropic', 'Gemini', 'Deepseek', 'SiliconFlow', 'Ollama', 'Custom'
             ], container => new AIServiceTab(this.plugin, container).display()),
-            this.createSettingsPage('HiCard', [
+            this.createSettingsSection('hicard', 'HiCard', [
                 'Activate HiCard', 'Flashcard learning', 'New cards per day', 'Reviews per day',
                 'Target retention', 'Maximum interval', 'Reset daily stats', 'FSRS parameters',
                 'Reset algorithm parameters'
@@ -35,30 +46,33 @@ export class AISettingTab extends PluginSettingTab {
         ];
     }
 
-    private createSettingsPage(
+    private createSettingsSection(
+        id: string,
         name: string,
         terms: string[],
         render: (container: HTMLElement, isDisposed: () => boolean) => void | Promise<void>
     ): SettingDefinitionItem {
         return {
-            type: 'page',
             name,
-            items: [{
-                name,
-                aliases: [...new Set([...terms, ...terms.map(term => t(term))])],
-                render: setting => {
-                    const container = setting.settingEl;
-                    container.empty();
-                    container.addClass('hi-note-searchable-settings');
-                    let disposed = false;
+            aliases: [...new Set([...terms, ...terms.map(term => t(term))])],
+            render: (setting, group) => {
+                const container = setting.settingEl;
+                container.empty();
+                container.addClass('hi-note-searchable-settings');
+                container.setAttribute('aria-label', name);
+                let disposed = false;
+                let started = false;
+                const detach = this.navigation.attach(group, id, container, () => {
+                    if (started || disposed) return;
+                    started = true;
                     void this.plugin.ensureServicesInitialized().then(async () => {
                         if (!disposed) await render(container, () => disposed);
                     }).catch(error => {
                         if (!disposed) container.createEl('p', { text: String(error) });
                     });
-                    return () => { disposed = true; container.empty(); };
-                }
-            }]
+                });
+                return () => { disposed = true; detach(); container.empty(); };
+            }
         };
     }
 

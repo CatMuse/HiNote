@@ -134,6 +134,7 @@ export default {
 
     "Loading...": "Loading...",
     "Search...": "Search...",
+    "Finish searching": "Finish searching",
     "No matching content found.": "No matching content found.",
     "The current document has no highlighted content.": "The current document has no highlighted content.",
     "No corresponding file found.": "No corresponding file found.",

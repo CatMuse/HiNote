@@ -64,8 +64,9 @@ export class PreviewWidgetRenderer {
             );
 
             if (match) {
+                highlightsWithComments.splice(highlightsWithComments.indexOf(match), 1);
                 mark.setAttribute('data-hi-note-processed', 'true');
-                this.renderPreviewWidget(mark as HTMLElement, match);
+                if (match.comments?.length) this.renderPreviewWidget(mark as HTMLElement, match);
             }
         });
     }

@@ -35,6 +35,8 @@ This AI-programmed Obsidian plugin can automatically extract highlighted text fr
 
 When you open a note with highlighted text, the sidebar automatically displays the highlighted text in card format. The following three formats of highlight tags are supported: `==`, `<mark>`, and `<span>`. Custom formats can also be defined using regular expressions.
 
+HiNote also recognizes Obsidian 1.14 color highlights, such as `==🔴Important text==`. Place a red, orange, yellow, green, blue, or purple circle (or matching square) immediately after the opening `==`. Cards use the corresponding theme color; their text and exported quotations omit the color marker. Changing the color preserves associated comments. Native editor color controls require Obsidian 1.14; HiNote remains compatible with Obsidian 1.13.
+
 ![Highlighted text retrieval](./doc/highlighted-text-retrieval.jpg)
 
 ---

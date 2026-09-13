@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { Component, setIcon } from "obsidian";
 import { t } from "../../i18n";
 
 /**
@@ -31,7 +31,7 @@ export class UIInitializer {
      * @param container 根容器
      * @returns UI 元素引用
      */
-    initializeUI(container: HTMLElement): UIElements {
+    initializeUI(container: HTMLElement, component: Component): UIElements {
         // 清空容器并添加类
         container.empty();
         container.addClass("comment-view-container");
@@ -61,10 +61,28 @@ export class UIInitializer {
         });
 
         // 创建搜索输入框
-        const searchInput = this.createSearchInput(searchContainer);
+        const searchField = searchContainer.createDiv({ cls: "highlight-search-field" });
+        const searchInput = this.createSearchInput(searchField);
 
         // 创建搜索加载指示器
-        const searchLoadingIndicator = this.createSearchLoadingIndicator(searchContainer);
+        const searchLoadingIndicator = this.createSearchLoadingIndicator(searchField);
+        const finishSearchButton = searchField.createEl("button", {
+            cls: "highlight-search-finish",
+            attr: { type: "button", "aria-label": t("Finish searching"), title: t("Finish searching") }
+        });
+        setIcon(finishSearchButton, "check");
+        const finishSearching = () => {
+            searchInput.blur();
+            finishSearchButton.blur();
+        };
+        component.registerDomEvent(finishSearchButton, "click", finishSearching);
+        component.registerDomEvent(searchField, "keydown", (event: KeyboardEvent) => {
+            if (event.key === "Escape" && !event.isComposing) {
+                event.preventDefault();
+                event.stopPropagation();
+                finishSearching();
+            }
+        });
 
         // 创建图标按钮容器
         const iconButtonsContainer = searchContainer.createDiv({
@@ -125,15 +143,6 @@ export class UIInitializer {
                 type: "text",
                 placeholder: t("Search..."),
             }
-        });
-
-        // 添加焦点和失焦事件
-        searchInput.addEventListener('focus', () => {
-            parent.addClass('focused');
-        });
-
-        searchInput.addEventListener('blur', () => {
-            parent.removeClass('focused');
         });
 
         return searchInput;

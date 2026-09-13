@@ -24,6 +24,8 @@ export interface HighlightInfo {
     fileIcon?: string;
 
     backgroundColor?: string;
+    /** Distinguishes normalized Markdown text from legacy text containing a color marker. */
+    syntax?: 'markdown' | 'html' | 'custom';
     originalLength?: number;
 
     isVirtual?: boolean;
