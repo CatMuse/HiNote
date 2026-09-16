@@ -84,7 +84,15 @@ async function testSettings() {
     let renders = 0, initialized = 0;
     const renderer = class { display() { renders++; } };
     const { AISettingTab } = load('src/settings/SettingsTab.ts', {
-        obsidian: { PluginSettingTab: class {} },
+        obsidian: {
+            PluginSettingTab: class {},
+            Setting: class {
+                nameEl = {};
+                setName() { return this; }
+                setHeading() { return this; }
+                setClass() { return this; }
+            }
+        },
         './tabs/GeneralSettingsTab': { GeneralSettingsTab: renderer },
         './tabs/AIServiceTab': { AIServiceTab: renderer },
         '../flashcard': { FlashcardSettingsTab: renderer },

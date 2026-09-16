@@ -3913,7 +3913,7 @@ textarea.flashcard-modal-input {
     background: var(--background-primary);
 }
 
-.hi-note-searchable-settings .hi-note-settings-card .hi-note-settings-section-title {
+.hi-note-searchable-settings .hi-note-settings-card .setting-item.hi-note-settings-section-title {
     margin: 0;
     padding: 16px 20px;
     border-bottom: 1px solid var(--background-modifier-border);
@@ -3963,7 +3963,7 @@ textarea.flashcard-modal-input {
 }
 
 @media (max-width: 600px) {
-    .hi-note-searchable-settings .hi-note-settings-card .hi-note-settings-section-title {
+    .hi-note-searchable-settings .hi-note-settings-card .setting-item.hi-note-settings-section-title {
         padding: 14px 12px;
     }
 

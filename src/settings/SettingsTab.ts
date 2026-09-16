@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, type SettingDefinitionItem } from 'obsidian';
+import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from 'obsidian';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { AIServiceTab } from './tabs/AIServiceTab';
 import { FlashcardSettingsTab } from '../flashcard';
@@ -53,7 +53,11 @@ export class AISettingTab extends PluginSettingTab {
                 container.removeAttribute('aria-label');
                 const headingId = `hi-note-settings-section-${++settingsSectionId}`;
                 const card = container.createDiv({ cls: 'hi-note-settings-card', attr: { role: 'region', 'aria-labelledby': headingId } });
-                card.createEl('h3', { text: name, cls: 'hi-note-settings-section-title', attr: { id: headingId } });
+                const heading = new Setting(card)
+                    .setName(name)
+                    .setHeading()
+                    .setClass('hi-note-settings-section-title');
+                heading.nameEl.id = headingId;
                 const content = card.createDiv({ cls: 'hi-note-settings-section-content' });
                 let disposed = false;
                 void this.plugin.ensureServicesInitialized().then(async () => {
