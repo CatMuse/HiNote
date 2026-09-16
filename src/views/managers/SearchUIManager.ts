@@ -72,6 +72,7 @@ export class SearchUIManager {
      * 清理资源
      */
     destroy() {
+        this.hideSearchLoadingIndicator();
         if (this.searchDebounceTimer !== null) {
             window.clearTimeout(this.searchDebounceTimer);
             this.searchDebounceTimer = null;
@@ -145,6 +146,7 @@ export class SearchUIManager {
     private showSearchLoadingIndicator(): void {
         if (!this.isSearching) {
             this.isSearching = true;
+            this.searchInput.addClass("is-searching");
             this.searchLoadingIndicator.removeClass("highlight-display-none");
             this.searchLoadingIndicator.addClass("highlight-display-flex");
         }
@@ -156,6 +158,7 @@ export class SearchUIManager {
     private hideSearchLoadingIndicator(): void {
         if (this.isSearching) {
             this.isSearching = false;
+            this.searchInput.removeClass("is-searching");
             this.searchLoadingIndicator.removeClass("highlight-display-flex");
             this.searchLoadingIndicator.addClass("highlight-display-none");
         }

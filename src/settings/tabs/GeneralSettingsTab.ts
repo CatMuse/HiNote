@@ -22,7 +22,7 @@ export class GeneralSettingsTab {
         // 导出路径设置
         new Setting(container)
             .setName(t('Export Path'))
-            .setDesc(t('Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.'))
+            .setDesc(t('Relative to vault root. Leave empty to use the root folder.'))
             .addText(text => text
                 .setPlaceholder('Example: folder 1/folder 2')
                 .setValue(this.plugin.settings.export.exportPath || '')
@@ -38,8 +38,9 @@ export class GeneralSettingsTab {
                 
         // 排除设置
         new Setting(container)
+            .setClass('hi-note-setting-stacked')
             .setName(t('Exclusions'))
-            .setDesc(t('Comma separated list of paths, tags, note titles or file extensions that will be excluded from highlighting. e.g. folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md'))
+            .setDesc(t('Skip paths, tags, notes or extensions. Separate with commas.'))
             .addTextArea(text => {
                 text
                     .setPlaceholder('folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md')
@@ -50,13 +51,14 @@ export class GeneralSettingsTab {
                     });
                     
                 text.inputEl.rows = 4;
-                text.inputEl.cols = 40;
+                text.inputEl.setAttribute('aria-label', t('Exclusions'));
             });
 
         // 导出模板设置
-        new Setting(container)
+        const templateSetting = new Setting(container)
+            .setClass('hi-note-setting-stacked')
             .setName(t('Export template'))
-            .setDesc(t('Customize the format of exported highlights and comments using variables. Available variables: {{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}. Leave empty to use default template.'))
+            .setDesc(t('Leave empty to use the default template.'))
             .addTextArea(text => {
                 const defaultTemplate = 
 `> [!quote] HiNote
@@ -75,13 +77,17 @@ export class GeneralSettingsTab {
                     });
                     
                 text.inputEl.rows = 5;
-                text.inputEl.cols = 40;
+                text.inputEl.setAttribute('aria-label', t('Export template'));
             });
+
+        const variables = templateSetting.descEl.createEl('details', { cls: 'hi-note-template-variables' });
+        variables.createEl('summary', { text: t('Template variables') });
+        variables.createEl('code', { text: '{{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}' });
 
         // Widget显示设置
         new Setting(container)
             .setName(t('Show Comment Widget'))
-            .setDesc(t('Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.'))
+            .setDesc(t('Show comments beside highlights.'))
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.showCommentWidget ?? true)
                 .onChange(async (value) => {
@@ -101,7 +107,7 @@ export class GeneralSettingsTab {
         // 启用自定义正则表达式的开关
         new Setting(container)
             .setName(t('Use custom rules'))
-            .setDesc(t('Enable to use custom regex rules to extract highlight text.'))
+            .setDesc(t('Extract highlights with regex rules.'))
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.useCustomPattern)
                 .onChange(async (value) => {
@@ -121,7 +127,7 @@ export class GeneralSettingsTab {
         // 检查/清理孤立数据按钮
         const orphanedDataSetting = new Setting(container)
             .setName(t('Clean orphaned data'))
-            .setDesc(t('Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.'));
+            .setDesc(t('Remove stored data for deleted highlights.'));
 
         let orphanedCount = 0;
         let affectedFiles = 0;

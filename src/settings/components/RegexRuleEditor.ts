@@ -31,7 +31,7 @@ export class RegexRuleEditor {
     
     // 添加警告提示和示例
     const warningEl = this.rulesContainer.createDiv({ cls: 'regex-rule-warning' });
-    warningEl.setText(t('Use regex with caution. If there are capture groups (), the first capture group will be used as the highlight text; if there are no capture groups, the entire match will be used.'));
+    warningEl.setText(t('Uses the first capture group (), or the full match if none.'));
     
     // 显示现有规则
     if (this.rules.length === 0) {

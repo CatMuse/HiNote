@@ -1,4 +1,3 @@
-import { SettingsTabNavigation } from './SettingsTabNavigation';
 import { App, PluginSettingTab, type SettingDefinitionItem } from 'obsidian';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { AIServiceTab } from './tabs/AIServiceTab';
@@ -8,9 +7,10 @@ import { LicenseManager } from '../services/LicenseManager';
 import type CommentPlugin from '../../main';
 import { ObsidianInternals } from '../utils/ObsidianInternals';
 
+let settingsSectionId = 0;
+
 export class AISettingTab extends PluginSettingTab {
     plugin: CommentPlugin;
-    private readonly navigation = new SettingsTabNavigation();
     private licenseManager: LicenseManager;
 
     constructor(app: App, plugin: CommentPlugin) {
@@ -21,24 +21,15 @@ export class AISettingTab extends PluginSettingTab {
 
     getSettingDefinitions(): SettingDefinitionItem[] {
         return [
-            {
-                name: 'HiNote',
-                searchable: false,
-                render: (setting, group) => this.navigation.render(setting, group, [
-                    { id: 'general', name: t('General') },
-                    { id: 'ai', name: t('AI service') },
-                    { id: 'hicard', name: 'HiCard' }
-                ])
-            },
-            this.createSettingsSection('general', t('General'), [
+            this.createSettingsSection(t('General'), [
                 'Export Path', 'Exclusions', 'Export template', 'Show Comment Widget',
                 'Custom text extraction', 'Use custom rules', 'Data management', 'Clean orphaned data'
             ], container => new GeneralSettingsTab(this.plugin, container).display()),
-            this.createSettingsSection('ai', t('AI service'), [
+            this.createSettingsSection(t('AI service'), [
                 'AI service', 'API key', 'Server URL', 'Model', 'Prompt settings',
                 'OpenAI', 'Anthropic', 'Gemini', 'Deepseek', 'SiliconFlow', 'Ollama', 'Custom'
             ], container => new AIServiceTab(this.plugin, container).display()),
-            this.createSettingsSection('hicard', 'HiCard', [
+            this.createSettingsSection('HiCard', [
                 'Activate HiCard', 'Flashcard learning', 'New cards per day', 'Reviews per day',
                 'Target retention', 'Maximum interval', 'Reset daily stats', 'FSRS parameters',
                 'Reset algorithm parameters'
@@ -47,7 +38,6 @@ export class AISettingTab extends PluginSettingTab {
     }
 
     private createSettingsSection(
-        id: string,
         name: string,
         terms: string[],
         render: (container: HTMLElement, isDisposed: () => boolean) => void | Promise<void>
@@ -55,23 +45,23 @@ export class AISettingTab extends PluginSettingTab {
         return {
             name,
             aliases: [...new Set([...terms, ...terms.map(term => t(term))])],
-            render: (setting, group) => {
+            render: (setting) => {
                 const container = setting.settingEl;
                 container.empty();
                 container.addClass('hi-note-searchable-settings');
-                container.setAttribute('aria-label', name);
+                // Obsidian also uses aria-label as tooltip text; label the region via its heading.
+                container.removeAttribute('aria-label');
+                const headingId = `hi-note-settings-section-${++settingsSectionId}`;
+                const card = container.createDiv({ cls: 'hi-note-settings-card', attr: { role: 'region', 'aria-labelledby': headingId } });
+                card.createEl('h3', { text: name, cls: 'hi-note-settings-section-title', attr: { id: headingId } });
+                const content = card.createDiv({ cls: 'hi-note-settings-section-content' });
                 let disposed = false;
-                let started = false;
-                const detach = this.navigation.attach(group, id, container, () => {
-                    if (started || disposed) return;
-                    started = true;
-                    void this.plugin.ensureServicesInitialized().then(async () => {
-                        if (!disposed) await render(container, () => disposed);
-                    }).catch(error => {
-                        if (!disposed) container.createEl('p', { text: String(error) });
-                    });
+                void this.plugin.ensureServicesInitialized().then(async () => {
+                    if (!disposed) await render(content, () => disposed);
+                }).catch(error => {
+                    if (!disposed) content.createEl('p', { text: String(error) });
                 });
-                return () => { disposed = true; detach(); container.empty(); };
+                return () => { disposed = true; container.empty(); };
             }
         };
     }

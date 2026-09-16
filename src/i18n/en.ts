@@ -279,6 +279,14 @@ export default {
     "Server error": "Server error",
     
     // Custom AI
-    "Detected API type": "Detected API type"
+    "Detected API type": "Detected API type",
 
+    "Relative to vault root. Leave empty to use the root folder.": "Relative to vault root. Leave empty to use the root folder.",
+    "Skip paths, tags, notes or extensions. Separate with commas.": "Skip paths, tags, notes or extensions. Separate with commas.",
+    "Leave empty to use the default template.": "Leave empty to use the default template.",
+    "Show comments beside highlights.": "Show comments beside highlights.",
+    "Extract highlights with regex rules.": "Extract highlights with regex rules.",
+    "Remove stored data for deleted highlights.": "Remove stored data for deleted highlights.",
+    "Template variables": "Template variables",
+    "Uses the first capture group (), or the full match if none.": "Uses the first capture group (), or the full match if none.",
 };

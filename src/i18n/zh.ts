@@ -286,5 +286,13 @@ export default {
     "Server error": "服务器错误",
     
     // Custom AI 相关（已存在则跳过）
-    "Detected API type": "检测到的 API 类型"
+    "Detected API type": "检测到的 API 类型",
+    "Relative to vault root. Leave empty to use the root folder.": "相对仓库根目录；留空则使用根目录。",
+    "Skip paths, tags, notes or extensions. Separate with commas.": "排除路径、标签、笔记或扩展名，以逗号分隔。",
+    "Leave empty to use the default template.": "留空则使用默认模板。",
+    "Show comments beside highlights.": "在高亮旁显示评论。",
+    "Extract highlights with regex rules.": "使用正则规则提取高亮。",
+    "Remove stored data for deleted highlights.": "清理已删除高亮的残留数据。",
+    "Template variables": "模板变量",
+    "Uses the first capture group (), or the full match if none.": "提取首个捕获组 ()；无捕获组时提取完整匹配。",
 };

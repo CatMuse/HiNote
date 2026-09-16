@@ -310,11 +310,11 @@ settings:
     pointer-events: none;
 }
 
-.highlight-search-field:has(.highlight-search-loading:not(.highlight-display-none)) input.highlight-search-input {
+.highlight-search-field input.highlight-search-input.is-searching {
     padding-right: 36px;
 }
 
-.highlight-search-container:has(.highlight-search-field:focus-within) .highlight-search-icons {
+.highlight-search-field:focus-within ~ .highlight-search-icons {
     display: none;
 }
 
@@ -346,7 +346,7 @@ settings:
     right: 40px;
 }
 
-.highlight-search-field:focus-within:has(.highlight-search-loading:not(.highlight-display-none)) input.highlight-search-input {
+.highlight-search-field:focus-within input.highlight-search-input.is-searching {
     padding-right: 68px;
 }
 
@@ -547,6 +547,7 @@ settings:
 
 .highlight-text-decorator {
     width: 3px;
+    opacity: 0.65;
     background-color: var(--text-highlight-bg);
     border-radius: 1.5px;
     flex-shrink: 0;
@@ -3793,27 +3794,243 @@ textarea.flashcard-modal-input {
     border-top: none;
 }
 
-.hi-note-settings-tabs {
-    display: flex;
-    gap: 16px;
-    padding: 4px 12px;
-    background: var(--background-secondary);
-    border-radius: var(--radius-m);
-    flex-wrap: wrap;
+/* Keep nested controls aligned inside Obsidian's searchable setting row. */
+.hi-note-searchable-settings .setting-item {
+    padding-inline: 0;
+    min-width: 0;
 }
-.hi-note-settings-tabs button {
+
+.hi-note-searchable-settings .setting-item-heading {
+    margin-inline: 0;
+    padding: 24px 0 12px;
+}
+
+.hi-note-searchable-settings .setting-item-info,
+.hi-note-searchable-settings .setting-item-control {
+    min-width: 0;
+}
+
+.hi-note-searchable-settings .ai-service-settings,
+.hi-note-searchable-settings .prompt-settings-container,
+.hi-note-searchable-settings .fsrs-params-container {
+    margin: 16px 0 0;
+    padding: 0;
     background: transparent;
-    box-shadow: none;
     border-radius: 0;
-    border-bottom: 2px solid transparent;
-    color: var(--text-muted);
 }
-.hi-note-settings-tabs button[aria-selected="true"] {
-    border-bottom-color: var(--text-accent);
-    color: var(--text-accent);
+
+.hi-note-searchable-settings .setting-item-description {
+    overflow-wrap: anywhere;
 }
-.hi-note-settings-tabs button:focus-visible {
-    outline: 2px solid var(--interactive-accent);
-    outline-offset: 2px;
+
+.hi-note-searchable-settings p.setting-item-description {
+    margin: 0 0 16px;
 }
-.hi-note-searchable-settings[hidden] { display: none; }
+
+.hi-note-searchable-settings .prompt-settings-header {
+    margin: 0 0 12px;
+    padding: 24px 0 12px;
+}
+
+.hi-note-searchable-settings .prompt-settings-title {
+    padding: 0;
+    margin: 0;
+}
+
+.hi-note-searchable-settings .prompt-info {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.hi-note-searchable-settings .regex-rules-container {
+    margin: 0 0 16px;
+    padding: 0;
+    border: 0;
+}
+
+.hi-note-searchable-settings .regex-rule-warning {
+    margin: 0 0 12px;
+    line-height: 1.5;
+}
+
+.hi-note-searchable-settings .regex-rule-item {
+    grid-template-columns: minmax(80px, 1fr) minmax(120px, 3fr) 80px 28px 44px;
+    gap: 8px;
+}
+
+.hi-note-searchable-settings .regex-rule-item input {
+    width: 100%;
+    min-width: 0;
+}
+
+.hi-note-searchable-settings .fsrs-weights-textarea {
+    max-width: 100%;
+}
+
+
+@media (max-width: 600px) {
+    .hi-note-searchable-settings .setting-item:not(.setting-item-heading) {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .hi-note-searchable-settings .setting-item-control {
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+
+    .hi-note-searchable-settings .setting-item-control input:not([type='range']),
+    .hi-note-searchable-settings .setting-item-control select,
+    .hi-note-searchable-settings .setting-item-control textarea {
+        max-width: 100%;
+    }
+
+    .hi-note-searchable-settings .regex-rule-item {
+        grid-template-columns: minmax(0, 1fr) 80px 28px 44px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--background-modifier-border);
+    }
+
+    .hi-note-searchable-settings .regex-rule-item > input:nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}
+
+.hi-note-searchable-settings > .setting-item,
+.hi-note-searchable-settings > .general-settings-container,
+.hi-note-searchable-settings > .flashcard-settings-container {
+    margin-inline: 0;
+}
+
+/* Independent cards inside Obsidian's shared settings group. */
+.hi-note-searchable-settings .hi-note-settings-card {
+    margin: 0;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 12px;
+    background: var(--background-primary);
+}
+
+.hi-note-searchable-settings .hi-note-settings-card .hi-note-settings-section-title {
+    margin: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background: var(--background-secondary);
+    font-size: var(--font-ui-medium);
+    font-weight: var(--font-semibold);
+    color: var(--text-normal);
+}
+
+.hi-note-searchable-settings .hi-note-settings-section-content {
+    margin: 0;
+    padding: 8px 20px 20px;
+}
+
+/* Override native group row insets only within HiNote's own cards. */
+.hi-note-searchable-settings .hi-note-settings-card .setting-item:not(.setting-item-heading) {
+    margin: 0;
+    padding: 16px 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.hi-note-searchable-settings .hi-note-settings-card .setting-item::before {
+    left: 0;
+    right: 0;
+}
+
+.hi-note-searchable-settings .hi-note-settings-card .setting-item-heading,
+.hi-note-searchable-settings .hi-note-settings-card .prompt-settings-header {
+    margin: 20px 0 0;
+    padding: 12px 0;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.hi-note-searchable-settings .hi-note-settings-card .setting-item-heading:first-child {
+    margin-top: 0;
+    border-top: 0;
+}
+
+.hi-note-searchable-settings .hi-note-settings-card .prompt-item,
+.hi-note-searchable-settings .hi-note-settings-card .new-prompt-section {
+    background: var(--background-secondary);
+}
+
+.hi-note-searchable-settings .hi-note-settings-card .regex-rules-container {
+    margin-top: 12px;
+}
+
+@media (max-width: 600px) {
+    .hi-note-searchable-settings .hi-note-settings-card .hi-note-settings-section-title {
+        padding: 14px 12px;
+    }
+
+    .hi-note-searchable-settings .hi-note-settings-section-content {
+        padding: 4px 12px 12px;
+    }
+}
+
+.setting-group .setting-item.hi-note-searchable-settings:not(.setting-item-heading) {
+    padding: 0 0 24px;
+    background: var(--background-primary);
+}
+
+.setting-group .setting-item.hi-note-searchable-settings::before {
+    content: none;
+}
+
+.hi-note-searchable-settings .hi-note-settings-card .setting-item-heading {
+    border-radius: 0;
+}
+
+@media (max-width: 600px) {
+    .hi-note-searchable-settings .hi-note-settings-card .regex-rule-item {
+        grid-template-columns: minmax(0, 1fr) 28px 44px;
+    }
+
+    .hi-note-searchable-settings .hi-note-settings-card .regex-rule-item > input:first-child {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+
+    .hi-note-searchable-settings .hi-note-settings-card .regex-rule-item > input:nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}
+
+/* Long highlight settings use the full card width. */
+.general-settings-container .hi-note-setting-stacked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+.general-settings-container .hi-note-setting-stacked .setting-item-info {
+    width: 100%;
+    margin-inline-end: 0;
+}
+.general-settings-container .hi-note-setting-stacked .setting-item-control {
+    width: 100%;
+    justify-content: stretch;
+}
+.general-settings-container .hi-note-setting-stacked textarea {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    resize: vertical;
+}
+.hi-note-template-variables {
+    margin-top: 6px;
+}
+.hi-note-template-variables summary {
+    cursor: pointer;
+}
+.hi-note-template-variables code {
+    display: block;
+    margin-top: 6px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
