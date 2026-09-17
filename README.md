@@ -41,6 +41,8 @@ HiNote also recognizes Obsidian 1.14 color highlights, such as `==🔴Important 
 
 ---
 
+Exclusions match actual file suffixes: use `*.xcd.md` for a note stored as `HiNote.xcd.md`, even if Obsidian displays it as `HiNote.xcd`. Saving exclusions automatically updates the highlight index, file list, and search results without reloading the plugin. Removing a rule makes those files available again; stored comments are not deleted.
+
 ## Highlighted comments
 
 The highlight comment feature allows you to quickly engage with highlighted text, preventing your ideas from slipping away. Simply click on the Widgets in the editing area or directly click the add comment button on the card to open the input box.
@@ -78,6 +80,8 @@ Drag the right sidebar window to the main view to unlock more features, such as 
 ![Main view](./doc/main-view.jpg)
 
 ---
+
+Click **HINOTE** at the top of the file list to refresh the list and current content. Searching does not change the selected page; clearing a vault-wide search returns to that page. Unsaved comment drafts are kept in the current view session and restored when the same comment editor is reopened. Drafts do not survive a plugin reload or application restart.
 
 ## AI Comment
 

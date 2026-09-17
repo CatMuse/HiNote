@@ -48,6 +48,10 @@ export class HighlightService {
         this.indexer.destroy();
     }
 
+    invalidateExclusions(): void {
+        this.indexer.invalidateExclusions();
+    }
+
     // ==================== 提取 (委托给 HighlightExtractor) ====================
     
     shouldProcessFile(file: TFile): boolean {
@@ -63,7 +67,7 @@ export class HighlightService {
     }
 
     async getAllHighlights(): Promise<{ file: TFile, highlights: ScannedHighlight[] }[]> {
-        return this.extractor.getAllHighlights();
+        return this.indexer.getAllHighlights();
     }
 
     public async createBlockIdForHighlight(file: TFile, position: number, length?: number): Promise<string> {

@@ -14,7 +14,6 @@ import { LicenseManager } from "../../../services/LicenseManager";
  */
 export class FlashcardViewManager {
     private flashcardComponent: FlashcardComponent | null = null;
-    private isFlashcardMode: boolean = false;
     private highlightsWithFlashcards: Set<string> = new Set<string>();
 
     constructor(
@@ -26,14 +25,7 @@ export class FlashcardViewManager {
      * 获取闪卡模式状态
      */
     isInFlashcardMode(): boolean {
-        return this.isFlashcardMode;
-    }
-
-    /**
-     * 设置闪卡模式
-     */
-    setFlashcardMode(enabled: boolean): void {
-        this.isFlashcardMode = enabled;
+        return this.flashcardComponent !== null;
     }
 
     /**
@@ -65,18 +57,17 @@ export class FlashcardViewManager {
             this.flashcardComponent.setLicenseManager(licenseManager);
         }
 
-        this.isFlashcardMode = true;
         return this.flashcardComponent;
     }
 
-    async activateFlashcardMode(container: HTMLElement, licenseManager?: LicenseManager): Promise<void> {
+    async activateFlashcardMode(container: HTMLElement, licenseManager?: LicenseManager, isCurrent: () => boolean = () => true): Promise<void> {
         if (!this.flashcardComponent) {
             this.createFlashcardComponent(container, licenseManager);
         } else if (licenseManager) {
             this.flashcardComponent.setLicenseManager(licenseManager);
         }
 
-        await this.flashcardComponent?.activate();
+        await this.flashcardComponent?.activate(isCurrent);
     }
 
     /**
@@ -87,7 +78,6 @@ export class FlashcardViewManager {
             this.flashcardComponent.deactivate();
             this.flashcardComponent = null;
         }
-        this.isFlashcardMode = false;
     }
 
     /**
@@ -144,7 +134,7 @@ export class FlashcardViewManager {
      * @returns true 表示已处理，false 表示未处理
      */
     handleBackButton(): boolean {
-        if (!this.isFlashcardMode || !this.flashcardComponent) {
+        if (!this.flashcardComponent) {
             return false;
         }
 

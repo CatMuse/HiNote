@@ -39,18 +39,18 @@ export function setupFileList(options: FileListSetupOptions): {
         fileListContainer,
         plugin,
         highlightService,
-        licenseManager
+        licenseManager,
+        state
     );
     const fileListController = new FileListController({
         state,
         fileListManager,
         flashcardViewManager,
+        highlightListController,
         highlightContainer,
         searchContainer,
         licenseManager,
-        updateViewLayout,
-        updateHighlights: async () => await highlightListController.updateHighlights(),
-        updateAllHighlights: async () => await highlightListController.updateAllHighlights()
+        updateViewLayout
     });
     fileListManager.setCallbacks(fileListController.getCallbacks());
 

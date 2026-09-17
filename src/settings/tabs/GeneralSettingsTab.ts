@@ -43,7 +43,7 @@ export class GeneralSettingsTab {
             .setDesc(t('Skip paths, tags, notes or extensions. Separate with commas.'))
             .addTextArea(text => {
                 text
-                    .setPlaceholder('folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md')
+                    .setPlaceholder('folder1, folder1/folder2, [[note1]], [[note2]], *.excalidraw.md, *.xcd.md')
                     .setValue(this.plugin.settings.excludePatterns || '')
                     .onChange(async (value) => {
                         this.plugin.settings.excludePatterns = value;

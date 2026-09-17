@@ -83,7 +83,8 @@ export class HighlightDecorator {
             'comment:update',
             'comment:delete',
             'highlight:update',
-            'highlight:delete'
+            'highlight:delete',
+            'exclusions:changed'
         ];
 
         refreshEvents.forEach(eventName => {

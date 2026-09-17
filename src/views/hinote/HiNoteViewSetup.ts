@@ -1,3 +1,4 @@
+import { ViewState } from './ViewState';
 import { HighlightDataService } from "../../services/highlight";
 import { HighlightListController, HighlightRenderManager, InfiniteScrollManager } from "../highlight";
 import { SelectionManager } from "../selection";
@@ -29,7 +30,6 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         exportManager,
         virtualHighlightManager,
         flashcardViewManager,
-        canvasUpdateDelay,
         jumpToHighlight,
         checkViewPosition,
         updateViewLayout
@@ -76,24 +76,29 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         getHighlightDataService: () => highlightDataService,
         getVirtualHighlightManager: () => virtualHighlightManager,
         getCanvasProcessor: () => layoutAndCanvas?.canvasProcessor ?? null,
-        getSelectionManager: () => selectionManager
+        getSelectionManager: () => selectionManager,
+        beforeReplace: () => highlightRendering?.commentInputManager.suspendAll()
     });
 
     component.registerDomEvent(uiElements.backButton, "click", () => {
-        if (state.isMobileView && state.isSmallScreen && state.isDraggedToMainView) {
+        if (state.isDraggedToMainView) {
             if (flashcardViewManager.handleBackButton()) {
                 return;
             }
 
-            state.isShowingFileList = true;
-            void updateViewLayout();
+            if (state.isSmallScreen) {
+                state.setNavigationOpen(true);
+                void updateViewLayout();
+            } else {
+                void fileList.fileListController.navigate({ kind: 'all' });
+            }
         }
     });
 
     virtualHighlightManager.createFileCommentButton(
         uiElements.iconButtonsContainer,
         {
-            getCurrentFile: () => state.currentFile,
+            getCurrentFile: () => state.disposed || state.search.scope === 'vault' ? null : state.currentFile,
             getHighlights: () => state.highlights,
             onVirtualHighlightCreated: (vh) => {
                 state.highlights.unshift(vh);
@@ -106,7 +111,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
 
     exportManager.createExportButton(
         uiElements.iconButtonsContainer,
-        () => state.currentFile
+        () => state.search.scope === 'vault' ? null : state.currentFile
     );
 
     const interactions = setupSearchAndSelection({
@@ -157,12 +162,12 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         containerEl,
         state,
         canvasService,
-        canvasUpdateDelay,
         deviceManager,
         highlightRepository,
         highlightService,
         highlightDataService,
         fileListManager,
+        fileListController: fileList.fileListController,
         flashcardViewManager,
         highlightListController,
         fileListContainer,
@@ -183,10 +188,12 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         fileListManager,
         highlightListController,
         commentController: highlightRendering.commentController,
+        fileListController: fileList.fileListController,
         checkViewPosition
     });
 
-    deviceManager.setOnDeviceChange(() => {
+    deviceManager.setOnDeviceChange(info => {
+        state.setViewport(info.isMobile, info.isSmallScreen);
         void updateViewLayout();
     });
     deviceManager.startWatching(container);
@@ -194,28 +201,19 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
     infiniteScrollManager = new InfiniteScrollManager(highlightContainer);
     infiniteScrollManager.setLoadingIndicator(loadingIndicator);
 
-    const activeFile = app.workspace.getActiveFile();
-    if (activeFile) {
-        state.currentFile = activeFile;
-    }
-
-    layoutAndCanvas.layoutManager.updateState({
-        isDraggedToMainView: state.isDraggedToMainView,
-        isFlashcardMode: state.isFlashcardMode,
-        isShowingFileList: state.isShowingFileList
-    });
-    await layoutAndCanvas.layoutManager.updateViewLayout();
     const deviceInfo = deviceManager.getDeviceInfo();
-    state.isMobileView = deviceInfo.isMobile;
-    state.isSmallScreen = deviceInfo.isSmallScreen;
-
-    if (activeFile) {
-        void highlightListController.updateHighlights().catch(error => {
-            console.error('[HiNoteViewSetup] Failed to load initial highlights:', error);
-        });
-    } else {
-        highlightContainer.empty();
-        highlightListController.renderWithCurrentSearch();
+    state.setViewport(deviceInfo.isMobile, deviceInfo.isSmallScreen);
+    const renderLayout = async () => {
+        await layoutAndCanvas!.layoutManager.updateViewLayout();
+        highlightContainer.setAttribute('aria-busy', String(state.loading === 'loading'));
+        fileListManager.updateFileListSelection();
+    };
+    component.register(state.subscribe(() => { void renderLayout(); }));
+    if (state.page.kind === 'empty') state.navigate(ViewState.filePage(app.workspace.getActiveFile()));
+    await renderLayout();
+    if (!state.disposed) {
+        void fileList.fileListController.refreshCurrentView();
+        if (state.isDraggedToMainView) void fileListManager.updateFileList();
     }
 
     return {

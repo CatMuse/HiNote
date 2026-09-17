@@ -11,6 +11,10 @@ export class HighlightCardRegistry {
         this.instances.delete(card);
     }
 
+    clearWithin(container: HTMLElement): void {
+        Array.from(this.instances).filter(card => container.contains(card.getElement())).forEach(card => card.destroy());
+    }
+
     clearAll(): void {
         Array.from(this.instances).forEach(card => card.destroy());
         this.instances.clear();
@@ -20,9 +24,9 @@ export class HighlightCardRegistry {
         this.instances.forEach(card => card.clearUnfocusedInput());
     }
 
-    findByHighlightId(highlightId: string): HighlightCard | null {
+    findByHighlightId(highlightId: string, container?: HTMLElement): HighlightCard | null {
         for (const instance of this.instances) {
-            if (instance.getHighlightId() === highlightId) {
+            if (instance.getHighlightId() === highlightId && (!container || container.contains(instance.getElement()))) {
                 return instance;
             }
         }

@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import type { ViewState } from '../hinote/ViewState';
 import { TFile } from "obsidian";
 import { HighlightService } from "../../services/HighlightService";
 import CommentPlugin from "../../../main";
@@ -19,19 +21,20 @@ export class FileListManager {
     private onFlashcardModeToggle: ((enabled: boolean) => void) | null = null;
     private onAllHighlightsSelect: (() => void) | null = null;
     private onRefreshView: (() => Promise<void>) | null = null;
+    private refreshPending: Promise<void> | null = null;
     
-    // 状态
-    private currentFile: TFile | null = null;
-    private isFlashcardMode: boolean = false;
-    private isMobileView: boolean = false;
-    private isSmallScreen: boolean = false;
-    private isDraggedToMainView: boolean = false;
-    
+    private generation = 0;
+    private disposed = false;
+    private dirty = true;
+    private pending: Promise<void> | null = null;
+    private selectionKey: string | null = null;
+
     constructor(
         container: HTMLElement,
         plugin: CommentPlugin,
         highlightService: HighlightService,
-        _licenseManager: LicenseManager
+        _licenseManager: LicenseManager,
+        private state: ViewState
     ) {
         this.container = container;
         this.dataSource = new FileListDataSource(plugin, highlightService);
@@ -39,9 +42,10 @@ export class FileListManager {
             plugin,
             dataSource: this.dataSource,
             getState: () => ({
-                currentFile: this.currentFile,
-                isFlashcardMode: this.isFlashcardMode,
-                isDraggedToMainView: this.isDraggedToMainView
+                currentFile: this.state.currentFile,
+                isFlashcardMode: this.state.isFlashcardMode,
+                isDraggedToMainView: this.state.isDraggedToMainView,
+                isAllHighlights: this.state.isInAllHighlightsView()
             }),
             onFileSelect: () => this.onFileSelect,
             onFlashcardModeToggle: () => this.onFlashcardModeToggle,
@@ -64,38 +68,9 @@ export class FileListManager {
         if (callbacks.onFlashcardModeToggle) {
             this.onFlashcardModeToggle = callbacks.onFlashcardModeToggle;
         }
+        if (callbacks.onRefreshView) this.onRefreshView = callbacks.onRefreshView;
         if (callbacks.onAllHighlightsSelect) {
             this.onAllHighlightsSelect = callbacks.onAllHighlightsSelect;
-        }
-        if (callbacks.onRefreshView) {
-            this.onRefreshView = callbacks.onRefreshView;
-        }
-    }
-    
-    /**
-     * 更新状态
-     */
-    updateState(state: {
-        currentFile?: TFile | null;
-        isFlashcardMode?: boolean;
-        isMobileView?: boolean;
-        isSmallScreen?: boolean;
-        isDraggedToMainView?: boolean;
-    }) {
-        if (state.currentFile !== undefined) {
-            this.currentFile = state.currentFile;
-        }
-        if (state.isFlashcardMode !== undefined) {
-            this.isFlashcardMode = state.isFlashcardMode;
-        }
-        if (state.isMobileView !== undefined) {
-            this.isMobileView = state.isMobileView;
-        }
-        if (state.isSmallScreen !== undefined) {
-            this.isSmallScreen = state.isSmallScreen;
-        }
-        if (state.isDraggedToMainView !== undefined) {
-            this.isDraggedToMainView = state.isDraggedToMainView;
         }
     }
     
@@ -103,26 +78,22 @@ export class FileListManager {
      * 创建或更新文件列表
      * @param forceRefresh 是否强制刷新（清除缓存并重新获取）
      */
-    async updateFileList(forceRefresh: boolean = false) {
-        // 如果强制刷新，清除缓存
-        if (forceRefresh) {
-            this.invalidateCache();
-        }
-        
-        // 如果文件列表已经存在且不是强制刷新，只更新选中状态
-        if (this.container.children.length > 0 && !forceRefresh) {
-            this.updateFileListSelection();
-            return;
-        }
-
-        // 创建或重新创建文件列表
-        await this.createFileList();
+    async updateFileList(forceRefresh = false): Promise<void> {
+        if (this.disposed) return;
+        if (forceRefresh) this.invalidateCache();
+        if (this.pending) { await this.pending; if (this.dirty && !this.disposed) await this.updateFileList(); return; }
+        if (!this.dirty && this.container.children.length) { this.updateFileListSelection(); return; }
+        const generation = this.generation;
+        this.pending = this.createFileList(generation);
+        try { await this.pending; if (generation === this.generation) this.dirty = false; }
+        finally { this.pending = null; }
     }
-    
+
     /**
      * 创建文件列表
      */
-    private async createFileList() {
+    private async createFileList(generation: number) {
+        this.selectionKey = null;
         this.container.empty();
         
         // 创建文件列表标题
@@ -130,15 +101,13 @@ export class FileListManager {
             cls: "highlight-file-list-header"
         });
 
-        const titleEl = titleContainer.createDiv({
-            text: "HiNote",
-            cls: "highlight-file-list-title"
-        });
-        
-        // 添加点击刷新功能
-        titleEl.setCssProps({ cursor: 'pointer' });
-        titleEl.addEventListener("click", () => {
-            void this.refreshFromTitle();
+        const title = titleContainer.createDiv({ text: 'HiNote', cls: 'highlight-file-list-title', attr: {
+            role: 'button', tabindex: '0', title: t('Refresh view'), 'aria-label': `HiNote: ${t('Refresh view')}`
+        }});
+        const refresh = () => { void this.refreshFromTitle().catch(error => console.error('[HiNote] Refresh failed:', error)); };
+        title.addEventListener('click', refresh);
+        title.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); refresh(); }
         });
 
         // 创建文件列表
@@ -159,26 +128,33 @@ export class FileListManager {
 
         // 获取所有包含高亮的文件并创建列表项
         const files = await this.dataSource.getFilesWithHighlights();
+        if (this.disposed || generation !== this.generation) return;
         this.itemRenderer.updateAllHighlightsCount(fileList);
 
         for (const file of files) {
+            if (this.disposed || generation !== this.generation) return;
             await this.itemRenderer.createFileItem(fileList, file);
         }
+        if (!this.disposed && generation === this.generation) { this.selectionKey = null; this.updateFileListSelection(); }
     }
 
-    private async refreshFromTitle(): Promise<void> {
-        // 刷新文件列表
-        await this.updateFileList(true);
-        // 刷新主视图的高亮卡片
-        if (this.onRefreshView) {
-            await this.onRefreshView();
-        }
+    private refreshFromTitle(): Promise<void> {
+        if (this.disposed) return Promise.resolve();
+        if (this.refreshPending) return this.refreshPending;
+        this.refreshPending = (async () => {
+            await this.updateFileList(true);
+            if (!this.disposed) await this.onRefreshView?.();
+        })().finally(() => { this.refreshPending = null; });
+        return this.refreshPending;
     }
-    
+
     /**
      * 更新文件列表的选中状态
      */
     updateFileListSelection() {
+        const key = `${this.state.page.kind}:${this.state.currentFile?.path || ''}`;
+        if (this.selectionKey === key) return;
+        this.selectionKey = key;
         this.itemRenderer.updateSelection(this.container);
     }
     
@@ -186,6 +162,8 @@ export class FileListManager {
      * 清除缓存
      */
     invalidateCache(): void {
+        this.dirty = true;
+        this.generation++;
         this.dataSource.invalidateCache();
     }
     
@@ -193,6 +171,8 @@ export class FileListManager {
      * 清理资源
      */
     destroy() {
+        this.disposed = true;
+        this.generation++;
         this.itemRenderer.destroy();
         this.container.empty();
         this.onFileSelect = null;

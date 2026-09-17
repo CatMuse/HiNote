@@ -175,6 +175,8 @@ export default {
     "Show Comment Widget": "Show comment widget",
     "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.": "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.",
     "Export template": "Export template",
+    "Unable to load this view. Try refreshing.": "Unable to load this view. Try refreshing.",
+    "Refresh view": "Refresh view",
     "Check highlight associations": "Check highlight associations",
     "Find stored highlights that could not be located. Comments and flashcards are preserved.": "Find stored highlights that could not be located. Comments and flashcards are preserved.",
     "Unlocated highlights: {count}; affected files: {files}; skipped files: {skipped}. No data was deleted.": "Unlocated highlights: {count}; affected files: {files}; skipped files: {skipped}. No data was deleted.",

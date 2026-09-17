@@ -175,6 +175,8 @@ export default {
     "Show Comment Widget": "显示评论小组件",
     "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.": "显示或隐藏高亮旁边的评论小组件。禁用此选项可以减少阅读时的视觉干扰。",
     "Export template": "导出模板",
+    "Unable to load this view. Try refreshing.": "无法加载此视图，请刷新重试。",
+    "Refresh view": "刷新视图",
     "Check highlight associations": "检查高亮关联",
     "Find stored highlights that could not be located. Comments and flashcards are preserved.": "检查暂时无法定位的高亮，保留评论和闪卡。",
     "Unlocated highlights: {count}; affected files: {files}; skipped files: {skipped}. No data was deleted.": "未定位高亮：{count}；涉及文件：{files}；跳过文件：{skipped}。未删除任何数据。",

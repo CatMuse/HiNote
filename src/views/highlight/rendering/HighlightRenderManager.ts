@@ -110,7 +110,7 @@ export class HighlightRenderManager {
         }
         
         if (!append) {
-            defaultHighlightCardRegistry.clearAll();
+            defaultHighlightCardRegistry.clearWithin(this.container);
             
             this.container.empty();
             this.currentBatch = 0;
@@ -321,7 +321,7 @@ export class HighlightRenderManager {
             window.clearTimeout(this.resizeTimer);
             this.resizeTimer = null;
         }
-        defaultHighlightCardRegistry.clearAll();
+        defaultHighlightCardRegistry.clearWithin(this.container);
         this.container.empty();
         this.lastMasonryColumnCount = 0;
     }

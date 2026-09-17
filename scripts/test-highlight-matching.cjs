@@ -206,6 +206,7 @@ async function scansAndDiagnostics() {
 
     // The cached index must keep the full scan even when a search returns a subset.
     const indexer = new HighlightIndexer(app, {
+        shouldProcessFile: () => true,
         getAllHighlights: async () => [{ file, highlights: extract('==alpha== ==beta==') }],
         clearContentCache: () => {}
     });

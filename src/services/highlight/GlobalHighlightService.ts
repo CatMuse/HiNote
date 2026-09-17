@@ -65,6 +65,7 @@ export class GlobalHighlightService {
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
+            if (!this.highlightService.shouldProcessFile(file)) continue;
             // 如果有搜索词，检查文件路径是否匹配
             if (searchTerm && !file.path.toLowerCase().includes(searchTerm.toLowerCase())) {
                 continue;
@@ -108,7 +109,7 @@ export class GlobalHighlightService {
         // 处理每个文件的高亮
         for (const [filePath, highlights] of highlightsByFile.entries()) {
             const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!(file instanceof TFile)) continue;
+            if (!(file instanceof TFile) || !this.highlightService.shouldProcessFile(file)) continue;
             
             const fileComments = await this.highlightRepository.getFileHighlights(file.path);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
@@ -150,6 +151,7 @@ export class GlobalHighlightService {
         const result: HighlightInfo[] = [];
         
         for (const { file, highlights } of allHighlights) {
+            if (!this.highlightService.shouldProcessFile(file)) continue;
             const fileComments = await this.highlightRepository.getFileHighlights(file.path);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
@@ -183,7 +185,7 @@ export class GlobalHighlightService {
         // 处理每个文件的高亮
         for (const [filePath, highlights] of highlightsByFile.entries()) {
             const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!(file instanceof TFile)) continue;
+            if (!(file instanceof TFile) || !this.highlightService.shouldProcessFile(file)) continue;
             
             const fileComments = await this.highlightRepository.getFileHighlights(file.path);
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
@@ -206,6 +208,7 @@ export class GlobalHighlightService {
         fileComments: HiNote[],
         file: TFile
     ): HighlightInfo[] {
+        if (!this.highlightService.shouldProcessFile(file)) return [];
         return this.highlightService.mergeHighlightsWithComments(highlights, fileComments, file);
     }
     

@@ -52,7 +52,7 @@ export class UIInitializer {
             cls: "highlight-content-container"
         });
 
-        // 创建返回按钮（仅在移动端显示）
+        // 保留窄窗格原有的返回入口
         const { backButtonContainer, backButton } = this.createBackButton(mainContentContainer);
 
         // 创建搜索区域
@@ -120,8 +120,9 @@ export class UIInitializer {
             cls: "highlight-back-button-container"
         });
 
-        const backButton = backButtonContainer.createDiv({
-            cls: "highlight-back-button"
+        const backButton = backButtonContainer.createEl('button', {
+            cls: 'highlight-back-button clickable-icon',
+            attr: { type: 'button', 'aria-label': t('BACK'), title: t('BACK') }
         });
 
         setIcon(backButton, "arrow-left");
@@ -142,6 +143,7 @@ export class UIInitializer {
             attr: {
                 type: "text",
                 placeholder: t("Search..."),
+                "aria-label": t("Search..."),
             }
         });
 

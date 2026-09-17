@@ -1,3 +1,4 @@
+import { parseHighlightQuery } from './HighlightQuery';
 import { TFile } from "obsidian";
 import { HighlightInfo } from "../../types/highlight";
 import CommentPlugin from "../../../main";
@@ -22,31 +23,8 @@ export class SearchService {
      * 解析搜索输入，提取搜索词和搜索类型
      */
     parseSearchInput(searchInput: string): { searchTerm: string; searchType: string } {
-        const normalizedInput = searchInput.toLowerCase().trim();
-        
-        const isGlobalSearch = normalizedInput.startsWith('all:');
-        const isHiCardSearch = normalizedInput.startsWith('hicard:');
-        const isCommentSearch = normalizedInput.startsWith('comment:');
-        const isPathSearch = normalizedInput.startsWith('path:');
-        
-        let searchType = '';
-        let searchTerm = normalizedInput;
-        
-        if (isGlobalSearch) {
-            searchType = 'all';
-            searchTerm = normalizedInput.substring(4).trim();
-        } else if (isHiCardSearch) {
-            searchType = 'hicard';
-            searchTerm = normalizedInput.substring(7).trim();
-        } else if (isCommentSearch) {
-            searchType = 'comment';
-            searchTerm = normalizedInput.substring(8).trim();
-        } else if (isPathSearch) {
-            searchType = 'path';
-            searchTerm = normalizedInput.substring(5).trim();
-        }
-        
-        return { searchTerm, searchType };
+        const query = parseHighlightQuery(searchInput);
+        return { searchTerm: query.term, searchType: query.type };
     }
     
     /**

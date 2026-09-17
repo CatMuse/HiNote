@@ -54,11 +54,12 @@ export function setupHighlightRendering(options: HighlightRenderingSetupOptions)
         plugin,
         highlightManager
     );
-    const commentInputManager = new CommentInputManager(plugin);
+    const commentInputManager = new CommentInputManager(plugin, state.drafts);
     const commentController = new CommentController({
         state,
         commentService,
         commentInputManager,
+        highlightContainer,
         refreshView: async () => await highlightListController.refreshView()
     });
     commentController.configure();

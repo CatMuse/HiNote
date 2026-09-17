@@ -39,7 +39,7 @@ export class ExcludePatternMatcher {
             // 处理文件扩展名格式 *.extension
             if (pattern.startsWith('*.')) {
                 const extension = pattern.slice(2);
-                return file.extension === extension || filePath.endsWith(extension);
+                return file.extension === extension || filePath.endsWith('.' + extension);
             }
 
             // 处理文件夹路径

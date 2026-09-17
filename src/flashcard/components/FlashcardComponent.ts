@@ -38,6 +38,7 @@ export class FlashcardComponent extends Component {
     private isFlipped: boolean = false;
     private cards: FlashcardState[] = [];
     private isActive: boolean = false;
+    private activationVersion = 0;
     private licenseManager: LicenseManager;
     private fsrsManager: FSRSManager;
     private currentGroupName: string = '';
@@ -115,13 +116,17 @@ export class FlashcardComponent extends Component {
     /**
      * 激活组件
      */
-    public async activate() {
+    public async activate(isCurrent: () => boolean = () => true) {
+        const version = ++this.activationVersion;
+        const valid = () => this.isActive && version === this.activationVersion && isCurrent();
         this.isActive = true;
         
         // 检查许可证状态
         if (this.licenseManager) {
             const isActivated = await this.licenseManager.isActivated();
+            if (!valid()) return;
             const isFeatureEnabled = isActivated ? await this.licenseManager.isFeatureEnabled('flashcard') : false;
+            if (!valid()) return;
             
             if (isActivated && isFeatureEnabled) {
                 // 已激活且启用了闪卡功能，刷新卡片列表
@@ -133,6 +138,7 @@ export class FlashcardComponent extends Component {
             }
         }
         
+        if (!valid()) return;
         // 未激活或未启用闪卡功能，显示激活界面
         this.renderer.renderActivation();
     }
@@ -148,6 +154,7 @@ export class FlashcardComponent extends Component {
      * 停用组件
      */
     public deactivate() {
+        this.activationVersion++;
         this.groupManager.dispose();
         this.isActive = false;
         this.container.empty();
@@ -159,6 +166,8 @@ export class FlashcardComponent extends Component {
      * 销毁组件
      */
     public destroy() {
+        this.activationVersion++;
+        this.isActive = false;
         this.groupManager.dispose();
         // 键盘事件监听器已移除
         this.container.removeClass('flashcard-mode');

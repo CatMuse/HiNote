@@ -3635,9 +3635,6 @@ textarea.flashcard-modal-input {
 
 /* === 移动端布局 === */
 
-.is-mobile .hinote-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
-    display: flex;
-}
 
 /* 小屏幕移动端主视图中的全宽文件列表 */
 .is-mobile .is-small-screen .highlight-file-list-container.highlight-full-width {
@@ -4033,4 +4030,35 @@ textarea.flashcard-modal-input {
     margin-top: 6px;
     overflow-wrap: anywhere;
     white-space: normal;
+}
+
+/* Keep the existing narrow-pane back control, without a separate toolbar. */
+.hinote-view-container.is-in-main-view.is-small-screen .highlight-back-button-container {
+    display: flex;
+}
+.highlight-file-list-title[role="button"] { cursor: pointer; }
+.highlight-file-list-title[role="button"]:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+.hinote-view-container.is-in-main-view.is-small-screen .highlight-file-list-container.highlight-full-width {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    flex: 1;
+}
+.highlight-file-item[role="button"]:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: -2px;
+}
+.hinote-view-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+.hinote-view-container > .highlight-main-container {
+    flex: 1;
+    min-height: 0;
+    height: auto;
 }

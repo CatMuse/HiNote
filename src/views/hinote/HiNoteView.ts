@@ -11,7 +11,7 @@ import {t} from "../../i18n";
 import { LicenseManager } from '../../services/LicenseManager';
 import { ExportManager, FlashcardViewManager, VirtualHighlightManager } from '../highlight';
 import { DeviceManager, EventCoordinator, UIInitializer } from '../managers';
-import { ViewState } from './ViewState';
+import { ViewState, type ViewSession } from './ViewState';
 import { setupHiNoteView } from './HiNoteViewSetup';
 import { HiNoteViewSetupResult } from './HiNoteViewSetupTypes';
 import type { PluginServices } from '../../plugin/PluginServices';
@@ -23,9 +23,6 @@ export const VIEW_TYPE_HINOTE = "hinote-view";
  * 负责显示和管理高亮、评论、闪卡等核心功能
  */
 export class HiNoteView extends ItemView {
-    // === 常量定义 ===
-    private static readonly CANVAS_UPDATE_DELAY = 10; // Canvas 更新延迟（毫秒）
-
     // === 视图状态（集中管理） ===
     private state = new ViewState();
 
@@ -91,16 +88,19 @@ export class HiNoteView extends ItemView {
         return this.state.isDraggedToMainView;
     }
 
-    async setMainWindowMode(enabled: boolean, refreshHighlights = false): Promise<void> {
-        this.state.isDraggedToMainView = enabled;
-        this.setupResult?.fileListManager.invalidateCache();
-        await this.updateViewLayout();
+    async setMainWindowMode(enabled: boolean, _refreshHighlights = false): Promise<void> {
+        if (this.setupResult) await this.setupResult.viewPositionController.handlePositionChange(enabled);
+        else this.state.setPlacement(enabled ? 'main' : 'sidebar');
+    }
 
-        if (refreshHighlights) {
-            void this.setupResult?.highlightListController.updateHighlights().catch(error => {
-                console.error('[HiNoteView] Failed to refresh highlights after mode switch:', error);
-            });
-        }
+    getSessionState(): ViewSession {
+        this.setupResult?.commentInputManager.suspendAll();
+        return this.state.snapshot();
+    }
+
+    restoreSessionState(session: ViewSession): void {
+        this.state.restore(session);
+        if (this.setupResult) this.setupResult.searchInput.value = session.search;
     }
 
     async onOpen() {
@@ -112,7 +112,7 @@ export class HiNoteView extends ItemView {
             return;
         }
         if (this.closed) return;
-        this.setupResult = await setupHiNoteView({
+        const setup = await setupHiNoteView({
             app: this.app,
             component: this,
             leaf: this.leaf,
@@ -131,11 +131,24 @@ export class HiNoteView extends ItemView {
             exportManager: this.exportManager!,
             virtualHighlightManager: this.virtualHighlightManager!,
             flashcardViewManager: this.flashcardViewManager!,
-            canvasUpdateDelay: HiNoteView.CANVAS_UPDATE_DELAY,
             jumpToHighlight: async (highlight) => await this.jumpToHighlight(highlight),
             checkViewPosition: async () => await this.checkViewPosition(),
             updateViewLayout: async () => await this.updateViewLayout()
         });
+        if (this.closed) {
+            setup.searchUIManager.destroy();
+            setup.infiniteScrollManager.destroy();
+            setup.commentInputManager.clearEditingState();
+            setup.highlightRenderManager.destroy();
+            setup.selectionManager.destroy();
+            setup.fileListManager.destroy();
+            setup.batchOperationsHandler.destroy();
+            this.deviceManager?.destroy();
+            this.flashcardViewManager?.destroy();
+            return;
+        }
+        this.setupResult = setup;
+        await this.checkViewPosition();
     }
 
     private async jumpToHighlight(highlight: HighlightInfo) {
@@ -166,31 +179,27 @@ export class HiNoteView extends ItemView {
     
     // 更新视图布局（使用 LayoutManager）
     private async updateViewLayout() {
-        if (this.setupResult) {
-            this.setupResult.layoutManager.updateState({
-                isDraggedToMainView: this.state.isDraggedToMainView,
-                isFlashcardMode: this.state.isFlashcardMode,
-                isShowingFileList: this.state.isShowingFileList
-            });
-            await this.setupResult.layoutManager.updateViewLayout();
-            
-            // 同步设备信息（使用 DeviceManager）
-            const deviceInfo = this.deviceManager!.getDeviceInfo();
-            this.state.isMobileView = deviceInfo.isMobile;
-            this.state.isSmallScreen = deviceInfo.isSmallScreen;
+        if (!this.setupResult || this.state.disposed) return;
+        const info = this.deviceManager!.getDeviceInfo();
+        if (info.isMobile !== this.state.isMobileView || info.isSmallScreen !== this.state.isSmallScreen) {
+            this.state.setViewport(info.isMobile, info.isSmallScreen);
         }
+        await this.setupResult.layoutManager.updateViewLayout();
     }
 
     // 在 onunload 方法中确保清理
     onunload() {
         this.closed = true;
+        this.setupResult?.commentInputManager.clearEditingState();
+        this.state.dispose();
+        this.setupResult?.infiniteScrollManager.destroy();
+        this.flashcardViewManager?.destroy();
         // 清理有 destroy 方法的管理器
         this.setupResult?.searchUIManager.destroy();
         this.setupResult?.selectionManager.destroy();
         this.setupResult?.batchOperationsHandler.destroy();
         this.setupResult?.fileListManager.destroy();
         this.setupResult?.highlightRenderManager.destroy();
-        this.setupResult?.commentInputManager.clearEditingState();
         this.deviceManager?.destroy();
         
         this.setupResult = null;

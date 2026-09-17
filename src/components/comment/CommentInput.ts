@@ -25,6 +25,8 @@ export class CommentInput {
     private boundHandleOutsideClick: (e: MouseEvent) => void;
     private commentEl: Element | null = null; // 保存批注元素引用，用于移除 editing 类
     private isOpen = false;
+    private focusTimer: number | null = null;
+    private editContext?: CommentInputEditContext | null;
 
     constructor(
         private card: HTMLElement,
@@ -35,6 +37,7 @@ export class CommentInput {
             onSave: (content: string) => Promise<void>;
             onDelete?: () => Promise<void>;
             onCancel: () => void;
+            initialContent?: string;
             onShown?: () => void;
             onClosed?: () => void;
         }
@@ -61,6 +64,7 @@ export class CommentInput {
             : this.showCreateMode();
 
         if (didShow) {
+            if (this.options.initialContent !== undefined) { this.textarea.value = this.options.initialContent; this.autoResizeTextarea(); }
             this.isOpen = true;
             activeDocument.addEventListener('click', this.boundHandleOutsideClick);
             this.options.onShown?.();
@@ -82,7 +86,8 @@ export class CommentInput {
         this.setupKeyboardEvents(renderedInput.editContext);
 
         // 延迟一下再聚焦，确保DOM已经完全渲染
-        window.setTimeout(() => {
+        this.focusTimer = window.setTimeout(() => {
+            if (!this.isOpen || !this.textarea.isConnected) return;
             this.textarea.focus();
             this.textarea.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
         }, 50);
@@ -101,7 +106,8 @@ export class CommentInput {
         this.setupKeyboardEvents(renderedInput.editContext);
         
         // 延迟一下再聚焦，确保DOM已经完全渲染
-        window.setTimeout(() => {
+        this.focusTimer = window.setTimeout(() => {
+            if (!this.isOpen || !this.textarea.isConnected) return;
             this.textarea.focus();
         }, 50);
 
@@ -109,6 +115,7 @@ export class CommentInput {
     }
 
     private setupKeyboardEvents(editContext?: CommentInputEditContext | null) {
+        this.editContext = editContext;
         this.cancelEdit = () => {
             this.cancel(editContext);
         };
@@ -236,7 +243,18 @@ export class CommentInput {
         }
     }
 
+    public getDraft(): string { return this.textarea?.value || ''; }
+
+    /** Detach without saving or cancelling the user's draft. */
+    public suspend(): void {
+        activeDocument.removeEventListener('click', this.boundHandleOutsideClick);
+        restoreOrRemoveCommentInput(this.getElements(), this.existingComment, this.editContext);
+        this.notifyClosed();
+    }
+
     private notifyClosed(): void {
+        if (this.focusTimer !== null) window.clearTimeout(this.focusTimer);
+        this.focusTimer = null;
         if (!this.isOpen) {
             return;
         }

@@ -1,6 +1,6 @@
 import { Component } from "obsidian";
 import { CommentController, HighlightListController } from "../highlight";
-import { EventCoordinator, FileListManager } from "../managers";
+import { EventCoordinator, FileListManager, FileListController } from "../managers";
 import { SelectionManager } from "../selection";
 import { ViewState } from "./ViewState";
 
@@ -12,6 +12,7 @@ interface HiNoteViewEventBindingOptions {
     highlightContainer: HTMLElement;
     selectionManager: SelectionManager;
     fileListManager: FileListManager;
+    fileListController: FileListController;
     highlightListController: HighlightListController;
     commentController: CommentController;
     checkViewPosition: () => Promise<void>;
@@ -26,6 +27,7 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
         highlightContainer,
         selectionManager,
         fileListManager,
+        fileListController,
         highlightListController,
         commentController,
         checkViewPosition
@@ -57,31 +59,44 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
         }
     });
 
+    let refreshTimer: number | null = null;
+    let pendingContent = false;
+    component.register(() => { if (refreshTimer !== null) window.clearTimeout(refreshTimer); });
+    const scheduleRefresh = (content: boolean) => {
+        if (state.disposed) return;
+        fileListManager.invalidateCache();
+        pendingContent ||= content;
+        if (content && !state.isFlashcardMode) state.invalidate();
+        if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+        refreshTimer = window.setTimeout(() => {
+            refreshTimer = null;
+            if (state.disposed) return;
+            if (state.isDraggedToMainView) void fileListManager.updateFileList();
+            const shouldRefresh = pendingContent; pendingContent = false;
+            if (shouldRefresh && !state.isFlashcardMode) void highlightListController.refreshView();
+        }, 300);
+    };
     eventCoordinator.setCallbacks({
-        onFileOpen: (file, isInCanvas) => {
-            state.currentFile = file;
-            void highlightListController.updateHighlights(isInCanvas);
+        onExclusionsChanged: () => {
+            if (!state.isFlashcardMode) highlightListController.cancelPending();
+            scheduleRefresh(!state.isFlashcardMode);
         },
-        onFileModify: (file, isInCanvas) => {
-            fileListManager.invalidateCache();
-            void highlightListController.updateHighlights(isInCanvas);
+        onFileOpen: file => { void fileListController.navigate(ViewState.filePage(file)); },
+        onFileModify: file => {
+            scheduleRefresh(state.currentFile === file || state.page.kind === 'all' ||
+                state.page.kind === 'canvas' || state.search.scope === 'vault');
         },
-        onFileCreate: () => {
-            fileListManager.invalidateCache();
+        onFileCreate: () => scheduleRefresh(state.page.kind === 'all' || state.search.scope === 'vault'),
+        onFileDelete: file => {
+            if (state.mainPage && 'file' in state.mainPage && state.mainPage.file === file) state.mainPage = null;
+            if (state.currentFile === file) void fileListController.navigate({ kind: 'empty' });
+            scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'canvas' || state.search.scope === 'vault');
         },
-        onFileDelete: () => {
-            fileListManager.invalidateCache();
-        },
-        onLayoutChange: () => {
-            void checkViewPosition();
-        },
+        onFileRename: () => { state.notify(); scheduleRefresh(!state.isFlashcardMode); },
+        onLayoutChange: () => { void checkViewPosition(); },
         onCommentInput: (highlightId, text) => {
-            eventCoordinator.handleCommentInputDisplay(
-                highlightId,
-                text,
-                highlightContainer,
-                (card, highlight) => commentController.showCommentInput(card, highlight)
-            );
+            eventCoordinator.handleCommentInputDisplay(highlightId, text, highlightContainer,
+                (card, highlight) => commentController.showCommentInput(card, highlight));
         }
     });
     eventCoordinator.registerAllEvents(

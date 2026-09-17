@@ -52,7 +52,6 @@ export interface HiNoteViewSetupOptions {
     exportManager: ExportManager;
     virtualHighlightManager: VirtualHighlightManager;
     flashcardViewManager: FlashcardViewManager;
-    canvasUpdateDelay: number;
     jumpToHighlight: (highlight: HighlightInfo) => Promise<void>;
     checkViewPosition: () => Promise<void>;
     updateViewLayout: () => Promise<void>;

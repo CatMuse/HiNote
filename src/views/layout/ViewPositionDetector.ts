@@ -1,3 +1,4 @@
+import type { ViewState } from '../hinote/ViewState';
 import { WorkspaceLeaf, App } from 'obsidian';
 
 interface WorkspaceSplitLike {
@@ -16,9 +17,8 @@ export class ViewPositionDetector {
     private onPositionChange: ((isInMainView: boolean, wasInAllHighlightsView: boolean) => Promise<void>) | null = null;
     
     // 状态
-    private isDraggedToMainView: boolean = false;
     
-    constructor(app: App, leaf: WorkspaceLeaf) {
+    constructor(app: App, leaf: WorkspaceLeaf, private state: ViewState) {
         this.app = app;
         this.leaf = leaf;
     }
@@ -35,17 +35,6 @@ export class ViewPositionDetector {
     }
     
     /**
-     * 更新状态
-     */
-    updateState(state: {
-        isDraggedToMainView?: boolean;
-    }) {
-        if (state.isDraggedToMainView !== undefined) {
-            this.isDraggedToMainView = state.isDraggedToMainView;
-        }
-    }
-    
-    /**
      * 检查视图位置
      */
     async checkViewPosition(wasInAllHighlightsView: boolean): Promise<void> {
@@ -57,8 +46,7 @@ export class ViewPositionDetector {
         const isInMainView = this.isViewInMainArea(this.leaf, root);
         
         // 如果位置发生变化
-        if (this.isDraggedToMainView !== isInMainView) {
-            this.isDraggedToMainView = isInMainView;
+        if (this.state.isDraggedToMainView !== isInMainView) {
             
             // 触发位置变化回调
             if (this.onPositionChange) {
@@ -94,6 +82,6 @@ export class ViewPositionDetector {
      * 获取当前位置状态
      */
     isDraggedToMain(): boolean {
-        return this.isDraggedToMainView;
+        return this.state.isDraggedToMainView;
     }
 }

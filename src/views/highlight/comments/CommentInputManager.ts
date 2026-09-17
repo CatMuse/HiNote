@@ -17,8 +17,9 @@ export class CommentInputManager {
     
     // 当前编辑状态
     private currentEditingHighlightId: string | undefined;
+    private inputs = new Map<string, CommentInput>();
     
-    constructor(plugin: CommentPlugin) {
+    constructor(plugin: CommentPlugin, private drafts: Map<string, string> = new Map()) {
         this.plugin = plugin;
     }
     
@@ -49,20 +50,27 @@ export class CommentInputManager {
         highlight: HighlightInfo, 
         existingComment?: CommentItem
     ): void {
+        this.suspendAll();
         this.currentEditingHighlightId = highlight.id;
+        const key = JSON.stringify([highlight.filePath, highlight.recordId || highlight.id, existingComment?.id || 'new']);
         
-        new CommentInput(card, highlight, existingComment, this.plugin, {
+        const input = new CommentInput(card, highlight, existingComment, this.plugin, {
+            initialContent: this.drafts.get(key),
             onSave: async (content: string) => {
+                const draftAtSave = this.drafts.get(key);
                 if (this.onCommentSave) {
                     await this.onCommentSave(highlight, content, existingComment);
+                    if (this.drafts.get(key) === draftAtSave || this.drafts.get(key)?.trim() === content.trim()) this.drafts.delete(key);
                 }
             },
             onDelete: existingComment ? async () => {
                 if (this.onCommentDelete) {
                     await this.onCommentDelete(highlight, existingComment.id);
+                    this.drafts.delete(key);
                 }
             } : undefined,
             onCancel: () => {
+                this.drafts.delete(key);
                 if (this.onCommentCancel) {
                     void this.onCommentCancel(highlight);
                 }
@@ -71,9 +79,12 @@ export class CommentInputManager {
                 defaultHighlightCardRegistry.findByElement(card)?.handleInputShown();
             },
             onClosed: () => {
+                if (this.inputs.get(key) === input) this.inputs.delete(key);
                 defaultHighlightCardRegistry.findByElement(card)?.handleInputClosed();
             }
-        }).show();
+        });
+        this.inputs.set(key, input);
+        input.show();
     }
     
     /**
@@ -86,7 +97,17 @@ export class CommentInputManager {
     /**
      * 清除当前编辑状态
      */
+    suspendAll(): void {
+        for (const [key, input] of [...this.inputs]) {
+            const draft = input.getDraft();
+            if (draft) this.drafts.set(key, draft); else this.drafts.delete(key);
+            input.suspend();
+        }
+        this.inputs.clear();
+    }
+
     clearEditingState(): void {
+        this.suspendAll();
         this.currentEditingHighlightId = undefined;
     }
 }

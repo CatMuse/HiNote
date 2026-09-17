@@ -1,259 +1,166 @@
-import { App, TFile } from "obsidian";
-import { ScannedHighlight } from '../../types/highlight';
+import { App, TFile } from 'obsidian';
+import type { ScannedHighlight } from '../../types/highlight';
 import { HighlightExtractor } from './HighlightExtractor';
-import { HighlightIndexStore } from "./HighlightIndexStore";
-import { HighlightIndexFileWatcher } from "./HighlightIndexFileWatcher";
-import { ObsidianInternals } from "../../utils/ObsidianInternals";
+import { HighlightIndexStore } from './HighlightIndexStore';
+import { HighlightIndexFileWatcher } from './HighlightIndexFileWatcher';
+import { ObsidianInternals } from '../../utils/ObsidianInternals';
 
-/**
- * 高亮索引器
- * 职责：
- * 1. 构建和维护全局高亮索引
- * 2. 注册文件事件监听器实现索引自动更新
- * 3. 基于索引的关键词搜索
- * 4. 索引的增量更新和过期管理
- */
+/** Shared, versioned index. Every read also checks the current exclusion rules. */
 export class HighlightIndexer {
     private indexStore = new HighlightIndexStore();
     private fileWatcher: HighlightIndexFileWatcher;
-    
-    // 是否正在构建索引
-    private isIndexing: boolean = false;
+    private buildPromise: Promise<void> | null = null;
     private indexBuildTimer: number | null = null;
-    
-    constructor(
-        private app: App,
-        private extractor: HighlightExtractor
-    ) {
+    private generation = 0;
+    private disposed = false;
+    private fileVersions = new Map<string, number>();
+
+    constructor(private app: App, private extractor: HighlightExtractor) {
         this.fileWatcher = new HighlightIndexFileWatcher({
-            app,
-            extractor,
-            updateFileInIndex: (file) => {
-                void this.updateFileInIndex(file);
-            },
-            removeFileFromIndex: (filePath) => this.removeFileFromIndex(filePath)
+            app, extractor,
+            updateFileInIndex: file => { void this.updateFileInIndex(file).catch(error => this.report(error)); },
+            removeFileFromIndex: path => this.removeFileFromIndex(path)
         });
     }
-
-    /**
-     * 初始化索引器，包括构建索引和注册文件事件监听器
-     */
     async initialize(): Promise<void> {
-        // 注册文件事件监听器，实现索引的自动更新
         this.fileWatcher.register();
-        
-        // 根据设备类型调整索引构建策略
-        // 移动端延迟更长时间，避免影响启动性能
-        const isMobile = ObsidianInternals.isMobile(this.app);
-        const delay = isMobile ? 10000 : 3000; // 移动端10秒，桌面端3秒
-        
-        this.indexBuildTimer = window.setTimeout(() => {
-            this.indexBuildTimer = null;
-            void this.buildFileIndex();
-        }, delay);
+        this.scheduleBuild(ObsidianInternals.isMobile(this.app) ? 10000 : 3000);
     }
-    
-    /**
-     * 销毁索引器，清理资源
-     */
-    destroy(): void {
-        // 注销文件事件监听器
-        this.fileWatcher.unregister();
-
-        if (this.indexBuildTimer !== null) {
-            window.clearTimeout(this.indexBuildTimer);
-            this.indexBuildTimer = null;
-        }
-        
-        // 清空索引
+    invalidateExclusions(): void {
+        if (this.disposed) return;
+        this.generation++;
         this.indexStore.reset();
-        
-        // 清空文件内容缓存
+        // Coalesce textarea edits. An explicit reader can request the build sooner.
+        this.scheduleBuild(300);
+    }
+    destroy(): void {
+        this.disposed = true;
+        this.generation++;
+        this.fileWatcher.unregister();
+        this.cancelScheduledBuild();
+        this.indexStore.reset();
+        this.fileVersions.clear();
         this.extractor.clearContentCache();
     }
-    
-    /**
-     * 构建文件级高亮索引
-     * 只对包含高亮的文件建立索引，而不是对每个高亮单独建立索引
-     */
-    async buildFileIndex(): Promise<void> {
-        // 如果已经在构建索引，则跳过
-        if (this.isIndexing) {
-            return;
-        }
-        
-        this.isIndexing = true;
-        try {
-            // 获取所有高亮
-            const allHighlights = await this.extractor.getAllHighlights();
-            
-            // 创建新索引
-            const newWordToFiles = new Map<string, Set<string>>();
-            const newFileToHighlights = new Map<string, ScannedHighlight[]>();
-            
-            // 填充索引
-            for (const { file, highlights } of allHighlights) {
-                // Preserve source occurrences and their scan provenance.
-                const highlightsWithFileInfo = highlights;
-                
-                // 添加到文件映射
-                newFileToHighlights.set(file.path, highlightsWithFileInfo);
-                
-                // 提取关键词并添加到索引
-                const fileWords = this.indexStore.extractKeywordsFromHighlights(highlights);
-                this.indexStore.addKeywordsToIndex(fileWords, file.path, newWordToFiles);
+    private cancelScheduledBuild(): void {
+        if (this.indexBuildTimer !== null) window.clearTimeout(this.indexBuildTimer);
+        this.indexBuildTimer = null;
+    }
+    private scheduleBuild(delay: number): void {
+        this.cancelScheduledBuild();
+        this.indexBuildTimer = window.setTimeout(() => {
+            this.indexBuildTimer = null;
+            void this.buildFileIndex().catch(error => this.report(error));
+        }, delay);
+    }
+    buildFileIndex(): Promise<void> {
+        if (this.disposed) return Promise.resolve();
+        this.cancelScheduledBuild();
+        if (this.buildPromise) return this.buildPromise;
+        const pending = this.buildLatestIndex().finally(() => {
+            if (this.buildPromise === pending) this.buildPromise = null;
+        });
+        this.buildPromise = pending;
+        return pending;
+    }
+    private async buildLatestIndex(): Promise<void> {
+        while (!this.disposed) {
+            const generation = this.generation;
+            let groups: { file: TFile; highlights: ScannedHighlight[] }[];
+            try { groups = await this.extractor.getAllHighlights(); }
+            catch (error) {
+                if (this.disposed) return;
+                if (generation !== this.generation) continue;
+                throw error;
             }
-            
-            // 更新索引
-            this.indexStore.replace(newWordToFiles, newFileToHighlights);
-            
-        } catch {
-            // 忽略索引构建错误
-        } finally {
-            this.isIndexing = false;
-        }
-    }
-    
-    /**
-     * 从索引中获取所有高亮（公共方法，供外部调用）
-     * 如果索引可用，直接从缓存返回，避免重新读取文件
-     * 如果索引未构建，触发按需构建（但本次返回 null）
-     * @returns 所有高亮数组，如果索引未构建则返回 null
-     */
-    public getAllHighlightsFromCache(): ScannedHighlight[] | null {
-        // 如果索引从未构建过，触发按需构建
-        if (this.indexStore.lastUpdated === 0 && !this.isIndexing) {
-            void this.buildFileIndex();
-        }
-        
-        // 检查索引是否可用
-        if (!this.indexStore.isExpired() && this.indexStore.fileToHighlights.size > 0) {
-            return this.indexStore.getAllHighlights();
-        }
-        return null;
-    }
-    
-    /**
-     * 从索引中移除文件
-     * @param filePath 要移除的文件路径
-     */
-    removeFileFromIndex(filePath: string): void {
-        // 如果索引未初始化或过期，则跳过
-        this.indexStore.removeFile(filePath);
-    }
-    
-    /**
-     * 增量更新文件的索引
-     * @param file 要更新的文件
-     */
-    async updateFileInIndex(file: TFile): Promise<void> {
-        // 如果索引正在构建中，跳过增量更新
-        if (this.isIndexing) {
+            if (this.disposed) return;
+            if (generation !== this.generation) continue;
+            const words = new Map<string, Set<string>>();
+            const files = new Map<string, ScannedHighlight[]>();
+            for (const { file, highlights } of groups) {
+                if (!this.extractor.shouldProcessFile(file)) continue;
+                files.set(file.path, highlights);
+                this.indexStore.addKeywordsToIndex(this.indexStore.extractKeywordsFromHighlights(highlights), file.path, words);
+            }
+            this.indexStore.replace(words, files);
             return;
         }
-        
-        // 如果索引未初始化，初始化空索引结构
-        this.indexStore.ensureInitialized();
-        
-        // 如果索引已过期，触发完整重建（异步，不阻塞当前更新）
+    }
+    getAllHighlightsFromCache(): ScannedHighlight[] | null {
+        if (this.disposed) return null;
         if (this.indexStore.isExpired()) {
-            // 异步触发重建，但不等待
-            void this.buildFileIndex();
+            if (this.indexBuildTimer === null) void this.buildFileIndex().catch(error => this.report(error));
+            return null;
+        }
+        // An empty, completed index is still valid and must not trigger a rescan.
+        return this.allowedHighlights();
+    }
+    async getAllHighlights(): Promise<{ file: TFile; highlights: ScannedHighlight[] }[]> {
+        if (this.indexStore.isExpired()) await this.buildFileIndex();
+        if (this.disposed) return [];
+        const groups: { file: TFile; highlights: ScannedHighlight[] }[] = [];
+        for (const [path, highlights] of this.indexStore.fileToHighlights) {
+            const file = this.allowedFile(path);
+            if (file) groups.push({ file, highlights });
+        }
+        return groups;
+    }
+    removeFileFromIndex(path: string): void {
+        this.fileVersions.set(path, (this.fileVersions.get(path) || 0) + 1);
+        if (this.buildPromise) this.generation++;
+        this.indexStore.removeFile(path);
+    }
+    async updateFileInIndex(file: TFile): Promise<void> {
+        if (this.disposed) return;
+        if (this.buildPromise) {
+            this.generation++;
+            await this.buildPromise;
             return;
         }
-        
-        try {
-            // 先从索引中移除该文件的所有关联
-            this.removeFileFromIndex(file.path);
-            
-            // 重新索引该文件
-            if (this.extractor.shouldProcessFile(file)) {
-                const content = await this.app.vault.read(file);
-                const highlights = this.extractor.extractHighlights(content, file);
-                
-                if (highlights.length > 0) {
-                    // Keep scans source-only; UI metadata is projected after matching.
-                    const highlightsWithFileInfo = highlights;
-                    
-                    // 添加到文件映射
-                    this.indexStore.setFileHighlights(file.path, highlightsWithFileInfo);
-                }
-            }
-        } catch {
-            // 忽略更新索引错误
-        }
+        if (this.indexStore.isExpired()) { await this.buildFileIndex(); return; }
+        const path = file.path;
+        const generation = this.generation;
+        this.removeFileFromIndex(path);
+        const fileVersion = this.fileVersions.get(path);
+        if (!this.extractor.shouldProcessFile(file)) return;
+        const content = await this.app.vault.read(file);
+        if (this.disposed || generation !== this.generation || this.fileVersions.get(path) !== fileVersion ||
+            file.path !== path || !this.allowedFile(path)) return;
+        const highlights = this.extractor.extractHighlights(content, file);
+        if (highlights.length) this.indexStore.setFileHighlights(path, highlights);
     }
-    
-    /**
-     * 使用文件级索引搜索高亮
-     * @param searchTerm 搜索词
-     * @returns 匹配的高亮数组
-     */
-    async searchHighlightsFromIndex(searchTerm: string): Promise<ScannedHighlight[]> {
-        // 检查索引是否需要重建
-        if (this.indexStore.isExpired() || this.indexStore.fileToHighlights.size === 0) {
-            await this.buildFileIndex();
-        }
-        
-        // 如果搜索词为空，返回所有高亮
-        if (!searchTerm.trim()) {
-            return this.indexStore.getAllHighlights();
-        }
-        
-        // 分词搜索
-        const terms = this.indexStore.tokenizeText(searchTerm);
-        if (terms.length === 0) {
-            return this.indexStore.getAllHighlights();
-        }
-        
-        // 对每个词找到匹配的文件
-        const matchingFileSets: Set<string>[] = [];
+    async searchHighlightsFromIndex(term: string): Promise<ScannedHighlight[]> {
+        if (this.indexStore.isExpired()) await this.buildFileIndex();
+        if (this.disposed) return [];
+        const terms = this.indexStore.tokenizeText(term);
+        if (!terms.length) return this.allowedHighlights();
+        let paths: Set<string> | null = null;
         for (const term of terms) {
-            const matchingFiles = new Set<string>();
-            
-            // 查找包含该词的所有文件
-            for (const [word, files] of this.indexStore.wordToFiles.entries()) {
-                if (word.includes(term)) {
-                    for (const filePath of files) {
-                        matchingFiles.add(filePath);
-                    }
-                }
+            const matching = new Set<string>();
+            for (const [word, files] of this.indexStore.wordToFiles) {
+                if (word.includes(term)) files.forEach(file => matching.add(file));
             }
-            
-            matchingFileSets.push(matchingFiles);
+            paths = paths === null ? matching : new Set([...paths].filter(path => matching.has(path)));
         }
-        
-        // 取交集（所有词都匹配的文件）
-        let resultFilePaths: Set<string>;
-        if (matchingFileSets.length > 0) {
-            resultFilePaths = matchingFileSets[0];
-            for (let i = 1; i < matchingFileSets.length; i++) {
-                resultFilePaths = new Set([...resultFilePaths].filter(path => matchingFileSets[i].has(path)));
-            }
-        } else {
-            resultFilePaths = new Set();
-        }
-        
-        // 从匹配的文件中获取高亮
-        const results: ScannedHighlight[] = [];
-        for (const filePath of resultFilePaths) {
-            const fileHighlights = this.indexStore.fileToHighlights.get(filePath) || [];
-            
-            // 进一步过滤高亮，只保留包含所有搜索词的高亮
-            for (const highlight of fileHighlights) {
-                const highlightText = highlight.text.toLowerCase();
-                
-                // This source index contains highlight text; comments belong to records.
-                const allTermsFound = terms.every(term => {
-                    return highlightText.includes(term);
-                });
-                
-                if (allTermsFound) {
-                    results.push(highlight);
-                }
+        const result: ScannedHighlight[] = [];
+        for (const path of paths || []) {
+            if (!this.allowedFile(path)) continue;
+            for (const highlight of this.indexStore.fileToHighlights.get(path) || []) {
+                if (terms.every(term => highlight.text.toLowerCase().includes(term))) result.push(highlight);
             }
         }
-        
-        return results;
+        return result;
     }
+    private allowedFile(path: string): TFile | null {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        return file instanceof TFile && this.extractor.shouldProcessFile(file) ? file : null;
+    }
+    private allowedHighlights(): ScannedHighlight[] {
+        const result: ScannedHighlight[] = [];
+        for (const [path, highlights] of this.indexStore.fileToHighlights) {
+            if (this.allowedFile(path)) result.push(...highlights);
+        }
+        return result;
+    }
+    private report(error: unknown): void { if (!this.disposed) console.error('[HiNote] Highlight index update failed:', error); }
 }

@@ -6,6 +6,7 @@ import { CommentInputManager } from "./CommentInputManager";
 
 interface CommentControllerOptions {
     state: ViewState;
+    highlightContainer?: HTMLElement;
     commentService: CommentService;
     commentInputManager: CommentInputManager;
     refreshView: () => Promise<void>;
@@ -17,9 +18,6 @@ export class CommentController {
     configure(): void {
         this.options.commentService.setCallbacks({
             onRefreshView: async () => await this.options.refreshView(),
-            onHighlightsUpdate: (highlights) => {
-                this.options.state.highlights = highlights;
-            },
             onCardUpdate: (highlight) => this.updateCard(highlight),
             onCardRemove: (highlight) => this.removeCard(highlight)
         });
@@ -63,18 +61,20 @@ export class CommentController {
     }
 
     private updateCard(highlight: HighlightInfo): void {
+        if (this.options.state.disposed) return;
         const index = this.options.state.highlights.findIndex(h => h.id === highlight.id);
         if (index !== -1) {
             this.options.state.highlights[index] = highlight;
         }
 
-        const cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlight.id || '');
+        const cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlight.id || '', this.options.highlightContainer);
         if (cardInstance) {
             cardInstance.updateComments(highlight);
         }
     }
 
     private removeCard(highlight: HighlightInfo): void {
+        if (this.options.state.disposed) return;
         this.options.state.highlights = this.options.state.highlights.filter(item => {
             if (item.id && highlight.id) {
                 return item.id !== highlight.id;
@@ -82,7 +82,7 @@ export class CommentController {
             return !(item.position === highlight.position && item.text === highlight.text);
         });
 
-        const cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlight.id || '');
+        const cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlight.id || '', this.options.highlightContainer);
         if (cardInstance) {
             cardInstance.getElement().remove();
             cardInstance.destroy();

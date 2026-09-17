@@ -7,10 +7,12 @@ import type { EventManager } from "../../services/EventManager";
  * 事件回调接口
  */
 export interface EventCallbacks {
-    onFileOpen?: (file: TFile, isInCanvas: boolean) => void;
+    onFileOpen?: (file: TFile | null, isInCanvas: boolean) => void;
     onFileModify?: (file: TFile, isInCanvas: boolean) => void;
     onFileCreate?: () => void;
-    onFileDelete?: () => void;
+    onFileDelete?: (file: TFile) => void;
+    onFileRename?: (file: TFile) => void;
+    onExclusionsChanged?: () => void;
     onLayoutChange?: () => void;
     onCommentInput?: (highlightId: string, text: string) => void;
 }
@@ -26,11 +28,13 @@ export interface EventCallbacks {
 export class EventCoordinator {
     private callbacks: EventCallbacks = {};
     private eventRefs: EventRef[] = [];
+    private commentTimer: number | null = null;
+    private disposed = false;
     constructor(
         private app: App,
         private component: Component,
         private eventManager: EventManager
-    ) {}
+    ) { component.register(() => this.destroy()); }
 
     /**
      * 设置回调函数
@@ -55,6 +59,13 @@ export class EventCoordinator {
         // 监听文件创建和删除
         this.registerFileCreateEvent();
         this.registerFileDeleteEvent();
+        this.component.registerEvent(this.app.vault.on('rename', file => {
+            if (file instanceof TFile) this.callbacks.onFileRename?.(file);
+        }));
+
+        this.component.registerEvent(this.eventManager.on('exclusions:changed', () => {
+            if (!this.disposed) this.callbacks.onExclusionsChanged?.();
+        }));
 
         // 监听布局变化
         this.registerLayoutChangeEvent();
@@ -72,9 +83,9 @@ export class EventCoordinator {
     ): void {
         const ref = this.app.workspace.on('file-open', (file) => {
             // 只在非主视图时同步文件
-            if (file && !isDraggedToMainView()) {
+            if (!isDraggedToMainView()) {
                 const activeMarkdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-                const isInCanvas = !activeMarkdownView && this.app.workspace.getActiveFile()?.path !== file.path;
+                const isInCanvas = !activeMarkdownView && this.app.workspace.getActiveFile()?.path !== file?.path;
                 
                 if (this.callbacks.onFileOpen) {
                     this.callbacks.onFileOpen(file, isInCanvas);
@@ -97,9 +108,9 @@ export class EventCoordinator {
             const currentFile = getCurrentFile();
             
             // 只在非主视图时同步文件
-            if (file === currentFile && !isDraggedToMainView() && file instanceof TFile) {
+            if (file instanceof TFile) {
                 const activeMarkdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-                const isInCanvas = !activeMarkdownView && this.app.workspace.getActiveFile()?.path !== file.path;
+                const isInCanvas = !activeMarkdownView && this.app.workspace.getActiveFile()?.path !== file?.path;
                 
                 if (this.callbacks.onFileModify) {
                     this.callbacks.onFileModify(file, isInCanvas);
@@ -129,9 +140,9 @@ export class EventCoordinator {
      * 注册文件删除事件
      */
     private registerFileDeleteEvent(): void {
-        const ref = this.app.vault.on('delete', () => {
-            if (this.callbacks.onFileDelete) {
-                this.callbacks.onFileDelete();
+        const ref = this.app.vault.on('delete', file => {
+            if (this.callbacks.onFileDelete && file instanceof TFile) {
+                this.callbacks.onFileDelete(file);
             }
         });
         
@@ -198,14 +209,17 @@ export class EventCoordinator {
         onShowCommentInput: (card: HTMLElement, highlight: HiNote) => void
     ): void {
         // 等待一下确保视图已经更新
-        window.setTimeout(() => {
+        if (this.commentTimer !== null) window.clearTimeout(this.commentTimer);
+        this.commentTimer = window.setTimeout(() => {
+            this.commentTimer = null;
+            if (this.disposed || !highlightContainer.isConnected) return;
             // 移除所有卡片的选中状态
             highlightContainer.querySelectorAll('.highlight-card').forEach(card => {
                 card.removeClass('selected');
             });
 
             // 首先尝试直接通过高亮 ID 查找卡片实例
-            let cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlightId);
+            let cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlightId, highlightContainer);
             
             // 如果没找到，尝试通过文本内容查找
             if (!cardInstance) {
@@ -238,6 +252,9 @@ export class EventCoordinator {
      * 销毁事件协调器
      */
     destroy(): void {
+        this.disposed = true;
+        if (this.commentTimer !== null) window.clearTimeout(this.commentTimer);
+        this.commentTimer = null;
         // 清理事件引用
         this.eventRefs = [];
         this.callbacks = {};

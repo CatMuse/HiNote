@@ -79,5 +79,10 @@ export default class CommentPlugin extends Plugin {
 		const existingData = await this.loadData();
 		this.settings = normalizeSettings(this.settings, existingData);
 		await this.saveData(this.settings);
+        const services = this.initManager?.currentServices;
+        if (services && (existingData?.excludePatterns || '') !== (this.settings.excludePatterns || '')) {
+            services.highlightService.invalidateExclusions();
+            services.eventManager.emitExclusionsChanged();
+        }
 	}
 }

@@ -12,6 +12,8 @@
 		"test:colors": "node scripts/test-highlight-colors.cjs",
 		"test:matching": "node scripts/test-highlight-matching.cjs",
 		"test:models": "node scripts/test-highlight-models.cjs",
+		"test:views": "node scripts/test-view-state.cjs",
+		"test:exclusions": "node scripts/test-exclusions.cjs",
 		"test:secrets": "node scripts/test-ai-secrets.cjs",
 		"test:ai": "node scripts/test-ai-connections.cjs"
 	},

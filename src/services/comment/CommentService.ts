@@ -241,24 +241,17 @@ export class CommentService {
      * 获取高亮对应的文件
      */
     private async getFileForHighlight(highlight: HighlightInfo): Promise<TFile | null> {
-        // 如果有当前文件，使用当前文件
-        if (this.currentFile) {
-            return this.currentFile;
-        }
-        // 如果是全部高亮视图，使用 highlight.filePath 获取文件
+        // Search results and late AI replies belong to their source, even if
+        // another note is now selected. A missing source must not fall back.
         if (highlight.filePath) {
             const file = this.app.vault.getAbstractFileByPath(highlight.filePath);
-            if (file instanceof TFile) {
-                return file;
-            }
+            return file instanceof TFile ? file : null;
         }
-        // 如果通过 filePath 找不到，尝试通过 fileName
+        if (this.currentFile) return this.currentFile;
         if (highlight.fileName) {
-            const files = this.app.vault.getFiles();
-            const file = files.find(f => f.basename === highlight.fileName || f.name === highlight.fileName);
-            if (file) {
-                return file;
-            }
+            const files = this.app.vault.getFiles().filter(file =>
+                file.basename === highlight.fileName || file.name === highlight.fileName);
+            if (files.length === 1) return files[0];
         }
         return null;
     }

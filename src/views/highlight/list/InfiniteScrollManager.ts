@@ -10,6 +10,7 @@ import { HighlightInfo } from "../../../types/highlight";
  */
 export class InfiniteScrollManager {
     private currentBatch: number = 0;
+    private generation = 0;
     private isLoading: boolean = false;
     private readonly BATCH_SIZE = 20;
     private observer: IntersectionObserver | null = null;
@@ -31,6 +32,7 @@ export class InfiniteScrollManager {
      * 重置批次计数
      */
     reset(): void {
+        this.generation++;
         this.currentBatch = 0;
         this.isLoading = false;
         this.cleanup();
@@ -58,9 +60,12 @@ export class InfiniteScrollManager {
     async loadMoreHighlights(
         allHighlights: HighlightInfo[],
         renderCallback: (batch: HighlightInfo[], append: boolean) => Promise<void>,
-        append: boolean = true
+        append: boolean = true,
+        isCurrent: () => boolean = () => true
     ): Promise<void> {
-        if (this.isLoading) return;
+        if (this.isLoading || !isCurrent()) return;
+        const generation = this.generation;
+        const valid = () => generation === this.generation && isCurrent();
         
         this.isLoading = true;
         this.showLoading();
@@ -79,13 +84,12 @@ export class InfiniteScrollManager {
 
             // 渲染新的高亮（追加模式）
             await renderCallback(batch, append);
-            this.currentBatch++;
+            if (valid()) this.currentBatch++;
         } catch (error) {
             console.error('[InfiniteScrollManager] Error loading highlights:', error);
             new Notice("加载高亮内容时出错");
         } finally {
-            this.isLoading = false;
-            this.hideLoading();
+            if (valid()) { this.isLoading = false; this.hideLoading(); }
         }
     }
 
@@ -95,12 +99,14 @@ export class InfiniteScrollManager {
      */
     async loadUntilScrollable(
         allHighlights: HighlightInfo[],
-        renderCallback: (batch: HighlightInfo[], append: boolean) => Promise<void>
+        renderCallback: (batch: HighlightInfo[], append: boolean) => Promise<void>,
+        isCurrent: () => boolean = () => true
     ): Promise<void> {
+        const generation = this.generation;
         const maxAttempts = 10; // 最多尝试10次，避免无限循环
         let attempts = 0;
         
-        while (attempts < maxAttempts) {
+        while (attempts < maxAttempts && isCurrent() && generation === this.generation) {
             const { scrollHeight, clientHeight } = this.highlightContainer;
             
             // 检查是否可滚动（内容高度 > 容器高度）
@@ -115,7 +121,7 @@ export class InfiniteScrollManager {
             }
             
             // 加载下一批
-            await this.loadMoreHighlights(allHighlights, renderCallback);
+            await this.loadMoreHighlights(allHighlights, renderCallback, true, isCurrent);
             attempts++;
             
             // 等待DOM更新
@@ -129,8 +135,11 @@ export class InfiniteScrollManager {
      */
     setupInfiniteScroll(
         allHighlights: HighlightInfo[],
-        renderCallback: (batch: HighlightInfo[], append: boolean) => Promise<void>
+        renderCallback: (batch: HighlightInfo[], append: boolean) => Promise<void>,
+        isCurrent: () => boolean = () => true
     ): void {
+        if (!isCurrent()) return;
+        const generation = this.generation;
         // 清理之前的观察器
         this.cleanup();
 
@@ -147,8 +156,8 @@ export class InfiniteScrollManager {
         this.observer = new IntersectionObserver(
             (entries) => {
                 const entry = entries[0];
-                if (entry.isIntersecting && !this.isLoading) {
-                    void this.loadMoreHighlights(allHighlights, renderCallback);
+                if (entry.isIntersecting && !this.isLoading && generation === this.generation && isCurrent()) {
+                    void this.loadMoreHighlights(allHighlights, renderCallback, true, isCurrent);
                 }
             },
             {
@@ -200,7 +209,7 @@ export class InfiniteScrollManager {
      * 销毁无限滚动管理器
      */
     destroy(): void {
-        this.cleanup();
+        this.reset();
         this.loadingIndicator = null;
     }
 }

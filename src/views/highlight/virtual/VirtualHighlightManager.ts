@@ -1,3 +1,4 @@
+import { defaultHighlightCardRegistry } from '../../../components/highlight/HighlightCardRegistry';
 import { TFile, Notice, setIcon } from "obsidian";
 import { HighlightInfo as HiNote, HighlightInfo } from "../../../types/highlight";
 import { HighlightManager } from "../../../services/HighlightManager";
@@ -83,13 +84,15 @@ export class VirtualHighlightManager {
         // 先保存到 HighlightManager
         await this.highlightManager.addHighlight(currentFile, virtualHighlight);
 
+        if (callbacks.getCurrentFile()?.path !== currentFile.path) return;
         // 通知外部虚拟高亮已创建
         callbacks.onVirtualHighlightCreated(virtualHighlight);
 
         // 找到新创建的高亮卡片并自动打开评论输入框
         window.setTimeout(() => {
+            if (callbacks.getCurrentFile()?.path !== currentFile.path) return;
             const highlightContainer = callbacks.getHighlightContainer();
-            const highlightCard = highlightContainer.querySelector('.highlight-card') as HTMLElement;
+            const highlightCard = defaultHighlightCardRegistry.findByHighlightId(virtualHighlight.id || '', highlightContainer)?.getElement();
             if (highlightCard) {
                 // 自动打开评论输入框
                 callbacks.onShowCommentInput(highlightCard, virtualHighlight);
