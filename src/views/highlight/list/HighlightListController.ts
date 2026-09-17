@@ -1,5 +1,5 @@
 import { refreshHighlightMetadata } from './HighlightMetadataRefresh';
-import { App, TFile } from 'obsidian';
+import { App } from 'obsidian';
 import { t } from '../../../i18n';
 import type { HighlightInfo } from '../../../types/highlight';
 import { ViewState } from '../../hinote/ViewState';

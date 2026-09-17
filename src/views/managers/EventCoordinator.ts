@@ -54,7 +54,7 @@ export class EventCoordinator {
         this.registerFileOpenEvent(getCurrentFile, isDraggedToMainView);
 
         // 监听文档修改
-        this.registerFileModifyEvent(getCurrentFile, isDraggedToMainView);
+        this.registerFileModifyEvent();
 
         // 监听文件创建和删除
         this.registerFileCreateEvent();
@@ -100,14 +100,9 @@ export class EventCoordinator {
     /**
      * 注册文件修改事件
      */
-    private registerFileModifyEvent(
-        getCurrentFile: () => TFile | null,
-        isDraggedToMainView: () => boolean
-    ): void {
+    private registerFileModifyEvent(): void {
         const ref = this.app.vault.on('modify', (file) => {
-            const currentFile = getCurrentFile();
-            
-            // 只在非主视图时同步文件
+            // 同步当前文件及主视图中的内容
             if (file instanceof TFile) {
                 const activeMarkdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
                 const isInCanvas = !activeMarkdownView && this.app.workspace.getActiveFile()?.path !== file?.path;

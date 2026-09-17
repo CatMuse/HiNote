@@ -1,3 +1,4 @@
+import { BatchColorOperations } from "./BatchColorOperations";
 import { Notice, setIcon } from "obsidian";
 import { HighlightInfo } from "../../types/highlight";
 import CommentPlugin from "../../../main";
@@ -17,6 +18,7 @@ import { BatchExportOperations } from "./BatchExportOperations";
  * - 批量删除高亮
  */
 export class BatchOperationsHandler {
+    private colorOperations: BatchColorOperations;
     private plugin: CommentPlugin;
     private exportService: ExportService;
     private licenseManager: LicenseManager;
@@ -42,6 +44,7 @@ export class BatchOperationsHandler {
         this.licenseManager = licenseManager;
         this.highlightService = highlightService;
         this.containerEl = containerEl;
+        this.colorOperations = plugin.addChild(new BatchColorOperations(plugin, () => this.getSelectedHighlightsCallback(), containerEl));
     }
     
     /**
@@ -98,14 +101,18 @@ export class BatchOperationsHandler {
         // 添加标题
         this.multiSelectActionsContainer.createDiv({
             cls: 'selected-count',
-            text: `selected ${selectedCount}`
+            text: String(selectedCount),
+            attr: {
+                'aria-label': t('Selected {count}').replace('{count}', String(selectedCount))
+            }
         });
         
         // 添加导出按钮
+        this.colorOperations.addButton(this.multiSelectActionsContainer);
         this.createExportButton();
         
         // 添加闪卡相关按钮
-        await this.createFlashcardButtons();
+        this.createFlashcardButtons();
         
         // 添加删除按钮
         this.createDeleteButton();
@@ -115,6 +122,7 @@ export class BatchOperationsHandler {
      * 隐藏多选操作按钮
      */
     hideMultiSelectActions() {
+        this.colorOperations.clearButton();
         if (this.multiSelectActionsContainer) {
             this.multiSelectActionsContainer.empty();
             this.multiSelectActionsContainer.hide();
@@ -140,7 +148,7 @@ export class BatchOperationsHandler {
     /**
      * 创建闪卡相关按钮
      */
-    private async createFlashcardButtons() {
+    private createFlashcardButtons() {
         if (!this.multiSelectActionsContainer) return;
         
         const fsrsManager = this.plugin.fsrsManager;
@@ -267,7 +275,7 @@ export class BatchOperationsHandler {
         if (!this.multiSelectActionsContainer) return;
         
         const deleteButton = this.multiSelectActionsContainer.createDiv({
-            cls: 'multi-select-action-button'
+            cls: 'multi-select-action-button delete-highlight-button'
         });
         deleteButton.setAttribute('aria-label', t('Delete'));
         setIcon(deleteButton, 'trash');
@@ -281,6 +289,7 @@ export class BatchOperationsHandler {
      */
     destroy() {
         this.hideMultiSelectActions();
+        this.plugin.removeChild(this.colorOperations);
         if (this.multiSelectActionsContainer) {
             this.multiSelectActionsContainer.remove();
             this.multiSelectActionsContainer = null;

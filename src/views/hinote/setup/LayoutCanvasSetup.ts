@@ -3,9 +3,9 @@ import { CanvasService } from "../../../services/CanvasService";
 import { HighlightRepository } from "../../../repositories/HighlightRepository";
 import { HighlightService } from "../../../services/HighlightService";
 import { GlobalHighlightService, HighlightDataService } from "../../../services/highlight";
-import { CanvasHighlightProcessor, FlashcardViewManager, HighlightListController } from "../../highlight";
+import { CanvasHighlightProcessor } from "../../highlight";
 import { LayoutManager, ViewPositionController, ViewPositionDetector } from "../../layout";
-import { DeviceManager, FileListManager, FileListController } from "../../managers";
+import { FileListManager, FileListController } from "../../managers";
 import { ViewState } from "../ViewState";
 
 interface LayoutAndCanvasSetupOptions {
@@ -14,20 +14,14 @@ interface LayoutAndCanvasSetupOptions {
     containerEl: HTMLElement;
     state: ViewState;
     canvasService: CanvasService;
-    deviceManager: DeviceManager;
     highlightRepository: HighlightRepository;
     highlightService: HighlightService;
     highlightDataService: HighlightDataService;
     fileListManager: FileListManager;
     fileListController: FileListController;
-    flashcardViewManager: FlashcardViewManager;
-    highlightListController: HighlightListController;
     fileListContainer: HTMLElement;
     mainContentContainer: HTMLElement;
     searchContainer: HTMLElement;
-    searchInput: HTMLInputElement;
-    highlightContainer: HTMLElement;
-    loadingIndicator: HTMLElement;
 }
 
 export function setupLayoutAndCanvas(options: LayoutAndCanvasSetupOptions): {
@@ -43,20 +37,14 @@ export function setupLayoutAndCanvas(options: LayoutAndCanvasSetupOptions): {
         containerEl,
         state,
         canvasService,
-        deviceManager,
         highlightRepository,
         highlightService,
         highlightDataService,
         fileListManager,
         fileListController,
-        flashcardViewManager,
-        highlightListController,
         fileListContainer,
         mainContentContainer,
         searchContainer,
-        searchInput,
-        highlightContainer,
-        loadingIndicator
     } = options;
 
     const layoutManager = new LayoutManager(containerEl, fileListContainer, mainContentContainer, searchContainer, state);

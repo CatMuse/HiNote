@@ -11,7 +11,17 @@ export interface HighlightAnchorPatch {
     anchor: HighlightAnchor;
 }
 export function getHighlightAnchor(record: HighlightContent): HighlightAnchor {
-    return Object.fromEntries(ANCHOR_KEYS.map(key => [key, record[key]])) as unknown as HighlightAnchor;
+    return {
+        text: record.text,
+        position: record.position,
+        syntax: record.syntax,
+        backgroundColor: record.backgroundColor,
+        contextBefore: record.contextBefore,
+        contextAfter: record.contextAfter,
+        textFingerprint: record.textFingerprint,
+        blockId: record.blockId,
+        paragraphOffset: record.paragraphOffset
+    };
 }
 export function sameHighlightAnchor(a: HighlightAnchor, b: HighlightAnchor): boolean {
     return ANCHOR_KEYS.every(key => a[key] === b[key]);

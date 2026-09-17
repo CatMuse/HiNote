@@ -43,27 +43,77 @@ export class HighlightService {
     }
 
     async changeHighlightColor(highlight: HighlightInfo, color: HighlightColor | null): Promise<ScannedHighlight> {
-        const source = getHighlightSource(highlight);
-        const snapshot = getHighlightScan(highlight)?.sourceContent;
-        const file = this.app.vault.getAbstractFileByPath(highlight.filePath || '');
-        if (!(file instanceof TFile) || file.extension !== 'md' || highlight.isVirtual || highlight.isFromCanvas ||
-            !source || snapshot === undefined || source.filePath !== file.path ||
-            !['markdown', 'html'].includes(source.syntax || '')) {
-            throw new Error('Highlight source is unavailable. Refresh the highlights.');
+        return (await this.changeFileColors([highlight], color)).get(highlight)!;
+    }
+
+    canChangeHighlightColor(highlight: HighlightInfo): boolean {
+        return !highlight.isVirtual && !highlight.isFromCanvas && !!highlight.filePath?.endsWith('.md') &&
+            ['markdown', 'html'].includes(highlight.syntax || '');
+    }
+
+    async batchChangeHighlightColors(highlights: HighlightInfo[], color: HighlightColor | null) {
+        const updated = new Map<HighlightInfo, ScannedHighlight>();
+        const groups = new Map<string, HighlightInfo[]>();
+        let skipped = 0, failed = 0;
+        for (const highlight of new Set(highlights)) {
+            if (!this.canChangeHighlightColor(highlight)) { skipped++; continue; }
+            const group = groups.get(highlight.filePath!) || [];
+            group.push(highlight);
+            groups.set(highlight.filePath!, group);
         }
+        for (const group of groups.values()) {
+            try {
+                const changes = await this.changeFileColors(group, color);
+                changes.forEach((scan, view) => updated.set(view, scan));
+            } catch (error) {
+                failed += group.length;
+                console.error('[HiNote] Could not recolor selected highlights:', error);
+            }
+        }
+        return { updated, skipped, failed };
+    }
+
+    private async changeFileColors(highlights: HighlightInfo[], color: HighlightColor | null): Promise<Map<HighlightInfo, ScannedHighlight>> {
+        const file = this.app.vault.getAbstractFileByPath(highlights[0]?.filePath || '');
+        if (!(file instanceof TFile) || file.extension !== 'md') throw new Error('Highlight file is unavailable.');
+        const edits = highlights.map(highlight => {
+            const source = getHighlightSource(highlight);
+            const snapshot = getHighlightScan(highlight)?.sourceContent;
+            if (!this.canChangeHighlightColor(highlight) || !source || snapshot === undefined || source.filePath !== file.path) {
+                throw new Error('Highlight source is unavailable. Refresh the highlights.');
+            }
+            return { highlight, source, snapshot, position: source.position, replacement: '' };
+        }).sort((a, b) => a.source.position - b.source.position);
         const content = await this.app.vault.process(file, current => {
-            // Validate against the scan, not a text search: repeated text must never be guessed.
-            if (current !== snapshot) throw new Error('Highlight source has changed. Refresh the highlights.');
-            const end = source.position + source.originalLength;
-            const replacement = recolorHighlightSource(current.slice(source.position, end), color);
-            return current.slice(0, source.position) + replacement + current.slice(end);
+            let delta = 0;
+            for (let i = 0; i < edits.length; i++) {
+                const edit = edits[i];
+                if (current !== edit.snapshot) throw new Error('Highlight source has changed. Refresh the highlights.');
+                if (i && edits[i - 1].source.position + edits[i - 1].source.originalLength > edit.source.position) {
+                    throw new Error('Overlapping highlight sources.');
+                }
+                edit.replacement = recolorHighlightSource(current.slice(edit.source.position,
+                    edit.source.position + edit.source.originalLength), color);
+                edit.position = edit.source.position + delta;
+                delta += edit.replacement.length - edit.source.originalLength;
+            }
+            // Apply from the end so all offsets refer to the same original snapshot.
+            for (const edit of [...edits].reverse()) {
+                current = current.slice(0, edit.source.position) + edit.replacement +
+                    current.slice(edit.source.position + edit.source.originalLength);
+            }
+            return current;
         });
         this.extractor.invalidateContentCache(file.path);
         const scanned = this.extractor.extractHighlights(content, file);
-        const updated = scanned.find(item => item.position === source.position && item.text === source.text);
-        if (!updated) throw new Error('Updated highlight was not found.');
         const repository = this.getHighlightRepository?.();
         if (repository) this.matcher.mergeHighlightsWithComments(scanned, repository.getCachedHighlights(file.path) || [], file);
+        const updated = new Map<HighlightInfo, ScannedHighlight>();
+        for (const edit of edits) {
+            const match = scanned.find(item => item.position === edit.position && item.text === edit.source.text);
+            if (!match) throw new Error('Updated highlight was not found.');
+            updated.set(edit.highlight, match);
+        }
         return updated;
     }
 

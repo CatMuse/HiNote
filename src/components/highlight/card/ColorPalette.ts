@@ -13,7 +13,8 @@ export class HighlightColorPalette extends Component {
         private current: string | undefined,
         private onSelect: (color: HighlightColor | null) => void,
         private onClose: () => void,
-        private pointer?: { x: number; y: number }
+        private pointer?: { x: number; y: number },
+        private placement: 'side' | 'above' = 'side'
     ) { super(); }
 
     onload(): void {
@@ -79,8 +80,10 @@ export class HighlightColorPalette extends Component {
         const y = this.pointer?.y ?? (anchor.top + Math.min(anchor.height, 24) / 2);
         const preferredLeft = x + 12;
         const side = preferredLeft + rect.width <= win.innerWidth - 8 ? preferredLeft : x - rect.width - 12;
-        const left = Math.max(8, Math.min(side, win.innerWidth - rect.width - 8));
-        const top = Math.max(8, Math.min(y - rect.height / 2, win.innerHeight - rect.height - 8));
+        const preferredX = this.placement === 'above' ? anchor.left + anchor.width / 2 - rect.width / 2 : side;
+        const preferredY = this.placement === 'above' ? anchor.top - rect.height - 8 : y - rect.height / 2;
+        const left = Math.max(8, Math.min(preferredX, win.innerWidth - rect.width - 8));
+        const top = Math.max(8, Math.min(preferredY, win.innerHeight - rect.height - 8));
         palette.style.left = `${left}px`;
         palette.style.top = `${top}px`;
         focus(selected);

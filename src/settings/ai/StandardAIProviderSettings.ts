@@ -12,7 +12,9 @@ export class StandardAIProviderSettings {
         const host = container.createDiv({ cls: 'ai-service-settings' });
         const get = () => {
             const ai = this.plugin.settings.ai;
-            return ai[this.config.provider]!;
+            const provider = ai[this.config.provider];
+            if (!provider) throw new Error(`Missing AI provider settings: ${this.config.provider}`);
+            return provider;
         };
         new Setting(host).setName(t(this.config.heading)).setHeading();
         new Setting(host).setName(t('API Key'))
@@ -23,8 +25,8 @@ export class StandardAIProviderSettings {
         const urlKey = this.config.providerUrlKey || 'baseUrl';
         const getBase = () => {
             const config = get() as unknown as Record<string, unknown>;
-            return typeof config[urlKey] === 'string' && (config[urlKey] as string).trim()
-                ? (config[urlKey] as string).trim() : this.config.defaultBaseUrl;
+            const value = config[urlKey];
+            return typeof value === 'string' && value.trim() ? value.trim() : this.config.defaultBaseUrl;
         };
         const advanced = host.createEl('details');
         advanced.createEl('summary', { text: t('Advanced Options') });

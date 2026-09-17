@@ -1,19 +1,13 @@
-import { discoverModels, apiRoot } from './ModelDiscovery';
+import { discoverModels } from './ModelDiscovery';
 import { AIServiceConfig, AIProviderType, AIModel } from './BaseAIService';
 import { OpenAICompatibleService } from './OpenAICompatibleService';
-
-interface SiliconFlowModelsResponse {
-    data: Array<{
-        id: string;
-    }>;
-}
 
 /**
  * SiliconFlow AI 服务
  * 使用 OpenAI 兼容的 API 格式
  */
 export class SiliconFlowService extends OpenAICompatibleService {
-    constructor(apiKey: string, model: string = 'deepseek-ai/DeepSeek-V3', baseUrl?: string) {
+    constructor(apiKey: string, model = 'deepseek-ai/DeepSeek-V3', baseUrl?: string) {
         if (!apiKey) {
             throw new Error('SiliconFlow API key is required');
         }

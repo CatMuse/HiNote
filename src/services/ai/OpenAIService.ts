@@ -1,4 +1,4 @@
-import { discoverModels, apiRoot } from './ModelDiscovery';
+import { discoverModels } from './ModelDiscovery';
 import { AIServiceConfig, AIProviderType, AIModel } from './BaseAIService';
 import { OpenAICompatibleService } from './OpenAICompatibleService';
 
@@ -9,7 +9,7 @@ import { OpenAICompatibleService } from './OpenAICompatibleService';
 export class OpenAIService extends OpenAICompatibleService {
     constructor(
         apiKey: string,
-        model: string = 'gpt-4o',
+        model = 'gpt-4o',
         baseUrl?: string
     ) {
         const config: AIServiceConfig = {

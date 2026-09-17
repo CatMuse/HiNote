@@ -1,4 +1,9 @@
 export default {
+    "Change color": "改色",
+    "Selected {count}": "已选中 {count} 项",
+    "Highlight colors updated: {success}; skipped: {skipped}; failed: {failed}.": "改色完成：成功 {success} 项，跳过 {skipped} 项，失败 {failed} 项。",
+    "Refresh the highlights and try again.": "请刷新高亮列表后重试。",
+
     "Change highlight color": "修改高亮颜色",
     "Default yellow": "默认黄色",
     "Red": "红色",

@@ -38,8 +38,10 @@ export class SelectionBoxController {
     }
 
     private handleSelectionStart = (e: MouseEvent) => {
+        if (e.button !== 0) return;
         const target = e.target as HTMLElement;
-        if (target.closest(".highlight-card") ||
+        if (target.closest(".multi-select-actions, .hinote-color-palette, button, input, textarea, select") ||
+            target.closest(".highlight-card") ||
             target.closest(".flashcard-mode") ||
             target.closest(".flashcard-add-group") ||
             target.closest(".flashcard-group-action")) {
@@ -50,8 +52,8 @@ export class SelectionBoxController {
         this.selectionStartY = e.clientY;
         this.mouseMoved = false;
 
-        activeDocument.addEventListener("mousemove", this.handleMouseMove);
-        activeDocument.addEventListener("mouseup", this.handleMouseUp);
+        this.options.highlightContainer.ownerDocument.addEventListener("mousemove", this.handleMouseMove);
+        this.options.highlightContainer.ownerDocument.addEventListener("mouseup", this.handleMouseUp);
     };
 
     private handleMouseMove = (e: MouseEvent) => {
@@ -61,7 +63,7 @@ export class SelectionBoxController {
 
         if (distance >= this.mouseMoveThreshold) {
             this.mouseMoved = true;
-            activeDocument.removeEventListener("mousemove", this.handleMouseMove);
+            this.options.highlightContainer.ownerDocument.removeEventListener("mousemove", this.handleMouseMove);
             this.startSelection(e);
         }
     };
@@ -74,20 +76,20 @@ export class SelectionBoxController {
         }
     };
 
-    private startSelection(_e: MouseEvent): void {
+    private startSelection(e: MouseEvent): void {
         this.cleanupMouseEvents();
-        this.options.clearSelection();
+        if (!e.shiftKey) this.options.clearSelection();
 
-        this.selectionBox = createDiv();
+        this.selectionBox = this.options.highlightContainer.ownerDocument.body.createDiv();
         this.selectionBox.className = "selection-box";
         this.selectionBox.style.left = `${this.selectionStartX}px`;
         this.selectionBox.style.top = `${this.selectionStartY}px`;
-        activeDocument.body.appendChild(this.selectionBox);
 
         this.selectionMode = true;
 
-        activeDocument.addEventListener("mousemove", this.handleSelectionMove);
-        activeDocument.addEventListener("mouseup", this.handleSelectionEnd);
+        this.options.highlightContainer.ownerDocument.addEventListener("mousemove", this.handleSelectionMove);
+        this.options.highlightContainer.ownerDocument.addEventListener("mouseup", this.handleSelectionEnd);
+        this.handleSelectionMove(e);
     }
 
     private handleSelectionMove = (e: MouseEvent) => {
@@ -145,19 +147,19 @@ export class SelectionBoxController {
 
             if (overlap) {
                 card.addClass("selected");
-            } else if (!activeDocument.querySelector(".multi-select-mode")) {
+            } else if (!this.options.highlightContainer.ownerDocument.querySelector(".multi-select-mode")) {
                 card.removeClass("selected");
             }
         });
     }
 
     private cleanupMouseEvents(): void {
-        activeDocument.removeEventListener("mousemove", this.handleMouseMove);
-        activeDocument.removeEventListener("mouseup", this.handleMouseUp);
+        this.options.highlightContainer.ownerDocument.removeEventListener("mousemove", this.handleMouseMove);
+        this.options.highlightContainer.ownerDocument.removeEventListener("mouseup", this.handleMouseUp);
     }
 
     private cleanupSelectionEvents(): void {
-        activeDocument.removeEventListener("mousemove", this.handleSelectionMove);
-        activeDocument.removeEventListener("mouseup", this.handleSelectionEnd);
+        this.options.highlightContainer.ownerDocument.removeEventListener("mousemove", this.handleSelectionMove);
+        this.options.highlightContainer.ownerDocument.removeEventListener("mouseup", this.handleSelectionEnd);
     }
 }

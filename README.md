@@ -45,6 +45,8 @@ Select the colored line on a highlight card to choose default yellow, red, orang
 
 Exclusions match actual file suffixes: use `*.xcd.md` for a note stored as `HiNote.xcd.md`, even if Obsidian displays it as `HiNote.xcd`. Saving exclusions automatically updates the highlight index, file list, and search results without reloading the plugin. Removing a rule makes those files available again; stored comments are not deleted.
 
+Select multiple cards and use the palette button in the selection toolbar to recolor them together. Changes are grouped into one write per file. Unsupported cards are skipped; stale files are left unchanged and reported. The selection stays active after recoloring.
+
 ## Highlighted comments
 
 The highlight comment feature allows you to quickly engage with highlighted text, preventing your ideas from slipping away. Simply click on the Widgets in the editing area or directly click the add comment button on the card to open the input box.

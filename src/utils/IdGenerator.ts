@@ -3,11 +3,11 @@ export class IdGenerator {
     private static sequence = 0;
 
     static generateHighlightRecordId(): string {
-        const uuid = globalThis.crypto?.randomUUID?.();
+        const uuid = window.crypto?.randomUUID?.();
         if (uuid) return `highlight-${uuid}`;
         // Older embedded browsers may lack randomUUID. No Node dependency.
-        const random = globalThis.crypto?.getRandomValues
-            ? Array.from(globalThis.crypto.getRandomValues(new Uint32Array(4)), n => n.toString(16)).join('-')
+        const random = window.crypto?.getRandomValues
+            ? Array.from(window.crypto.getRandomValues(new Uint32Array(4)), n => n.toString(16)).join('-')
             : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
         return `highlight-${Date.now().toString(36)}-${++this.sequence}-${random}`;
     }

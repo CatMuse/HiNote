@@ -2,7 +2,7 @@ import { ViewState } from './ViewState';
 import { HighlightDataService } from "../../services/highlight";
 import { HighlightListController, HighlightRenderManager, InfiniteScrollManager } from "../highlight";
 import { SelectionManager } from "../selection";
-import { FileListManager, SearchUIManager } from "../managers";
+import { SearchUIManager } from "../managers";
 import { setupSearchAndSelection } from "./setup/SearchSelectionSetup";
 import { setupFileList } from "./setup/FileListSetup";
 import { setupHighlightRendering } from "./setup/HighlightRenderingSetup";
@@ -38,9 +38,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
 
     let searchUIManager: SearchUIManager | null = null;
     let selectionManager: SelectionManager | null = null;
-    let fileListManager: FileListManager;
     let highlightRenderManager: HighlightRenderManager | null = null;
-    let highlightListController: HighlightListController;
     let infiniteScrollManager: InfiniteScrollManager | null = null;
     let highlightRendering: ReturnType<typeof setupHighlightRendering> | null = null;
     let layoutAndCanvas: ReturnType<typeof setupLayoutAndCanvas> | null = null;
@@ -62,7 +60,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         highlightRepository
     );
 
-    highlightListController = new HighlightListController({
+    const highlightListController = new HighlightListController({
         app,
         state,
         highlightContainer,
@@ -141,7 +139,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         highlightListController,
         updateViewLayout
     });
-    fileListManager = fileList.fileListManager;
+    const fileListManager = fileList.fileListManager;
 
     highlightRendering = setupHighlightRendering({
         app,
@@ -162,20 +160,14 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         containerEl,
         state,
         canvasService,
-        deviceManager,
         highlightRepository,
         highlightService,
         highlightDataService,
         fileListManager,
         fileListController: fileList.fileListController,
-        flashcardViewManager,
-        highlightListController,
         fileListContainer,
         mainContentContainer,
         searchContainer,
-        searchInput,
-        highlightContainer,
-        loadingIndicator
     });
 
     registerHiNoteViewEvents({
@@ -203,8 +195,9 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
 
     const deviceInfo = deviceManager.getDeviceInfo();
     state.setViewport(deviceInfo.isMobile, deviceInfo.isSmallScreen);
+    const layoutManager = layoutAndCanvas.layoutManager;
     const renderLayout = async () => {
-        await layoutAndCanvas!.layoutManager.updateViewLayout();
+        await layoutManager.updateViewLayout();
         highlightContainer.setAttribute('aria-busy', String(state.loading === 'loading'));
         fileListManager.updateFileListSelection();
     };

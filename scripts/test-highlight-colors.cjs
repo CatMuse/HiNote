@@ -171,6 +171,45 @@ const { ExportContentRenderer } = load('src/services/export/ExportContentRendere
     assert.equal(htmlUpdated.backgroundColor, highlightColorStyle('purple'));
     assert.ok(document.includes('color: red'));
 
+    const secondFile = Object.assign(new TFile(), { path: 'second.md', extension: 'md', basename: 'second' });
+    const filesByPath = new Map([[file.path,file],[secondFile.path,secondFile]]);
+    const documents = new Map([[file.path,'==重复== / ==重复== / <mark style="color: red">HTML</mark>'],
+        [secondFile.path,'==另一文件==']]);
+    let writes = 0;
+    const batchService = new HighlightService({ ...app, vault: {
+        getAbstractFileByPath:path=>filesByPath.get(path),
+        process:async (target,callback)=>{const next=callback(documents.get(target.path)); writes++;documents.set(target.path,next);return next;}
+    } });
+    const batchRows = batchService.extractHighlights(documents.get(file.path),file).map(scanToHighlightView);
+    batchRows[0].comments=[{id:'comment-kept',content:'Keep this comment'}];
+    const otherRow=scanToHighlightView(batchService.extractHighlights(documents.get(secondFile.path),secondFile)[0]);
+    const recolored=await batchService.batchChangeHighlightColors([...batchRows,otherRow,{...otherRow,isVirtual:true}], 'green');
+    assert.equal(writes,2,'One atomic write per file');
+    assert.equal(recolored.updated.size,4);
+    assert.equal(recolored.skipped,1);
+    assert.equal(recolored.failed,0);
+    assert.ok(documents.get(file.path).startsWith('==🟢重复== / ==🟢重复== / <mark'));
+    assert.ok(documents.get(file.path).includes('color: red'));
+    const secondChanged=recolored.updated.get(batchRows[1]);
+    assert.equal(secondChanged.position,'==🟢重复== / '.length);
+    assert.equal(batchRows[0].comments[0].id,'comment-kept');
+    const reset=await batchService.batchChangeHighlightColors([...recolored.updated.values()].map(scanToHighlightView),null);
+    assert.equal(reset.updated.size,4);
+    assert.ok(documents.get(file.path).startsWith('==重复== / ==重复== / <mark'));
+    const fresh=batchService.extractHighlights(documents.get(file.path),file).map(scanToHighlightView);
+    const otherFresh=scanToHighlightView(batchService.extractHighlights(documents.get(secondFile.path),secondFile)[0]);
+    const unchanged=documents.get(file.path);
+    documents.set(file.path,'external edit '+unchanged);
+    const partial=await batchService.batchChangeHighlightColors([...fresh,otherFresh],'blue');
+    assert.equal(partial.failed,3);
+    assert.equal(partial.updated.size,1,'A stale file does not prevent updating a separate file');
+    assert.equal(documents.get(file.path),'external edit '+unchanged,'A stale group writes nothing');
+    assert.equal(documents.get(secondFile.path),'==🔵另一文件==');
+    const now=batchService.extractHighlights(documents.get(secondFile.path),secondFile).map(scanToHighlightView);
+    const overlap=await batchService.batchChangeHighlightColors([now[0],{...now[0]}],'purple');
+    assert.equal(overlap.failed,2);
+    assert.equal(documents.get(secondFile.path),'==🔵另一文件==','Overlapping selections cannot partially write a file');
+
     let anchor;
     const renderer = new ExportContentRenderer({ createBlockIdForHighlight: async (...args) => {
         anchor = args;

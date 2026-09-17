@@ -3539,10 +3539,12 @@ textarea.flashcard-modal-input {
 
 /* 选中数量显示 */
 .selected-count {
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--text-muted);
+    min-width: 28px;
+    padding: 4px 6px;
     background-color: var(--background-secondary);
-    padding: 4px 8px;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -4086,7 +4088,7 @@ textarea.flashcard-modal-input {
 
 .hinote-color-palette {
     position: fixed;
-    z-index: var(--layer-menu, 1000);
+    z-index: max(1002, var(--layer-menu, 1000));
     display: flex;
     gap: 4px;
     padding: 6px;
@@ -4126,4 +4128,30 @@ textarea.flashcard-modal-input {
 .hinote-color-palette .hinote-color-swatch:focus-visible {
     outline: 1px solid var(--text-muted);
     outline-offset: 1px;
+}
+
+.multi-select-actions button.multi-select-action-button {
+    color: var(--text-muted);
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+.multi-select-actions button.multi-select-action-button:hover:not(:disabled) {
+    color: var(--text-accent);
+    background: var(--background-secondary);
+}
+.multi-select-actions button.multi-select-action-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.multi-select-actions .multi-select-action-button svg {
+    color: inherit;
+    stroke: currentColor;
+}
+
+.multi-select-action-button.delete-highlight-button:hover {
+    color: var(--text-error);
+    background-color: var(--background-secondary);
 }
