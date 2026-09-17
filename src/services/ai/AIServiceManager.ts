@@ -1,3 +1,4 @@
+import type { SecretStorage } from 'obsidian';
 /**
  * AI 服务管理器
  * 提供统一的 AI 服务访问接口，替代旧的 AIService
@@ -21,7 +22,7 @@ export class AIServiceManager {
     private currentProvider: AIProviderType;
     private settings: AISettings;
     
-    constructor(settings: AISettings) {
+    constructor(settings: AISettings, private secrets: SecretStorage) {
         this.settings = settings;
         this.registry = new AIServiceRegistry();
         this.currentProvider = this.parseProvider(settings.provider);
@@ -34,22 +35,28 @@ export class AIServiceManager {
      * 注册所有 AI 服务
      */
     private registerAllServices(): void {
-        this.registry.register(new OpenAIServiceFactory());
-        this.registry.register(new AnthropicServiceFactory());
-        this.registry.register(new GeminiServiceFactory());
-        this.registry.register(new DeepseekServiceFactory());
-        this.registry.register(new SiliconFlowServiceFactory());
+        this.registry.register(new OpenAIServiceFactory(this.secrets));
+        this.registry.register(new AnthropicServiceFactory(this.secrets));
+        this.registry.register(new GeminiServiceFactory(this.secrets));
+        this.registry.register(new DeepseekServiceFactory(this.secrets));
+        this.registry.register(new SiliconFlowServiceFactory(this.secrets));
         this.registry.register(new OllamaServiceFactory());
-        this.registry.register(new CustomAIServiceFactory());
+        this.registry.register(new CustomAIServiceFactory(this.secrets));
     }
     
     /**
      * 获取当前服务实例
      */
     private getCurrentService() {
-        return this.registry.getService(this.currentProvider, this.settings);
+        return this.getService(this.currentProvider);
     }
     
+    private getService(provider: AIProviderType) {
+        // Read Keychain again for each operation, including edits made outside HiNote.
+        this.registry.clearCache(provider);
+        return this.registry.getService(provider, this.settings);
+    }
+
     /**
      * 生成响应（处理 Prompt 模板）
      */
@@ -71,7 +78,7 @@ export class AIServiceManager {
     async testConnection(provider?: AIProviderType): Promise<boolean> {
         const targetProvider = provider || this.currentProvider;
         try {
-            const service = this.registry.getService(targetProvider, this.settings);
+            const service = this.getService(targetProvider);
             return await service.testConnection();
         } catch {
             return false;
@@ -117,7 +124,7 @@ export class AIServiceManager {
     async listModels(provider?: AIProviderType): Promise<AIModel[]> {
         const targetProvider = provider || this.currentProvider;
         try {
-            const service = this.registry.getService(targetProvider, this.settings);
+            const service = this.getService(targetProvider);
             return await service.listModels();
         } catch (error) {
             console.error(`Failed to list models for ${targetProvider}:`, error);

@@ -1,5 +1,4 @@
 import type { AISettings } from './ai';
-import { DEFAULT_SILICONFLOW_MODELS } from './ai';
 import type { HighlightInfo, HighlightSettings } from './highlight';
 
 export interface FlashcardLicense {
@@ -48,31 +47,31 @@ export const DEFAULT_SETTINGS: PluginSettings = {
             model: ''
         },
         gemini: {
-            apiKey: '',
-            model: 'gemini-pro',
+            apiKeySecretId: '',
+            model: '',
             baseUrl: '',
             isCustomModel: false
         },
         openai: {
-            apiKey: '',
-            model: 'gpt-4o',
+            apiKeySecretId: '',
+            model: '',
             baseUrl: ''
         },
         anthropic: {
-            apiKey: '',
-            model: 'claude-2',
+            apiKeySecretId: '',
+            model: '',
             apiAddress: '',
             isCustomModel: false,
             lastCustomModel: ''
         },
         deepseek: {
-            apiKey: '',
-            model: 'deepseek-chat',
+            apiKeySecretId: '',
+            model: '',
             baseUrl: ''
         },
         siliconflow: {
-            apiKey: '',
-            model: DEFAULT_SILICONFLOW_MODELS[0].id,
+            apiKeySecretId: '',
+            model: '',
             baseUrl: '',
             isCustomModel: false,
             lastCustomModel: ''

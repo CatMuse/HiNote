@@ -1,3 +1,4 @@
+import { apiRoot } from './ModelDiscovery';
 import { BaseAIService, AIMessage } from './BaseAIService';
 
 interface OpenAICompatibleResponse {
@@ -12,6 +13,10 @@ interface OpenAICompatibleResponse {
  * Base class for providers that implement the OpenAI chat completions shape.
  */
 export abstract class OpenAICompatibleService extends BaseAIService {
+    protected buildUrl(): string {
+        return apiRoot(this.baseUrl, 'openai') + this.getEndpoint();
+    }
+
     protected getEndpoint(): string {
         return '/chat/completions';
     }
@@ -35,10 +40,7 @@ export abstract class OpenAICompatibleService extends BaseAIService {
     }
 
     protected getChatOptions(): Record<string, unknown> {
-        return {
-            temperature: this.temperature,
-            max_tokens: this.maxTokens
-        };
+        return {}; // Let compatible endpoints apply their model-specific defaults.
     }
 
     protected getInvalidResponseMessage(): string {

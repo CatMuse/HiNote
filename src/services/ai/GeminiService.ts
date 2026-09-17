@@ -1,3 +1,4 @@
+import { discoverModels, apiRoot } from './ModelDiscovery';
 import { BaseAIService, AIMessage, AIServiceConfig, AIProviderType, AIModel } from './BaseAIService';
 
 export interface GenerationConfig {
@@ -39,15 +40,16 @@ export class GeminiService extends BaseAIService {
         return 'https://generativelanguage.googleapis.com';
     }
 
-    protected getEndpoint(): string {
-        return `/v1/models/${this.model}:generateContent?key=${this.apiKey}`;
+    protected buildUrl(): string {
+        return apiRoot(this.baseUrl, 'gemini') + this.getEndpoint();
     }
 
     protected buildHeaders(): Record<string, string> {
-        // Gemini 使用 API key 作为 URL 参数，不需要 Authorization header
-        return {
-            'Content-Type': 'application/json'
-        };
+        return { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey };
+    }
+
+    protected getEndpoint(): string {
+        return `/models/${this.model.replace(/^models\//, '')}:generateContent`;
     }
 
     protected formatRequestBody(messages: AIMessage[]): Record<string, unknown> {
@@ -59,16 +61,7 @@ export class GeminiService extends BaseAIService {
 
         return {
             contents,
-            generationConfig: {
-                maxOutputTokens: this.generationConfig?.maxOutputTokens || this.maxTokens,
-                temperature: this.generationConfig?.temperature || this.temperature,
-                ...(this.generationConfig?.responseMimeType && { 
-                    responseMimeType: this.generationConfig.responseMimeType 
-                }),
-                ...(this.generationConfig?.responseSchema && { 
-                    responseSchema: this.generationConfig.responseSchema 
-                })
-            }
+            ...(this.generationConfig && { generationConfig: this.generationConfig })
         };
     }
 
@@ -85,14 +78,7 @@ export class GeminiService extends BaseAIService {
     }
 
     async listModels(): Promise<AIModel[]> {
-        return [
-            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-            { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
-            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Legacy)' },
-            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Legacy)' },
-            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Legacy)' }
-        ];
+        return discoverModels(this.baseUrl, 'gemini', this.buildHeaders());
     }
 
     /**
@@ -146,11 +132,6 @@ export class GeminiService extends BaseAIService {
      * 测试连接（覆盖基类方法，使用 Gemini 特定的测试端点）
      */
     async testConnection(): Promise<boolean> {
-        const url = `${this.baseUrl}/v1/models/${this.model}?key=${this.apiKey}`;
-        return await this.httpClient.testConnection({
-            url,
-            method: 'GET',
-            headers: this.buildHeaders()
-        });
+        return !!(await this.chat([{ role: 'user', content: 'Reply only OK.' }]));
     }
 }

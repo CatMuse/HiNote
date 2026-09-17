@@ -33,7 +33,7 @@ export class BaseHTTPClient {
                 throw: false
             };
 
-            const response: RequestUrlResponse = await requestUrl(requestConfig);
+            const response: RequestUrlResponse = await this.withTimeout(requestUrl(requestConfig), config.timeout ?? 45000);
 
             // 检查响应状态
             if (response.status < 200 || response.status >= 300) {
@@ -47,23 +47,20 @@ export class BaseHTTPClient {
         }
     }
 
+    private withTimeout<T>(request: PromiseLike<T>, timeoutMs: number): Promise<T> {
+        // requestUrl cannot abort the underlying transport. Ignore late completion.
+        return new Promise((resolve, reject) => {
+            const timer = window.setTimeout(() => reject(new Error('Connection timeout')), timeoutMs);
+            Promise.resolve(request).then(resolve, reject).finally(() => window.clearTimeout(timer));
+        });
+    }
+
     /**
      * 测试连接
      */
     async testConnection(config: HTTPRequestConfig): Promise<boolean> {
-        try {
-            const response = await requestUrl({
-                url: config.url,
-                method: config.method,
-                headers: config.headers || {},
-                body: config.body,
-                throw: false
-            });
-
-            return response.status >= 200 && response.status < 300;
-        } catch {
-            return false;
-        }
+        await this.request(config);
+        return true;
     }
 
     /**
@@ -91,7 +88,7 @@ export class BaseHTTPClient {
             }
         }
 
-        return new Error(errorMessage);
+        return new Error(`HTTP ${response.status}: ${errorMessage}`);
     }
 
     /**

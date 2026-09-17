@@ -133,3 +133,11 @@ This plugin is released under the MIT License. The basic features are free and o
 Existing `.hinote` mappings remain compatible. New highlight records use independent storage identifiers; renaming a note preserves its storage file. Before replacing existing highlight, flashcard, or mapping data, HiNote keeps the previous contents in a sibling `.bak` file. This is a single previous version, not a substitute for vault backups.
 
 Unreadable or invalid data stops the affected operation instead of being replaced with an empty library. If legacy mappings point multiple notes to the same file, or a missing mapping cannot be recovered unambiguously, restore the mapping/data from a vault backup before editing. HiNote does not guess ownership or automatically merge conflicting records.
+
+## API keys and Keychain
+
+AI providers use Obsidian Keychain. Select or create a secret in HiNote's AI service settings; only its name is saved in plugin settings. Configure the secret on each device. HiNote reads it when starting an AI operation, so changes in Keychain apply to subsequent requests.
+
+Upgrading to 0.5.9 does **not** migrate existing keys. Legacy API key fields are removed from plugin settings on first load. Keep the keys you need before upgrading and configure Keychain again. Historical backups and sync history are not modified. Ollama without authentication does not require a secret.
+
+AI model selection supports manual IDs and an explicit **Refresh models** action with searchable results. Opening settings does not fetch models. Custom services require an explicit API protocol. **Test current model** sends a short request without note content and may incur provider charges. Requests stop waiting after 45 seconds; the underlying request may still finish on the provider.

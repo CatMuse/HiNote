@@ -1,53 +1,50 @@
-import { Setting } from 'obsidian';
+import { SecretComponent, Setting } from 'obsidian';
 import type CommentPlugin from '../../../main';
 import { t } from '../../i18n';
-import { AITestHelper } from '../../services/ai';
-import { BaseAIServiceSettings, StandardModelState } from './AIServiceSettings';
+import { readApiKey } from '../../services/ai/AISecrets';
 import type { StandardAIProviderConfig } from './providerConfigs';
+import { renderAIConnectionControls } from './AIConnectionControls';
 
-export class StandardAIProviderSettings extends BaseAIServiceSettings {
-    private modelState: StandardModelState;
-    private refs = {
-        modelSelectEl: null as HTMLSelectElement | null,
-        customModelContainer: null as HTMLDivElement | null
-    };
+export class StandardAIProviderSettings {
+    constructor(private plugin: CommentPlugin, _container: HTMLElement, private config: StandardAIProviderConfig) {}
 
-    constructor(
-        plugin: CommentPlugin,
-        containerEl: HTMLElement,
-        private config: StandardAIProviderConfig
-    ) {
-        super(plugin, containerEl);
-        this.modelState = this.initializeStandardModelState(config);
-    }
-
-    display(containerEl: HTMLElement): void {
-        const settingsContainer = containerEl.createDiv({
-            cls: 'ai-service-settings'
+    display(container: HTMLElement): void {
+        const host = container.createDiv({ cls: 'ai-service-settings' });
+        const get = () => {
+            const ai = this.plugin.settings.ai;
+            return ai[this.config.provider]!;
+        };
+        new Setting(host).setName(t(this.config.heading)).setHeading();
+        new Setting(host).setName(t('API Key'))
+            .setDesc(t('Select or create a Keychain secret on this device. Only its name is saved in HiNote.'))
+            .addComponent(el => new SecretComponent(this.plugin.app, el)
+                .setValue(get().apiKeySecretId || '')
+                .onChange(async id => { get().apiKeySecretId = id; await this.plugin.saveSettings(); }));
+        const urlKey = this.config.providerUrlKey || 'baseUrl';
+        const getBase = () => {
+            const config = get() as unknown as Record<string, unknown>;
+            return typeof config[urlKey] === 'string' && (config[urlKey] as string).trim()
+                ? (config[urlKey] as string).trim() : this.config.defaultBaseUrl;
+        };
+        const advanced = host.createEl('details');
+        advanced.createEl('summary', { text: t('Advanced Options') });
+        new Setting(advanced).setName(t('Provider URL')).setDesc(t('Leave it blank, unless you are using a proxy.'))
+            .addText(text => text.setPlaceholder(this.config.defaultBaseUrl)
+                .setValue(getBase() === this.config.defaultBaseUrl ? '' : getBase())
+                .onChange(async value => {
+                    (get() as unknown as Record<string, unknown>)[urlKey] = value.trim();
+                    await this.plugin.saveSettings();
+                }));
+        renderAIConnectionControls(host, {
+            app: this.plugin.app,
+            getModel: () => get().model || '',
+            setModel: async id => { get().model = id; await this.plugin.saveSettings(); },
+            fingerprint: () => JSON.stringify([get().apiKeySecretId, getBase()]),
+            create: () => this.config.createService({
+                apiKey: readApiKey(this.plugin.app.secretStorage, get().apiKeySecretId),
+                model: get().model || '', baseUrl: getBase()
+            })
         });
-
-        new Setting(settingsContainer)
-            .setName(t(this.config.heading))
-            .setHeading();
-
-        this.renderApiKeySetting(settingsContainer, this.config, this.modelState, async () => {
-            const service = this.config.createService({
-                apiKey: this.modelState.apiKey,
-                model: this.modelState.selectedModel.id,
-                baseUrl: this.getBaseUrl(),
-                plugin: this.plugin
-            });
-
-            return await AITestHelper.testConnection(service, this.config.serviceName);
-        });
-
-        this.renderModelSelector(settingsContainer, this.config, this.modelState, this.refs);
-        this.renderProviderUrlSetting(settingsContainer, this.config);
-    }
-
-    private getBaseUrl(): string {
-        const urlKey = this.config.providerUrlKey || 'apiAddress';
-        const customUrl = this.getProviderSettingString(this.config, urlKey);
-        return customUrl.trim() ? customUrl : this.config.defaultBaseUrl;
+        host.appendChild(advanced);
     }
 }

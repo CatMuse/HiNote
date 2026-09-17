@@ -42,7 +42,7 @@ export function migrateSettings(raw: SettingsData, existingData?: SettingsData):
 function normalizeAISettings(raw: Partial<AISettings> | undefined, defaults: AISettings): AISettings {
     const source = raw ?? {};
 
-    return {
+    const settings: AISettings = {
         ...defaults,
         ...source,
         provider: source.provider ?? defaults.provider,
@@ -78,6 +78,22 @@ function normalizeAISettings(raw: Partial<AISettings> | undefined, defaults: AIS
             ...(source.prompts ?? {})
         }
     };
+    // Remove known legacy credential fields; do not interpret IDs as secret values.
+    for (const provider of KEYCHAIN_PROVIDERS) {
+        const config = settings[provider];
+        if (config) delete (config as typeof config & { apiKey?: unknown }).apiKey;
+    }
+    return settings;
+}
+
+const KEYCHAIN_PROVIDERS = ['openai', 'anthropic', 'gemini', 'deepseek', 'siliconflow', 'custom'] as const;
+
+export function hasLegacyApiKeys(ai: unknown): boolean {
+    if (!ai || typeof ai !== 'object') return false;
+    return KEYCHAIN_PROVIDERS.some(provider => {
+        const config = (ai as Record<string, unknown>)[provider];
+        return config !== null && typeof config === 'object' && Object.prototype.hasOwnProperty.call(config, 'apiKey');
+    });
 }
 
 function cloneSettings(settings: PluginSettings): PluginSettings {

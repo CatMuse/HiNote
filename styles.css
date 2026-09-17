@@ -3948,7 +3948,7 @@ textarea.flashcard-modal-input {
     border-top: 1px solid var(--background-modifier-border);
 }
 
-.hi-note-searchable-settings .hi-note-settings-card .setting-item-heading:first-child {
+.hi-note-searchable-settings .hi-note-settings-card .setting-item-heading:first-child:not(.prompt-settings-header) {
     margin-top: 0;
     border-top: 0;
 }

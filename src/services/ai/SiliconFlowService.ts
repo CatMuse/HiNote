@@ -1,4 +1,4 @@
-import type { AISettings } from '../../types/ai';
+import { discoverModels, apiRoot } from './ModelDiscovery';
 import { AIServiceConfig, AIProviderType, AIModel } from './BaseAIService';
 import { OpenAICompatibleService } from './OpenAICompatibleService';
 
@@ -13,15 +13,15 @@ interface SiliconFlowModelsResponse {
  * 使用 OpenAI 兼容的 API 格式
  */
 export class SiliconFlowService extends OpenAICompatibleService {
-    constructor(settings: AISettings) {
-        if (!settings.siliconflow?.apiKey) {
+    constructor(apiKey: string, model: string = 'deepseek-ai/DeepSeek-V3', baseUrl?: string) {
+        if (!apiKey) {
             throw new Error('SiliconFlow API key is required');
         }
 
         const config: AIServiceConfig = {
-            apiKey: settings.siliconflow.apiKey,
-            model: settings.siliconflow.model || 'deepseek-ai/DeepSeek-V3',
-            baseUrl: settings.siliconflow.baseUrl,
+            apiKey,
+            model,
+            baseUrl,
             temperature: 0.7,
             maxTokens: 2048
         };
@@ -50,20 +50,6 @@ export class SiliconFlowService extends OpenAICompatibleService {
      * 列出可用的模型
      */
     async listModels(): Promise<AIModel[]> {
-        try {
-            const response = await this.httpClient.request<SiliconFlowModelsResponse>({
-                url: `${this.baseUrl}/models`,
-                method: 'GET',
-                headers: this.buildHeaders()
-            });
-
-            return response.data.map((model: { id: string }) => ({
-                id: model.id,
-                name: model.id.split('/').pop() || model.id,
-                isCustom: false
-            }));
-        } catch (error) {
-            throw this.handleError(error);
-        }
+        return discoverModels(this.baseUrl, 'openai', this.buildHeaders());
     }
 }

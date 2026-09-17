@@ -130,14 +130,67 @@ async function testSettings() {
     assert.equal(renders, 4, 'All three sections must render without tab selection');
 }
 
+async function testAICommentLocalUpdate() {
+    class TFile { constructor(path) { this.path = path; } }
+    let nextId = 0;
+    const { CommentService } = load('src/services/comment/CommentService.ts', {
+        obsidian: { TFile, Notice: class {} },
+        '../../utils/IdGenerator': { IdGenerator: { generateCommentId: () => `comment-${++nextId}` } },
+        '../../i18n': { t: value => value }
+    });
+    for (const mode of ['sidebar', 'all', 'search']) {
+        const file = new TFile('note.md');
+        const highlight = { id: 'target', filePath: file.path, text: 'highlight', comments: [], isGlobalSearch: mode === 'search' };
+        const neighbor = { id: 'neighbor', comments: [] };
+        const state = { currentFile: mode === 'sidebar' ? file : null, highlights: [highlight, neighbor] };
+        const originalList = state.highlights;
+        let updated = 0, saved = 0, refreshed = 0, callbacks;
+        const { CommentController } = load('src/views/highlight/comments/CommentController.ts', {
+            '../../../components/highlight': { defaultHighlightCardRegistry: {
+                findByHighlightId: id => {
+                    assert.equal(id, 'target', 'Only the target card may be updated');
+                    return { updateComments: h => { assert.equal(h, highlight); updated++; } };
+                }
+            } }
+        });
+        const service = new CommentService({ vault: { getAbstractFileByPath: () => file } }, {}, {
+            addHighlight: async (targetFile, value) => {
+                assert.equal(targetFile, file);
+                assert.equal(value, highlight);
+                saved++;
+            }
+        });
+        const controller = new CommentController({
+            state, commentService: service,
+            commentInputManager: { setCallbacks: value => { callbacks = value; } },
+            refreshView: async () => { refreshed++; },
+            // Guard against reintroducing the former extra full-list refresh.
+            updateHighlights: async () => { refreshed++; }
+        });
+        controller.configure();
+        await controller.addAIComment(highlight, 'AI answer');
+        assert.equal(saved, 1);
+        assert.equal(updated, 1);
+        assert.equal(highlight.comments[0].content, 'AI answer');
+        assert.equal(refreshed, 0, mode + ': AI must not refresh the list');
+        assert.equal(state.highlights, originalList);
+        assert.equal(state.highlights[1], neighbor);
+        await callbacks.onCommentSave(highlight, 'Manual answer');
+        assert.equal(saved, 2);
+        assert.equal(updated, 2);
+        assert.equal(refreshed, 0, mode + ': manual and AI comments share local updates');
+    }
+}
+
 (async () => {
     testReviewDomRules();
     await testKeyboard();
     await testSettings();
+    await testAICommentLocalUpdate();
     const manifest = JSON.parse(fs.readFileSync('manifest.json'));
     const versions = JSON.parse(fs.readFileSync('versions.json'));
     assert.equal(manifest.minAppVersion, '1.13.0');
     assert.equal(versions['0.5.8'], '1.8.0');
     assert.equal(versions[manifest.version], manifest.minAppVersion);
-    console.log('Review regressions passed: IME, keyboard shortcuts, settings search definitions and lifecycle, versions.');
+    console.log('Review regressions passed: IME, keyboard shortcuts, settings search definitions and lifecycle, local AI comment updates, versions.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

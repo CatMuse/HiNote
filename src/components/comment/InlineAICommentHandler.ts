@@ -41,7 +41,7 @@ export class InlineAICommentHandler {
         try {
             this.setLoading(true);
 
-            const aiService = new AIServiceManager(this.options.plugin.settings.ai);
+            const aiService = new AIServiceManager(this.options.plugin.settings.ai, this.options.plugin.app.secretStorage);
             const response = await aiService.generateResponse(
                 userPrompt,
                 this.options.highlight.text || "",

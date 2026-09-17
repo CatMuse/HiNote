@@ -9,7 +9,6 @@ interface CommentControllerOptions {
     commentService: CommentService;
     commentInputManager: CommentInputManager;
     refreshView: () => Promise<void>;
-    updateHighlights: () => Promise<void>;
 }
 
 export class CommentController {
@@ -50,7 +49,6 @@ export class CommentController {
     async addAIComment(highlight: HighlightInfo, content: string): Promise<void> {
         this.syncCommentServiceState();
         await this.options.commentService.addComment(highlight, content);
-        await this.options.updateHighlights();
     }
 
     showCommentInput(card: HTMLElement, highlight: HighlightInfo, existingComment?: CommentItem): void {

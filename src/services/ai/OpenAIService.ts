@@ -1,3 +1,4 @@
+import { discoverModels, apiRoot } from './ModelDiscovery';
 import { AIServiceConfig, AIProviderType, AIModel } from './BaseAIService';
 import { OpenAICompatibleService } from './OpenAICompatibleService';
 
@@ -30,13 +31,6 @@ export class OpenAIService extends OpenAICompatibleService {
     }
 
     async listModels(): Promise<AIModel[]> {
-        return [
-            { id: 'gpt-4o', name: 'GPT-4o' },
-            { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-            { id: 'gpt-o1', name: 'GPT-o1' },
-            { id: 'gpt-4', name: 'GPT-4' },
-            { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-            { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
-        ];
+        return discoverModels(this.baseUrl, 'openai', this.buildHeaders());
     }
 }

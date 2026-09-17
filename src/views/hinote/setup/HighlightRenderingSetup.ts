@@ -59,8 +59,7 @@ export function setupHighlightRendering(options: HighlightRenderingSetupOptions)
         state,
         commentService,
         commentInputManager,
-        refreshView: async () => await highlightListController.refreshView(),
-        updateHighlights: async () => await highlightListController.updateHighlights()
+        refreshView: async () => await highlightListController.refreshView()
     });
     commentController.configure();
 

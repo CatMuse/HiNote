@@ -1,3 +1,4 @@
+import { discoverModels, apiRoot } from './ModelDiscovery';
 import { AIServiceConfig, AIProviderType, AIModel } from './BaseAIService';
 import { OpenAICompatibleService } from './OpenAICompatibleService';
 
@@ -25,23 +26,11 @@ export class DeepseekService extends OpenAICompatibleService {
         return 'https://api.deepseek.com/v1';
     }
 
-    protected getChatOptions(): Record<string, unknown> {
-        return {
-            temperature: this.temperature,
-            max_tokens: this.maxTokens,
-            frequency_penalty: 0,
-            presence_penalty: 0
-        };
-    }
-
     getProviderType(): AIProviderType {
         return AIProviderType.DEEPSEEK;
     }
 
     async listModels(): Promise<AIModel[]> {
-        return [
-            { id: 'deepseek-chat', name: 'Deepseek Chat' },
-            { id: 'deepseek-reasoner', name: 'Deepseek Reasoner' }
-        ];
+        return discoverModels(this.baseUrl, 'openai', this.buildHeaders());
     }
 }

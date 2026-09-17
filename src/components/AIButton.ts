@@ -136,7 +136,7 @@ export class AIButton {
         try {
             this.setLoading(true);
 
-            const aiService = new AIServiceManager(this.plugin.settings.ai);
+            const aiService = new AIServiceManager(this.plugin.settings.ai, this.plugin.app.secretStorage);
             const prompt = this.plugin.settings.ai.prompts[promptName];
             
             if (!prompt) {

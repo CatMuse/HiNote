@@ -1,3 +1,5 @@
+import type { SecretStorage } from 'obsidian';
+import { readApiKey } from './AISecrets';
 /**
  * AI 服务工厂集合
  * 为每个 AI 服务提供工厂实现
@@ -18,6 +20,8 @@ import { CustomAIService } from './CustomAIService';
  * OpenAI 服务工厂
  */
 export class OpenAIServiceFactory implements IAIServiceFactory {
+    constructor(private secrets: SecretStorage) {}
+
     getProviderType(): AIProviderType {
         return AIProviderType.OPENAI;
     }
@@ -27,12 +31,13 @@ export class OpenAIServiceFactory implements IAIServiceFactory {
     }
 
     create(settings: AISettings): IAIService {
-        if (!settings.openai?.apiKey) {
-            throw AIServiceError.notConfigured(AIProviderType.OPENAI, 'API key not configured');
+        const apiKey = readApiKey(this.secrets, settings.openai?.apiKeySecretId);
+        if (!settings.openai || !apiKey || !settings.openai.model) {
+            throw AIServiceError.notConfigured(AIProviderType.OPENAI, 'API key or model not configured');
         }
 
         return new OpenAIService(
-            settings.openai.apiKey,
+            apiKey,
             settings.openai.model || 'gpt-4o',
             settings.openai.baseUrl
         );
@@ -43,6 +48,8 @@ export class OpenAIServiceFactory implements IAIServiceFactory {
  * Anthropic 服务工厂
  */
 export class AnthropicServiceFactory implements IAIServiceFactory {
+    constructor(private secrets: SecretStorage) {}
+
     getProviderType(): AIProviderType {
         return AIProviderType.ANTHROPIC;
     }
@@ -52,12 +59,13 @@ export class AnthropicServiceFactory implements IAIServiceFactory {
     }
 
     create(settings: AISettings): IAIService {
-        if (!settings.anthropic?.apiKey) {
-            throw AIServiceError.notConfigured(AIProviderType.ANTHROPIC, 'API key not configured');
+        const apiKey = readApiKey(this.secrets, settings.anthropic?.apiKeySecretId);
+        if (!settings.anthropic || !apiKey || !settings.anthropic.model) {
+            throw AIServiceError.notConfigured(AIProviderType.ANTHROPIC, 'API key or model not configured');
         }
 
         return new AnthropicService(
-            settings.anthropic.apiKey,
+            apiKey,
             settings.anthropic.apiAddress,
             settings.anthropic.model
         );
@@ -68,6 +76,8 @@ export class AnthropicServiceFactory implements IAIServiceFactory {
  * Gemini 服务工厂
  */
 export class GeminiServiceFactory implements IAIServiceFactory {
+    constructor(private secrets: SecretStorage) {}
+
     getProviderType(): AIProviderType {
         return AIProviderType.GEMINI;
     }
@@ -77,12 +87,13 @@ export class GeminiServiceFactory implements IAIServiceFactory {
     }
 
     create(settings: AISettings): IAIService {
-        if (!settings.gemini?.apiKey) {
-            throw AIServiceError.notConfigured(AIProviderType.GEMINI, 'API key not configured');
+        const apiKey = readApiKey(this.secrets, settings.gemini?.apiKeySecretId);
+        if (!settings.gemini || !apiKey || !settings.gemini.model) {
+            throw AIServiceError.notConfigured(AIProviderType.GEMINI, 'API key or model not configured');
         }
 
         return new GeminiService(
-            settings.gemini.apiKey,
+            apiKey,
             settings.gemini.model || 'gemini-2.5-flash',
             settings.gemini.baseUrl
         );
@@ -93,6 +104,8 @@ export class GeminiServiceFactory implements IAIServiceFactory {
  * Deepseek 服务工厂
  */
 export class DeepseekServiceFactory implements IAIServiceFactory {
+    constructor(private secrets: SecretStorage) {}
+
     getProviderType(): AIProviderType {
         return AIProviderType.DEEPSEEK;
     }
@@ -102,12 +115,13 @@ export class DeepseekServiceFactory implements IAIServiceFactory {
     }
 
     create(settings: AISettings): IAIService {
-        if (!settings.deepseek?.apiKey) {
-            throw AIServiceError.notConfigured(AIProviderType.DEEPSEEK, 'API key not configured');
+        const apiKey = readApiKey(this.secrets, settings.deepseek?.apiKeySecretId);
+        if (!settings.deepseek || !apiKey || !settings.deepseek.model) {
+            throw AIServiceError.notConfigured(AIProviderType.DEEPSEEK, 'API key or model not configured');
         }
 
         return new DeepseekService(
-            settings.deepseek.apiKey,
+            apiKey,
             settings.deepseek.model || 'deepseek-chat',
             settings.deepseek.baseUrl
         );
@@ -118,6 +132,8 @@ export class DeepseekServiceFactory implements IAIServiceFactory {
  * SiliconFlow 服务工厂
  */
 export class SiliconFlowServiceFactory implements IAIServiceFactory {
+    constructor(private secrets: SecretStorage) {}
+
     getProviderType(): AIProviderType {
         return AIProviderType.SILICONFLOW;
     }
@@ -127,11 +143,12 @@ export class SiliconFlowServiceFactory implements IAIServiceFactory {
     }
 
     create(settings: AISettings): IAIService {
-        if (!settings.siliconflow?.apiKey) {
-            throw AIServiceError.notConfigured(AIProviderType.SILICONFLOW, 'API key not configured');
+        const apiKey = readApiKey(this.secrets, settings.siliconflow?.apiKeySecretId);
+        if (!settings.siliconflow || !apiKey || !settings.siliconflow.model) {
+            throw AIServiceError.notConfigured(AIProviderType.SILICONFLOW, 'API key or model not configured');
         }
 
-        return new SiliconFlowService(settings);
+        return new SiliconFlowService(apiKey, settings.siliconflow.model, settings.siliconflow.baseUrl);
     }
 }
 
@@ -164,6 +181,8 @@ export class OllamaServiceFactory implements IAIServiceFactory {
  * Custom 服务工厂
  */
 export class CustomAIServiceFactory implements IAIServiceFactory {
+    constructor(private secrets: SecretStorage) {}
+
     getProviderType(): AIProviderType {
         return AIProviderType.CUSTOM;
     }
@@ -173,7 +192,8 @@ export class CustomAIServiceFactory implements IAIServiceFactory {
     }
 
     create(settings: AISettings): IAIService {
-        if (!settings.custom?.apiKey || !settings.custom?.baseUrl || !settings.custom?.model) {
+        const apiKey = readApiKey(this.secrets, settings.custom?.apiKeySecretId);
+        if (!settings.custom || !apiKey || !settings.custom?.baseUrl || !settings.custom?.model) {
             throw AIServiceError.notConfigured(
                 AIProviderType.CUSTOM,
                 'API key, base URL, or model not configured'
@@ -181,11 +201,11 @@ export class CustomAIServiceFactory implements IAIServiceFactory {
         }
 
         return new CustomAIService(
-            settings.custom.apiKey,
+            apiKey,
             settings.custom.baseUrl,
             settings.custom.model,
             settings.custom.headers,
-            settings.custom.detectedApiType
+            settings.custom.apiType || settings.custom.detectedApiType
         );
     }
 }

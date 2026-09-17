@@ -140,22 +140,7 @@ export abstract class BaseAIService implements IAIService {
      * 测试连接
      */
     async testConnection(): Promise<boolean> {
-        try {
-            const url = this.buildUrl();
-            const testMessages: AIMessage[] = [
-                { role: 'user', content: 'test' }
-            ];
-            const requestBody = this.formatRequestBody(testMessages);
-
-            return await this.httpClient.testConnection({
-                url,
-                method: 'POST',
-                headers: this.buildHeaders(),
-                body: JSON.stringify(requestBody)
-            });
-        } catch {
-            return false;
-        }
+        return !!(await this.chat([{ role: 'user', content: 'Reply only OK.' }]));
     }
 
     /**

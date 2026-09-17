@@ -1,10 +1,11 @@
-import { Plugin } from 'obsidian';
+import { t } from './src/i18n';
+import { Plugin, Notice } from 'obsidian';
 import { AISettingTab } from './src/settings/SettingsTab';
 import { PluginSettings } from './src/types/settings';
 import { InitializationManager } from './src/services/InitializationManager';
 import { WindowManager } from './src/plugin/WindowManager';
 import type { PluginServices } from './src/plugin/PluginServices';
-import { migrateSettings, normalizeSettings } from './src/settings/SettingsMigration';
+import { migrateSettings, normalizeSettings, hasLegacyApiKeys } from './src/settings/SettingsMigration';
 import {
 	createPluginWindowManager,
 	registerPluginCommands,
@@ -47,6 +48,10 @@ export default class CommentPlugin extends Plugin {
 		// 加载设置
 		const loadedData = await this.loadData();
 		this.settings = migrateSettings(loadedData);
+		if (hasLegacyApiKeys(loadedData?.ai)) {
+			await this.saveData(this.settings);
+			new Notice(t('HiNote now uses Keychain. Previous API keys were removed from settings. Please configure your AI keys again on this device.'), 12000);
+		}
 
 		// 初始化管理器
 		this.initManager = new InitializationManager(this);
