@@ -134,6 +134,12 @@ Existing `.hinote` mappings remain compatible. New highlight records use indepen
 
 Unreadable or invalid data stops the affected operation instead of being replaced with an empty library. If legacy mappings point multiple notes to the same file, or a missing mapping cannot be recovered unambiguously, restore the mapping/data from a vault backup before editing. HiNote does not guess ownership or automatically merge conflicting records.
 
+Highlight associations use unique text, existing block information, and context, with one-to-one matching across each note. Repeated text is never associated by proximity alone. When an association is uncertain, stored comments and flashcards are preserved but may not appear on a current highlight. **Check highlight associations** in settings reports unlocated records and skipped files without deleting them. Manual reassociation is not yet available.
+
+Anchor updates merge only location fields into the latest stored records, preserving comments and their timestamps. Context matching has a computation budget; cases exceeding it remain unresolved. Existing IDs are preserved, and this matching change does not modify note content.
+
+Scanning creates only temporary view keys. The first saved comment or flashcard allocates an independent permanent record ID. Existing record IDs and flashcard source IDs remain unchanged, and `.hinote` retains its v2 format without migration. See the [highlight data model](./doc/highlight-data-model.md) for implementation boundaries (Chinese).
+
 ## API keys and Keychain
 
 AI providers use Obsidian Keychain. Select or create a secret in HiNote's AI service settings; only its name is saved in plugin settings. Configure the secret on each device. HiNote reads it when starting an AI operation, so changes in Keychain apply to subsequent requests.

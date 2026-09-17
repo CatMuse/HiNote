@@ -1,5 +1,6 @@
+import { rememberHighlightScan } from './HighlightScan';
 import { App, TFile } from "obsidian";
-import type { HighlightInfo } from '../../types/highlight';
+import type { ScannedHighlight } from '../../types/highlight';
 import type { PluginSettings } from '../../types/settings';
 import { ExcludePatternMatcher } from '../ExcludePatternMatcher';
 import { BlockIdService } from '../BlockIdService';
@@ -51,8 +52,8 @@ export class HighlightExtractor {
      * @param file 文件对象
      * @returns 高亮信息数组
      */
-    extractHighlights(content: string, file: TFile): HighlightInfo[] {
-        const highlights: HighlightInfo[] = [];
+    extractHighlights(content: string, file: TFile): ScannedHighlight[] {
+        const highlights: ScannedHighlight[] = [];
         
         // 如果使用自定义规则且有规则配置
         const settings = this.getSettings?.();
@@ -77,8 +78,15 @@ export class HighlightExtractor {
             );
         }
         
-        // 按位置排序
-        return highlights.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        // Capture scan provenance before callers await storage or filter results.
+        highlights.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        const rules = JSON.stringify([settings?.useCustomPattern, settings?.regexRules, settings?.excludePatterns]);
+        rememberHighlightScan(file, highlights, () => {
+            const current = this.getSettings?.();
+            return (!this.app.vault?.getAbstractFileByPath || this.app.vault.getAbstractFileByPath(file.path) === file) &&
+                rules === JSON.stringify([current?.useCustomPattern, current?.regexRules, current?.excludePatterns]);
+        });
+        return highlights;
     }
     
     /**
@@ -92,7 +100,7 @@ export class HighlightExtractor {
     private processRegexMatches(
         content: string, 
         pattern: RegExp, 
-        highlights: HighlightInfo[], 
+        highlights: ScannedHighlight[],
         file: TFile, 
         backgroundColor: string
     ): void {
@@ -154,7 +162,7 @@ export class HighlightExtractor {
             
             // 尝试提取颜色（内联逻辑）
             let extractedColor = null;
-            let syntax: HighlightInfo['syntax'] = 'custom';
+            let syntax: ScannedHighlight['syntax'] = 'custom';
             // Custom captures retain their meaning unless they capture the complete Markdown body.
             if (fullMatch.startsWith('==') && fullMatch.endsWith('==') && text === fullMatch.slice(2, -2)) {
                 syntax = 'markdown';
@@ -182,7 +190,7 @@ export class HighlightExtractor {
                 // 创建高亮对象（只包含提取阶段必需的字段）
                 const context = this.createContextAnchors(content, matchStart, matchEnd, text);
                 const highlight = {
-                    id: IdGenerator.generateHighlightId(file.path, safeMatch.index, text),
+                    scanKey: IdGenerator.generateScanKey(file.path, safeMatch.index, text),
                     text,
                     position: safeMatch.index,
                     backgroundColor: extractedColor || backgroundColor,
@@ -265,9 +273,9 @@ export class HighlightExtractor {
     /**
      * 获取所有包含高亮内容的文件及其高亮内容
      */
-    async getAllHighlights(): Promise<{ file: TFile, highlights: HighlightInfo[] }[]> {
+    async getAllHighlights(): Promise<{ file: TFile, highlights: ScannedHighlight[] }[]> {
         const files = this.app.vault.getMarkdownFiles();
-        const result: { file: TFile, highlights: HighlightInfo[] }[] = [];
+        const result: { file: TFile, highlights: ScannedHighlight[] }[] = [];
         for (const file of files) {
             if (!this.shouldProcessFile(file)) continue;
             // 使用缓存读取文件内容

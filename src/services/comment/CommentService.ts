@@ -88,15 +88,6 @@ export class CommentService {
             return;
         }
 
-        // 确保高亮有 ID
-        if (!highlight.id) {
-            highlight.id = IdGenerator.generateHighlightId(
-                file.path,
-                highlight.position || 0, 
-                highlight.text
-            );
-        }
-
         if (!highlight.comments) {
             highlight.comments = [];
         }

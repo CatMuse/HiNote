@@ -47,7 +47,7 @@ function memoryVault(initial = {}, notes = []) {
 const mappingPath = '.hinote/metadata/file-mapping.json';
 const highlightDir = '.hinote/highlights/';
 const mapping = value => JSON.stringify({ version: '2.0', mapping: value, lastUpdated: 1 });
-const highlight = id => ({ id, text: 'text', position: 0, createdAt: 1, updatedAt: 1, comments: [] });
+const highlight = id => ({ id, kind: 'highlight', filePath: 'note.md', text: 'text', position: 0, createdAt: 1, updatedAt: 1, comments: [] });
 
 async function storagePaths() {
     const { HiNoteDataManager } = load('src/storage/HiNoteDataManager.ts');
@@ -61,6 +61,11 @@ async function storagePaths() {
     assert.equal((await manager.getFileHighlights('a_b.md'))[0].id, 'two');
     const paths = JSON.parse(vault.files.get(mappingPath)).mapping;
     assert.notEqual(paths['a/b.md'], paths['a_b.md']);
+    const preserved = vault.files.get(highlightDir + paths['a/b.md']);
+    let checks = 0;
+    const cancelled = await manager.saveFileHighlights('a/b.md', [highlight('stale')], () => ++checks < 2);
+    assert.equal(cancelled, false);
+    assert.equal(vault.files.get(highlightDir + paths['a/b.md']), preserved, 'Source invalidated during backup must not be written');
     const originalData = vault.files.get(highlightDir + paths['a/b.md']);
     await manager.handleFileRename('a/b.md', 'renamed.md');
     assert.equal(JSON.parse(vault.files.get(mappingPath)).mapping['renamed.md'], paths['a/b.md']);
@@ -184,11 +189,11 @@ async function initializationBarrier() {
     }).outputText, { exports, require: () => ({}) });
     const manager = new exports.InitializationManager({});
     const gate = deferred();
-    let factoryCalls = 0, enabled = 0, disposed = 0;
+    let factoryCalls = 0, enabled = 0, disposed = 0, repositoryDisposed = 0;
     manager.initialize = () => {
         factoryCalls++;
         return {
-            highlightRepository: { initialize: () => gate.promise },
+            highlightRepository: { initialize: () => gate.promise, dispose: () => { repositoryDisposed++; } },
             fsrsManager: { initialize: async () => {}, dispose: async () => { disposed++; } },
             highlightService: { initialize: async () => {}, destroy() {} },
             highlightDecorator: { enable: () => { enabled++; }, disable() {} }
@@ -205,6 +210,7 @@ async function initializationBarrier() {
     assert.equal(enabled, 1);
     await manager.cleanup();
     assert.equal(disposed, 1);
+    assert.equal(repositoryDisposed, 1);
     await assert.rejects(manager.ensureInitialized(), /unloaded/);
     console.log('Initialization: shared readiness barrier prevents early rendering and blocks reuse after unload.');
 }

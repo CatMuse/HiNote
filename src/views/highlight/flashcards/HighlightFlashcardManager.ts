@@ -1,6 +1,5 @@
 import { Notice, TFile } from 'obsidian';
 import { HighlightInfo } from '../../../types/highlight';
-import { HighlightInfo as HiNote } from '../../../types/highlight';
 import CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 
@@ -46,47 +45,12 @@ export class HighlightFlashcardManager {
                 return false;
             }
 
-            // 确保高亮有 ID
-            if (!highlight.id) {
-                console.warn('高亮缺少 ID，正在生成...');
-                // 使用 IdGenerator 生成稳定的 ID
-                const IdGenerator = (await import('../../../utils/IdGenerator')).IdGenerator;
-                highlight.id = IdGenerator.generateHighlightId(
-                    highlight.filePath || '',
-                    highlight.position || 0,
-                    highlight.text
-                );
-            }
-            
-            // 如果高亮有文件路径，需要先保存到存储中
-            if (highlight.filePath) {
-                const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
-                if (file instanceof TFile) {
-                    // 创建 HiNote 对象
-                    const hiNote: HiNote = {
-                        id: highlight.id,
-                        text: highlight.text,
-                        position: highlight.position || 0,
-                        paragraphOffset: highlight.paragraphOffset,
-                        blockId: highlight.blockId,
-                        comments: highlight.comments || [],
-                        createdAt: highlight.createdAt || Date.now(),
-                        updatedAt: highlight.updatedAt || Date.now(),
-                        filePath: highlight.filePath,
-                        fileName: highlight.fileName,
-                        fileIcon: highlight.fileIcon,
-                        backgroundColor: highlight.backgroundColor,
-                        syntax: highlight.syntax,
-                        originalLength: highlight.originalLength,
-                        isVirtual: highlight.isVirtual,
-                        isCloze: highlight.isCloze
-                    };
-                    
-                    // 保存到 HighlightManager
-                    await this.plugin.highlightManager.addHighlight(file, hiNote);
-                }
-            }
-            
+            const file = highlight.filePath ? this.plugin.app.vault.getAbstractFileByPath(highlight.filePath) : null;
+            if (!(file instanceof TFile)) throw new Error(t('No corresponding file found.'));
+            const record = await this.plugin.highlightManager.ensureStoredHighlight(file, highlight);
+            // Recheck after awaiting persistence: another view may have created it.
+            if (fsrsManager.findCardsBySourceId(record.id, 'highlight').length > 0) return true;
+
             // 构建闪卡内容
             const text = highlight.text;
             const answer = this.buildFlashcardAnswer(highlight);
@@ -96,7 +60,7 @@ export class HighlightFlashcardManager {
                 text, 
                 answer, 
                 highlight.filePath || _fileName,
-                highlight.id, 
+                record.id,
                 'highlight'
             );
             

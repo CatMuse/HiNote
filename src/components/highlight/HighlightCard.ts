@@ -152,6 +152,8 @@ export class HighlightCard {
         return this.card;
     }
 
+    public getHighlight(): HighlightInfo { return this.highlight; }
+
     public getHighlightId(): string | undefined {
         return this.highlight.id;
     }
@@ -251,6 +253,7 @@ export class HighlightCard {
      * 更新创建闪卡后的图标显示
      */
     public updateIconsAfterCardCreation() {
+        this.card.setAttribute('data-highlight', JSON.stringify(this.highlight));
         HighlightIconManager.updateCardIcons(this.card, true);
     }
 
@@ -293,6 +296,7 @@ export class HighlightCard {
     public updateComments(updatedHighlight: HighlightInfo): void {
         // 更新高亮数据
         this.highlight = updatedHighlight;
+        this.card.setAttribute('data-highlight', JSON.stringify(this.highlight));
         
         // 重置编辑状态，允许重新选中卡片
         this.selectionController.resetEditing();

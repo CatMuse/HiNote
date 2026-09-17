@@ -1,4 +1,4 @@
-import { HighlightInfo as HiNote, CommentItem } from '../types/highlight';
+import { HighlightRecord as HiNote, CommentItem } from '../types/highlight';
 
 type JsonRecord = Record<string, unknown>;
 type SanitizedHighlight = Partial<HiNote> & {

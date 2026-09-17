@@ -1,5 +1,5 @@
 import { MarkdownPostProcessorContext, TFile } from "obsidian";
-import { HighlightInfo as HiNote } from "../../../types/highlight";
+import { HighlightInfo as HiNote, ScannedHighlight } from "../../../types/highlight";
 import { HighlightRepository } from "../../../repositories/HighlightRepository";
 import { HighlightCommentResolver } from "../../../services/highlight";
 import { highlightColorStyle, isHighlightColor } from "../../../services/highlight/HighlightColor";
@@ -35,12 +35,11 @@ export class PreviewHighlightResolver {
     }
 
     enrichHighlightsWithComments(
-        rawHighlights: HiNote[],
+        rawHighlights: ScannedHighlight[],
         file: TFile,
         content: string
     ): PreviewHighlight[] {
-        return rawHighlights
-            .map(highlight => this.enrichHighlight(highlight, file))
+        return this.commentResolver.resolveHighlights(file, rawHighlights)
             .map(highlight => ({
                 ...highlight,
                 line: this.getLineForPosition(content, highlight.position)
@@ -70,10 +69,6 @@ export class PreviewHighlightResolver {
             highlight.line >= sectionInfo.lineStart &&
             highlight.line <= sectionInfo.lineEnd
         ) || null;
-    }
-
-    private enrichHighlight(highlight: HiNote, file: TFile): HiNote {
-        return this.commentResolver.resolveHighlight(file, highlight);
     }
 
     private getSectionInfo(

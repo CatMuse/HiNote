@@ -27,7 +27,8 @@ const { highlightColorStyle } = load('src/services/highlight/HighlightColor.ts')
 const { HighlightMatcher } = load('src/services/highlight/HighlightMatcher.ts');
 const { HighlightBatchOps } = load('src/services/highlight/HighlightBatchOps.ts');
 const { findStoredHighlightMatch } = load('src/services/highlight/HighlightMatchStrategies.ts');
-const { convertToOptimizedHighlight, convertToLegacyHighlight } = load('src/storage/HighlightDataFormat.ts');
+const { createHighlightRecord } = load('src/models/HighlightModels.ts');
+const { encodeHighlightRecord, decodeHighlightRecord } = load('src/storage/HighlightDataFormat.ts');
 const file = Object.assign(new TFile(), { path: 'example.md', extension: 'md', basename: 'example' });
 const app = { metadataCache: { getFileCache: () => null } };
 const extractor = new HighlightExtractor(app);
@@ -42,7 +43,7 @@ for (const [markers, color] of pairs) for (const marker of markers) {
     assert.equal(h.position, 7);
     assert.equal(h.originalLength, `==${marker}正文==`.length);
     assert.equal(batch.removeHighlightMarkFromContent(source, h), 'before 正文 after');
-    const roundTrip = convertToLegacyHighlight('saved-id', convertToOptimizedHighlight(h), file.path);
+    const roundTrip = decodeHighlightRecord('saved-id', encodeHighlightRecord(createHighlightRecord(h, 'saved-id', file.path, 1)), file.path);
     assert.equal(roundTrip.syntax, 'markdown');
     assert.equal(roundTrip.backgroundColor, h.backgroundColor);
 }

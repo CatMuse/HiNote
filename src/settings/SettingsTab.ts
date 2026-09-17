@@ -23,7 +23,7 @@ export class AISettingTab extends PluginSettingTab {
         return [
             this.createSettingsSection(t('General'), [
                 'Export Path', 'Exclusions', 'Export template', 'Show Comment Widget',
-                'Custom text extraction', 'Use custom rules', 'Data management', 'Clean orphaned data'
+                'Custom text extraction', 'Use custom rules', 'Data management', 'Check highlight associations'
             ], container => new GeneralSettingsTab(this.plugin, container).display()),
             this.createSettingsSection(t('AI service'), [
                 'AI service', 'API key', 'Server URL', 'Model', 'Prompt settings',

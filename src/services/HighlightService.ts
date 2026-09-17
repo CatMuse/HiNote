@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
-import { HighlightInfo } from '../types/highlight';
-import { HighlightInfo as HiNote } from '../types/highlight';
+import { HighlightInfo, ScannedHighlight } from '../types/highlight';
+import { HighlightRecord as HiNote } from '../types/highlight';
 import { HighlightRepository } from '../repositories/HighlightRepository';
 import type { PluginSettings } from '../types/settings';
 import {
@@ -54,7 +54,7 @@ export class HighlightService {
         return this.extractor.shouldProcessFile(file);
     }
 
-    extractHighlights(content: string, file: TFile): HighlightInfo[] {
+    extractHighlights(content: string, file: TFile): ScannedHighlight[] {
         return this.extractor.extractHighlights(content, file);
     }
 
@@ -62,7 +62,7 @@ export class HighlightService {
         return this.extractor.getFilesWithHighlights();
     }
 
-    async getAllHighlights(): Promise<{ file: TFile, highlights: HighlightInfo[] }[]> {
+    async getAllHighlights(): Promise<{ file: TFile, highlights: ScannedHighlight[] }[]> {
         return this.extractor.getAllHighlights();
     }
 
@@ -72,22 +72,22 @@ export class HighlightService {
 
     // ==================== 索引与搜索 (委托给 HighlightIndexer) ====================
     
-    public getAllHighlightsFromCache(): HighlightInfo[] | null {
+    public getAllHighlightsFromCache(): ScannedHighlight[] | null {
         return this.indexer.getAllHighlightsFromCache();
     }
 
-    async searchHighlightsFromIndex(searchTerm: string): Promise<HighlightInfo[]> {
+    async searchHighlightsFromIndex(searchTerm: string): Promise<ScannedHighlight[]> {
         return this.indexer.searchHighlightsFromIndex(searchTerm);
     }
 
     // ==================== 匹配与合并 (委托给 HighlightMatcher) ====================
     
-    public findMatchingHighlight(file: TFile, highlight: HiNote, highlightRepository: HighlightRepository): HiNote | null {
+    public findMatchingHighlight(file: TFile, highlight: HighlightInfo, highlightRepository: HighlightRepository): HiNote | null {
         return this.matcher.findMatchingHighlight(file, highlight, highlightRepository);
     }
 
     public mergeHighlightsWithComments(
-        highlights: HighlightInfo[],
+        highlights: ScannedHighlight[],
         storedComments: HiNote[],
         file: TFile
     ): HighlightInfo[] {

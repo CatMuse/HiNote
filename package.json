@@ -10,6 +10,8 @@
 		"test:review": "node scripts/test-review-regressions.cjs",
 		"test:storage": "node scripts/test-storage-safety.cjs",
 		"test:colors": "node scripts/test-highlight-colors.cjs",
+		"test:matching": "node scripts/test-highlight-matching.cjs",
+		"test:models": "node scripts/test-highlight-models.cjs",
 		"test:secrets": "node scripts/test-ai-secrets.cjs",
 		"test:ai": "node scripts/test-ai-connections.cjs"
 	},

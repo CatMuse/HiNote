@@ -1,8 +1,8 @@
-import { HighlightInfo } from "../../types/highlight";
+import { ScannedHighlight } from "../../types/highlight";
 
 export interface FileHighlightIndex {
     wordToFiles: Map<string, Set<string>>;
-    fileToHighlights: Map<string, HighlightInfo[]>;
+    fileToHighlights: Map<string, ScannedHighlight[]>;
     lastUpdated: number;
 }
 
@@ -16,7 +16,7 @@ export class HighlightIndexStore {
         return this.index.wordToFiles;
     }
 
-    get fileToHighlights(): Map<string, HighlightInfo[]> {
+    get fileToHighlights(): Map<string, ScannedHighlight[]> {
         return this.index.fileToHighlights;
     }
 
@@ -28,7 +28,7 @@ export class HighlightIndexStore {
         this.index = HighlightIndexStore.createEmptyIndex();
     }
 
-    replace(wordToFiles: Map<string, Set<string>>, fileToHighlights: Map<string, HighlightInfo[]>): void {
+    replace(wordToFiles: Map<string, Set<string>>, fileToHighlights: Map<string, ScannedHighlight[]>): void {
         this.index = {
             wordToFiles,
             fileToHighlights,
@@ -51,8 +51,8 @@ export class HighlightIndexStore {
             Date.now() - this.index.lastUpdated > HighlightIndexStore.INDEX_EXPIRY_TIME;
     }
 
-    getAllHighlights(): HighlightInfo[] {
-        const allHighlights: HighlightInfo[] = [];
+    getAllHighlights(): ScannedHighlight[] {
+        const allHighlights: ScannedHighlight[] = [];
         for (const highlights of this.index.fileToHighlights.values()) {
             allHighlights.push(...highlights);
         }
@@ -70,17 +70,13 @@ export class HighlightIndexStore {
             .filter(word => word.length >= HighlightIndexStore.MIN_WORD_LENGTH);
     }
 
-    extractKeywordsFromHighlights(highlights: HighlightInfo[]): Set<string> {
+    extractKeywordsFromHighlights(highlights: ScannedHighlight[]): Set<string> {
         const keywords = new Set<string>();
 
         for (const highlight of highlights) {
             this.tokenizeText(highlight.text).forEach(word => keywords.add(word));
 
-            if (highlight.comments?.length) {
-                for (const comment of highlight.comments) {
-                    this.tokenizeText(comment.content).forEach(word => keywords.add(word));
-                }
-            }
+
         }
 
         return keywords;
@@ -95,7 +91,7 @@ export class HighlightIndexStore {
         }
     }
 
-    setFileHighlights(filePath: string, highlights: HighlightInfo[]): void {
+    setFileHighlights(filePath: string, highlights: ScannedHighlight[]): void {
         this.index.fileToHighlights.set(filePath, highlights);
         const keywords = this.extractKeywordsFromHighlights(highlights);
         this.addKeywordsToIndex(keywords, filePath, this.index.wordToFiles);

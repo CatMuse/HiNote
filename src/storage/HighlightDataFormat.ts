@@ -1,7 +1,8 @@
-import { HighlightInfo as HiNote, CommentItem } from '../types/highlight';
+import { assertHighlightRecord } from '../models/HighlightModels';
+import { HighlightRecord as HiNote, CommentItem } from '../types/highlight';
 
 /**
- * 新的优化数据格式
+ * Existing v2 disk format. Kept compatible with previously released records.
  */
 export interface OptimizedHighlightData {
     version: string;
@@ -42,9 +43,9 @@ export interface FileMappingData {
 }
 
 /**
- * 转换为旧格式（保持兼容性）
+ * Decode v2 records without changing their IDs or requiring an on-disk migration.
  */
-export function convertToLegacyHighlight(
+export function decodeHighlightRecord(
     id: string,
     highlight: OptimizedHighlight,
     filePath: string
@@ -60,7 +61,7 @@ export function convertToLegacyHighlight(
         syntax: highlight.syntax,
         blockId: highlight.blockId,
         isCloze: highlight.isCloze || false,
-        isVirtual: highlight.isVirtual || false,
+        kind: highlight.isVirtual ? 'file-comment' : 'highlight',
         paragraphOffset: highlight.paragraphOffset,
         contextBefore: highlight.contextBefore,
         contextAfter: highlight.contextAfter,
@@ -75,15 +76,15 @@ export function convertToLegacyHighlight(
 }
 
 /**
- * 转换为优化格式
+ * Encode only persisted fields; view flags and scan keys are never written.
  */
-export function convertToOptimizedHighlight(highlight: HiNote): OptimizedHighlight {
-    const now = Date.now();
+export function encodeHighlightRecord(highlight: HiNote): OptimizedHighlight {
+    assertHighlightRecord(highlight);
     const optimized: OptimizedHighlight = {
         text: highlight.text,
         position: highlight.position,
-        created: highlight.createdAt ?? now,
-        updated: highlight.updatedAt ?? now
+        created: highlight.createdAt,
+        updated: highlight.updatedAt
     };
 
     if (highlight.backgroundColor) {
@@ -99,8 +100,8 @@ export function convertToOptimizedHighlight(highlight: HiNote): OptimizedHighlig
         optimized.isCloze = highlight.isCloze;
     }
 
-    if (highlight.isVirtual) {
-        optimized.isVirtual = highlight.isVirtual;
+    if (highlight.kind === 'file-comment') {
+        optimized.isVirtual = true;
     }
 
     if (highlight.paragraphOffset !== undefined) {

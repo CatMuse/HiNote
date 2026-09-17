@@ -1,6 +1,9 @@
+import { createHighlightRecord, getHighlightSource, recordToHighlightView } from '../models/HighlightModels';
+import { findStoredHighlightMatch } from './highlight/HighlightMatchStrategies';
+import { matchFileHighlights } from './highlight/HighlightMatchStrategies';
 import { StorageQueue } from '../storage/StorageQueue';
 import { App, TFile } from 'obsidian';
-import { HighlightInfo as HiNote } from '../types/highlight';
+import { HighlightInfo as HiNote, HighlightRecord } from '../types/highlight';
 import { IHighlightRepository } from '../repositories/IHighlightRepository';
 import { EventManager } from './EventManager';
 import { HighlightService } from './HighlightService';
@@ -29,47 +32,65 @@ export class HighlightManager {
      * @param highlight 高亮信息
      * @returns 添加的高亮
      */
-    addHighlight(file: TFile, highlight: HiNote): Promise<HiNote> {
-        return this.mutations.run(() => this.persistHighlight(file, highlight));
+    addHighlight(file: TFile, highlight: HiNote): Promise<HighlightRecord> {
+        return this.mutations.run(() => this.persistHighlight(file, highlight, false));
     }
 
-    private async persistHighlight(file: TFile, highlight: HiNote): Promise<HiNote> {
-        if (!highlight.id) {
-            highlight.id = IdGenerator.generateHighlightId(
-                file.path,
-                highlight.position || 0,
-                highlight.text
-            );
-        }
+    /** Creating a card must reuse the saved identity without rewriting comments. */
+    ensureStoredHighlight(file: TFile, highlight: HiNote): Promise<HighlightRecord> {
+        return this.mutations.run(() => this.persistHighlight(file, highlight, true));
+    }
 
-        const now = Date.now();
-        if (!highlight.createdAt) {
-            highlight.createdAt = now;
-        }
-        highlight.updatedAt = now;
-
+    private async persistHighlight(file: TFile, highlight: HiNote, ensureOnly: boolean): Promise<HighlightRecord> {
         const filePath = file.path;
-        const fileHighlights = [...await this.repository.getFileHighlights(filePath)];
-        const existingIndex = fileHighlights.findIndex(h => h.id === highlight.id);
-
-        if (existingIndex >= 0) {
-            fileHighlights[existingIndex] = highlight;
-        } else {
-            fileHighlights.push(highlight);
+        const records = [...await this.repository.getFileHighlights(filePath)];
+        const requestedId = highlight.recordId || highlight.id;
+        let previous = records.find(record => record.id === requestedId);
+        // Two views can save the same occurrence before either gets refreshed.
+        // Only full-scan provenance allows reusing a newly saved association.
+        const source = getHighlightSource(highlight);
+        if (!previous && !highlight.recordId && source) {
+            previous = findStoredHighlightMatch(source, records)?.highlight;
+        }
+        if (ensureOnly && previous) {
+            this.publishIdentity(highlight, previous);
+            return previous;
         }
 
-        await this.repository.saveFileHighlights(filePath, fileHighlights);
-
+        let id = previous?.id;
+        if (!id) {
+            const ids = new Set(records.map(record => record.id));
+            do { id = IdGenerator.generateHighlightRecordId(); } while (ids.has(id));
+        }
+        const record = createHighlightRecord(highlight, id, filePath, Date.now(), previous);
+        if (previous && !highlight.recordId && highlight.id !== previous.id) {
+            // A second first-save contains only its own draft comments. Merge
+            // those by comment ID instead of replacing the first view's save.
+            record.comments = [...new Map([...previous.comments, ...record.comments].map(comment => [comment.id, { ...comment }])).values()];
+        }
+        const index = previous ? records.indexOf(previous) : -1;
+        if (index >= 0) records[index] = record; else records.push(record);
+        await this.repository.saveFileHighlights(filePath, records);
+        // Publish only after successful persistence. A failed save keeps its
+        // draft/scan key and can be retried without dangling flashcard links.
+        this.publishIdentity(highlight, record);
         if (this.eventManager) {
-            if (highlight.comments && highlight.comments.length > 0) {
-                const latestComment = highlight.comments[highlight.comments.length - 1];
-                this.eventManager.emitCommentUpdate(filePath, highlight.text, latestComment.content, highlight.id);
-            } else {
-                this.eventManager.emitHighlightUpdate(filePath, highlight.text, highlight.text, highlight.id);
-            }
+            const latest = record.comments[record.comments.length - 1];
+            if (latest) this.eventManager.emitCommentUpdate(filePath, record.text, latest.content, record.id);
+            else this.eventManager.emitHighlightUpdate(filePath, record.text, record.text, record.id);
         }
+        return record;
+    }
 
-        return highlight;
+    private publishIdentity(view: HiNote, record: HighlightRecord): void {
+        view.id = record.id;
+        view.recordId = record.id;
+        view.kind = record.kind;
+        view.isVirtual = record.kind === 'file-comment';
+        view.filePath = record.filePath;
+        view.createdAt = record.createdAt;
+        view.updatedAt = record.updatedAt;
+        view.comments = record.comments.map(comment => ({ ...comment }));
     }
 
     /**
@@ -118,7 +139,7 @@ export class HighlightManager {
      */
     async getFileHighlights(file: TFile): Promise<HiNote[]> {
         if (!file) return [];
-        return await this.repository.getFileHighlights(file.path);
+        return (await this.repository.getFileHighlights(file.path)).map(recordToHighlightView);
     }
 
     /**
@@ -140,7 +161,7 @@ export class HighlightManager {
                 return Math.abs(c.position - highlight.position) < 1000;
             }
             return true;
-        });
+        }).map(recordToHighlightView);
     }
 
     /**
@@ -150,7 +171,7 @@ export class HighlightManager {
      * @returns 高亮数组
      */
     async findHighlightsByBlockId(file: TFile, blockId: string): Promise<HiNote[]> {
-        return this.repository.findHighlightsByBlockId(file, blockId);
+        return this.repository.findHighlightsByBlockId(file, blockId).map(recordToHighlightView);
     }
 
     /**
@@ -159,101 +180,37 @@ export class HighlightManager {
      * @returns 高亮信息，如果未找到则返回 null
      */
     findHighlightById(highlightId: string): HiNote | null {
-        return this.repository.findHighlightById(highlightId);
+        const record = this.repository.findHighlightById(highlightId);
+        return record ? recordToHighlightView(record) : null;
     }
 
-    /**
-     * 检查孤立数据数量
-     * 检查所有存储的高亮和评论，统计那些在文档中找不到对应高亮文本的孤立数据数量
-     * @returns 孤立数据数量
-     */
-    async checkOrphanedDataCount(): Promise<{ orphanedHighlights: number; affectedFiles: number }> {
+    /** Unlocated is a diagnostic state, never proof that comments may be deleted. */
+    async checkOrphanedDataCount(): Promise<{ orphanedHighlights: number; affectedFiles: number; skippedFiles: number }> {
         let orphanedHighlights = 0;
-        let affectedFiles = new Set<string>();
-
-        const allHighlights = this.repository.getAllCachedHighlights();
-
-        for (const [filePath, highlights] of allHighlights.entries()) {
+        let affectedFiles = 0;
+        let skippedFiles = 0;
+        for (const [filePath, highlights] of this.repository.getAllCachedHighlights()) {
             const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!file || !(file instanceof TFile)) {
-                affectedFiles.add(filePath);
+            if (!(file instanceof TFile)) {
+                // A missing path may be a rename or a sync in progress.
                 orphanedHighlights += highlights.length;
+                if (highlights.length) affectedFiles++;
                 continue;
             }
-
+            if (!this.highlightService.shouldProcessFile(file)) { skippedFiles++; continue; }
             try {
                 const content = await this.app.vault.read(file);
-                const extractedHighlights = this.highlightService.extractHighlights(content, file);
-                const extractedTexts = new Set(extractedHighlights.map(h => h.text));
-
-                let fileHasOrphans = false;
-
-                for (const highlight of highlights) {
-                    if (highlight.isVirtual) continue;
-
-                    if (!extractedTexts.has(highlight.text)) {
-                        orphanedHighlights++;
-                        fileHasOrphans = true;
-                    }
-                }
-
-                if (fileHasOrphans) {
-                    affectedFiles.add(filePath);
-                }
-            } catch {
-                // 错误处理
+                const current = this.highlightService.extractHighlights(content, file);
+                const matched = new Set([...matchFileHighlights(current, highlights).values()].map(match => match.highlight));
+                const count = highlights.filter(record => record.kind !== 'file-comment' && !matched.has(record)).length;
+                orphanedHighlights += count;
+                if (count) affectedFiles++;
+            } catch (error) {
+                skippedFiles++;
+                console.error('[HiNote] Could not check highlight associations:', filePath, error);
             }
         }
-
-        return { orphanedHighlights, affectedFiles: affectedFiles.size };
-    }
-
-    /**
-     * 清理孤立数据
-     * 检查所有存储的高亮和评论，移除那些在文档中找不到对应高亮文本的孤立数据
-     * @returns 清理的数据数量
-     */
-    async cleanOrphanedData(): Promise<{ removedHighlights: number; affectedFiles: number }> {
-        let removedHighlights = 0;
-        let affectedFiles = new Set<string>();
-
-        const allHighlights = this.repository.getAllCachedHighlights();
-
-        for (const [filePath, highlights] of allHighlights.entries()) {
-            const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (!file || !(file instanceof TFile)) {
-                await this.repository.deleteFileHighlights(filePath);
-                affectedFiles.add(filePath);
-                removedHighlights += highlights.length;
-                continue;
-            }
-
-            try {
-                const content = await this.app.vault.read(file);
-                const extractedHighlights = this.highlightService.extractHighlights(content, file);
-                const extractedTexts = new Set(extractedHighlights.map(h => h.text));
-
-                const validHighlights = highlights.filter(highlight => {
-                    if (highlight.isVirtual) return true;
-                    return extractedTexts.has(highlight.text);
-                });
-
-                if (validHighlights.length < highlights.length) {
-                    removedHighlights += highlights.length - validHighlights.length;
-                    affectedFiles.add(filePath);
-
-                    if (validHighlights.length === 0) {
-                        await this.repository.deleteFileHighlights(filePath);
-                    } else {
-                        await this.repository.saveFileHighlights(filePath, validHighlights);
-                    }
-                }
-            } catch {
-                // 错误处理
-            }
-        }
-
-        return { removedHighlights, affectedFiles: affectedFiles.size };
+        return { orphanedHighlights, affectedFiles, skippedFiles };
     }
 
     /**

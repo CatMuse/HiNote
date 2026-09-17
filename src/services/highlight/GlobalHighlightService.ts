@@ -1,6 +1,6 @@
 import { TFile, App } from 'obsidian';
-import { HighlightInfo } from '../../types/highlight';
-import { HighlightInfo as HiNote } from '../../types/highlight';
+import { HighlightInfo, ScannedHighlight } from '../../types/highlight';
+import { HighlightRecord as HiNote } from '../../types/highlight';
 import { HighlightService } from '../HighlightService';
 import { HighlightRepository } from '../../repositories/HighlightRepository';
 
@@ -86,11 +86,11 @@ export class GlobalHighlightService {
     /**
      * 从缓存的高亮中按路径过滤
      */
-    private async filterCachedHighlightsByPath(cachedHighlights: HighlightInfo[], searchTerm: string): Promise<HighlightInfo[]> {
+    private async filterCachedHighlightsByPath(cachedHighlights: ScannedHighlight[], searchTerm: string): Promise<HighlightInfo[]> {
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
-        const highlightsByFile = new Map<string, HighlightInfo[]>();
+        const highlightsByFile = new Map<string, ScannedHighlight[]>();
         for (const highlight of cachedHighlights) {
             const filePath = highlight.filePath || '';
             
@@ -129,13 +129,7 @@ export class GlobalHighlightService {
     private async searchHighlightsFromIndex(searchTerm: string): Promise<HighlightInfo[]> {
         const searchResults = await this.highlightService.searchHighlightsFromIndex(searchTerm);
         
-        return searchResults.map(highlight => ({
-            ...highlight,
-            comments: highlight.comments || [],
-            fileName: highlight.fileName || this.extractFileNameFromPath(highlight.filePath),
-            filePath: highlight.filePath || '',
-            fileIcon: 'file-text'
-        }));
+        return (await this.processCachedHighlights(searchResults)).filter(highlight => !highlight.isVirtual);
     }
     
     /**
@@ -173,11 +167,11 @@ export class GlobalHighlightService {
      * 处理缓存的高亮数据
      * 直接使用索引中的数据，合并评论信息
      */
-    private async processCachedHighlights(cachedHighlights: HighlightInfo[]): Promise<HighlightInfo[]> {
+    private async processCachedHighlights(cachedHighlights: ScannedHighlight[]): Promise<HighlightInfo[]> {
         const result: HighlightInfo[] = [];
         
         // 按文件分组处理
-        const highlightsByFile = new Map<string, HighlightInfo[]>();
+        const highlightsByFile = new Map<string, ScannedHighlight[]>();
         for (const highlight of cachedHighlights) {
             const filePath = highlight.filePath || '';
             if (!highlightsByFile.has(filePath)) {
@@ -208,7 +202,7 @@ export class GlobalHighlightService {
      * 处理文件的高亮
      */
     private processFileHighlights(
-        highlights: HighlightInfo[],
+        highlights: ScannedHighlight[],
         fileComments: HiNote[],
         file: TFile
     ): HighlightInfo[] {

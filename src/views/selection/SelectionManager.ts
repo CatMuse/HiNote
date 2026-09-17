@@ -1,3 +1,4 @@
+import { defaultHighlightCardRegistry } from '../../components/highlight/HighlightCardRegistry';
 import { HighlightInfo } from "../../types/highlight";
 import { SelectionBoxController } from "./SelectionBoxController";
 
@@ -69,7 +70,8 @@ export class SelectionManager {
             const highlightData = cardElement.getAttribute('data-highlight');
             if (highlightData) {
                 try {
-                    const highlight = JSON.parse(highlightData) as HighlightInfo;
+                    const highlight = defaultHighlightCardRegistry.findByElement(cardElement as HTMLElement)?.getHighlight()
+                        || JSON.parse(highlightData) as HighlightInfo;
                     // 使用 DOM 元素作为 key，不再依赖 highlight.id
                     this.selectedCards.set(cardElement as HTMLElement, highlight);
                 } catch (e) {

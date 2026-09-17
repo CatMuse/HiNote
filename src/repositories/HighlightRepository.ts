@@ -1,6 +1,8 @@
+import { copyHighlightRecord } from '../models/HighlightModels';
+import { getHighlightAnchor, sameHighlightAnchor, type HighlightAnchorPatch } from './HighlightAnchorPatch';
 import { StorageQueue } from '../storage/StorageQueue';
 import { TFile } from 'obsidian';
-import { HighlightInfo as HiNote } from '../types/highlight';
+import { HighlightRecord as HiNote } from '../types/highlight';
 import { HiNoteDataManager } from '../storage/HiNoteDataManager';
 import { IHighlightRepository } from './IHighlightRepository';
 
@@ -21,6 +23,9 @@ export class HighlightRepository implements IHighlightRepository {
     }
 
     private initialization: Promise<void> | null = null;
+    private disposed = false;
+    private readonly pathVersions = new Map<string, number>();
+
     private readonly reads = new Map<string, Promise<HiNote[]>>();
 
     initialize(): Promise<void> {
@@ -52,14 +57,49 @@ export class HighlightRepository implements IHighlightRepository {
     }
 
     async saveFileHighlights(filePath: string, highlights: HiNote[]): Promise<void> {
+        const records = highlights.map(copyHighlightRecord);
         await this.mutations.run(async () => {
             await this.getFileHighlights(filePath);
-            await this.dataManager.saveFileHighlights(filePath, highlights);
-            this.cache.set(filePath, highlights);
+            await this.dataManager.saveFileHighlights(filePath, records);
+            this.cache.set(filePath, records);
         });
     }
 
+    /** Merge only anchors into the latest records inside the existing write queue. */
+    async patchHighlightAnchors(
+        filePath: string, patches: HighlightAnchorPatch[], isCurrent: () => boolean
+    ): Promise<void> {
+        const version = this.pathVersions.get(filePath) || 0;
+        const valid = () => !this.disposed && version === (this.pathVersions.get(filePath) || 0) && isCurrent();
+        await this.mutations.run(async () => {
+            if (!valid()) return;
+            const latest = await this.getFileHighlights(filePath);
+            if (!valid()) return;
+            const byId = new Map(patches.map(patch => [patch.id, patch]));
+            let changed = false;
+            const next = latest.map(record => {
+                const patch = record.id ? byId.get(record.id) : undefined;
+                if (!patch || record.kind === 'file-comment' || !sameHighlightAnchor(getHighlightAnchor(record), patch.expected)) return record;
+                if (sameHighlightAnchor(getHighlightAnchor(record), patch.anchor)) return record;
+                changed = true;
+                // Whitelist fields at runtime too. Comments and their timestamps
+                // are always taken from the current repository record.
+                return { ...record, ...getHighlightAnchor(patch.anchor) };
+            });
+            if (!changed || !valid()) return;
+            const written = await this.dataManager.saveFileHighlights(filePath, next, valid);
+            if (written !== false) this.cache.set(filePath, next);
+        });
+    }
+
+    dispose(): void { this.disposed = true; }
+
+    private invalidateAnchorWrites(filePath: string): void {
+        this.pathVersions.set(filePath, (this.pathVersions.get(filePath) || 0) + 1);
+    }
+
     async deleteFileHighlights(filePath: string): Promise<void> {
+        this.invalidateAnchorWrites(filePath);
         await this.mutations.run(async () => {
             await this.reads.get(filePath);
             await this.dataManager.deleteFileHighlights(filePath);
@@ -68,6 +108,8 @@ export class HighlightRepository implements IHighlightRepository {
     }
 
     handleFileRename(oldPath: string, newPath: string): Promise<void> {
+        this.invalidateAnchorWrites(oldPath);
+        this.invalidateAnchorWrites(newPath);
         return this.mutations.run(() => this.renameFile(oldPath, newPath));
     }
 
@@ -105,6 +147,7 @@ export class HighlightRepository implements IHighlightRepository {
     }
 
     invalidateCache(filePath: string): void {
+        this.invalidateAnchorWrites(filePath);
         this.cache.delete(filePath);
     }
 

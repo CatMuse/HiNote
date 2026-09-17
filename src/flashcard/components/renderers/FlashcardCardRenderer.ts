@@ -1,3 +1,4 @@
+import { recordToHighlightView } from '../../../models/HighlightModels';
 import { Notice, TFile } from "obsidian";
 import { CommentInputActionBar, CommentInputSaveController } from "../../../components/comment";
 import {
@@ -263,15 +264,13 @@ export class FlashcardCardRenderer {
         }
 
         const fileHighlights = await plugin.highlightRepository.getFileHighlights(file.path);
-        const highlight = fileHighlights.find(item => item.id === sourceId);
-        if (!highlight) {
+        const record = fileHighlights.find(item => item.id === sourceId);
+        if (!record) {
             new Notice(t("No corresponding highlight found."));
             return;
         }
 
-        if (!highlight.comments) {
-            highlight.comments = [];
-        }
+        const highlight = recordToHighlightView(record);
 
         highlight.comments.push({
             id: IdGenerator.generateCommentId(),

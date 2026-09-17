@@ -175,6 +175,10 @@ export default {
     "Show Comment Widget": "显示评论小组件",
     "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.": "显示或隐藏高亮旁边的评论小组件。禁用此选项可以减少阅读时的视觉干扰。",
     "Export template": "导出模板",
+    "Check highlight associations": "检查高亮关联",
+    "Find stored highlights that could not be located. Comments and flashcards are preserved.": "检查暂时无法定位的高亮，保留评论和闪卡。",
+    "Unlocated highlights: {count}; affected files: {files}; skipped files: {skipped}. No data was deleted.": "未定位高亮：{count}；涉及文件：{files}；跳过文件：{skipped}。未删除任何数据。",
+    "Could not check highlight associations. No data was deleted.": "无法完成高亮关联检查。未删除任何数据。",
     "Clean orphaned data": "清理孤立数据",
     "Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.": "删除不再存在于您的文档中的高亮和注释。这在您删除高亮但注释仍然存储在数据文件中时很有用。",
 

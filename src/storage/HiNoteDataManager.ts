@@ -1,8 +1,8 @@
 import { App } from 'obsidian';
-import type { HighlightInfo as HiNote } from '../types/highlight';
+import type { HighlightRecord as HiNote } from '../types/highlight';
 import type { FSRSStorage } from '../flashcard';
 import { DataValidator } from './DataValidator';
-import { convertToLegacyHighlight, convertToOptimizedHighlight, OptimizedHighlightData } from './HighlightDataFormat';
+import { decodeHighlightRecord, encodeHighlightRecord, OptimizedHighlightData } from './HighlightDataFormat';
 import { FileMappingStore } from './FileMappingStore';
 import { detectHighlightFilesFromStorage, ensureHiNoteDirectoryStructure } from './HiNoteStorageLayout';
 import { FlashcardDataStore } from './FlashcardDataStore';
@@ -54,23 +54,28 @@ export class HiNoteDataManager {
                 throw new Error('Invalid HiNote highlight data. Restore it before editing.');
             }
             return Object.entries(data.highlights).map(([id, highlight]) =>
-                convertToLegacyHighlight(id, highlight, filePath));
+                decodeHighlightRecord(id, highlight, filePath));
         });
     }
 
-    async saveFileHighlights(filePath: string, highlights: HiNote[]): Promise<void> {
+    async saveFileHighlights(
+        filePath: string, highlights: HiNote[], shouldWrite: () => boolean = () => true
+    ): Promise<boolean> {
         // Snapshot before yielding: callers may mutate their array while a write is pending.
+        const ids = new Set<string>();
         const data: OptimizedHighlightData = {
             version: this.version,
             lastModified: Date.now(),
             highlights: Object.fromEntries(highlights.map(highlight => {
-                if (!highlight.id) throw new Error('Cannot save a highlight without an ID.');
-                return [highlight.id, convertToOptimizedHighlight(highlight)];
+                if (ids.has(highlight.id)) throw new Error('Duplicate highlight record ID.');
+                ids.add(highlight.id);
+                return [highlight.id, encodeHighlightRecord(highlight)];
             }))
         };
         const content = JSON.stringify(data, null, 2);
         await this.initialize();
-        await this.queue.run(async () => {
+        return this.queue.run(async () => {
+            if (!shouldWrite()) return false;
             const existing = this.fileMappingStore.get(filePath);
             const path = await this.fileMappingStore.getStoragePathForFile(filePath);
             if (existing && await this.app.vault.adapter.exists(path)) {
@@ -80,7 +85,11 @@ export class HiNoteDataManager {
                 }
                 await this.app.vault.adapter.write(`${path}.bak`, previous);
             }
+            // A source change can occur while reading/backing up the previous
+            // file in this nested queue. Check again immediately before write.
+            if (!shouldWrite()) return false;
             await this.app.vault.adapter.write(path, content);
+            return true;
         });
     }
 

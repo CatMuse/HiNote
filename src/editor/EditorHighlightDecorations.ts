@@ -42,15 +42,12 @@ export function createEditorHighlightDecorations(options: EditorHighlightDecorat
             const decorations: Range<Decoration>[] = [];
             const highlights = highlightService.extractHighlights(view.state.doc.toString(), file);
 
-            for (const highlight of highlights) {
+            const resolved = highlightCommentResolver.resolveHighlights(file, highlights, {
+                onTextChanged: (stored, current) => emitHighlightTextChange(plugin, file, stored, current)
+            });
+            for (const commentHighlight of resolved) {
+                const highlight = commentHighlight;
                 if (highlight.position === undefined) continue;
-
-                const commentHighlight = highlightCommentResolver.normalizeHighlight(highlight);
-                commentHighlight.comments = highlightCommentResolver.getCommentsForHighlight(file, commentHighlight, {
-                    onTextChanged: (storedHighlight, currentHighlight) => {
-                        emitHighlightTextChange(plugin, file, storedHighlight, currentHighlight);
-                    }
-                });
 
                 const highlightEndPos = highlight.position + (highlight.originalLength ?? highlight.text.length + 4);
 

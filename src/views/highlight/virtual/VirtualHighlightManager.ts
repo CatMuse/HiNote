@@ -66,17 +66,15 @@ export class VirtualHighlightManager {
 
         // 生成唯一标识符
         const timestamp = Date.now();
-        const uniqueId = `file-comment-${timestamp}`;
         
         // 创建虚拟高亮信息，在文档的最顶部创建了一个不可见的高亮内容
         const virtualHighlight: HiNote = {
-            id: uniqueId,
+            kind: 'file-comment',
             text: t("File Comment"),  // 文件评论的显示文本
             filePath: currentFile.path,
             isVirtual: true,  // 标记这是一个虚拟高亮
             position: 0,  // 给一个默认位置
             paragraphOffset: 0,  // 给一个默认偏移量
-            blockId: `virtual-${timestamp}`,  // 生成一个虚拟 block ID
             createdAt: timestamp,
             updatedAt: timestamp,
             comments: []  // 初始化空的评论数组

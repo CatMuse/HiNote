@@ -1,6 +1,6 @@
 import { TFile, App } from 'obsidian';
-import { HighlightInfo } from '../../types/highlight';
-import { HighlightInfo as HiNote } from '../../types/highlight';
+import { HighlightInfo, ScannedHighlight } from '../../types/highlight';
+import { HighlightRecord as HiNote } from '../../types/highlight';
 import { HighlightService } from '../HighlightService';
 import { HighlightRepository } from '../../repositories/HighlightRepository';
 
@@ -99,7 +99,7 @@ export class HighlightDataService {
      * 合并高亮和评论数据
      */
     private mergeHighlightsWithComments(
-        highlights: HighlightInfo[],
+        highlights: ScannedHighlight[],
         storedComments: HiNote[],
         file: TFile
     ): HighlightInfo[] {

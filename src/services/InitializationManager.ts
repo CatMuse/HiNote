@@ -100,6 +100,7 @@ export class InitializationManager {
      */
     async cleanup(): Promise<void> {
         this.disposed = true;
+        this.services?.highlightRepository.dispose();
 
         // 清理高亮装饰器
         if (this.services?.highlightDecorator) {

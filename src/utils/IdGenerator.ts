@@ -1,21 +1,19 @@
-/**
- * 统一的ID生成工具类
- * 确保同一内容总是生成相同的ID，避免重复和不一致
- */
+/** Independent saved IDs and deterministic, temporary scan keys. */
 export class IdGenerator {
-    /**
-     * 生成高亮ID
-     * 基于文件路径、位置和文本内容生成稳定的ID
-     * @param filePath 文件路径
-     * @param position 位置
-     * @param text 高亮文本
-     * @returns 稳定的高亮ID
-     */
-    static generateHighlightId(filePath: string, position: number, text: string): string {
-        // 使用文件路径、位置和文本内容生成稳定的哈希
-        const content = `${filePath}:${position}:${text}`;
-        const hash = this.hashCode(content);
-        return `highlight-${Math.abs(hash)}-${position}`;
+    private static sequence = 0;
+
+    static generateHighlightRecordId(): string {
+        const uuid = globalThis.crypto?.randomUUID?.();
+        if (uuid) return `highlight-${uuid}`;
+        // Older embedded browsers may lack randomUUID. No Node dependency.
+        const random = globalThis.crypto?.getRandomValues
+            ? Array.from(globalThis.crypto.getRandomValues(new Uint32Array(4)), n => n.toString(16)).join('-')
+            : Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        return `highlight-${Date.now().toString(36)}-${++this.sequence}-${random}`;
+    }
+
+    static generateScanKey(filePath: string, position: number, text: string): string {
+        return `scan-${encodeURIComponent(filePath)}:${position}:${Math.abs(this.hashCode(text))}`;
     }
 
     /**
@@ -72,7 +70,7 @@ export class IdGenerator {
      * @returns 是否为有效格式
      */
     static isValidHighlightId(id: string): boolean {
-        return /^highlight-\d+-\d+$/.test(id);
+        return /^highlight-[a-z0-9-]+$/i.test(id);
     }
 
     /**

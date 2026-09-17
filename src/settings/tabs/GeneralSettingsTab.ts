@@ -1,4 +1,4 @@
-import { Setting, Notice } from 'obsidian';
+import { Setting } from 'obsidian';
 import { t } from '../../i18n';
 import { RegexRuleEditor } from '../components/RegexRuleEditor';
 import type CommentPlugin from '../../../main';
@@ -124,72 +124,24 @@ export class GeneralSettingsTab {
             .setName(t('Data management'))
             .setHeading();
             
-        // 检查/清理孤立数据按钮
-        const orphanedDataSetting = new Setting(container)
-            .setName(t('Clean orphaned data'))
-            .setDesc(t('Remove stored data for deleted highlights.'));
-
-        let orphanedCount = 0;
-        let affectedFiles = 0;
-        orphanedDataSetting.addButton(button => {
-            button.setButtonText(t('Check'));
-            button.onClick(async () => {
-                button.setButtonText(t('Checking...'));
-                button.setDisabled(true);
-                try {
-                    // 检查孤立数据数量
-                    const stats = await this.plugin.highlightManager.checkOrphanedDataCount();
-                    orphanedCount = stats.orphanedHighlights;
-                    affectedFiles = stats.affectedFiles;
-                    // 更新描述
-                    const descEl = orphanedDataSetting.descEl;
-                    // 移除现有的计数元素
-                    const existingCount = descEl.querySelector('.orphaned-data-count, .no-orphaned-data');
-                    if (existingCount) existingCount.remove();
-                    const countEl = createDiv();
-                    if (orphanedCount > 0) {
-                        countEl.className = 'orphaned-data-count';
-                        countEl.textContent = `Found ${orphanedCount} orphaned highlights in ${affectedFiles} files.`;
-                        button.setButtonText(t('Clean data'));
-                        button.setDisabled(false);
-                        // 改为清理模式
-                        button.onClick(async () => {
-                            button.setButtonText(t('Cleaning...'));
-                            button.setDisabled(true);
-                            try {
-                                const result = await this.plugin.highlightManager.cleanOrphanedData();
-                                if (result.removedHighlights > 0) {
-                                    new Notice(`Cleaned ${result.removedHighlights} orphaned highlights from ${result.affectedFiles} files.`);
-                                } else {
-                                    new Notice('No orphaned data found.');
-                                }
-                                // 清理后重置按钮和描述
-                                button.setButtonText(t('Check'));
-                                // 移除计数元素
-                                if (countEl && countEl.parentElement) countEl.parentElement.removeChild(countEl);
-                            } catch (error) {
-                                console.error('[HiNote] Error cleaning orphaned data:', error);
-                                new Notice('Error cleaning orphaned data. Check console for details.');
-                                button.setButtonText(t('Check'));
-                            } finally {
-                                button.setDisabled(false);
-                            }
-                        });
-                    } else {
-                        countEl.className = 'no-orphaned-data';
-                        countEl.textContent = 'No orphaned data found.';
-                        button.setButtonText(t('Check'));
-                        button.setDisabled(false);
-                    }
-                    descEl.appendChild(countEl);
-                } catch (error) {
-                    console.error('[HiNote] Error checking orphaned data:', error);
-                    new Notice('Error checking orphaned data. Check console for details.');
-                    button.setButtonText(t('Check'));
-                    button.setDisabled(false);
-                }
-            });
-        });
-
+        const associationSetting = new Setting(container)
+            .setName(t('Check highlight associations'))
+            .setDesc(t('Find stored highlights that could not be located. Comments and flashcards are preserved.'));
+        const status = associationSetting.descEl.createDiv({ attr: { role: 'status' } });
+        associationSetting.addButton(button => button.setButtonText(t('Check')).onClick(async () => {
+            button.setButtonText(t('Checking...')).setDisabled(true);
+            try {
+                const stats = await this.plugin.highlightManager.checkOrphanedDataCount();
+                status.setText(t('Unlocated highlights: {count}; affected files: {files}; skipped files: {skipped}. No data was deleted.')
+                    .replace('{count}', String(stats.orphanedHighlights))
+                    .replace('{files}', String(stats.affectedFiles))
+                    .replace('{skipped}', String(stats.skippedFiles)));
+            } catch (error) {
+                console.error('[HiNote] Association check failed:', error);
+                status.setText(t('Could not check highlight associations. No data was deleted.'));
+            } finally {
+                button.setButtonText(t('Check')).setDisabled(false);
+            }
+        }));
     }
 }

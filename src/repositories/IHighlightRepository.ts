@@ -1,5 +1,5 @@
 import { TFile } from 'obsidian';
-import { HighlightInfo as HiNote } from '../types/highlight';
+import { HighlightRecord as HiNote } from '../types/highlight';
 
 /**
  * 高亮数据仓储接口

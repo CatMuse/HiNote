@@ -1,68 +1,37 @@
-import { TFile } from "obsidian";
-import { HighlightInfo as HiNote, CommentItem } from "../../types/highlight";
-import { HighlightRepository } from "../../repositories/HighlightRepository";
-import { findStoredHighlightMatch } from "./HighlightMatchStrategies";
+import type { TFile } from 'obsidian';
+import type { HighlightInfo, HighlightRecord, ScannedHighlight, CommentItem } from '../../types/highlight';
+import type { HighlightRepository } from '../../repositories/HighlightRepository';
+import { findStoredHighlightMatch, matchFileHighlights } from './HighlightMatchStrategies';
+import { getHighlightScan } from './HighlightScan';
+import { scanToHighlightView } from '../../models/HighlightModels';
 
 interface CommentResolverOptions {
-    onTextChanged?: (storedHighlight: HiNote, currentHighlight: HiNote) => void;
+    onTextChanged?: (stored: HighlightRecord, current: HighlightInfo) => void;
 }
 
-/**
- * 将当前文档中提取到的高亮，与仓库里保存的评论数据进行匹配。
- */
+/** Read-only UI projection shared by editor and reading mode. */
 export class HighlightCommentResolver {
     constructor(private highlightRepository: HighlightRepository) {}
 
-    normalizeHighlight(highlight: HiNote): HiNote {
-        return {
-            ...highlight,
-            comments: highlight.comments || [],
-            position: highlight.position,
-            paragraphOffset: highlight.paragraphOffset || 0,
-            blockId: highlight.blockId,
-            createdAt: highlight.createdAt || Date.now(),
-            updatedAt: highlight.updatedAt || Date.now(),
-            text: highlight.text
-        };
+    resolveHighlights(file: TFile, highlights: ScannedHighlight[], options: CommentResolverOptions = {}): HighlightInfo[] {
+        const stored = this.highlightRepository.getCachedHighlights(file.path) || [];
+        const matches = matchFileHighlights(getHighlightScan(highlights[0])?.highlights || highlights, stored);
+        return highlights.map(highlight => {
+            const record = matches.get(highlight)?.highlight;
+            const view = scanToHighlightView(highlight, record);
+            if (record && record.text !== highlight.text) options.onTextChanged?.(record, view);
+            return view;
+        });
     }
 
-    resolveHighlight(file: TFile, highlight: HiNote): HiNote {
-        const normalizedHighlight = this.normalizeHighlight(highlight);
-        const storedHighlight = this.findStoredHighlight(file, normalizedHighlight);
-
-        return {
-            ...normalizedHighlight,
-            id: storedHighlight?.id || normalizedHighlight.id,
-            comments: storedHighlight?.comments || []
-        };
+    resolveHighlight(file: TFile, highlight: ScannedHighlight): HighlightInfo {
+        return this.resolveHighlights(file, [highlight])[0];
     }
 
-    getCommentsForHighlight(
-        file: TFile,
-        highlight: HiNote,
-        options: CommentResolverOptions = {}
-    ): CommentItem[] {
-        const storedHighlight = this.findStoredHighlight(file, highlight);
-
-        if (!storedHighlight) {
-            return [];
-        }
-
-        if (storedHighlight.text !== highlight.text) {
-            options.onTextChanged?.(storedHighlight, highlight);
-        }
-
-        return storedHighlight.comments || [];
-    }
-
-    private findStoredHighlight(file: TFile, highlight: HiNote): HiNote | null {
-        if (highlight.blockId) {
-            const blockHighlights = this.highlightRepository.findHighlightsByBlockId(file, highlight.blockId);
-            const blockMatch = findStoredHighlightMatch(highlight, blockHighlights);
-            if (blockMatch) return blockMatch.highlight;
-        }
-
-        const fileHighlights = this.highlightRepository.getCachedHighlights(file.path) || [];
-        return findStoredHighlightMatch(highlight, fileHighlights)?.highlight || null;
+    getCommentsForHighlight(file: TFile, highlight: HighlightInfo, options: CommentResolverOptions = {}): CommentItem[] {
+        const stored = this.highlightRepository.getCachedHighlights(file.path) || [];
+        const record = findStoredHighlightMatch(highlight, stored)?.highlight;
+        if (record && record.text !== highlight.text) options.onTextChanged?.(record, highlight);
+        return (record?.comments || []).map(comment => ({ ...comment }));
     }
 }

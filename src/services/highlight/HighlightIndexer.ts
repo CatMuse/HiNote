@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import { HighlightInfo } from '../../types/highlight';
+import { ScannedHighlight } from '../../types/highlight';
 import { HighlightExtractor } from './HighlightExtractor';
 import { HighlightIndexStore } from "./HighlightIndexStore";
 import { HighlightIndexFileWatcher } from "./HighlightIndexFileWatcher";
@@ -89,16 +89,12 @@ export class HighlightIndexer {
             
             // 创建新索引
             const newWordToFiles = new Map<string, Set<string>>();
-            const newFileToHighlights = new Map<string, HighlightInfo[]>();
+            const newFileToHighlights = new Map<string, ScannedHighlight[]>();
             
             // 填充索引
             for (const { file, highlights } of allHighlights) {
-                // 为每个文件中的高亮添加文件信息
-                const highlightsWithFileInfo = highlights.map(h => ({
-                    ...h,
-                    fileName: file.basename,
-                    filePath: file.path
-                }));
+                // Preserve source occurrences and their scan provenance.
+                const highlightsWithFileInfo = highlights;
                 
                 // 添加到文件映射
                 newFileToHighlights.set(file.path, highlightsWithFileInfo);
@@ -124,7 +120,7 @@ export class HighlightIndexer {
      * 如果索引未构建，触发按需构建（但本次返回 null）
      * @returns 所有高亮数组，如果索引未构建则返回 null
      */
-    public getAllHighlightsFromCache(): HighlightInfo[] | null {
+    public getAllHighlightsFromCache(): ScannedHighlight[] | null {
         // 如果索引从未构建过，触发按需构建
         if (this.indexStore.lastUpdated === 0 && !this.isIndexing) {
             void this.buildFileIndex();
@@ -176,12 +172,8 @@ export class HighlightIndexer {
                 const highlights = this.extractor.extractHighlights(content, file);
                 
                 if (highlights.length > 0) {
-                    // 为高亮添加文件信息
-                    const highlightsWithFileInfo = highlights.map(h => ({
-                        ...h,
-                        fileName: file.basename,
-                        filePath: file.path
-                    }));
+                    // Keep scans source-only; UI metadata is projected after matching.
+                    const highlightsWithFileInfo = highlights;
                     
                     // 添加到文件映射
                     this.indexStore.setFileHighlights(file.path, highlightsWithFileInfo);
@@ -197,7 +189,7 @@ export class HighlightIndexer {
      * @param searchTerm 搜索词
      * @returns 匹配的高亮数组
      */
-    async searchHighlightsFromIndex(searchTerm: string): Promise<HighlightInfo[]> {
+    async searchHighlightsFromIndex(searchTerm: string): Promise<ScannedHighlight[]> {
         // 检查索引是否需要重建
         if (this.indexStore.isExpired() || this.indexStore.fileToHighlights.size === 0) {
             await this.buildFileIndex();
@@ -243,19 +235,17 @@ export class HighlightIndexer {
         }
         
         // 从匹配的文件中获取高亮
-        const results: HighlightInfo[] = [];
+        const results: ScannedHighlight[] = [];
         for (const filePath of resultFilePaths) {
             const fileHighlights = this.indexStore.fileToHighlights.get(filePath) || [];
             
             // 进一步过滤高亮，只保留包含所有搜索词的高亮
             for (const highlight of fileHighlights) {
                 const highlightText = highlight.text.toLowerCase();
-                const commentTexts = highlight.comments?.map(c => c.content.toLowerCase()) || [];
                 
-                // 检查是否所有搜索词都在高亮文本或评论中
+                // This source index contains highlight text; comments belong to records.
                 const allTermsFound = terms.every(term => {
-                    return highlightText.includes(term) || 
-                           commentTexts.some(commentText => commentText.includes(term));
+                    return highlightText.includes(term);
                 });
                 
                 if (allTermsFound) {

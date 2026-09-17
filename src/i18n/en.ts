@@ -175,6 +175,10 @@ export default {
     "Show Comment Widget": "Show comment widget",
     "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.": "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.",
     "Export template": "Export template",
+    "Check highlight associations": "Check highlight associations",
+    "Find stored highlights that could not be located. Comments and flashcards are preserved.": "Find stored highlights that could not be located. Comments and flashcards are preserved.",
+    "Unlocated highlights: {count}; affected files: {files}; skipped files: {skipped}. No data was deleted.": "Unlocated highlights: {count}; affected files: {files}; skipped files: {skipped}. No data was deleted.",
+    "Could not check highlight associations. No data was deleted.": "Could not check highlight associations. No data was deleted.",
     "Clean orphaned data": "Clean orphaned data",
     "Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.": "Remove highlights and comments that no longer exist in your documents. This is useful if you have deleted highlights but their comments are still stored in the data file.",
 
