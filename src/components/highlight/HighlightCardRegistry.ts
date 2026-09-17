@@ -15,6 +15,12 @@ export class HighlightCardRegistry {
         Array.from(this.instances).filter(card => container.contains(card.getElement())).forEach(card => card.destroy());
     }
 
+    refreshMetadataWithin(container: HTMLElement): void {
+        this.instances.forEach(card => {
+            if (container.contains(card.getElement())) card.refreshMetadata();
+        });
+    }
+
     clearAll(): void {
         Array.from(this.instances).forEach(card => card.destroy());
         this.instances.clear();

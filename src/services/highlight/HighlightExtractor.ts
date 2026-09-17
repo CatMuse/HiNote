@@ -1,3 +1,4 @@
+import { extractHtmlHighlightColor } from './HighlightColorEdit';
 import { rememberHighlightScan } from './HighlightScan';
 import { App, TFile } from "obsidian";
 import type { ScannedHighlight } from '../../types/highlight';
@@ -85,7 +86,7 @@ export class HighlightExtractor {
             const current = this.getSettings?.();
             return (!this.app.vault?.getAbstractFileByPath || this.app.vault.getAbstractFileByPath(file.path) === file) &&
                 rules === JSON.stringify([current?.useCustomPattern, current?.regexRules, current?.excludePatterns]);
-        });
+        }, content);
         return highlights;
     }
     
@@ -172,8 +173,8 @@ export class HighlightExtractor {
             } else if (/^<(?:mark|span)\b/.test(fullMatch)) {
                 syntax = 'html';
             }
-            if (fullMatch.includes('style=')) {
-                extractedColor = extractedColor || this.extractColorFromElement(fullMatch);
+            if (/\sstyle\s*=/i.test(fullMatch)) {
+                extractedColor = extractedColor || extractHtmlHighlightColor(fullMatch);
             }
 
             // 检查是否已存在相同位置的高亮
@@ -310,20 +311,6 @@ export class HighlightExtractor {
         return await this.blockIdService.createParagraphBlockId(file, position, endPosition);
     }
 
-    /**
-     * 从 HTML 元素中提取颜色（内联方法）
-     */
-    private extractColorFromElement(element: string): string | null {
-        const styleMatch = element.match(/style=["']([^"']*)["']/);
-        if (!styleMatch) return null;
-        
-        const bgColorMatch = styleMatch[1].match(
-            /background(?:-color)?:\s*((?:rgba?\(.*?\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\)))/
-        );
-        
-        return bgColorMatch ? bgColorMatch[1] : null;
-    }
-    
     /**
      * 获取缓存的文件内容
      */

@@ -37,6 +37,8 @@ When you open a note with highlighted text, the sidebar automatically displays t
 
 HiNote also recognizes Obsidian 1.14 color highlights, such as `==🔴Important text==`. Place a red, orange, yellow, green, blue, or purple circle (or matching square) immediately after the opening `==`. Cards use the corresponding theme color; their text and exported quotations omit the color marker. Changing the color preserves associated comments. Native editor color controls require Obsidian 1.14; HiNote remains compatible with Obsidian 1.13.
 
+Select the colored line on a highlight card to choose default yellow, red, orange, green, blue, or purple (keyboard: focus the line and press Enter or Space). HiNote writes the change to the source note: Markdown highlights use the leading color emoji; HTML `mark` and `span` highlights keep their tags and content and update the inline background color. Default yellow removes the Markdown marker or applies the theme highlight background to HTML. File comments, Canvas cards, and other custom formats do not offer this control. If the note changed since the card was scanned, refresh the highlights before trying again.
+
 ![Highlighted text retrieval](./doc/highlighted-text-retrieval.jpg)
 
 ---

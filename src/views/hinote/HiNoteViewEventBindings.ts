@@ -73,7 +73,7 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
             if (state.disposed) return;
             if (state.isDraggedToMainView) void fileListManager.updateFileList();
             const shouldRefresh = pendingContent; pendingContent = false;
-            if (shouldRefresh && !state.isFlashcardMode) void highlightListController.refreshView();
+            if (shouldRefresh && !state.isFlashcardMode) void highlightListController.refreshView(true, false, true);
         }, 300);
     };
     eventCoordinator.setCallbacks({

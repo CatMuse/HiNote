@@ -140,6 +140,10 @@ export class HighlightRenderManager {
         });
     }
 
+    refreshCardMetadata(): void {
+        defaultHighlightCardRegistry.refreshMetadataWithin(this.container);
+    }
+
     private ensureHighlightList(): HTMLElement {
         let highlightList = this.container.querySelector<HTMLElement>('.highlight-list');
         if (!highlightList) {

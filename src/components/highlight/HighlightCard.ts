@@ -20,7 +20,10 @@ import {
     renderHighlightCardContent
 } from "./HighlightCardView";
 
+import { HighlightCardColorController } from "./card/ColorController";
+
 export class HighlightCard {
+    private colorController?: HighlightCardColorController;
     private card: HTMLElement;
     private fileName: string | undefined;
     private hasFlashcard: boolean = false; // 保存闪卡状态
@@ -128,6 +131,8 @@ export class HighlightCard {
             this.options.onHighlightClick
         );
 
+        this.colorController = this.plugin.addChild(new HighlightCardColorController(this.plugin, () => this.highlight));
+        this.colorController.bind(this.card);
         this.renderComments();
     }
     
@@ -152,6 +157,12 @@ export class HighlightCard {
         return this.card;
     }
 
+    public refreshMetadata(): void {
+        this.card.setAttribute('data-highlight', JSON.stringify(this.highlight));
+        const decorator = this.card.querySelector<HTMLElement>('.highlight-text-decorator');
+        if (decorator) decorator.style.backgroundColor = this.highlight.backgroundColor || '';
+    }
+
     public getHighlight(): HighlightInfo { return this.highlight; }
 
     public getHighlightId(): string | undefined {
@@ -173,7 +184,8 @@ export class HighlightCard {
     public update(highlight: HighlightInfo) {
         this.highlight = highlight;
         this.selectionController.resetEditing();
-        this.card.empty();
+        if (this.colorController) this.plugin.removeChild(this.colorController);
+        this.card.remove();
         this.render();
     }
 
@@ -281,7 +293,7 @@ export class HighlightCard {
                 // 移除卡片
                 this.card.remove();
                 
-                this.registry.unregister(this);
+                this.destroy();
             }
         } catch (error) {
             console.error('删除高亮时出错:', error);
@@ -331,6 +343,7 @@ export class HighlightCard {
     public destroy(): void {
         // 移除事件监听器
         this.selectionController.destroy();
+        if (this.colorController) this.plugin.removeChild(this.colorController);
         
         this.registry.unregister(this);
     }

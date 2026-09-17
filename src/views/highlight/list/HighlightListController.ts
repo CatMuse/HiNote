@@ -1,3 +1,4 @@
+import { refreshHighlightMetadata } from './HighlightMetadataRefresh';
 import { App, TFile } from 'obsidian';
 import { t } from '../../../i18n';
 import type { HighlightInfo } from '../../../types/highlight';
@@ -32,6 +33,7 @@ interface HighlightListControllerOptions {
 /** All file, vault, canvas and search results share one request lifetime. */
 export class HighlightListController {
     private loadedScope: string | null = null;
+    private renderedQuery: string | null = null;
     constructor(private options: HighlightListControllerOptions) {}
 
     cancelPending(): void {
@@ -66,7 +68,7 @@ export class HighlightListController {
     }
     isInAllHighlightsView(): boolean { return this.options.state.isInAllHighlightsView(); }
 
-    async refreshView(render = true, reuse = false): Promise<void> {
+    async refreshView(render = true, reuse = false, preserveCards = false): Promise<void> {
         const { state } = this.options;
         if (state.disposed || state.isFlashcardMode) return;
         state.setSearch(this.options.getSearchInput()?.value || '');
@@ -75,10 +77,13 @@ export class HighlightListController {
         const scope = query.scope === 'vault' || page.kind === 'all' ? 'vault' : 'file' in page ? `${page.kind}:${page.file.path}` : page.kind;
         const token = state.beginRequest();
         const current = () => state.isCurrent(token) && !state.isFlashcardMode;
-        this.options.getInfiniteScrollManager()?.reset();
-        this.options.beforeReplace?.();
-        this.options.getSelectionManager()?.clearSelection();
-        if (render) this.showLoading();
+        const canPatch = preserveCards && render && this.loadedScope === scope && this.renderedQuery === query.raw;
+        if (!canPatch) {
+            this.options.getInfiniteScrollManager()?.reset();
+            this.options.beforeReplace?.();
+            this.options.getSelectionManager()?.clearSelection();
+            if (render) this.showLoading();
+        }
         try {
             let rows: HighlightInfo[] = [];
             if (reuse && this.loadedScope === scope) { rows = state.highlights; }
@@ -94,11 +99,35 @@ export class HighlightListController {
             }
             if (!current()) return;
             this.loadedScope = scope;
-            state.highlights = rows.map(row => ({ ...row,
+            const next = rows.map(row => ({ ...row,
                 isGlobalSearch: query.scope === 'vault' || page.kind === 'all' || !!row.isFromCanvas }));
+            if (canPatch && refreshHighlightMetadata(state.highlights, next)) {
+                this.options.getHighlightRenderManager()?.refreshCardMetadata();
+                const filtered = this.options.getSearchUIManager()?.filterHighlightsByTerm(query.term, query.type) || state.highlights;
+                const scroll = this.options.getInfiniteScrollManager();
+                if (scroll) {
+                    const batch = scroll.getCurrentBatch();
+                    scroll.reset();
+                    scroll.setCurrentBatch(batch);
+                    scroll.setupInfiniteScroll(filtered, async (items, append) => {
+                        if (current()) this.renderHighlights(items, append);
+                    }, current);
+                }
+                state.finishRequest(token);
+                return;
+            }
+            if (canPatch) {
+                this.options.getInfiniteScrollManager()?.reset();
+                this.options.beforeReplace?.();
+                this.options.getSelectionManager()?.clearSelection();
+            }
+            state.highlights = next;
             this.options.getFlashcardViewManager()?.updateFlashcardMarkers(state.highlights);
             const filtered = this.options.getSearchUIManager()?.filterHighlightsByTerm(query.term, query.type) || state.highlights;
-            if (render) await this.renderPaginated(filtered, current);
+            if (render) {
+                await this.renderPaginated(filtered, current);
+                if (current()) this.renderedQuery = query.raw;
+            }
             state.finishRequest(token);
         } catch (error) {
             if (!current()) return;
@@ -119,6 +148,7 @@ export class HighlightListController {
         state.setSearch(this.options.getSearchInput()?.value || '');
         const rows = this.options.getSearchUIManager()?.filterHighlightsByTerm(state.search.term, state.search.type) || state.highlights;
         this.renderHighlights(rows);
+        this.renderedQuery = state.search.raw;
     }
     private async renderPaginated(rows: HighlightInfo[], current: () => boolean): Promise<void> {
         const scroll = this.options.getInfiniteScrollManager();

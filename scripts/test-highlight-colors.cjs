@@ -96,6 +96,34 @@ assert.equal(batch.removeHighlightMarkFromContent(source, current[1]), '==🔴�
 assert.equal(batch.removeHighlightMarkFromContent(source, { text: '重复' }), source);
 assert.equal(batch.removeHighlightMarkFromContent('==🔴正文==', { text: '🔴正文', position: 0 }), '正文');
 
+const { recolorHighlightSource, extractHtmlHighlightColor } = load('src/services/highlight/HighlightColorEdit.ts');
+for (const color of ['red', 'orange', 'green', 'blue', 'purple']) {
+    const recolored = recolorHighlightSource('==🟦正文==', color);
+    assert.equal(extract(recolored)[0].backgroundColor, highlightColorStyle(color));
+    assert.equal(extract(recolored)[0].text, '正文');
+    assert.equal(recolorHighlightSource(recolored, null), '==正文==');
+}
+assert.equal(recolorHighlightSource('==🔴🔵正文==', 'green'), '==🟢🔵正文==');
+for (const tag of ['mark', 'span']) {
+    const original = `<${tag} class="keep" data-id="42" style='color: red; background: #abc !important; font-weight: bold'>🔴正文</${tag}>`;
+    const blue = recolorHighlightSource(original, 'blue');
+    assert.ok(blue.includes('class="keep" data-id="42"'));
+    assert.ok(blue.includes('color: red; background: #abc !important; font-weight: bold'));
+    assert.ok(blue.endsWith(`>🔴正文</${tag}>`));
+    assert.equal(extract(blue)[0].backgroundColor, highlightColorStyle('blue'));
+    assert.equal(extract(blue)[0].text, '🔴正文');
+    const green = recolorHighlightSource(blue, 'green');
+    assert.equal((green.match(/background-color:/g) || []).length, 1);
+    assert.equal(extractHtmlHighlightColor(green), highlightColorStyle('green'));
+    const reset = recolorHighlightSource(green, null);
+    assert.equal(extractHtmlHighlightColor(reset), 'var(--text-highlight-bg, #ffeb3b)');
+    assert.equal(extract(recolorHighlightSource(`<${tag}>正文</${tag}>`, 'red'))[0].text, '正文');
+}
+assert.equal(extractHtmlHighlightColor('<mark style="background-color: red !important; background-color: blue">text</mark>'), 'red');
+assert.ok(recolorHighlightSource('<mark style="background-image: url(data:image/png;base64,abc); color: red">text</mark>', 'blue')
+    .includes('background-image: url(data:image/png;base64,abc); color: red'));
+assert.throws(() => recolorHighlightSource('**custom**', 'red'));
+
 const { PreviewHighlightResolver } = load('src/views/highlight/preview/PreviewHighlightResolver.ts');
 const preview = new PreviewHighlightResolver({ getCachedHighlights: () => [old] });
 const blueSource = '==🔵相同正文==';
@@ -113,6 +141,36 @@ assert.equal(DataValidator.sanitizeHighlight(red).syntax, 'markdown');
 assert.equal(DataValidator.sanitizeHighlight({ syntax: 'invalid' }).syntax, undefined);
 const { ExportContentRenderer } = load('src/services/export/ExportContentRenderer.ts');
 (async () => {
+    const { HighlightService } = load('src/services/HighlightService.ts');
+    const { scanToHighlightView } = load('src/models/HighlightModels.ts');
+    let document = '==重复== and ==重复==';
+    const editApp = { ...app, vault: {
+        getAbstractFileByPath: () => file,
+        process: async (_file, callback) => { document = callback(document); return document; }
+    } };
+    const service = new HighlightService(editApp);
+    const originalScans = service.extractHighlights(document, file);
+    const target = scanToHighlightView(originalScans[1]);
+    const edited = await service.changeHighlightColor(target, 'blue');
+    assert.equal(document, '==重复== and ==🔵重复==');
+    assert.equal(edited.text, '重复');
+    assert.equal(edited.originalLength, '==🔵重复=='.length);
+    await assert.rejects(() => service.changeHighlightColor(target, 'green'), /source has changed/);
+    assert.equal(document, '==重复== and ==🔵重复==');
+    await service.changeHighlightColor(scanToHighlightView(edited), null);
+    assert.equal(document, '==重复== and ==重复==');
+    const beforeExternalEdit = scanToHighlightView(service.extractHighlights(document, file)[1]);
+    document = 'inserted text ' + document;
+    await assert.rejects(() => service.changeHighlightColor(beforeExternalEdit, 'red'), /source has changed/);
+    assert.equal(document, 'inserted text ==重复== and ==重复==');
+    await assert.rejects(() => service.changeHighlightColor({ ...target, isVirtual: true }, 'red'));
+    await assert.rejects(() => service.changeHighlightColor(JSON.parse(JSON.stringify(target)), 'red'));
+    document = '<span style="background-color: #abc; color: red">正文</span>';
+    const htmlTarget = scanToHighlightView(service.extractHighlights(document, file)[0]);
+    const htmlUpdated = await service.changeHighlightColor(htmlTarget, 'purple');
+    assert.equal(htmlUpdated.backgroundColor, highlightColorStyle('purple'));
+    assert.ok(document.includes('color: red'));
+
     let anchor;
     const renderer = new ExportContentRenderer({ createBlockIdForHighlight: async (...args) => {
         anchor = args;

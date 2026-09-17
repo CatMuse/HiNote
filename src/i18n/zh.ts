@@ -1,4 +1,13 @@
 export default {
+    "Change highlight color": "修改高亮颜色",
+    "Default yellow": "默认黄色",
+    "Red": "红色",
+    "Orange": "橙色",
+    "Green": "绿色",
+    "Blue": "蓝色",
+    "Purple": "紫色",
+    "Could not change highlight color. Refresh the highlights and try again.": "无法修改高亮颜色，请刷新高亮列表后重试。",
+
 
     //通用翻译
 

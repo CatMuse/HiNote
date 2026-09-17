@@ -57,13 +57,13 @@ function harness(loadFile=async()=>[],loadAll=async()=>[]) {
     const input=new Element(),container=new Element(),loading=new Element();
     const search=new SearchService({fsrsManager:{findCardsBySourceId:()=>[]}});
     const ui={filterHighlightsByTerm:(term,type)=>search.filterHighlights(state.highlights,term,type,state.search.scope==='vault'?null:state.currentFile),cancelScheduledSearch(){}};
-    const env={state,input,container,loading,rendered:[],surface:'highlights',reads:0,vaultReads:0};
+    const env={state,input,container,loading,rendered:[],surface:'highlights',reads:0,vaultReads:0,clears:0,patches:0,selectionsCleared:0};
     const flashcard={getFlashcardMarkers:()=>new Set(),updateFlashcardMarkers(){},exitFlashcardMode(){},activateFlashcardMode:async()=>{env.surface='hicard';}};
     const controller=new HighlightListController({state,app:{},highlightContainer:container,loadingIndicator:loading,getSearchInput:()=>input,
-        getSearchUIManager:()=>ui,getHighlightRenderManager:()=>({clear(){}}),getFlashcardViewManager:()=>flashcard,getInfiniteScrollManager:()=>null,
+        getSearchUIManager:()=>ui,getHighlightRenderManager:()=>({clear(){env.clears++;},refreshCardMetadata(){env.patches++;}}),getFlashcardViewManager:()=>flashcard,getInfiniteScrollManager:()=>env.scroll||null,
         getGlobalHighlightService:()=>({updateAllHighlights:()=>{env.vaultReads++;return loadAll();}}),
         getHighlightDataService:()=>({loadFileHighlights:f=>{env.reads++;return loadFile(f);}}),getVirtualHighlightManager:()=>null,
-        getCanvasProcessor:()=>({processCanvasFile:loadFile}),getSelectionManager:()=>({clearSelection(){}})});
+        getCanvasProcessor:()=>({processCanvasFile:loadFile}),getSelectionManager:()=>({clearSelection(){env.selectionsCleared++;}})});
     controller.renderHighlights=rows=>{env.rendered=rows;env.surface='highlights';};
     const files=new FileListController({state,fileListManager:{updateFileListSelection(){}},flashcardViewManager:flashcard,
         highlightListController:controller,highlightContainer:container,searchContainer:new Element(),licenseManager:{},updateViewLayout:async()=>{}});
@@ -164,6 +164,52 @@ async function commentSources() {
     assert.equal(written,false);
     console.log('Comment source: global results/late replies keep their origin; missing files never fall back to another note.');
 }
+async function metadataRefresh() {
+    let rows = [
+        {...row('same'), filePath:'A.md', id:'scan-0', backgroundColor:'yellow'},
+        {...row('same'), filePath:'A.md', id:'scan-10', position:10, backgroundColor:'yellow'}
+    ];
+    const env = harness(async()=>rows);
+    await env.controller.refreshView();
+    const references = env.state.highlights.slice();
+    const clears = env.clears, selections = env.selectionsCleared;
+    const surface = env.rendered;
+    let batch = 3, reboundRows, reboundCurrent;
+    env.scroll = {
+        getCurrentBatch:()=>batch, reset:()=>{batch=0;}, setCurrentBatch:value=>{batch=value;},
+        setupInfiniteScroll:(items,_render,current)=>{reboundRows=items;reboundCurrent=current;}
+    };
+    rows = rows.map((item,i)=>({...item, id:`new-${i}`,position:item.position+2,
+        originalLength:12, backgroundColor:i?'blue':'yellow'}));
+    await env.controller.refreshView(true,false,true);
+    assert.equal(env.patches,1);
+    assert.equal(batch,3,'Keep the loaded pagination batch');
+    reboundRows.forEach((item,i)=>assert.equal(item,env.state.highlights[i]));
+    assert.equal(reboundCurrent(),true,'Pagination must use the renewed request lifetime');
+    env.scroll=null;
+    assert.equal(env.clears,clears,'Color refresh must not empty the list or show a loading screen');
+    assert.equal(env.selectionsCleared,selections,'Selection and input state must stay intact');
+    assert.equal(env.rendered,surface,'The rendered rows must retain their identity');
+    references.forEach((item,i)=>assert.equal(env.state.highlights[i],item));
+    assert.equal(references[1].backgroundColor,'blue');
+    assert.equal(references[1].position,12,'Other cards receive shifted source offsets too');
+    rows = [rows[0], {...rows[1],text:'edited body'}];
+    await env.controller.refreshView(true,false,true);
+    assert.equal(env.patches,1,'Body changes must fall back to rendering');
+    assert.equal(env.rendered[1].text,'edited body');
+    env.input.value='edited';
+    await env.controller.refreshView(true,false,true);
+    assert.equal(env.patches,1,'A changed search must not retain the previous visible subset');
+    assert.equal(env.rendered.length,1);
+    rows=[];
+    await env.controller.refreshView(true,false,true);
+    assert.equal(env.rendered.length,0,'Removed highlights must disappear');
+    const {refreshHighlightMetadata}=load('src/views/highlight/list/HighlightMetadataRefresh.ts');
+    const old=[{...row('first'),backgroundColor:'yellow'},row('second')];
+    assert.equal(refreshHighlightMetadata(old,[{...old[0],backgroundColor:'blue'},row('different')]),false);
+    assert.equal(old[0].backgroundColor,'yellow','A mismatch must not partially mutate earlier cards');
+    console.log('Metadata refresh: stable cards/selection, duplicate offsets, content/search/removal fallback passed.');
+}
 async function drafts() {
     const inputs=[];class Input {
         constructor(_card,_highlight,_comment,_plugin,options){this.options=options;this.text=options.initialContent||'';inputs.push(this);}
@@ -179,4 +225,4 @@ async function drafts() {
     inputs[1].text='next draft';manager.clearEditingState();assert.equal(drafts.size,1);
     console.log('Drafts: navigation suspension, reopening, successful save and disposal capture passed.');
 }
-(async()=>{await races();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();})().catch(error=>{console.error(error);process.exitCode=1;});
+(async()=>{await races();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();await metadataRefresh();})().catch(error=>{console.error(error);process.exitCode=1;});

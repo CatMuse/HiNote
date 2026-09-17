@@ -1,3 +1,7 @@
+import { getHighlightScan } from './highlight/HighlightScan';
+import { getHighlightSource } from '../models/HighlightModels';
+import { HighlightColor } from './highlight/HighlightColor';
+import { recolorHighlightSource } from './highlight/HighlightColorEdit';
 import { App, TFile } from "obsidian";
 import { HighlightInfo, ScannedHighlight } from '../types/highlight';
 import { HighlightRecord as HiNote } from '../types/highlight';
@@ -30,12 +34,37 @@ export class HighlightService {
     constructor(
         private app: App,
         getSettings?: () => PluginSettings | undefined,
-        getHighlightRepository?: () => HighlightRepository | undefined
+        private getHighlightRepository?: () => HighlightRepository | undefined
     ) {
         this.extractor = new HighlightExtractor(app, getSettings);
         this.matcher = new HighlightMatcher(getHighlightRepository);
         this.indexer = new HighlightIndexer(app, this.extractor);
         this.batchOps = new HighlightBatchOps(app, this.extractor);
+    }
+
+    async changeHighlightColor(highlight: HighlightInfo, color: HighlightColor | null): Promise<ScannedHighlight> {
+        const source = getHighlightSource(highlight);
+        const snapshot = getHighlightScan(highlight)?.sourceContent;
+        const file = this.app.vault.getAbstractFileByPath(highlight.filePath || '');
+        if (!(file instanceof TFile) || file.extension !== 'md' || highlight.isVirtual || highlight.isFromCanvas ||
+            !source || snapshot === undefined || source.filePath !== file.path ||
+            !['markdown', 'html'].includes(source.syntax || '')) {
+            throw new Error('Highlight source is unavailable. Refresh the highlights.');
+        }
+        const content = await this.app.vault.process(file, current => {
+            // Validate against the scan, not a text search: repeated text must never be guessed.
+            if (current !== snapshot) throw new Error('Highlight source has changed. Refresh the highlights.');
+            const end = source.position + source.originalLength;
+            const replacement = recolorHighlightSource(current.slice(source.position, end), color);
+            return current.slice(0, source.position) + replacement + current.slice(end);
+        });
+        this.extractor.invalidateContentCache(file.path);
+        const scanned = this.extractor.extractHighlights(content, file);
+        const updated = scanned.find(item => item.position === source.position && item.text === source.text);
+        if (!updated) throw new Error('Updated highlight was not found.');
+        const repository = this.getHighlightRepository?.();
+        if (repository) this.matcher.mergeHighlightsWithComments(scanned, repository.getCachedHighlights(file.path) || [], file);
+        return updated;
     }
 
     // ==================== 生命周期 ====================
