@@ -29,7 +29,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         eventCoordinator,
         exportManager,
         virtualHighlightManager,
-        flashcardViewManager,
+        flashcardMarkers,
         jumpToHighlight,
         checkViewPosition,
         updateViewLayout
@@ -68,7 +68,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         getSearchInput: () => searchInput,
         getSearchUIManager: () => searchUIManager,
         getHighlightRenderManager: () => highlightRenderManager,
-        getFlashcardViewManager: () => flashcardViewManager,
+        getHighlightFlashcardMarkers: () => flashcardMarkers,
         getInfiniteScrollManager: () => infiniteScrollManager,
         getGlobalHighlightService: () => layoutAndCanvas?.globalHighlightService ?? null,
         getHighlightDataService: () => highlightDataService,
@@ -80,10 +80,6 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
 
     component.registerDomEvent(uiElements.backButton, "click", () => {
         if (state.isDraggedToMainView) {
-            if (flashcardViewManager.handleBackButton()) {
-                return;
-            }
-
             if (state.isSmallScreen) {
                 state.setNavigationOpen(true);
                 void updateViewLayout();
@@ -134,8 +130,6 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         state,
         fileListContainer,
         highlightContainer,
-        searchContainer,
-        flashcardViewManager,
         highlightListController,
         updateViewLayout
     });

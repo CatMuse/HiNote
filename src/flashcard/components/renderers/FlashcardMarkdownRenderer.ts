@@ -3,6 +3,12 @@ import { t } from "../../../i18n";
 import type { FlashcardComponentContext } from "../FlashcardComponentContext";
 
 export class FlashcardMarkdownRenderer {
+    private children = new Set<Component>();
+
+    public dispose(): void {
+        for (const child of this.children) child.unload();
+        this.children.clear();
+    }
     constructor(private component: FlashcardComponentContext) {}
 
     public async render(containerEl: HTMLElement, content: string, filePath?: string): Promise<void> {
@@ -21,6 +27,8 @@ export class FlashcardMarkdownRenderer {
 
         try {
             const markdownComponent = new Component();
+            this.children.add(markdownComponent);
+            markdownComponent.load();
             await MarkdownRenderer.render(
                 this.component.getApp(),
                 markdownContent,
@@ -28,6 +36,7 @@ export class FlashcardMarkdownRenderer {
                 filePath || "",
                 markdownComponent
             );
+            if (!this.children.has(markdownComponent)) { markdownComponent.unload(); return; }
 
             containerEl.querySelectorAll("ul, ol").forEach(list => {
                 list.addClass("flashcard-markdown-list");

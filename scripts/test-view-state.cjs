@@ -58,15 +58,15 @@ function harness(loadFile=async()=>[],loadAll=async()=>[]) {
     const search=new SearchService({fsrsManager:{findCardsBySourceId:()=>[]}});
     const ui={filterHighlightsByTerm:(term,type)=>search.filterHighlights(state.highlights,term,type,state.search.scope==='vault'?null:state.currentFile),cancelScheduledSearch(){}};
     const env={state,input,container,loading,rendered:[],surface:'highlights',reads:0,vaultReads:0,clears:0,patches:0,selectionsCleared:0};
-    const flashcard={getFlashcardMarkers:()=>new Set(),updateFlashcardMarkers(){},exitFlashcardMode(){},activateFlashcardMode:async()=>{env.surface='hicard';}};
+    const flashcard={getFlashcardMarkers:()=>new Set(),updateFlashcardMarkers(){}};
     const controller=new HighlightListController({state,app:{},highlightContainer:container,loadingIndicator:loading,getSearchInput:()=>input,
-        getSearchUIManager:()=>ui,getHighlightRenderManager:()=>({clear(){env.clears++;},refreshCardMetadata(){env.patches++;}}),getFlashcardViewManager:()=>flashcard,getInfiniteScrollManager:()=>env.scroll||null,
+        getSearchUIManager:()=>ui,getHighlightRenderManager:()=>({clear(){env.clears++;},refreshCardMetadata(){env.patches++;}}),getHighlightFlashcardMarkers:()=>flashcard,getInfiniteScrollManager:()=>env.scroll||null,
         getGlobalHighlightService:()=>({updateAllHighlights:()=>{env.vaultReads++;return loadAll();}}),
         getHighlightDataService:()=>({loadFileHighlights:f=>{env.reads++;return loadFile(f);}}),getVirtualHighlightManager:()=>null,
         getCanvasProcessor:()=>({processCanvasFile:loadFile}),getSelectionManager:()=>({clearSelection(){env.selectionsCleared++;}})});
     controller.renderHighlights=rows=>{env.rendered=rows;env.surface='highlights';};
-    const files=new FileListController({state,fileListManager:{updateFileListSelection(){}},flashcardViewManager:flashcard,
-        highlightListController:controller,highlightContainer:container,searchContainer:new Element(),licenseManager:{},updateViewLayout:async()=>{}});
+    const files=new FileListController({state,fileListManager:{updateFileListSelection(){}},
+        highlightListController:controller,highlightContainer:container,updateViewLayout:async()=>{}});
     return Object.assign(env,{controller,files});
 }
 async function races() {
@@ -85,8 +85,8 @@ async function races() {
     searchGate.resolve([row('late all')]);await searching;
     assert.equal(env.state.currentFile,B);assert.equal(env.rendered[0].text,'B');
     const gate=deferred(),hi=harness(()=>gate.promise);const pending=hi.controller.updateHighlights();
-    await hi.files.navigate({kind:'hicard'});gate.resolve([row('old file')]);await pending;
-    assert.equal(hi.surface,'hicard');assert.equal(hi.state.isFlashcardMode,true);
+    await hi.files.navigate({kind:'all'});gate.resolve([row('old file')]);await pending;
+    assert.equal(hi.state.page.kind,'all');assert.equal(hi.rendered.length,0);
     for(const fail of [false,true]) {
         const gate=deferred(),closed=harness(()=>gate.promise);const pending=closed.controller.updateHighlights();closed.state.dispose();
         if(fail) gate.reject(Error('late error')); else gate.resolve([row('old')]);
@@ -96,7 +96,7 @@ async function races() {
     const canvasing=canvas.files.navigate(ViewState.filePage(new TFile('map.canvas')));await Promise.resolve();
     await canvas.files.navigate(ViewState.filePage(B));canvasGate.resolve([row('old canvas')]);await canvasing;
     assert.equal(canvas.rendered[0].text,'B');
-    console.log('Navigation: file ordering, global search, HiCard, Canvas and closed-view late results passed.');
+    console.log('Navigation: file ordering, global search, all highlights, Canvas and closed-view late results passed.');
 }
 async function queries() {
     const rows=[{...row('annotated'),comments:[{content:'note'}]},row('plain')];const env=harness(async()=>rows,async()=>rows);

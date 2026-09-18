@@ -1,178 +1,191 @@
+import { Notice } from "obsidian";
+import { t } from "../../../i18n";
 import { FSRSRating } from "../../types/FSRSTypes";
 import type { FlashcardComponentContext } from "../FlashcardComponentContext";
-import {
-    clearGroupCompletionMessage,
-    findGroupByName,
-    getCompletionMessage,
-    getDueCardsForToday,
-    resetGroupProgressForCompletion,
-    restoreReviewPosition
-} from "./FlashcardReviewQueue";
+import { restoreReviewPosition } from "./FlashcardReviewQueue";
 
-/**
- * 闪卡操作类，负责处理卡片的翻转、评分等操作
- */
+/** One queue for selection, limits and short-term learning. */
 export class FlashcardOperations {
-    private component: FlashcardComponentContext;
-    
-    constructor(component: FlashcardComponentContext) {
-        this.component = component;
+    private saving = false;
+    private completed = 0;
+    private sessionGroup = '';
+    private sessionDay = new Date().toDateString();
+    private revision = 0;
+    private lastRatedCardId: string | undefined;
+    private timer: number | null = null;
+    private timerWindow: Window | null = null;
+    private externalTimer: number | null = null;
+
+    constructor(private component: FlashcardComponentContext) {}
+
+    public getSessionProgress() {
+        return { completed: this.completed, total: this.completed + this.component.getCards().length };
     }
-    
-    /**
-     * 翻转卡片
-     */
-    public flipCard(): void {
-        const flipped = !this.component.isCardFlipped();
-        this.component.setCardFlipped(flipped);
-        
-        // 只需要切换卡片的 CSS 类，所有的样式和动画效果都由 CSS 处理
-        const cardElement = activeDocument.querySelector('.flashcard');
-        if (cardElement) {
-            if (flipped) {
-                cardElement.classList.add('is-flipped');
-            } else {
-                cardElement.classList.remove('is-flipped');
+
+    public async undoReview(): Promise<void> {
+        if (this.saving) return;
+        const revision = this.revision;
+        const groupId = this.component.getCurrentGroupId();
+        const undoId = this.component.getFsrsManager().getUndoCardId();
+        this.saving = true;
+        try {
+            if (await this.component.getFsrsManager().undoLastReview()) {
+                if (revision === this.revision && this.component.getCurrentGroupId() === groupId && this.component.getIsActive()) {
+                    if (undoId === this.lastRatedCardId) this.completed = Math.max(0, this.completed - 1);
+                    this.lastRatedCardId = undefined;
+                    this.refreshCardList(false);
+                    this.component.getRenderer().renderStudyArea();
+                }
             }
-        }
-        
-        this.component.saveState();
+        } catch { new Notice(t('Review could not be saved. Please try again.')); }
+        finally { this.saving = false; }
     }
-    
-    /**
-     * 下一张卡片
-     */
+
+    public dispose(): void {
+        this.revision++;
+        this.cancelTimer();
+        if (this.externalTimer !== null) this.component.getContainer().ownerDocument.defaultView?.clearTimeout(this.externalTimer);
+        this.externalTimer = null;
+    }
+
+    public onCardsChanged(): void {
+        if (this.saving || !this.component.getIsActive() || this.externalTimer !== null) return;
+        const ownerWindow = this.component.getContainer().ownerDocument.defaultView;
+        this.externalTimer = ownerWindow?.setTimeout(() => {
+            this.externalTimer = null;
+            if (!this.component.getIsActive()) return;
+            if (this.component.getContainer().querySelector('.flashcard-answer-editor')) {
+                this.onCardsChanged();
+                return;
+            }
+            if (this.saving) return;
+            this.component.saveState();
+            this.refreshCardList();
+            this.component.getRenderer().renderStudyArea();
+        }, 150) ?? null;
+    }
+
+    public async setCardSuspended(cardId: string, suspended: boolean): Promise<void> {
+        if (this.saving) return;
+        const revision = this.revision;
+        this.saving = true;
+        try {
+            await this.component.getFsrsManager().setCardSuspended(cardId, suspended);
+            if (this.component.getIsActive() && revision === this.revision) {
+                this.refreshCardList(false);
+                this.component.getRenderer().renderStudyArea();
+            }
+        } catch { new Notice(t('Card could not be updated. Please try again.')); }
+        finally { this.saving = false; }
+    }
+
+    private cancelTimer(): void {
+        if (this.timer !== null) this.timerWindow?.clearTimeout(this.timer);
+        this.timer = null;
+    }
+
+    public flipCard(): void {
+        if (this.saving || !this.component.getCards().length) return;
+        this.component.setCardFlipped(!this.component.isCardFlipped());
+        this.component.saveState();
+        this.component.getRenderer().renderStudyArea();
+        this.component.getContainer().focus();
+    }
+
     public nextCard(): void {
         const cards = this.component.getCards();
-        if (cards.length === 0) return;
-        
-        let nextIndex = this.component.getCurrentIndex() + 1;
-        if (nextIndex >= cards.length) {
-            nextIndex = 0;
-        }
-        
-        this.component.setCurrentIndex(nextIndex);
+        if (this.saving || !cards.length) return;
+        this.component.setCurrentIndex((this.component.getCurrentIndex() + 1) % cards.length);
         this.component.setCardFlipped(false);
         this.component.saveState();
-        this.component.getRenderer().render();
+        this.component.getRenderer().renderStudyArea();
     }
-    
-    /**
-     * 对卡片进行评分
-     * @param rating 评分
-     */
-    public rateCard(rating: FSRSRating): void {
-        const cards = this.component.getCards();
-        const currentIndex = this.component.getCurrentIndex();
-        
-        if (cards.length === 0 || currentIndex >= cards.length) {
-            return;
+
+    public async rateCard(rating: FSRSRating): Promise<void> {
+        if (this.saving || !this.component.isCardFlipped()) return;
+        const card = this.component.getCards()[this.component.getCurrentIndex()];
+        if (!card) return;
+        const groupId = this.component.getCurrentGroupId();
+        const revision = this.revision;
+        this.saving = true;
+        const buttons = this.component.getContainer().querySelectorAll<HTMLButtonElement>(".flashcard-rating-button");
+        buttons.forEach(button => button.disabled = true);
+        try {
+            const saved = await this.component.getFsrsManager().trackStudyProgress(card.id, rating, groupId);
+            if (!saved) {
+                if (revision === this.revision && this.component.getIsActive() && this.component.getCurrentGroupId() === groupId) {
+                    this.refreshCardList(false);
+                    this.component.getRenderer().renderStudyArea();
+                }
+                return;
+            }
+            if (revision !== this.revision || !this.component.getIsActive() || this.component.getCurrentGroupId() !== groupId) return;
+            this.completed++;
+            this.lastRatedCardId = card.id;
+            this.component.setCardFlipped(false);
+            this.refreshCardList(false);
+            this.component.getRenderer().renderStudyArea();
+            this.component.getContainer().focus();
+        } catch (error) {
+            console.error("[HiNote] Rating could not be saved", error);
+            new Notice(t("Review could not be saved. Please try again."));
+        } finally {
+            this.saving = false;
+            buttons.forEach(button => button.disabled = false);
         }
-        
-        const currentCard = cards[currentIndex];
-        if (!currentCard) return;
-        
-        // 调用 FSRS 管理器进行评分，使用统一的学习进度跟踪方法
-        this.component.getFsrsManager().trackStudyProgress(currentCard.id, rating);
-        
-        // 移除当前卡片
-        cards.splice(currentIndex, 1);
-        
-        // 如果没有更多卡片，显示完成消息
-        if (cards.length === 0) {
-            // 检查当前分组
-            const groupName = this.component.getCurrentGroupName();
-            const message = getCompletionMessage(this.component.getFsrsManager(), groupName);
-            
-            // 设置分组完成消息
-            this.component.setGroupCompletionMessage(groupName, message);
-            
-            // 更新进度
-            this.component.updateProgress();
-            
-            // 重新渲染
-            this.component.getRenderer().render();
-            
-            // 不再显示通知，因为已经在界面上显示了完成消息
-            
-            return;
-        }
-        
-        // 调整当前索引
-        if (currentIndex >= cards.length) {
-            this.component.setCurrentIndex(0);
-        }
-        
-        // 重置翻转状态
-        this.component.setCardFlipped(false);
-        
-        // 保存状态
-        this.component.saveState();
-        
-        // 更新进度
-        this.component.updateProgress();
-        
-        // 重新渲染
-        this.component.getRenderer().render();
     }
-    
-    /**
-     * 刷新当前卡片列表，考虑每日学习限制
-     * 注意：此方法只从已有的卡片中获取数据，不会自动创建新卡片
-     */
-    public refreshCardList(): void {
-        // 获取当前分组
-        const groupName = this.component.getCurrentGroupName();
-        const fsrsManager = this.component.getFsrsManager();
-        
-        // 获取分组 ID
-        const group = findGroupByName(fsrsManager, groupName);
-        if (!group) {
-            console.error(`未找到名称为 ${groupName} 的分组`);
-            return;
+
+    public refreshCardList(restore = true): void {
+        this.cancelTimer();
+        const manager = this.component.getFsrsManager();
+        let groupId = this.component.getCurrentGroupId();
+        if (!manager.getCardGroups().some(group => group.id === groupId)) {
+            groupId = manager.getCardGroups()[0]?.id || "";
+            this.component.setCurrentGroupId(groupId);
         }
-        
-        // 检查分组中是否有今天需要学习的卡片
-        const allCards = fsrsManager.getCardsByGroupId(group.id);
-        const cardsForToday = getDueCardsForToday(allCards, fsrsManager);
-        
-        // 如果没有今天需要学习的卡片，显示完成消息
-        if (cardsForToday.length === 0) {
-            const message = getCompletionMessage(fsrsManager, groupName);
-            this.component.setGroupCompletionMessage(groupName, message);
-            this.component.setCards([]);
-            this.component.updateProgress();
-            resetGroupProgressForCompletion(fsrsManager, groupName, message);
-            this.component.getRenderer().render();
-            
-            // 保存状态
-            this.component.saveState();
-            return;
+        const cards = groupId ? manager.getCardsForStudy(groupId) : [];
+        const today = new Date().toDateString();
+        if (this.sessionGroup !== groupId || this.sessionDay !== today) {
+            this.completed = 0;
+            this.lastRatedCardId = undefined;
+            this.sessionGroup = groupId;
+            this.sessionDay = today;
+            this.revision++;
         }
-        
-        // 直接使用已筛选好的今天需要学习的卡片
-        const cards = cardsForToday;
-        
-        // 获取保存的UI状态（在设置卡片列表之前）
-        const savedProgress = this.component.getGroupProgress(groupName);
-        
-        // 有卡片需要学习，确保清除完成消息
-        clearGroupCompletionMessage(fsrsManager, groupName);
-        
-        // 设置卡片列表
         this.component.setCards(cards);
-        
-        if (cards.length > 0) {
-            const restoredPosition = restoreReviewPosition(cards, savedProgress);
-            this.component.setCurrentIndex(restoredPosition.currentIndex);
-            this.component.setCardFlipped(restoredPosition.isFlipped);
-        } else {
-            // If there are no cards, show completion message
-            const message = getCompletionMessage(fsrsManager, groupName);
-            this.component.setGroupCompletionMessage(groupName, message);
-        }
-        
-        // 保存状态
+        const position = restoreReviewPosition(cards, restore ? this.component.getGroupProgress() : null);
+        this.component.setCurrentIndex(Math.max(0, position.currentIndex));
+        this.component.setCardFlipped(cards.length > 0 && position.isFlipped);
+        this.component.setCompletionMessage(null);
+        this.component.setGroupCompletionMessage(groupId, null);
         this.component.saveState();
+
+        // Only one timer per visible component, using its own popout window.
+        if (groupId && this.component.getIsActive()) {
+            const now = Date.now();
+            const next = manager.getCardsByGroupId(groupId)
+                .filter(card => !card.suspended && card.nextReview > now)
+                .reduce((time, card) => Math.min(time, card.nextReview), Infinity);
+            const midnight = new Date();
+            midnight.setHours(24, 0, 0, 0);
+            const wakeAt = Math.min(next, midnight.getTime());
+            this.timerWindow = this.component.getContainer().ownerDocument.defaultView;
+            const wake = () => {
+                if (!this.component.getIsActive()) return;
+                if (this.saving || this.component.getContainer().querySelector('.flashcard-answer-editor')) {
+                    this.timer = this.timerWindow?.setTimeout(wake, 250) ?? null;
+                    return;
+                }
+                // Do not replace the card or an answer being edited.
+                this.component.saveState();
+                const wasEmpty = this.component.getCards().length === 0;
+                const previousCardId = this.component.getCards()[this.component.getCurrentIndex()]?.id;
+                this.refreshCardList();
+                const currentCardId = this.component.getCards()[this.component.getCurrentIndex()]?.id;
+                if (wasEmpty || previousCardId !== currentCardId) this.component.getRenderer().renderStudyArea();
+                else this.component.getRenderer().refreshStatistics();
+            };
+            this.timer = this.timerWindow?.setTimeout(wake, Math.max(100, wakeAt - now)) ?? null;
+        }
     }
 }

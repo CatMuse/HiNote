@@ -1,4 +1,24 @@
 export default {
+    "All cards": "全部卡片",
+    "Ungrouped cards": "未分组",
+    "Paused cards": "已暂停",
+    "Pause card": "暂停此卡片",
+    "Resume card": "恢复此卡片",
+    "No paused cards": "没有已暂停的卡片",
+    "Next review": "下次复习",
+    "Create a flashcard from a highlight to start learning.": "从高亮创建一张闪卡，即可开始学习。",
+    "Card could not be updated. Please try again.": "卡片更新失败，请重试。",
+    "Remaining": "待学",
+    "Recall success rate": "回忆成功率",
+    "Completed": "本轮完成",
+    "Undo last rating": "撤销上次评分",
+    "No cards ready now": "当前没有待学卡片",
+    "Learning cards will return automatically when due.": "学习中的卡片到期后会自动出现。",
+    "Daily limit reached. Continue tomorrow.": "已达到今日学习限额，明天继续。",
+    "Review could not be saved. Please try again.": "复习进度保存失败，请重试。",
+    "A group with this name already exists.": "已有同名分组，请换一个名称。",
+    "Recall success rate: ratings other than Again divided by all ratings.": "回忆成功率：非“重来”评分次数占全部评分次数的比例。",
+
     "Change color": "改色",
     "Selected {count}": "已选中 {count} 项",
     "Highlight colors updated: {success}; skipped: {skipped}; failed: {failed}.": "改色完成：成功 {success} 项，跳过 {skipped} 项，失败 {failed} 项。",
@@ -146,6 +166,9 @@ export default {
 
     //CommentView
 
+    "Open HiCard": "打开 HiCard",
+    "Unable to open HiCard. Try again.": "无法打开 HiCard，请重试。",
+    "Retry": "重试",
     "Loading...": "加载中...",
     "Search...": "搜索高亮或评论...",
     "Finish searching": "完成搜索",

@@ -18,7 +18,8 @@ export function calculateFlashcardProgress(
     cards: FlashcardState[],
     fsrsManager: FSRSManager
 ): FlashcardProgress {
-    const due = cards.filter(card => fsrsManager.fsrsService.isDue(card)).length;
+    cards = cards.filter(card => !card.suspended);
+    const due = cards.filter(card => card.reviews > 0 && fsrsManager.fsrsService.isDue(card)).length;
     const newCards = cards.filter(card => card.reviews === 0).length;
     const learned = cards.filter(card => card.reviews > 0).length;
 
@@ -37,8 +38,8 @@ export function calculateRetention(cards: FlashcardState[]): number {
         return 1;
     }
 
-    const totalRetrievability = learnedCards.reduce((sum, card) => sum + card.retrievability, 0);
-    return totalRetrievability / learnedCards.length;
+    const history = learnedCards.flatMap(card => card.reviewHistory);
+    return history.length ? history.filter(review => review.rating !== 1).length / history.length : 1;
 }
 
 export function calculateProgressPercent(progress: FlashcardProgress, remainingCards: number): number {

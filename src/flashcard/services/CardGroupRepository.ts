@@ -1,6 +1,7 @@
 import { CardGroup, FlashcardState, FlashcardProgress, FSRSStorage } from '../types/FSRSTypes';
 import { IdGenerator } from '../../utils/IdGenerator';
 import { CardGroupFilterMatcher } from './CardGroupFilterMatcher';
+import { ALL_CARDS_GROUP, UNGROUPED_CARDS_GROUP, PAUSED_CARDS_GROUP, systemCardGroups } from '../types/FlashcardGroups';
 
 interface CardGroupRepositoryOptions {
     storage: FSRSStorage;
@@ -34,7 +35,7 @@ export class CardGroupRepository {
      * @returns 所有分组列表
      */
     public getCardGroups(): CardGroup[] {
-        return this.storage.cardGroups || [];
+        return [...systemCardGroups(), ...(this.storage.cardGroups || [])];
     }
     
     /**
@@ -43,7 +44,7 @@ export class CardGroupRepository {
      * @returns 找到的分组或null
      */
     public getGroupById(groupId: string): CardGroup | null {
-        return this.storage.cardGroups.find((g: CardGroup) => g.id === groupId) || null;
+        return this.getCardGroups().find((g: CardGroup) => g.id === groupId) || null;
     }
     
     /**
@@ -206,6 +207,7 @@ export class CardGroupRepository {
         
         // 如果卡片已经在分组中，直接返回成功
         if (group.cardIds.includes(cardId)) {
+            if (!card.groupIds.includes(groupId)) card.groupIds.push(groupId);
             return true;
         }
         
@@ -281,6 +283,12 @@ export class CardGroupRepository {
      * @returns 分组中的卡片列表
      */
     public getCardsByGroupId(groupId: string): FlashcardState[] {
+        if (groupId === ALL_CARDS_GROUP) return Object.values(this.storage.cards);
+        if (groupId === PAUSED_CARDS_GROUP) return Object.values(this.storage.cards).filter(card => card.suspended);
+        if (groupId === UNGROUPED_CARDS_GROUP) {
+            const grouped = new Set(this.storage.cardGroups.flatMap(group => this.getCardsByGroupId(group.id).map(card => card.id)));
+            return Object.values(this.storage.cards).filter(card => !grouped.has(card.id));
+        }
         
         const group = this.getGroupById(groupId);
         if (!group) {
@@ -288,6 +296,11 @@ export class CardGroupRepository {
             return [];
         }
         
+        // Filtered groups are always dynamic; stored IDs are only a cache.
+        if (group.filter?.trim()) {
+            return Object.values(this.storage.cards).filter(card => this.matchesGroupFilter(card, group.filter));
+        }
+
         // 如果分组有 cardIds 数组，直接返回这些卡片
         if (group.cardIds && group.cardIds.length > 0) {
             
@@ -322,11 +335,11 @@ export class CardGroupRepository {
         const group = this.getGroupById(groupId);
         if (!group) return null;
         
-        const cards = this.getCardsByGroupId(groupId);
+        const cards = this.getCardsByGroupId(groupId).filter(card => !card.suspended);
         const now = Date.now();
         
         return {
-            due: cards.filter((c: FlashcardState) => c.nextReview <= now).length,
+            due: cards.filter((c: FlashcardState) => c.lastReview > 0 && c.nextReview <= now).length,
             newCards: cards.filter((c: FlashcardState) => c.lastReview === 0).length,
             learned: cards.filter((c: FlashcardState) => c.lastReview > 0).length,
             retention: this.calculateGroupRetention(cards)
@@ -341,8 +354,8 @@ export class CardGroupRepository {
         const reviewedCards = cards.filter((c: FlashcardState) => c.lastReview > 0);
         if (reviewedCards.length === 0) return 1;
         
-        const totalRetention = reviewedCards.reduce((sum: number, card: FlashcardState) => sum + card.retrievability, 0);
-        return totalRetention / reviewedCards.length;
+        const history = reviewedCards.flatMap(card => card.reviewHistory);
+        return history.length ? history.filter(review => review.rating !== 1).length / history.length : 1;
     }
     
     /**
@@ -381,13 +394,12 @@ export class CardGroupRepository {
             group.cardIds = [];
         }
         
-        // 将符合条件的卡片ID添加到分组中
-        let updated = false;
-        for (const cardId of matchedCardIds) {
-            if (!group.cardIds.includes(cardId)) {
-                group.cardIds.push(cardId);
-                updated = true;
-            }
+        const updated = JSON.stringify(group.cardIds) !== JSON.stringify(matchedCardIds);
+        group.cardIds = matchedCardIds;
+        for (const card of allCards) {
+            const ids = (card.groupIds || []).filter(id => id !== groupId);
+            if (matchedCardIds.includes(card.id)) ids.push(groupId);
+            card.groupIds = ids;
         }
         
         if (updated) {

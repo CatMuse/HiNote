@@ -9,7 +9,7 @@ import { LocationService } from '../../services/LocationService';
 import { ExportService } from '../../services/ExportService';
 import {t} from "../../i18n";
 import { LicenseManager } from '../../services/LicenseManager';
-import { ExportManager, FlashcardViewManager, VirtualHighlightManager } from '../highlight';
+import { ExportManager, HighlightFlashcardMarkers, VirtualHighlightManager } from '../highlight';
 import { DeviceManager, EventCoordinator, UIInitializer } from '../managers';
 import { ViewState, type ViewSession } from './ViewState';
 import { setupHiNoteView } from './HiNoteViewSetup';
@@ -20,7 +20,7 @@ export const VIEW_TYPE_HINOTE = "hinote-view";
 
 /**
  * HiNote 主视图
- * 负责显示和管理高亮、评论、闪卡等核心功能
+ * 负责显示和管理高亮、评论
  */
 export class HiNoteView extends ItemView {
     // === 视图状态（集中管理） ===
@@ -41,7 +41,7 @@ export class HiNoteView extends ItemView {
     private setupResult: HiNoteViewSetupResult | null = null;
     private exportManager: ExportManager | null = null;
     private virtualHighlightManager: VirtualHighlightManager | null = null;
-    private flashcardViewManager: FlashcardViewManager | null = null;
+    private flashcardMarkers: HighlightFlashcardMarkers | null = null;
     private deviceManager: DeviceManager | null = null;
     private uiInitializer: UIInitializer | null = null;
     private eventCoordinator: EventCoordinator | null = null;
@@ -69,7 +69,7 @@ export class HiNoteView extends ItemView {
         this.eventCoordinator = new EventCoordinator(this.app, this, services.eventManager);
         this.exportManager = new ExportManager(this.app, this.exportService);
         this.virtualHighlightManager = new VirtualHighlightManager(this.highlightManager);
-        this.flashcardViewManager = new FlashcardViewManager(this.app, this.plugin);
+        this.flashcardMarkers = new HighlightFlashcardMarkers(this.plugin);
     }
 
     getViewType(): string {
@@ -130,7 +130,7 @@ export class HiNoteView extends ItemView {
             eventCoordinator: this.eventCoordinator!,
             exportManager: this.exportManager!,
             virtualHighlightManager: this.virtualHighlightManager!,
-            flashcardViewManager: this.flashcardViewManager!,
+            flashcardMarkers: this.flashcardMarkers!,
             jumpToHighlight: async (highlight) => await this.jumpToHighlight(highlight),
             checkViewPosition: async () => await this.checkViewPosition(),
             updateViewLayout: async () => await this.updateViewLayout()
@@ -144,7 +144,7 @@ export class HiNoteView extends ItemView {
             setup.fileListManager.destroy();
             setup.batchOperationsHandler.destroy();
             this.deviceManager?.destroy();
-            this.flashcardViewManager?.destroy();
+            this.flashcardMarkers?.destroy();
             return;
         }
         this.setupResult = setup;
@@ -193,7 +193,7 @@ export class HiNoteView extends ItemView {
         this.setupResult?.commentInputManager.clearEditingState();
         this.state.dispose();
         this.setupResult?.infiniteScrollManager.destroy();
-        this.flashcardViewManager?.destroy();
+        this.flashcardMarkers?.destroy();
         // 清理有 destroy 方法的管理器
         this.setupResult?.searchUIManager.destroy();
         this.setupResult?.selectionManager.destroy();

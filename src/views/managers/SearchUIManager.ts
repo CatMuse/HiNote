@@ -42,7 +42,7 @@ export class SearchUIManager {
         this.searchInput.removeEventListener('input', this.input);
     }
     private async performSearch(): Promise<void> {
-        if (this.disposed || this.state.isFlashcardMode) return;
+        if (this.disposed) return;
         const version = ++this.version;
         this.state.setSearch(this.searchInput.value);
         this.setLoading(true);

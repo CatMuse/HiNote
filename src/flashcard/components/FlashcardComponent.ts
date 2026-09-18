@@ -38,6 +38,7 @@ export class FlashcardComponent extends Component {
     private isFlipped: boolean = false;
     private cards: FlashcardState[] = [];
     private isActive: boolean = false;
+    private authorized = false;
     private activationVersion = 0;
     private licenseManager: LicenseManager;
     private fsrsManager: FSRSManager;
@@ -86,6 +87,30 @@ export class FlashcardComponent extends Component {
         this.isFlipped = uiState.isFlipped;
         this.completionMessage = uiState.completionMessage;
         this.groupProgress = uiState.groupProgress;
+        this.container.tabIndex = 0;
+        this.registerDomEvent(this.container, "keydown", event => {
+            const target = event.target as HTMLElement;
+            if (!this.canStudy() || event.isComposing || event.repeat || event.ctrlKey || event.metaKey || event.altKey
+                || target.closest("input, textarea, select, button, a, [contenteditable=true]")) return;
+            if (event.key === " ") {
+                event.preventDefault();
+                this.flipCard();
+            } else {
+                const rating = this.ratingButtons.find(button => button.key === event.key);
+                if (rating && this.isFlipped) { event.preventDefault(); this.rateCard(rating.rating); }
+            }
+        });
+        this.register(() => { this.operations.dispose(); this.renderer.dispose(); });
+        this.registerEvent(this.plugin.eventManager.on('flashcard:changed', () => {
+            if (this.canStudy()) this.operations.onCardsChanged();
+        }));
+        if (typeof ResizeObserver !== 'undefined') {
+            const observer = new ResizeObserver(() => {
+                if (this.isActive && this.container.querySelector('.flashcard-main-container')) this.renderer.updateLayout();
+            });
+            observer.observe(this.container);
+            this.register(() => observer.disconnect());
+        }
     }
     
     /**
@@ -110,6 +135,8 @@ export class FlashcardComponent extends Component {
      */
     public cleanup() {
         this.groupManager.dispose();
+        this.operations.dispose();
+        this.renderer.dispose();
         // 键盘事件监听器已移除
     }
     
@@ -120,6 +147,7 @@ export class FlashcardComponent extends Component {
         const version = ++this.activationVersion;
         const valid = () => this.isActive && version === this.activationVersion && isCurrent();
         this.isActive = true;
+        this.authorized = false;
         
         // 检查许可证状态
         if (this.licenseManager) {
@@ -129,6 +157,7 @@ export class FlashcardComponent extends Component {
             if (!valid()) return;
             
             if (isActivated && isFeatureEnabled) {
+                this.authorized = true;
                 // 已激活且启用了闪卡功能，刷新卡片列表
                 this.operations.refreshCardList();
                 
@@ -156,6 +185,8 @@ export class FlashcardComponent extends Component {
     public deactivate() {
         this.activationVersion++;
         this.groupManager.dispose();
+        this.operations.dispose();
+        this.renderer.dispose();
         this.isActive = false;
         this.container.empty();
         this.container.removeClass('flashcard-mode');
@@ -169,6 +200,8 @@ export class FlashcardComponent extends Component {
         this.activationVersion++;
         this.isActive = false;
         this.groupManager.dispose();
+        this.operations.dispose();
+        this.renderer.dispose();
         // 键盘事件监听器已移除
         this.container.removeClass('flashcard-mode');
         this.container.empty();
@@ -187,6 +220,8 @@ export class FlashcardComponent extends Component {
     public getIsActive(): boolean {
         return this.isActive;
     }
+
+    public canStudy(): boolean { return this.isActive && this.authorized; }
     
     public getApp(): App {
         return this.app;
@@ -273,7 +308,7 @@ export class FlashcardComponent extends Component {
     }
     
     public getGroupProgress(groupName?: string): GroupProgressState | null {
-        const name = groupName || this.currentGroupName;
+        const name = groupName || this.currentGroupId;
         return this.groupProgress[name] || null;
     }
     
@@ -300,13 +335,17 @@ export class FlashcardComponent extends Component {
     public flipCard() {
         this.operations.flipCard();
     }
+
+    public undoReview(): void { void this.operations.undoReview(); }
+    public setCardSuspended(cardId: string, suspended: boolean): void { void this.operations.setCardSuspended(cardId, suspended); }
+    public getSessionProgress() { return this.operations.getSessionProgress(); }
     
     public nextCard() {
         this.operations.nextCard();
     }
     
     public rateCard(rating: FSRSRating) {
-        this.operations.rateCard(rating);
+        void this.operations.rateCard(rating);
     }
     
     public refreshCardList() {
@@ -322,6 +361,7 @@ export class FlashcardComponent extends Component {
     public saveState() {
         saveFlashcardUIState(this.fsrsManager, {
             currentGroupName: this.currentGroupName,
+            currentGroupId: this.currentGroupId,
             completionMessage: this.completionMessage,
             cards: this.cards,
             currentIndex: this.currentIndex,

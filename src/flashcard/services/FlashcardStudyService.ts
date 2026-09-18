@@ -5,6 +5,7 @@ import type {
     FSRSStorage
 } from '../types/FSRSTypes';
 import type { CardGroupRepository } from './CardGroupRepository';
+import { PAUSED_CARDS_GROUP } from '../types/FlashcardGroups';
 
 interface FlashcardStudyServiceOptions {
     getStorage: () => FSRSStorage;
@@ -23,29 +24,32 @@ export class FlashcardStudyService {
         }
 
         const groupRepository = this.options.getGroupRepository();
-        const allCards = groupRepository.getCardsByGroupId(groupId);
+        if (groupId === PAUSED_CARDS_GROUP) return groupRepository.getCardsByGroupId(groupId);
+        const allCards = groupRepository.getCardsByGroupId(groupId).filter(card => !card.suspended);
         if (allCards.length === 0) {
             return [];
         }
 
         const now = Date.now();
         const newCards = allCards.filter(card => card.reviews === 0 && card.lastReview === 0);
+        const learningCards = allCards.filter(card => (card.state === 1 || card.state === 3) && card.nextReview <= now);
         const reviewCards = allCards.filter(card => {
-            return !(card.reviews === 0 && card.lastReview === 0) && card.nextReview <= now;
+            return !(card.reviews === 0 && card.lastReview === 0) && card.state !== 1 && card.state !== 3 && card.nextReview <= now;
         });
 
         const remainingNewCards = this.options.getRemainingNewCardsToday(groupId);
         const remainingReviews = this.options.getRemainingReviewsToday(groupId);
 
         return [
-            ...newCards.slice(0, remainingNewCards),
-            ...reviewCards.slice(0, remainingReviews)
+            ...learningCards.sort((a, b) => a.nextReview - b.nextReview),
+            ...reviewCards.sort((a, b) => a.nextReview - b.nextReview).slice(0, remainingReviews),
+            ...newCards.slice(0, remainingNewCards)
         ];
     }
 
     getProgress(): FlashcardProgress {
         const storage = this.options.getStorage();
-        const allGroupCards = this.getAllGroupCards();
+        const allGroupCards = this.getAllGroupCards().filter(card => !card.suspended);
         const now = Date.now();
 
         if (allGroupCards.length === 0) {
@@ -58,7 +62,7 @@ export class FlashcardStudyService {
         }
 
         return {
-            due: allGroupCards.filter(card => card.nextReview <= now).length,
+            due: allGroupCards.filter(card => card.lastReview > 0 && card.nextReview <= now).length,
             newCards: allGroupCards.filter(card => card.lastReview === 0).length,
             learned: allGroupCards.filter(card => card.lastReview > 0).length,
             retention: storage.globalStats.averageRetention

@@ -1,5 +1,6 @@
 import { FSRSManager } from "../services/FSRSManager";
 import { DailyStats } from "../types/FSRSTypes";
+import { t } from '../../i18n';
 
 /**
  * 闪卡统计面板，显示学习统计数据和热力图
@@ -38,7 +39,7 @@ export class FlashcardStatsPanel {
         
         // 创建统计项
         this.createStatItem(statsArea, progress.newCards.toString(), 'New', 'flashcard-stat-new');
-        this.createStatItem(statsArea, progress.learned.toString(), 'Learning', 'flashcard-stat-learning');
+        this.createStatItem(statsArea, progress.learned.toString(), 'Learned', 'flashcard-stat-learning');
         this.createStatItem(statsArea, progress.due.toString(), 'Review', 'flashcard-stat-due');
     }
     
@@ -51,7 +52,7 @@ export class FlashcardStatsPanel {
         valueEl.textContent = value;
         
         const labelEl = statItem.createDiv('flashcard-stat-label');
-        labelEl.textContent = label;
+        labelEl.textContent = t(label);
     }
     
     /**

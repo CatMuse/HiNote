@@ -42,7 +42,7 @@ export class FSRSService {
      * @returns 当前使用的 FSRS 参数
      */
     public getParameters(): FSRSParameters {
-        return { ...this.params };
+        return { ...this.params, w: [...this.params.w] };
     }
 
     /**
@@ -50,9 +50,17 @@ export class FSRSService {
      * @param params 要设置的 FSRS 参数
      */
     public setParameters(params: Partial<FSRSParameters>): void {
-        this.params = { ...this.params, ...params };
-        // 更新 adapter 的参数
-        this.adapter.setParameters(this.params);
+        const next = { ...this.params, ...params };
+        if (!Number.isFinite(next.request_retention) || next.request_retention <= 0 || next.request_retention >= 1
+            || !Number.isInteger(next.maximum_interval) || next.maximum_interval < 1
+            || !Number.isInteger(next.newCardsPerDay) || next.newCardsPerDay < 0
+            || !Number.isInteger(next.reviewsPerDay) || next.reviewsPerDay < 0
+            || !Array.isArray(next.w) || next.w.length !== 21 || !next.w.every(Number.isFinite)) {
+            throw new Error('Invalid flashcard learning parameters');
+        }
+        const adapter = new FSRSAdapter(next);
+        this.params = { ...next, w: [...next.w] };
+        this.adapter = adapter;
     }
 
     /**

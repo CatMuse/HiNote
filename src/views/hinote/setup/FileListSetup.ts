@@ -1,7 +1,7 @@
 import CommentPlugin from "../../../../main";
 import { HighlightService } from "../../../services/HighlightService";
 import { LicenseManager } from "../../../services/LicenseManager";
-import { FlashcardViewManager, HighlightListController } from "../../highlight";
+import { HighlightListController } from "../../highlight";
 import { FileListController, FileListManager } from "../../managers";
 import { ViewState } from "../ViewState";
 
@@ -12,8 +12,6 @@ interface FileListSetupOptions {
     state: ViewState;
     fileListContainer: HTMLElement;
     highlightContainer: HTMLElement;
-    searchContainer: HTMLElement;
-    flashcardViewManager: FlashcardViewManager;
     highlightListController: HighlightListController;
     updateViewLayout: () => Promise<void>;
 }
@@ -29,8 +27,6 @@ export function setupFileList(options: FileListSetupOptions): {
         state,
         fileListContainer,
         highlightContainer,
-        searchContainer,
-        flashcardViewManager,
         highlightListController,
         updateViewLayout
     } = options;
@@ -45,11 +41,8 @@ export function setupFileList(options: FileListSetupOptions): {
     const fileListController = new FileListController({
         state,
         fileListManager,
-        flashcardViewManager,
         highlightListController,
         highlightContainer,
-        searchContainer,
-        licenseManager,
         updateViewLayout
     });
     fileListManager.setCallbacks(fileListController.getCallbacks());

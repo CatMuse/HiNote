@@ -8,11 +8,13 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"test:review": "node scripts/test-review-regressions.cjs",
+		"test:flashcards": "node scripts/test-flashcard-learning.cjs",
 		"test:storage": "node scripts/test-storage-safety.cjs",
 		"test:colors": "node scripts/test-highlight-colors.cjs",
 		"test:matching": "node scripts/test-highlight-matching.cjs",
 		"test:models": "node scripts/test-highlight-models.cjs",
 		"test:views": "node scripts/test-view-state.cjs",
+		"test:hicard-view": "node scripts/test-hicard-view.cjs",
 		"test:exclusions": "node scripts/test-exclusions.cjs",
 		"test:secrets": "node scripts/test-ai-secrets.cjs",
 		"test:ai": "node scripts/test-ai-connections.cjs"

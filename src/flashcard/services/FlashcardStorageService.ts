@@ -52,6 +52,7 @@ export class FlashcardStorageService {
 
         const storage = {
             version: data.fsrs.version || defaultStorage.version,
+            parameters: data.fsrs.parameters,
             cards: data.fsrs.cards || {},
             globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
             cardGroups: Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [],
@@ -94,6 +95,11 @@ export class FlashcardStorageService {
 
         for (const card of Object.values(storage.cards)) {
             card.answer = this.normalizeLegacyAnswerPlaceholder(card.answer);
+            if (card.state === undefined) {
+                card.state = !card.lastReview ? 0 : card.nextReview - card.lastReview < 86400000
+                    ? (card.lapses > 0 ? 3 : 1) : 2;
+            }
+            card.learningSteps ??= 0;
         }
     }
 

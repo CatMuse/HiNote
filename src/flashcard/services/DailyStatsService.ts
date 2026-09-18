@@ -38,26 +38,30 @@ export class DailyStatsService {
     }
 
     public canLearnNewCardsToday(groupId?: string): boolean {
-        const todayStats = this.getTodayStats();
-        return todayStats.newCardsLearned < this.getNewCardsLimit(groupId);
+        return this.getRemainingNewCardsToday(groupId) > 0;
     }
 
     public canReviewCardsToday(groupId?: string): boolean {
-        const todayStats = this.getTodayStats();
-        return todayStats.cardsReviewed < this.getReviewsLimit(groupId);
+        return this.getRemainingReviewsToday(groupId) > 0;
     }
 
     public getRemainingNewCardsToday(groupId?: string): number {
         const todayStats = this.getTodayStats();
-        return Math.max(0, this.getNewCardsLimit(groupId) - todayStats.newCardsLearned);
+        const globalRemaining = this.options.getParameters().newCardsPerDay - todayStats.newCardsLearned;
+        const groupRemaining = groupId && this.findCustomSettingsGroup(groupId)
+            ? this.getNewCardsLimit(groupId) - (todayStats.groupCounts?.[groupId]?.newCards || 0) : globalRemaining;
+        return Math.max(0, Math.min(globalRemaining, groupRemaining));
     }
 
     public getRemainingReviewsToday(groupId?: string): number {
         const todayStats = this.getTodayStats();
-        return Math.max(0, this.getReviewsLimit(groupId) - todayStats.cardsReviewed);
+        const globalRemaining = this.options.getParameters().reviewsPerDay - todayStats.cardsReviewed;
+        const groupRemaining = groupId && this.findCustomSettingsGroup(groupId)
+            ? this.getReviewsLimit(groupId) - (todayStats.groupCounts?.[groupId]?.reviews || 0) : globalRemaining;
+        return Math.max(0, Math.min(globalRemaining, groupRemaining));
     }
 
-    public updateDailyStats(isNewCard: boolean, rating: FSRSRating): void {
+    public updateDailyStats(isNewCard: boolean, rating: FSRSRating, cardId?: string, groupId?: string, learning = false): void {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayTimestamp = today.getTime();
@@ -79,10 +83,20 @@ export class DailyStatsService {
         const todayStats = this.getTodayStats();
         todayStats.reviewCount++;
 
+        const counted = cardId ? todayStats.reviewedCardIds?.includes(cardId) : false;
+        const countReview = !isNewCard && !learning && !counted;
+        if (cardId && !counted) (todayStats.reviewedCardIds ??= []).push(cardId);
+        if (groupId) {
+            const counts = (todayStats.groupCounts ??= {});
+            const group = counts[groupId] ??= { newCards: 0, reviews: 0 };
+            if (isNewCard) group.newCards++;
+            if (countReview) group.reviews++;
+        }
+
         if (isNewCard) {
             todayStats.newCount++;
             todayStats.newCardsLearned++;
-        } else {
+        } else if (countReview) {
             todayStats.cardsReviewed++;
         }
 

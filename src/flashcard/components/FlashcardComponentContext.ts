@@ -11,6 +11,8 @@ export interface FlashcardComponentContext {
     getApp(): App;
     getContainer(): HTMLElement;
     getIsActive(): boolean;
+    canStudy(): boolean;
+    activate(): Promise<void>;
     setProgressContainer(container: HTMLElement): void;
     getLicenseManager(): LicenseManager;
     getCards(): FlashcardState[];
@@ -20,6 +22,7 @@ export interface FlashcardComponentContext {
     isCardFlipped(): boolean;
     setCardFlipped(flipped: boolean): void;
     getCurrentGroupId(): string;
+    setCurrentGroupId(groupId: string): void;
     getCurrentGroupName(): string;
     setCurrentGroupName(groupName: string): void;
     getFsrsManager(): FSRSManager;
@@ -37,6 +40,9 @@ export interface FlashcardComponentContext {
     getUtils(): FlashcardUtils;
     getRatingButtons(): FlashcardRatingButton[];
     flipCard(): void;
+    undoReview(): void;
+    setCardSuspended(cardId: string, suspended: boolean): void;
+    getSessionProgress(): { completed: number; total: number };
     rateCard(rating: FSRSRating): void;
 }
 

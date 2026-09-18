@@ -1,6 +1,7 @@
 import { setIcon } from "obsidian";
 import { t } from "../../../i18n";
 import type { CardGroup } from "../../types/FSRSTypes";
+import { ALL_CARDS_GROUP, PAUSED_CARDS_GROUP } from '../../types/FlashcardGroups';
 import type { FlashcardComponentContext } from "../FlashcardComponentContext";
 
 export class FlashcardEmptyStateRenderer {
@@ -16,11 +17,15 @@ export class FlashcardEmptyStateRenderer {
             return false;
         }
 
-        const currentGroup = groups.find((group: CardGroup) => group.name === groupName);
-        const isEmptyGroup = currentGroup && (currentGroup.cardIds?.length ?? 0) === 0;
+        const currentGroup = groups.find((group: CardGroup) => group.id === this.component.getCurrentGroupId());
+        const isEmptyGroup = currentGroup && this.component.getFsrsManager().getCardsByGroupId(currentGroup.id).length === 0;
 
         if (!hasGroups) {
             this.renderNoGroups(cardContainer);
+        } else if (isEmptyGroup && currentGroup?.id === PAUSED_CARDS_GROUP) {
+            cardContainer.createDiv({ cls: 'flashcard-completion-message', text: t('No paused cards') });
+        } else if (isEmptyGroup && currentGroup?.id === ALL_CARDS_GROUP) {
+            cardContainer.createDiv({ cls: 'flashcard-completion-message', text: t('Create a flashcard from a highlight to start learning.') });
         } else if (isEmptyGroup) {
             this.renderEmptyGroup(cardContainer);
         } else {
@@ -82,20 +87,30 @@ export class FlashcardEmptyStateRenderer {
         setIcon(iconEl, "check-circle");
 
         completionContainer.createEl("h3", {
-            text: t("Learning Completed!")
+            text: t("No cards ready now")
         });
 
-        let message = this.component.getGroupCompletionMessage(groupName);
+        const manager = this.component.getFsrsManager();
+        const cards = currentGroup ? manager.getCardsByGroupId(currentGroup.id).filter(card => !card.suspended) : [];
+        const waiting = cards.filter(card => (card.state === 1 || card.state === 3) && card.nextReview > Date.now());
+        const messageKey = waiting.length ? "Learning cards will return automatically when due."
+            : cards.some(card => card.nextReview <= Date.now()) ? "Daily limit reached. Continue tomorrow."
+            : "No cards due for review";
+        let message: string | null = t(messageKey);
         if (!message) {
             message = currentGroup
                 ? t("Group completed: ") + currentGroup.name + t(". All cards have been reviewed.")
                 : t("All flashcards completed for today!");
 
-            this.component.setGroupCompletionMessage(groupName, message);
+            this.component.setGroupCompletionMessage(this.component.getCurrentGroupId(), message);
         }
 
         completionContainer.createEl("p", {
             text: message
         });
+        const next = cards.filter(card => card.nextReview > Date.now()).reduce((time, card) => Math.min(time, card.nextReview), Infinity);
+        if (Number.isFinite(next)) {
+            completionContainer.createEl('p', { text: `${t('Next review')}: ${new Date(next).toLocaleString()}` });
+        }
     }
 }

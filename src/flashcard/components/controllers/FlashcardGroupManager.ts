@@ -38,7 +38,11 @@ export class FlashcardGroupManager {
         this.activeModal = modal;
 
         modal.saveButton.addEventListener('click', () => {
-            void this.saveGroupFromModal(modal, group);
+            if (modal.saveButton.disabled) return;
+            modal.saveButton.disabled = true;
+            void this.saveGroupFromModal(modal, group)
+                .catch(error => { console.error('[HiNote] Group save failed', error); new Notice(t('Update group failed')); })
+                .finally(() => { modal.saveButton.disabled = false; });
         });
 
         modal.cancelButton.addEventListener('click', () => {
@@ -52,12 +56,17 @@ export class FlashcardGroupManager {
 
     private async saveGroupFromModal(modal: ReturnType<typeof createFlashcardGroupModal>, group?: CardGroup): Promise<void> {
         const values = modal.getValues();
+        values.name = values.name.trim();
         if (!values.name) {
             new Notice(t('Group name cannot be empty'));
             return;
         }
 
         const fsrsManager = this.component.getFsrsManager();
+        if (fsrsManager.getCardGroups().some(item => item.id !== group?.id && item.name === values.name)) {
+            new Notice(t('A group with this name already exists.'));
+            return;
+        }
 
         if (group) {
             await this.updateExistingGroup(group, values);
@@ -90,15 +99,15 @@ export class FlashcardGroupManager {
             await fsrsManager.updateCardGroup(group.id, this.createGroupUpdate(values));
             await fsrsManager.renameGroupUIState(oldName, values.name);
 
-            if (this.component.getCurrentGroupName() === oldName) {
-                this.component.setCurrentGroupName(values.name);
+            if (this.component.getCurrentGroupId() === group.id) {
+                this.component.setCurrentGroupId(group.id);
             }
 
             this.refreshFlashcardView();
             new Notice(t('Group update successful'));
         } catch (error) {
             console.error('Update group failed:', error);
-            new Notice(t('Update group failed'));
+            throw error;
         }
     }
 

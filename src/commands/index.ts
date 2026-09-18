@@ -2,6 +2,7 @@ import { Plugin } from 'obsidian';
 import { WindowManager } from '../plugin/WindowManager';
 import { registerOpenCommentPanelCommand } from './openCommentPanel';
 import { registerOpenMainWindowCommand } from './openMainWindow';
+import { registerOpenHiCardCommand } from './openHiCard';
 
 /**
  * 注册所有命令
@@ -17,6 +18,7 @@ export function registerCommands(
     
     // 注册在主窗口打开评论面板命令
     registerOpenMainWindowCommand(plugin, windowManager, ensureInitialized);
+    registerOpenHiCardCommand(plugin, windowManager);
 }
 
 /**

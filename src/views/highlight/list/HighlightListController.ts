@@ -4,7 +4,7 @@ import { t } from '../../../i18n';
 import type { HighlightInfo } from '../../../types/highlight';
 import { ViewState } from '../../hinote/ViewState';
 import type { HighlightRenderManager } from '../rendering';
-import type { FlashcardViewManager } from '../flashcards';
+import type { HighlightFlashcardMarkers } from '../flashcards';
 import type { InfiniteScrollManager } from './InfiniteScrollManager';
 import type { GlobalHighlightService, HighlightDataService } from '../../../services/highlight';
 import type { VirtualHighlightManager } from '../virtual';
@@ -20,7 +20,7 @@ interface HighlightListControllerOptions {
     getSearchInput: () => HTMLInputElement | null;
     getSearchUIManager: () => SearchUIManager | null;
     getHighlightRenderManager: () => HighlightRenderManager | null;
-    getFlashcardViewManager: () => FlashcardViewManager | null;
+    getHighlightFlashcardMarkers: () => HighlightFlashcardMarkers | null;
     getInfiniteScrollManager: () => InfiniteScrollManager | null;
     getGlobalHighlightService: () => GlobalHighlightService | null;
     getHighlightDataService: () => HighlightDataService | null;
@@ -47,14 +47,14 @@ export class HighlightListController {
     }
     renderHighlights(rows: HighlightInfo[], append = false): void {
         const { state } = this.options;
-        if (state.disposed || state.isFlashcardMode) return;
+        if (state.disposed) return;
         if (!append) this.options.beforeReplace?.();
         const renderer = this.options.getHighlightRenderManager();
         if (!renderer) return;
         renderer.updateState({
             currentFile: state.search.scope === 'vault' ? null : state.currentFile,
             isDraggedToMainView: state.isDraggedToMainView,
-            highlightsWithFlashcards: this.options.getFlashcardViewManager()?.getFlashcardMarkers(),
+            highlightsWithFlashcards: this.options.getHighlightFlashcardMarkers()?.getFlashcardMarkers(),
             currentBatch: this.options.getInfiniteScrollManager()?.getCurrentBatch() || 0
         });
         renderer.renderHighlights(rows, append, this.options.getSelectionManager() ?? undefined);
@@ -70,13 +70,13 @@ export class HighlightListController {
 
     async refreshView(render = true, reuse = false, preserveCards = false): Promise<void> {
         const { state } = this.options;
-        if (state.disposed || state.isFlashcardMode) return;
+        if (state.disposed) return;
         state.setSearch(this.options.getSearchInput()?.value || '');
         const page = state.page;
         const query = state.search;
         const scope = query.scope === 'vault' || page.kind === 'all' ? 'vault' : 'file' in page ? `${page.kind}:${page.file.path}` : page.kind;
         const token = state.beginRequest();
-        const current = () => state.isCurrent(token) && !state.isFlashcardMode;
+        const current = () => state.isCurrent(token);
         const canPatch = preserveCards && render && this.loadedScope === scope && this.renderedQuery === query.raw;
         if (!canPatch) {
             this.options.getInfiniteScrollManager()?.reset();
@@ -122,7 +122,7 @@ export class HighlightListController {
                 this.options.getSelectionManager()?.clearSelection();
             }
             state.highlights = next;
-            this.options.getFlashcardViewManager()?.updateFlashcardMarkers(state.highlights);
+            this.options.getHighlightFlashcardMarkers()?.updateFlashcardMarkers(state.highlights);
             const filtered = this.options.getSearchUIManager()?.filterHighlightsByTerm(query.term, query.type) || state.highlights;
             if (render) {
                 await this.renderPaginated(filtered, current);
@@ -144,7 +144,7 @@ export class HighlightListController {
 
     renderWithCurrentSearch(): void {
         const { state } = this.options;
-        if (state.disposed || state.isFlashcardMode) return;
+        if (state.disposed) return;
         state.setSearch(this.options.getSearchInput()?.value || '');
         const rows = this.options.getSearchUIManager()?.filterHighlightsByTerm(state.search.term, state.search.type) || state.highlights;
         this.renderHighlights(rows);

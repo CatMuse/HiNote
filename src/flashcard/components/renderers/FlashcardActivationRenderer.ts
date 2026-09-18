@@ -74,6 +74,7 @@ export class FlashcardActivationRenderer {
         }
 
         const activated = await this.component.getLicenseManager().activateLicense(licenseKey);
+        if (!input.isConnected || !this.component.getIsActive()) return;
         if (activated) {
             new Notice(t("HiCard activated successfully!"));
             this.renderMainView();

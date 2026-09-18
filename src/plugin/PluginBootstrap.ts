@@ -3,12 +3,15 @@ import type CommentPlugin from '../../main';
 import { createWindowManager, registerCommands } from '../commands';
 import { WindowManager } from './WindowManager';
 import { HiNoteView, VIEW_TYPE_HINOTE } from '../views/hinote/HiNoteView';
+import { HiCardView, VIEW_TYPE_HICARD } from '../views/hicard/HiCardView';
+import { openHiCard } from '../commands/openHiCard';
 
 export function createPluginWindowManager(plugin: CommentPlugin): WindowManager {
     return createWindowManager(plugin);
 }
 
 export function registerPluginViews(plugin: CommentPlugin): void {
+    plugin.registerView(VIEW_TYPE_HICARD, leaf => new HiCardView(leaf, plugin));
     plugin.registerView(
         VIEW_TYPE_HINOTE,
         (leaf: WorkspaceLeaf) => {
@@ -20,6 +23,7 @@ export function registerPluginViews(plugin: CommentPlugin): void {
 }
 
 export function registerPluginRibbon(plugin: CommentPlugin, windowManager: WindowManager): void {
+    plugin.addRibbonIcon('book-heart', 'HiCard', () => openHiCard(windowManager));
     plugin.addRibbonIcon(
         'highlighter',
         'HiNote',

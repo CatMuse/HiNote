@@ -1,4 +1,4 @@
-import type { CardGroup, FlashcardState, FSRSStorage } from '../types/FSRSTypes';
+import type { FlashcardState, FSRSStorage } from '../types/FSRSTypes';
 import { CardGroupFilterMatcher } from './CardGroupFilterMatcher';
 import type { CardGroupRepository } from './CardGroupRepository';
 import type { FlashcardFactory } from './FlashcardFactory';
@@ -65,32 +65,17 @@ export class FlashcardCardService {
     }
 
     getTotalCardsCount(): number {
-        const storage = this.options.getStorage();
         const allGroups = this.options.getGroupRepository().getCardGroups() || [];
         if (allGroups.length === 0) {
             return 0;
         }
 
-        if (allGroups.length === 1 && allGroups[0].cardIds) {
-            return allGroups[0].cardIds.length;
-        }
+
 
         const customGroupCards = new Set<string>();
-        allGroups.forEach(group => this.collectGroupCards(group, storage, customGroupCards));
+        allGroups.forEach(group => this.options.getGroupRepository().getCardsByGroupId(group.id).forEach(card => customGroupCards.add(card.id)));
 
         return customGroupCards.size;
-    }
-
-    private collectGroupCards(group: CardGroup, storage: FSRSStorage, customGroupCards: Set<string>): void {
-        if (!group.cardIds) {
-            return;
-        }
-
-        group.cardIds.forEach(cardId => {
-            if (storage.cards[cardId]) {
-                customGroupCards.add(cardId);
-            }
-        });
     }
 
     private checkAndAddCardToGroups(card: FlashcardState): number {

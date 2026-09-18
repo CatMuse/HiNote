@@ -14,7 +14,7 @@ import {
     CommentController,
     CommentInputManager,
     ExportManager,
-    FlashcardViewManager,
+    HighlightFlashcardMarkers,
     HighlightListController,
     HighlightRenderController,
     HighlightRenderManager,
@@ -51,7 +51,7 @@ export interface HiNoteViewSetupOptions {
     eventCoordinator: EventCoordinator;
     exportManager: ExportManager;
     virtualHighlightManager: VirtualHighlightManager;
-    flashcardViewManager: FlashcardViewManager;
+    flashcardMarkers: HighlightFlashcardMarkers;
     jumpToHighlight: (highlight: HighlightInfo) => Promise<void>;
     checkViewPosition: () => Promise<void>;
     updateViewLayout: () => Promise<void>;

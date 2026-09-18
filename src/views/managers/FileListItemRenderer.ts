@@ -6,7 +6,6 @@ import { FileListDataSource } from "./FileListDataSource";
 interface FileListRenderState {
     currentFile: TFile | null;
     isAllHighlights: boolean;
-    isFlashcardMode: boolean;
     isDraggedToMainView: boolean;
 }
 
@@ -15,12 +14,10 @@ interface FileListItemRendererOptions {
     dataSource: FileListDataSource;
     getState: () => FileListRenderState;
     onFileSelect: () => ((file: TFile | null) => void) | null;
-    onFlashcardModeToggle: () => ((enabled: boolean) => void) | null;
     onAllHighlightsSelect: () => (() => void) | null;
 }
 
 export class FileListItemRenderer {
-    private flashcardChangedHandler: (() => void) | null = null;
 
     constructor(private options: FileListItemRendererOptions) {}
 
@@ -52,47 +49,6 @@ export class FileListItemRenderer {
         this.makeKeyboardAction(allFilesItem);
         allFilesItem.addEventListener("click", () => {
             this.options.onAllHighlightsSelect()?.();
-        });
-    }
-
-    createFlashcardItem(fileList: HTMLElement): void {
-        const state = this.options.getState();
-        const flashcardItem = fileList.createDiv({
-            cls: `highlight-file-item highlight-file-item-flashcard ${state.isFlashcardMode ? "is-active" : ""}`
-        });
-
-        const flashcardLeft = flashcardItem.createDiv({
-            cls: "highlight-file-item-left"
-        });
-
-        const flashcardIcon = flashcardLeft.createSpan({
-            cls: "highlight-file-item-icon"
-        });
-        setIcon(flashcardIcon, "book-heart");
-
-        flashcardLeft.createSpan({
-            text: t("HiCard"),
-            cls: "highlight-file-item-name"
-        });
-
-        const flashcardCount = flashcardItem.createSpan({
-            cls: "highlight-file-item-count"
-        });
-
-        const updateFlashcardCount = () => {
-            const totalCards = this.options.plugin.fsrsManager.getTotalCardsCount();
-            flashcardCount.textContent = `${totalCards}`;
-        };
-
-        updateFlashcardCount();
-
-        this.unregisterFlashcardChangedHandler();
-        this.flashcardChangedHandler = updateFlashcardCount;
-        this.options.plugin.eventManager.on("flashcard:changed", this.flashcardChangedHandler);
-
-        this.makeKeyboardAction(flashcardItem);
-        flashcardItem.addEventListener("click", () => {
-            this.options.onFlashcardModeToggle()?.(true);
         });
     }
 
@@ -156,13 +112,7 @@ export class FileListItemRenderer {
             allFilesItem.setAttribute("aria-current", String(state.isAllHighlights));
         }
 
-        const flashcardItem = container.querySelector(".highlight-file-item-flashcard");
-        if (flashcardItem) {
-            flashcardItem.classList.toggle("is-active", state.isFlashcardMode);
-            flashcardItem.setAttribute("aria-current", String(state.isFlashcardMode));
-        }
-
-        const fileItems = container.querySelectorAll(".highlight-file-item:not(.highlight-file-item-all):not(.highlight-file-item-flashcard)");
+        const fileItems = container.querySelectorAll(".highlight-file-item:not(.highlight-file-item-all)");
         fileItems.forEach((item: HTMLElement) => {
             const isActive = state.currentFile?.path === item.getAttribute("data-path");
             item.classList.toggle("is-active", isActive);
@@ -178,10 +128,6 @@ export class FileListItemRenderer {
                 event.preventDefault(); element.click();
             }
         });
-    }
-
-    destroy(): void {
-        this.unregisterFlashcardChangedHandler();
     }
 
     private addPagePreview(element: HTMLElement, file: TFile): void {
@@ -222,10 +168,4 @@ export class FileListItemRenderer {
         return this.options.plugin.app.workspace.getLeaf("split", "vertical");
     }
 
-    private unregisterFlashcardChangedHandler(): void {
-        if (!this.flashcardChangedHandler) return;
-
-        this.options.plugin.eventManager.off("flashcard:changed", this.flashcardChangedHandler);
-        this.flashcardChangedHandler = null;
-    }
 }

@@ -18,7 +18,6 @@ export class FileListManager {
     
     // 回调函数
     private onFileSelect: ((file: TFile | null) => void) | null = null;
-    private onFlashcardModeToggle: ((enabled: boolean) => void) | null = null;
     private onAllHighlightsSelect: (() => void) | null = null;
     private onRefreshView: (() => Promise<void>) | null = null;
     private refreshPending: Promise<void> | null = null;
@@ -43,12 +42,10 @@ export class FileListManager {
             dataSource: this.dataSource,
             getState: () => ({
                 currentFile: this.state.currentFile,
-                isFlashcardMode: this.state.isFlashcardMode,
                 isDraggedToMainView: this.state.isDraggedToMainView,
                 isAllHighlights: this.state.isInAllHighlightsView()
             }),
             onFileSelect: () => this.onFileSelect,
-            onFlashcardModeToggle: () => this.onFlashcardModeToggle,
             onAllHighlightsSelect: () => this.onAllHighlightsSelect
         });
     }
@@ -58,15 +55,11 @@ export class FileListManager {
      */
     setCallbacks(callbacks: {
         onFileSelect?: (file: TFile | null) => void;
-        onFlashcardModeToggle?: (enabled: boolean) => void;
         onAllHighlightsSelect?: () => void;
         onRefreshView?: () => Promise<void>;
     }) {
         if (callbacks.onFileSelect) {
             this.onFileSelect = callbacks.onFileSelect;
-        }
-        if (callbacks.onFlashcardModeToggle) {
-            this.onFlashcardModeToggle = callbacks.onFlashcardModeToggle;
         }
         if (callbacks.onRefreshView) this.onRefreshView = callbacks.onRefreshView;
         if (callbacks.onAllHighlightsSelect) {
@@ -117,9 +110,6 @@ export class FileListManager {
 
         // 添加"全部"选项
         this.itemRenderer.createAllHighlightsItem(fileList);
-
-        // 添加闪卡选项
-        this.itemRenderer.createFlashcardItem(fileList);
 
         // 添加分隔线
         fileList.createDiv({
@@ -173,10 +163,8 @@ export class FileListManager {
     destroy() {
         this.disposed = true;
         this.generation++;
-        this.itemRenderer.destroy();
         this.container.empty();
         this.onFileSelect = null;
-        this.onFlashcardModeToggle = null;
         this.onAllHighlightsSelect = null;
         this.onRefreshView = null;
     }

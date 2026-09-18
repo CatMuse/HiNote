@@ -30,13 +30,13 @@ export class FlashcardSettingsTab {
             .addSlider(slider => {
                 const params = this.fsrsService.getParameters();
                 slider
-                    .setLimits(1, 200, 1)
+                    .setLimits(0, 200, 1)
                     .setValue(params.newCardsPerDay)
                     .onChange(async (value) => {
                         const params = this.fsrsService.getParameters();
                         params.newCardsPerDay = value;
                         this.fsrsService.setParameters(params);
-                        await this.plugin.saveSettings();
+                        await this.plugin.fsrsManager.saveStoragePublic();
                     });
                 
                 // 添加数值显示
@@ -59,13 +59,13 @@ export class FlashcardSettingsTab {
             .addSlider(slider => {
                 const params = this.fsrsService.getParameters();
                 slider
-                    .setLimits(10, 500, 10)
+                    .setLimits(0, 500, 10)
                     .setValue(params.reviewsPerDay)
                     .onChange(async (value) => {
                         const params = this.fsrsService.getParameters();
                         params.reviewsPerDay = value;
                         this.fsrsService.setParameters(params);
-                        await this.plugin.saveSettings();
+                        await this.plugin.fsrsManager.saveStoragePublic();
                     });
                 
                 // 添加数值显示
@@ -94,7 +94,7 @@ export class FlashcardSettingsTab {
                         const params = this.fsrsService.getParameters();
                         params.request_retention = value;
                         this.fsrsService.setParameters(params);
-                        await this.plugin.saveSettings();
+                        await this.plugin.fsrsManager.saveStoragePublic();
                     });
                 
                 // 添加数值显示
@@ -125,7 +125,7 @@ export class FlashcardSettingsTab {
                             const params = this.fsrsService.getParameters();
                             params.maximum_interval = numValue;
                             this.fsrsService.setParameters(params);
-                            await this.plugin.saveSettings();
+                            await this.plugin.fsrsManager.saveStoragePublic();
                         }
                     });
                 
@@ -179,47 +179,11 @@ export class FlashcardSettingsTab {
                 .onClick(async () => {
                     // 重置 FSRS 参数
                     this.fsrsService.resetParameters();
-                    await this.plugin.saveSettings();
+                    await this.plugin.fsrsManager.saveStoragePublic();
                     
-                    // 获取重置后的参数
-                    const params = this.fsrsService.getParameters();
-                    
-                    // 更新目标保持率滑动条
-                    const retentionSlider = this.containerEl.querySelector('.setting-item:nth-child(4) .slider') as HTMLInputElement;
-                    const retentionValue = this.containerEl.querySelector('.setting-item:nth-child(4) .slider-value') as HTMLElement;
-                    if (retentionSlider && retentionValue) {
-                        retentionSlider.value = String(params.request_retention);
-                        retentionValue.textContent = `${Math.round(params.request_retention * 100)}%`;
-                    }
-                    
-                    // 更新最大间隔输入框
-                    const maxIntervalInput = this.containerEl.querySelector('.setting-item:nth-child(5) input[type="number"]') as HTMLInputElement;
-                    if (maxIntervalInput) {
-                        maxIntervalInput.value = String(params.maximum_interval);
-                    }
-                    
-                    // 更新每日新卡片滑动条
-                    const newCardsSlider = this.containerEl.querySelector('.setting-item:nth-child(2) .slider') as HTMLInputElement;
-                    const newCardsValue = this.containerEl.querySelector('.setting-item:nth-child(2) .slider-value') as HTMLElement;
-                    if (newCardsSlider && newCardsValue) {
-                        newCardsSlider.value = String(params.newCardsPerDay);
-                        newCardsValue.textContent = String(params.newCardsPerDay);
-                    }
-                    
-                    // 更新每日复习卡片滑动条
-                    const reviewsSlider = this.containerEl.querySelector('.setting-item:nth-child(3) .slider') as HTMLInputElement;
-                    const reviewsValue = this.containerEl.querySelector('.setting-item:nth-child(3) .slider-value') as HTMLElement;
-                    if (reviewsSlider && reviewsValue) {
-                        reviewsSlider.value = String(params.reviewsPerDay);
-                        reviewsValue.textContent = String(params.reviewsPerDay);
-                    }
-                    
-                    // 更新 FSRS 权重参数文本区域
-                    const textareaEl = this.containerEl.querySelector('.fsrs-weights-textarea') as HTMLTextAreaElement;
-                    if (textareaEl) {
-                        textareaEl.value = JSON.stringify(params.w);
-                    }
-                    
+                    container.remove();
+                    this.display();
+
                     new Notice(t('FSRS parameters have been reset to default values'));
                 }));
 
@@ -260,7 +224,7 @@ export class FlashcardSettingsTab {
                                 const currentParams = this.fsrsService.getParameters();
                                 currentParams.w = newParams;
                                 this.fsrsService.setParameters(currentParams);
-                                await this.plugin.saveSettings();
+                                await this.plugin.fsrsManager.saveStoragePublic();
                                 
                                 // 显示成功提示
                                 new Notice(t('FSRS weights updated successfully'));

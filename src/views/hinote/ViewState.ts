@@ -2,7 +2,7 @@ import type { TFile } from 'obsidian';
 import type { HighlightInfo } from '../../types/highlight';
 import { parseHighlightQuery, type HighlightQuery } from '../../services/search/HighlightQuery';
 
-export type HiNotePage = { kind: 'empty' | 'all' | 'hicard' } | { kind: 'file' | 'canvas'; file: TFile };
+export type HiNotePage = { kind: 'empty' | 'all' } | { kind: 'file' | 'canvas'; file: TFile };
 export interface ViewSession {
     page: HiNotePage;
     mainPage: HiNotePage | null;
@@ -30,7 +30,6 @@ export class ViewState {
     get placement(): 'sidebar' | 'main' { return this.placementValue; }
     get search(): HighlightQuery { return this.queryValue; }
     get currentFile(): TFile | null { return 'file' in this.page ? this.page.file : null; }
-    get isFlashcardMode(): boolean { return this.page.kind === 'hicard'; }
     get isDraggedToMainView(): boolean { return this.placementValue === 'main'; }
     get isShowingFileList(): boolean { return this.navigationOpen; }
     get disposed(): boolean { return this.closed; }

@@ -44,10 +44,9 @@ export function restoreReviewPosition(
         };
     }
 
-    return {
-        currentIndex: findRestoredCardIndex(cards, savedProgress),
-        isFlipped: savedProgress.isFlipped
-    };
+    const currentIndex = Math.max(0, findRestoredCardIndex(cards, savedProgress));
+    const sameCard = !savedProgress.currentCardId || cards[currentIndex]?.id === savedProgress.currentCardId;
+    return { currentIndex, isFlipped: sameCard && savedProgress.isFlipped };
 }
 
 export function clearGroupCompletionMessage(fsrsManager: FSRSManager, groupName: string): void {

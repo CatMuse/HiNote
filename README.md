@@ -75,7 +75,7 @@ Export all your highlighted text and comments as a new note, displayed in Callou
 
 ## Extended features of the main view
 
-Drag the right sidebar window to the main view to unlock more features, such as a list of notes with highlighted text, all highlighted cards, and HiCard.
+Drag the right sidebar window to the main view to unlock more features, such as a list of notes with highlighted text and all highlighted cards.
 
 - Notes List: Displays all notes in the knowledge base that contain highlighted text, with the number of highlights indicated.
 - All Highlights: Shows all highlighted cards in the knowledge base, allowing you to focus more on the highlighted content.
@@ -112,6 +112,20 @@ The Flashcard feature is available in the Pro version of HiNote. This advanced s
 - Convert your highlights into flashcards with just one click
 - Utilize the FSRS (Free Spaced Repetition Scheduler) algorithm for optimal learning efficiency
 - Customize review schedules to match your learning style
+
+Open **HiNote: Open HiCard** from the command palette, or select the **HiCard** ribbon icon. You can assign a shortcut in **Settings → Hotkeys**. HiCard opens in its own workspace tab; repeated opens focus the existing tab. It can sit alongside highlights or be moved using Obsidian’s tab controls. Existing cards, groups, review history, and Pro activation are shared without migration. Creating cards from highlights and comments remains available.
+
+In HiCard, select a card to reveal its answer, then rate it. With the review area focused, **Space** flips the card and **1–4** select a rating. **Undo last rating** restores the last saved rating and its statistics during the current session. Failed saves keep the current card available for retry.
+
+**All cards** includes every card, including cards outside custom groups. **Ungrouped cards** helps you find those cards without creating a group first. **Pause card** removes a card from learning queues without deleting its history or changing its due date; use **Paused cards → Resume card** to return it to normal scheduling.
+
+Review and undo changes become visible only after storage confirms the write. Other views and queued saves continue to see the last committed state while a write is pending. Automatic refresh waits while an answer editor is open, and updates the remaining count, group counts and progress together. Empty review queues show the next due time when available. Narrow panes provide a **Groups** button to return to the group list.
+
+Daily limits apply across your library; a custom group limit is an additional cap for that group. Short-term learning cards return automatically when due and do not consume the regular review limit again. Set the new-card limit to zero to pause introducing new cards. Filtered groups update dynamically as matching content changes. The recall success rate counts ratings other than **Again**, rather than estimating current memory strength.
+
+FSRS parameters and learning states are stored locally with flashcard data. Older cards retain their history; missing learning states are inferred from their last interval until the next rating records the full algorithm state.
+
+Pro authorization is rechecked after seven days. If the service is temporarily unreachable, a previously verified license can be used offline for up to 30 days from its last successful verification. An explicit rejection does not receive this grace period.
 
 To access these premium features, you'll need to [upgrade to Pro](https://hinote.vip).
 

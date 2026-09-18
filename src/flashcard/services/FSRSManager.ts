@@ -40,6 +40,7 @@ export class FSRSManager {
     private groupService: FlashcardGroupService;
     private storage: FSRSStorage;
     private plugin: CommentPlugin;
+    private reviewDraft: FSRSStorage | null = null;
 
     constructor(plugin: CommentPlugin, dataManager?: HiNoteDataManager) {
         this.plugin = plugin;
@@ -72,11 +73,14 @@ export class FSRSManager {
             getRemainingReviewsToday: (groupId?: string) => this.getRemainingReviewsToday(groupId)
         });
         this.reviewService = new FlashcardReviewService({
-            getStorage: () => this.requireStorage(),
+            getStorage: () => this.reviewDraft || this.requireStorage(),
             getFsrsService: () => this.fsrsService,
-            getDailyStatsService: () => this.dailyStatsService,
-            saveStorage: async () => await this.saveStorage(),
-            emitFlashcardChanged: () => this.plugin.eventManager.emitFlashcardChanged()
+            getDailyStatsService: () => this.createReviewDailyStats(),
+            saveStorage: async () => {
+                if (!this.reviewDraft) throw new Error('Review transaction is not active');
+                await this.storageService.save(JSON.parse(JSON.stringify(this.reviewDraft)));
+            },
+            emitFlashcardChanged: () => {}
         });
         this.cardService = new FlashcardCardService({
             getStorage: () => this.requireStorage(),
@@ -121,6 +125,7 @@ export class FSRSManager {
         if (!this.initialization) {
             this.initialization = this.storageService.load().then(storage => {
                 this.storage = storage;
+                if (storage.parameters) this.fsrsService.setParameters(storage.parameters);
                 this.groupRepository = this.createGroupRepository();
                 this.ready = true;
                 if (!this.disposed) this.eventSyncService.registerEventListeners();
@@ -155,9 +160,8 @@ export class FSRSManager {
 
     private async saveStorage(): Promise<void> {
         if (!this.ready) throw new Error('Flashcards are not ready to save.');
-        const snapshot: FSRSStorage = JSON.parse(JSON.stringify(this.storage));
         try {
-            await this.saveQueue.run(() => this.storageService.save(snapshot));
+            await this.saveQueue.run(() => this.storageService.save(JSON.parse(JSON.stringify(this.storage))));
         } catch (error) {
             new Notice('HiNote could not save flashcards. Check vault storage before continuing.');
             throw error;
@@ -202,8 +206,15 @@ export class FSRSManager {
      * @param rating 评分
      * @returns 更新后的卡片状态
      */
-    public trackStudyProgress(cardId: string, rating: FSRSRating): FlashcardState | null {
-        return this.reviewService.trackStudyProgress(cardId, rating);
+    public trackStudyProgress(cardId: string, rating: FSRSRating, groupId?: string): Promise<FlashcardState | null> {
+        return this.runReviewTransaction(() => cardId, async () => {
+            const card = this.reviewDraft?.cards[cardId];
+            const limits = this.createReviewDailyStats();
+            if (!card || card.suspended || card.nextReview > Date.now()) return null;
+            if (card.lastReview === 0 && !limits.canLearnNewCardsToday(groupId)) return null;
+            if (card.lastReview > 0 && card.state !== 1 && card.state !== 3 && !limits.canReviewCardsToday(groupId)) return null;
+            return this.reviewService.trackStudyProgress(cardId, rating, groupId);
+        });
     }
     
     /**
@@ -212,7 +223,71 @@ export class FSRSManager {
      * @returns 不同评分下的预测结果，如果卡片不存在则返回 null
      */
     public getCardPredictions(cardId: string): Record<FSRSRating, FlashcardState> | null {
-        return this.reviewService.getCardPredictions(cardId);
+        const card = this.requireStorage().cards[cardId];
+        return card ? this.fsrsService.getSchedulingCards(card) : null;
+    }
+
+    public canUndoReview(): boolean { return !this.reviewDraft && this.reviewService.canUndo(); }
+    public getUndoCardId(): string | undefined { return this.reviewService.getUndoCardId(); }
+
+    public async setCardSuspended(cardId: string, suspended: boolean): Promise<boolean> {
+        this.requireStorage();
+        return this.saveQueue.run(async () => {
+            const current = this.storage.cards[cardId];
+            if (!current) return false;
+            const snapshot: FSRSStorage = JSON.parse(JSON.stringify(this.storage));
+            snapshot.cards[cardId].suspended = suspended;
+            await this.storageService.save(snapshot);
+            if (this.storage.cards[cardId]) this.storage.cards[cardId].suspended = suspended;
+            if (!this.disposed) this.plugin.eventManager.emitFlashcardChanged();
+            return true;
+        });
+    }
+    public undoLastReview(): Promise<boolean> {
+        return this.runReviewTransaction(() => this.reviewService.getUndoCardId(), () => this.reviewService.undoLastReview());
+    }
+
+    private createReviewDailyStats(): DailyStatsService {
+        const storage = this.reviewDraft || this.requireStorage();
+        return new DailyStatsService({
+            getDailyStats: () => storage.dailyStats,
+            setDailyStats: stats => { storage.dailyStats = stats; },
+            getGlobalStats: () => storage.globalStats,
+            getCardGroups: () => storage.cardGroups,
+            getParameters: () => this.fsrsService.getParameters(),
+            saveDebounced: () => {}
+        });
+    }
+
+    /** Keep speculative ratings out of other views and queued saves until disk confirms them. */
+    private runReviewTransaction<T>(getCardId: () => string | undefined, operation: () => Promise<T>): Promise<T> {
+        this.requireStorage();
+        return this.saveQueue.run(async () => {
+            const cardId = getCardId();
+            const draft: FSRSStorage = JSON.parse(JSON.stringify(this.storage));
+            this.reviewDraft = draft;
+            try {
+                const result = await operation();
+                if (result) {
+                    const current = cardId ? this.storage.cards[cardId] : undefined;
+                    const reviewed = cardId ? draft.cards[cardId] : undefined;
+                    if (cardId && current && reviewed) {
+                        this.storage.cards[cardId] = { ...current,
+                            difficulty: reviewed.difficulty, stability: reviewed.stability,
+                            retrievability: reviewed.retrievability, lastReview: reviewed.lastReview,
+                            nextReview: reviewed.nextReview, reviews: reviewed.reviews, lapses: reviewed.lapses,
+                            reviewHistory: reviewed.reviewHistory, state: reviewed.state,
+                            learningSteps: reviewed.learningSteps, scheduledDays: reviewed.scheduledDays };
+                    }
+                    this.storage.globalStats = draft.globalStats;
+                    this.storage.dailyStats = draft.dailyStats;
+                }
+                return result;
+            } finally {
+                this.reviewDraft = null;
+                if (!this.disposed) this.plugin.eventManager.emitFlashcardChanged();
+            }
+        });
     }
     
     /**
@@ -303,7 +378,9 @@ export class FSRSManager {
      * @returns Promise<void>
      */
     public async saveStoragePublic(): Promise<void> {
-        return this.saveStorage();
+        this.storage.parameters = this.fsrsService.getParameters();
+        await this.saveStorage();
+        if (!this.disposed) this.plugin.eventManager.emitFlashcardChanged();
     }
 
     public async renameGroupUIState(oldName: string, newName: string): Promise<void> {
@@ -315,11 +392,17 @@ export class FSRSManager {
      * @returns 如果找到并移除了今天的统计数据，返回 true。
      */
     public async resetTodayStats(): Promise<boolean> {
-        const reset = this.dailyStatsService.resetTodayStats();
-        if (reset) {
-            await this.saveStorage();
-        }
-        return reset;
+        this.requireStorage();
+        return this.saveQueue.run(async () => {
+            const day = new Date().toDateString();
+            const dailyStats = this.storage.dailyStats.filter(stats => new Date(stats.date).toDateString() !== day);
+            if (dailyStats.length === this.storage.dailyStats.length) return false;
+            const snapshot = JSON.parse(JSON.stringify({ ...this.storage, dailyStats }));
+            await this.storageService.save(snapshot);
+            this.storage.dailyStats = dailyStats;
+            if (!this.disposed) this.plugin.eventManager.emitFlashcardChanged();
+            return true;
+        });
     }
 
     public getDailyStats(): DailyStats[] {

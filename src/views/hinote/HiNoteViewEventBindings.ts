@@ -66,20 +66,20 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
         if (state.disposed) return;
         fileListManager.invalidateCache();
         pendingContent ||= content;
-        if (content && !state.isFlashcardMode) state.invalidate();
+        if (content) state.invalidate();
         if (refreshTimer !== null) window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => {
             refreshTimer = null;
             if (state.disposed) return;
             if (state.isDraggedToMainView) void fileListManager.updateFileList();
             const shouldRefresh = pendingContent; pendingContent = false;
-            if (shouldRefresh && !state.isFlashcardMode) void highlightListController.refreshView(true, false, true);
+            if (shouldRefresh) void highlightListController.refreshView(true, false, true);
         }, 300);
     };
     eventCoordinator.setCallbacks({
         onExclusionsChanged: () => {
-            if (!state.isFlashcardMode) highlightListController.cancelPending();
-            scheduleRefresh(!state.isFlashcardMode);
+            highlightListController.cancelPending();
+            scheduleRefresh(true);
         },
         onFileOpen: file => { void fileListController.navigate(ViewState.filePage(file)); },
         onFileModify: file => {
@@ -92,7 +92,7 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
             if (state.currentFile === file) void fileListController.navigate({ kind: 'empty' });
             scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'canvas' || state.search.scope === 'vault');
         },
-        onFileRename: () => { state.notify(); scheduleRefresh(!state.isFlashcardMode); },
+        onFileRename: () => { state.notify(); scheduleRefresh(true); },
         onLayoutChange: () => { void checkViewPosition(); },
         onCommentInput: (highlightId, text) => {
             eventCoordinator.handleCommentInputDisplay(highlightId, text, highlightContainer,

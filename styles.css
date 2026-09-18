@@ -1726,8 +1726,8 @@ settings:
 }
 
 /* 深色模式优化 */
-.theme-dark .workspace-leaf-content[data-type="hinote-view"] .highlight-container.flashcard-mode .flashcard-front,
-.theme-dark .workspace-leaf-content[data-type="hinote-view"] .highlight-container.flashcard-mode .flashcard-back {
+.theme-dark .workspace-leaf-content[data-type="hicard-view"] .flashcard-mode .flashcard-front,
+.theme-dark .workspace-leaf-content[data-type="hicard-view"] .flashcard-mode .flashcard-back {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2),
         0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
@@ -3747,6 +3747,37 @@ textarea.flashcard-modal-input {
     display: none;
 }
 
+.is-mobile.is-small-screen.show-sidebar .flashcard-progress-container {
+    display: none;
+}
+
+.flashcard-suspend,
+.flashcard-undo {
+    align-self: center;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+
+.flashcard-study-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--size-4-2);
+}
+
+.flashcard-back-to-groups {
+    display: none;
+}
+
+.is-small-screen.show-content .flashcard-back-to-groups {
+    display: inline-flex;
+    align-self: flex-start;
+}
+
+.is-small-screen .flashcard-content-area {
+    flex-direction: column;
+}
+
 /* 移动端显示内容区域时隐藏侧边栏 */
 .is-mobile.is-small-screen.show-content .flashcard-sidebar {
     display: none;
@@ -4154,4 +4185,25 @@ textarea.flashcard-modal-input {
 .multi-select-action-button.delete-highlight-button:hover {
     color: var(--text-error);
     background-color: var(--background-secondary);
+}
+
+/* HiCard owns its workspace surface independently of highlight layout. */
+.workspace-leaf-content[data-type="hicard-view"] .hicard-view {
+    padding: 16px;
+    overflow: auto;
+}
+.hicard-study-container {
+    min-height: 100%;
+    width: 100%;
+}
+.hicard-study-container.flashcard-mode {
+    height: auto;
+}
+.hicard-view-message {
+    padding: 24px;
+    color: var(--text-muted);
+    text-align: center;
+}
+.hicard-view-message button {
+    margin-top: 12px;
 }

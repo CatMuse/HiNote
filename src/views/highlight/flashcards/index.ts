@@ -1,2 +1,2 @@
-export { FlashcardViewManager } from './FlashcardViewManager';
+export { HighlightFlashcardMarkers } from './HighlightFlashcardMarkers';
 export { HighlightFlashcardManager } from './HighlightFlashcardManager';

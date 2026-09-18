@@ -1,11 +1,10 @@
 import { FlashcardProgress, FlashcardState } from "../../types/FSRSTypes";
 import { t } from "../../../i18n";
+import { PAUSED_CARDS_GROUP } from '../../types/FlashcardGroups';
 import { setIcon } from "obsidian";
 import type { FlashcardComponentContext } from "../FlashcardComponentContext";
 import {
     calculateFlashcardProgress,
-    calculateIndexProgress,
-    calculateProgressPercent,
     calculateRetention,
     getCardsForProgress
 } from "./FlashcardProgressStats";
@@ -49,6 +48,10 @@ export class FlashcardProgressManager {
         if (!progressContainer) return;
         
         progressContainer.empty();
+        if (this.component.getCurrentGroupId() === PAUSED_CARDS_GROUP) {
+            progressContainer.createSpan({ text: `${t('Paused cards')}: ${this.component.getCards().length}` });
+            return;
+        }
         
         // 获取进度数据
         const progress = this.getGroupProgress();
@@ -73,7 +76,7 @@ export class FlashcardProgressManager {
             { label: t('Due'), value: progress.due },
             { label: t('New'), value: progress.newCards },
             { label: t('Learned'), value: progress.learned },
-            { label: t('Retention'), value: `${(progress.retention * 100).toFixed(1)}%` }
+            { label: t('Recall success rate'), value: `${(progress.retention * 100).toFixed(1)}%` }
         ];
 
         stats.forEach((stat, index) => {
@@ -93,12 +96,11 @@ export class FlashcardProgressManager {
             });
             
             // 为 Retention 添加问号图标和提示
-            if (stat.label === t('Retention')) {
+            if (stat.label === t('Recall success rate')) {
                 const helpIcon = statEl.createSpan({ cls: "help-icon" });
                 setIcon(helpIcon, "help-circle");
                 helpIcon.setAttribute("aria-label", 
-                    t('Retention = (Total Reviews - Forget Count) / Total Reviews\n' +
-                    'This metric reflects your learning effectiveness, higher means better memory retention')
+                    t('Recall success rate: ratings other than Again divided by all ratings.')
                 );
             }
         });
@@ -109,7 +111,8 @@ export class FlashcardProgressManager {
         // 创建进度条
         const progressBar = progressBarContainer.createDiv({ cls: 'flashcard-progress-bar' });
         
-        const percent = calculateProgressPercent(progress, this.component.getCards().length);
+        const session = this.component.getSessionProgress();
+        const percent = session.total ? Math.round(100 * session.completed / session.total) : 0;
         
         // 设置进度条宽度
         progressBar.setCssProps({ width: `${percent}%` });
@@ -117,16 +120,7 @@ export class FlashcardProgressManager {
         // 添加当前卡片索引信息
         const indexContainer = progressContainer.createDiv({ cls: 'flashcard-index-container' });
         
-        // 获取当前分组ID
-        const groupId = this.component.getCurrentGroupId();
-        
-        const remainingCards = this.component.getCards().length;
-        const indexProgress = calculateIndexProgress(
-            this.component.getFsrsManager(),
-            groupId,
-            remainingCards
-        );
-        indexContainer.textContent = `${indexProgress.current}/${indexProgress.total}`;
+        indexContainer.textContent = `${t("Completed")}: ${session.completed}/${session.total}`;
     }
     
 }

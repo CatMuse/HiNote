@@ -65,14 +65,12 @@ export class FSRSAdapter {
         }
 
         // 确定卡片状态
-        let state: State = State.New;
-        if (card.reviews > 0) {
-            if (card.lapses > 0) {
-                state = State.Relearning;
-            } else {
-                state = State.Review;
-            }
-        }
+        // Legacy cards did not persist state. Infer short-term learning only
+        // from the last interval, never from lifetime lapse counts alone.
+        const shortTerm = card.nextReview - card.lastReview < 86400000;
+        const state: State = card.state ?? (shortTerm
+            ? (card.lapses > 0 ? State.Relearning : State.Learning)
+            : State.Review);
 
         // 创建 ts-fsrs Card 对象
         return {
@@ -80,12 +78,12 @@ export class FSRSAdapter {
             stability: card.stability,
             difficulty: card.difficulty,
             elapsed_days: card.lastReview ? (Date.now() - card.lastReview) / (24 * 60 * 60 * 1000) : 0,
-            scheduled_days: card.lastReview ? (card.nextReview - card.lastReview) / (24 * 60 * 60 * 1000) : 0,
+            scheduled_days: card.scheduledDays ?? Math.max(0, Math.floor((card.nextReview - card.lastReview) / 86400000)),
             reps: card.reviews,
             lapses: card.lapses,
             state: state,
             last_review: card.lastReview ? new Date(card.lastReview) : undefined,
-            learning_steps: 0 // 添加缺失的learning_steps属性，使用数字类型
+            learning_steps: card.learningSteps ?? 0
         };
     }
 
@@ -118,9 +116,14 @@ export class FSRSAdapter {
         
         return {
             ...originalCard,
+            state: card.state,
+            learningSteps: card.learning_steps,
+            scheduledDays: card.scheduled_days,
             difficulty: card.difficulty,
             stability: card.stability,
-            retrievability: Math.exp(Math.log(0.9) * elapsedDays / card.stability), // 计算可提取性
+            retrievability: originalCard.lastReview > 0
+                ? this.fsrsInstance.get_retrievability(this.toTsFSRSCard(originalCard), log.review, false)
+                : 1,
             lastReview: log.review.getTime(),
             nextReview: card.due.getTime(),
             reviews: card.reps,
@@ -163,6 +166,9 @@ export class FSRSAdapter {
         
         return {
             id: IdGenerator.generateCardId(),
+            state: emptyCard.state,
+            learningSteps: emptyCard.learning_steps,
+            scheduledDays: emptyCard.scheduled_days,
             difficulty: emptyCard.difficulty,
             stability: emptyCard.stability,
             retrievability: 1,

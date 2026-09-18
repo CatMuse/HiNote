@@ -2,6 +2,7 @@ import { Notice, setIcon } from "obsidian";
 import { t } from "../../../i18n";
 import { showConfirmModal } from "../../../utils/ConfirmModal";
 import type { CardGroup } from "../../types/FSRSTypes";
+import { isSystemCardGroup, PAUSED_CARDS_GROUP } from '../../types/FlashcardGroups';
 import type { FlashcardComponentContext } from "../FlashcardComponentContext";
 import { FlashcardStatsPanel } from "../FlashcardStatsPanel";
 
@@ -13,6 +14,17 @@ interface FlashcardGroupListRendererOptions {
 
 export class FlashcardGroupListRenderer {
     constructor(private component: FlashcardComponentContext) {}
+
+    public refreshStats(sidebar: HTMLElement): void {
+        const stats = sidebar.querySelector<HTMLElement>('.flashcard-stats-container');
+        if (stats) new FlashcardStatsPanel(stats, this.component.getFsrsManager()).render();
+        for (const item of Array.from(sidebar.querySelectorAll<HTMLElement>('.flashcard-group-item'))) {
+            const group = this.component.getFsrsManager().getCardGroups().find(group => group.id === item.dataset.groupId);
+            if (!group) continue;
+            item.querySelector('.flashcard-group-stats')?.remove();
+            this.renderGroupStats(item, group);
+        }
+    }
 
     public render(
         sidebar: HTMLElement,
@@ -48,8 +60,9 @@ export class FlashcardGroupListRenderer {
         options: FlashcardGroupListRendererOptions
     ): void {
         const groupItem = customGroupList.createDiv({
-            cls: `flashcard-group-item ${group.name === this.component.getCurrentGroupName() ? "active" : ""}`
+            cls: `flashcard-group-item ${group.id === this.component.getCurrentGroupId() ? "active" : ""}`
         });
+        groupItem.dataset.groupId = group.id;
 
         const header = groupItem.createDiv({ cls: "flashcard-group-item-header" });
         const title = header.createDiv({ cls: "flashcard-group-title" });
@@ -57,20 +70,20 @@ export class FlashcardGroupListRenderer {
         setIcon(iconSpan, group.filter.startsWith("#") ? "hash" : "gallery-horizontal-end");
         title.createSpan({
             cls: "flashcard-group-name",
-            text: group.name
+            text: isSystemCardGroup(group.id) ? t(group.name) : group.name
         });
 
         const actions = header.createDiv({ cls: "flashcard-group-actions" });
-        this.renderEditButton(actions, group);
-        this.renderDeleteButton(actions, group, options.rerender);
+        if (!isSystemCardGroup(group.id)) {
+            this.renderEditButton(actions, group);
+            this.renderDeleteButton(actions, group, options.rerender);
+        }
         this.renderGroupStats(groupItem, group);
 
         groupItem.addEventListener("click", () => {
             this.selectGroup(groupItem, container, group);
 
-            if (options.isMobileView) {
-                options.onGroupSelected();
-            }
+            options.onGroupSelected();
 
             this.component.saveState();
             options.rerender();
@@ -132,6 +145,10 @@ export class FlashcardGroupListRenderer {
         }
 
         const statsSection = groupItem.createDiv({ cls: "flashcard-group-stats" });
+        if (group.id === PAUSED_CARDS_GROUP) {
+            this.renderStat(statsSection, 'pause', t('Paused cards'), this.component.getFsrsManager().getCardsByGroupId(group.id).length);
+            return;
+        }
         this.renderStat(statsSection, "calendar-clock", t("Due Today"), groupStats.due);
         this.renderStat(statsSection, "sparkle", t("New Cards"), groupStats.newCards);
         this.renderStat(statsSection, "check-small", t("Learned"), groupStats.learned);
@@ -149,36 +166,30 @@ export class FlashcardGroupListRenderer {
 
     private selectGroup(groupItem: HTMLElement, container: HTMLElement, group: CardGroup): void {
         this.component.setGroupCompletionMessage(
-            this.component.getCurrentGroupName(),
+            this.component.getCurrentGroupId(),
             this.component.getCompletionMessage()
         );
 
-        this.component.setCurrentGroupName(group.name);
+        this.component.setCurrentGroupId(group.id);
 
         container.querySelectorAll(".flashcard-group-item").forEach((item: Element) => {
             item.classList.remove("active");
         });
         groupItem.classList.add("active");
 
-        this.component.setCompletionMessage(this.component.getGroupCompletionMessage(group.name) || null);
+        this.component.setCompletionMessage(this.component.getGroupCompletionMessage(group.id) || null);
         this.component.refreshCardList();
 
-        const savedProgress = this.component.getGroupProgress(group.name);
-        if (savedProgress && !this.component.getCompletionMessage()) {
-            this.component.setCurrentIndex(savedProgress.currentIndex);
-            this.component.setCardFlipped(savedProgress.isFlipped);
-        } else {
-            this.component.setCurrentIndex(0);
-            this.component.setCardFlipped(false);
-        }
+        this.component.getContainer().focus();
     }
 
     private switchCurrentGroupAfterDelete(group: CardGroup): void {
-        if (this.component.getCurrentGroupName() !== group.name) {
+        if (this.component.getCurrentGroupId() !== group.id) {
             return;
         }
 
         const remainingGroups = this.component.getFsrsManager().getCardGroups() || [];
-        this.component.setCurrentGroupName(remainingGroups[0]?.name || "");
+        this.component.setCurrentGroupId(remainingGroups[0]?.id || "");
+        this.component.refreshCardList();
     }
 }

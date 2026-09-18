@@ -76,8 +76,8 @@ function createInitialFormState(group?: CardGroup): FlashcardGroupFormValues {
         filter: group ? group.filter : '',
         isReversed: group ? group.isReversed || false : false,
         useGlobalSettings: group ? (group.settings?.useGlobalSettings !== false) : true,
-        newCardsPerDay: group ? (group.settings?.newCardsPerDay || 20) : 20,
-        reviewsPerDay: group ? (group.settings?.reviewsPerDay || 100) : 100
+        newCardsPerDay: group ? (group.settings?.newCardsPerDay ?? 20) : 20,
+        reviewsPerDay: group ? (group.settings?.reviewsPerDay ?? 100) : 100
     };
 }
 
@@ -149,7 +149,7 @@ function renderLearningSettings(container: HTMLElement, state: FlashcardGroupFor
 
     const newCardsControl = renderSliderSetting(settingsContainer, {
         label: t('New cards per day: '),
-        min: 5,
+        min: 0,
         max: 100,
         step: 5,
         value: state.newCardsPerDay,
@@ -160,7 +160,7 @@ function renderLearningSettings(container: HTMLElement, state: FlashcardGroupFor
 
     const reviewsControl = renderSliderSetting(settingsContainer, {
         label: t('Reviews per day: '),
-        min: 10,
+        min: 0,
         max: 500,
         step: 10,
         value: state.reviewsPerDay,

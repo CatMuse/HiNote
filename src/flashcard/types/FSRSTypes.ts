@@ -5,6 +5,10 @@ export interface ReviewLog {
 }
 
 export interface FlashcardState {
+    suspended?: boolean;
+    state?: number;
+    learningSteps?: number;
+    scheduledDays?: number;
     id: string;           // 卡片唯一标识符
     difficulty: number;   // 卡片难度
     stability: number;    // 记忆稳定性
@@ -62,12 +66,16 @@ export interface GroupProgressState {
 }
 
 export interface HiCardState {
+    progressVersion?: number;
+    currentGroupId?: string;
     currentGroupName: string;
     completionMessage?: string | null;
     groupProgress?: Record<string, GroupProgressState>;
 }
 
 export interface DailyStats {
+    groupCounts?: Record<string, { newCards: number; reviews: number }>;
+    reviewedCardIds?: string[];
     date: number;             // 日期时间戳 (当天的0点)
     newCardsLearned: number;  // 当天学习的新卡片数量
     cardsReviewed: number;    // 当天复习的卡片数量
@@ -80,6 +88,7 @@ export interface DailyStats {
 }
 
 export interface FSRSStorage {
+    parameters?: FSRSParameters;
     version: string;
     cards: { [id: string]: FlashcardState };
     globalStats: FSRSGlobalStats;

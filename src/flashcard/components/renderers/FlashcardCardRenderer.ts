@@ -8,6 +8,7 @@ import {
 import { t } from "../../../i18n";
 import { IdGenerator } from "../../../utils/IdGenerator";
 import { CardGroup, FlashcardState, FSRS_RATING, FSRSRating } from "../../types/FSRSTypes";
+import { PAUSED_CARDS_GROUP } from '../../types/FlashcardGroups';
 import type { FlashcardComponentContext, FlashcardRatingButton } from "../FlashcardComponentContext";
 import { FlashcardMarkdownRenderer } from "./FlashcardMarkdownRenderer";
 
@@ -33,9 +34,12 @@ export class FlashcardCardRenderer {
 
         const card = cardContainer.createDiv({ cls: cardClasses.join(" ") });
         this.renderCardSides(card, currentCard);
-        card.addEventListener("click", () => this.component.flipCard());
+        card.addEventListener("click", event => {
+            if ((event.target as Element).closest('a, button, input, textarea, [contenteditable=true]')) return;
+            this.component.flipCard();
+        });
 
-        this.renderRatingButtons(cardContainer, currentCard);
+        if (this.component.isCardFlipped() && !currentCard.suspended) this.renderRatingButtons(cardContainer, currentCard);
 
         if (this.component.isCardFlipped()) {
             card.classList.add("is-flipped");
@@ -43,6 +47,12 @@ export class FlashcardCardRenderer {
 
         this.renderCounter(cardContainer);
         this.renderSource(cardContainer, currentCard);
+        const actions = cardContainer.createDiv({ cls: 'flashcard-study-actions' });
+        const suspend = actions.createEl('button', {
+            cls: 'flashcard-suspend',
+            text: currentCard.suspended ? t('Resume card') : t('Pause card')
+        });
+        suspend.addEventListener('click', () => this.component.setCardSuspended(currentCard.id, !currentCard.suspended));
     }
 
     private renderCardSides(card: HTMLElement, currentCard: FlashcardState): void {
@@ -71,7 +81,7 @@ export class FlashcardCardRenderer {
     }
 
     private isCardReversed(currentCard: FlashcardState): boolean {
-        const allGroups = this.component.getFsrsManager().getCardGroups();
+        const allGroups = this.component.getFsrsManager().getCardGroups().filter(group => group.id === this.component.getCurrentGroupId());
         return allGroups.some((group: CardGroup) => {
             if (!group.isReversed) {
                 return false;
@@ -119,16 +129,11 @@ export class FlashcardCardRenderer {
     }
 
     private renderCounter(cardContainer: HTMLElement): void {
-        const groupId = this.component.getCurrentGroupId();
         const remainingCards = this.component.getCards().length;
-        const fsrsManager = this.component.getFsrsManager();
-        const totalTodayCards = groupId ? fsrsManager.getCardsForStudy(groupId).length : 0;
-        const totalToShow = Math.max(totalTodayCards, remainingCards);
-        const currentCardNumber = totalToShow - remainingCards + 1;
 
         cardContainer.createDiv({
             cls: "flashcard-counter",
-            text: `${currentCardNumber}/${totalToShow}`
+            text: `${t(this.component.getCurrentGroupId() === PAUSED_CARDS_GROUP ? 'Paused cards' : 'Remaining')}: ${remainingCards}`
         });
     }
 

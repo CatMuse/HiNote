@@ -5,6 +5,7 @@ interface VaultAdapterWithBasePath {
 }
 
 interface LicenseData {
+    revoked?: boolean;
     key: string;
     token: string;
     features?: string[];
@@ -153,9 +154,10 @@ export class LicenseManager {
             const licenseData = data?.[this.STORAGE_KEY] as LicenseData | undefined;
             
             // 如果本地没有许可证信息，直接返回 false
-            if (!licenseData?.token) {
+            if (!licenseData?.token || licenseData.revoked) {
                 return false;
             }
+            this.licenseToken = licenseData.token;
 
             // 检查是否需要重新验证
             const shouldVerify = this.shouldVerifyLicense(licenseData.lastVerified);
@@ -218,10 +220,7 @@ export class LicenseManager {
             if (!result) {
                 // 如果服务器返回错误，但我们有本地令牌，仍然允许使用
                 // 这样在网络问题时用户仍能使用插件
-                if (this.licenseToken) {
-                    return true;
-                }
-                return false;
+                return this.canUseOffline(licenseData);
             }
             if (result.valid) {
                 // 更新验证时间、token 和设备 ID
@@ -231,6 +230,7 @@ export class LicenseManager {
                     [this.STORAGE_KEY]: {
                         ...licenseData,
                         token: result.token || licenseData.token,
+                        features: result.features ?? licenseData.features,
                         vaultId: vaultId, // 更新Vault ID
                         lastVerified: Date.now()
                     }
@@ -240,13 +240,23 @@ export class LicenseManager {
                 return true;
             }
             
+            if (result.valid !== false) return this.canUseOffline(licenseData);
+            this.licenseToken = null;
+            licenseData.revoked = true;
+            const currentData = await this.plugin.loadData() || {};
+            await this.plugin.saveData({ ...currentData, [this.STORAGE_KEY]: licenseData });
             return false;
         } catch {
 
             // 如果服务器验证失败，但有本地token，仍然允许使用
             // 这样可以确保在网络问题时用户仍能使用插件
-            return !!this.licenseToken;
+            return this.canUseOffline(licenseData);
         }
+    }
+
+    private canUseOffline(data: LicenseData): boolean {
+        const age = Date.now() - (data.lastVerified || 0);
+        return Boolean(!data.revoked && data.token && data.lastVerified && age >= 0 && age <= 30 * 86400000);
     }
 
     private hasBasePath(adapter: unknown): adapter is VaultAdapterWithBasePath {

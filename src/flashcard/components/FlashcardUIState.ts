@@ -1,5 +1,7 @@
 import type { FSRSManager } from "../services/FSRSManager";
 import type { FlashcardState, GroupProgressState, HiCardState } from "../types/FSRSTypes";
+import { isSystemCardGroup } from '../types/FlashcardGroups';
+import { t } from '../../i18n';
 
 export interface LoadedFlashcardUIState {
     currentGroupName: string;
@@ -11,6 +13,7 @@ export interface LoadedFlashcardUIState {
 }
 
 export interface SaveFlashcardUIStateOptions {
+    currentGroupId: string;
     currentGroupName: string;
     completionMessage: string | null;
     cards: FlashcardState[];
@@ -21,13 +24,17 @@ export interface SaveFlashcardUIStateOptions {
 
 export function loadFlashcardUIState(fsrsManager: FSRSManager): LoadedFlashcardUIState {
     const uiState = fsrsManager.getUIState() || {};
-    const currentGroupName = uiState.currentGroupName || '';
+    const currentGroupId = uiState.currentGroupId || findGroupIdByName(fsrsManager, uiState.currentGroupName || '');
+    const currentGroupName = findGroupNameById(fsrsManager, currentGroupId);
     const groupProgress = normalizeGroupProgress(uiState.groupProgress);
-    const savedProgress = currentGroupName ? groupProgress[currentGroupName] : undefined;
+    for (const group of fsrsManager.getCardGroups()) {
+        if (uiState.progressVersion !== 2 && !groupProgress[group.id] && groupProgress[group.name]) groupProgress[group.id] = { ...groupProgress[group.name] };
+    }
+    const savedProgress = groupProgress[currentGroupId];
 
     return {
         currentGroupName,
-        currentGroupId: findGroupIdByName(fsrsManager, currentGroupName),
+        currentGroupId,
         currentIndex: savedProgress?.currentIndex || 0,
         isFlipped: savedProgress?.isFlipped || false,
         completionMessage: uiState.completionMessage || null,
@@ -46,7 +53,7 @@ export function findGroupNameById(fsrsManager: FSRSManager, groupId: string): st
     if (!groupId) return '';
 
     const group = fsrsManager.getCardGroups().find(g => g.id === groupId);
-    return group?.name || '';
+    return group ? (isSystemCardGroup(group.id) ? t(group.name) : group.name) : '';
 }
 
 export function getGroupCompletionMessage(
@@ -86,20 +93,23 @@ export function saveFlashcardUIState(
     const uiState = fsrsManager.getUIState();
 
     uiState.currentGroupName = options.currentGroupName;
+    uiState.currentGroupId = options.currentGroupId;
+    uiState.progressVersion = 2;
     uiState.completionMessage = options.completionMessage;
-    uiState.groupProgress = normalizeGroupProgress(uiState.groupProgress);
+    uiState.groupProgress = { ...options.groupProgress, ...normalizeGroupProgress(uiState.groupProgress) };
 
-    if (options.currentGroupName) {
-        const progress = ensureGroupProgress(uiState.groupProgress, options.currentGroupName);
+    if (options.currentGroupId) {
+        const progress = ensureGroupProgress(uiState.groupProgress, options.currentGroupId);
         progress.currentIndex = options.currentIndex;
         progress.isFlipped = options.isFlipped;
         progress.currentCardId = getCurrentCardId(options.cards, options.currentIndex);
         progress.completionMessage = getGroupCompletionMessage(
             options.groupProgress,
-            options.currentGroupName
+            options.currentGroupId
         );
     }
 
+    Object.assign(options.groupProgress, uiState.groupProgress);
     fsrsManager.updateUIState(uiState);
 }
 

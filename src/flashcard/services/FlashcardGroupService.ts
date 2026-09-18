@@ -33,21 +33,10 @@ export class FlashcardGroupService {
 
     async updateCardGroup(groupId: string, updates: Partial<Omit<CardGroup, 'id'>>): Promise<boolean> {
         const groupRepository = this.options.getGroupRepository();
-        const oldGroup = groupRepository.getGroupById(groupId);
-        const oldFilter = oldGroup?.filter;
 
         const result = await groupRepository.updateCardGroup(groupId, updates);
         if (!result) {
             return false;
-        }
-
-        if (updates.filter !== undefined && updates.filter !== oldFilter) {
-            const group = groupRepository.getGroupById(groupId);
-            if (group?.cardIds) {
-                for (const cardId of [...group.cardIds]) {
-                    this.removeCardFromGroup(cardId, groupId);
-                }
-            }
         }
 
         await this.options.saveStorage();
