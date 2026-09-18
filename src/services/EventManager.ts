@@ -7,6 +7,7 @@ export interface HighlightEvents {
     'comment:delete': [filePath: string, comment: string, sourceId: string];
     'comment-input:open': [highlightId: string, text: string];
     'flashcard:changed': [];
+    'favorites:changed': [];
     'exclusions:changed': [];
 }
 
@@ -58,6 +59,8 @@ export class EventManager {
     public emitFlashcardChanged() {
         this.events.trigger('flashcard:changed');
     }
+
+    public emitFavoritesChanged(): void { this.events.trigger('favorites:changed'); }
 
     public emitExclusionsChanged(): void {
         this.events.trigger('exclusions:changed');

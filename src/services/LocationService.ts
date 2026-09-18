@@ -1,140 +1,71 @@
-import { App, MarkdownView, Notice, TFile, WorkspaceLeaf } from "obsidian";
-import { HighlightInfo } from "../types/highlight";
+import { App, Component, MarkdownView, Notice, TFile, WorkspaceLeaf } from 'obsidian';
+import type { EditorView } from '@codemirror/view';
+import type { HighlightInfo } from '../types/highlight';
+import { findHighlightLocation } from './location/HighlightLocation';
+import { NavigationFeedback } from './location/NavigationFeedback';
+import { t } from '../i18n';
 
-export class LocationService {
-    constructor(private app: App) {}
+export class LocationService extends Component {
+    private request = 0;
+    private disposed = false;
+    private feedback = new NavigationFeedback();
 
-    /**
-     * 跳转到指定的高亮位置
-     */
-    public async jumpToHighlight(highlight: HighlightInfo, currentFilePath: string) {
-        // 1. 打开或激活文件
-        const targetLeaf = await this.openOrActivateFile(currentFilePath);
-        if (!targetLeaf) return;
+    constructor(private app: App) { super(); }
 
-        // 2. 定位高亮内容，传递 position 参数
-        await this.locateAndHighlightText(targetLeaf, highlight.text, highlight.position);
-    }
-
-    /**
-     * 打开或激活指定文件，但不聚焦
-     */
-    private async openOrActivateFile(filePath: string): Promise<WorkspaceLeaf | null> {
-        // 先查找已打开的文件
-        const markdownLeaves = this.app.workspace.getLeavesOfType("markdown");
-        let targetLeaf = markdownLeaves.find((leaf: WorkspaceLeaf) => {
-            const view = leaf.view as MarkdownView;
-            return view.file?.path === filePath;
+    onload(): void {
+        this.disposed = false;
+        this.register(() => {
+            this.disposed = true;
+            this.request++;
+            this.feedback.clear();
         });
-        
-        // 如果文件未打开，则打开它
-        if (!targetLeaf) {
-            try {
-                const file = this.app.vault.getAbstractFileByPath(filePath);
-                if (!(file instanceof TFile)) {
-                    new Notice("未找到文件");
-                    return null;
-                }
-                
-                targetLeaf = this.app.workspace.getLeaf('tab');
-                await targetLeaf.openFile(file);
-            } catch {
-                new Notice("打开文件失败");
-                return null;
-            }
-        }
-        
-        // 激活编辑器视图，但不聚焦
-        this.app.workspace.setActiveLeaf(targetLeaf, { focus: false });
-        return targetLeaf;
     }
 
-    /**
-     * 在编辑器中定位并高亮文本
-     */
-    private async locateAndHighlightText(leaf: WorkspaceLeaf, text: string, position?: number) {
-        // 确保编辑器已准备就绪
-        await new Promise(resolve => window.setTimeout(resolve, 300));
-        
-        const markdownView = leaf.view as MarkdownView;
-        const editor = markdownView.editor;
-        const content = editor.getValue();
-        
-        let textPosition = -1;
-        let allMatches: number[] = [];
-        let matchedText = text; // 默认使用原始文本
-        
-        // 找出所有精确匹配项
-        let searchPos = 0;
-        let foundPos = -1;
-        while ((foundPos = content.indexOf(text, searchPos)) !== -1) {
-            allMatches.push(foundPos);
-            searchPos = foundPos + 1;
-        }
-        
-        // 如果提供了 position，则优先使用它
-        if (position !== undefined && position >= 0) {
-            // 首先检查精确匹配
-            if (content.substring(position, position + text.length) === text) {
-                textPosition = position;
+    /** Reveal content without moving the caret, changing mode, or taking keyboard focus. */
+    async jumpToHighlight(highlight: HighlightInfo, filePath: string): Promise<void> {
+        if (this.disposed) return;
+        const token = ++this.request;
+        const current = () => !this.disposed && this.request === token;
+        this.feedback.clear();
+        if (!highlight.text.trim()) return;
+        try {
+            const leaf = await this.openOrActivateFile(filePath, current);
+            if (!leaf || !current() || !(leaf.view instanceof MarkdownView) || leaf.view.file?.path !== filePath) return;
+            const view = leaf.view;
+            const editor = view.editor;
+            const range = findHighlightLocation(editor.getValue(), highlight.text, highlight.position);
+            if (!range) { new Notice(t('Could not locate the highlight.')); return; }
+            const start = editor.offsetToPos(range.from);
+            const end = editor.offsetToPos(range.to);
+            if (view.getMode() === 'preview') {
+                // startLoc/endLoc would request a selection; scroll alone preserves reading state.
+                leaf.setEphemeralState({ scroll: start.line });
+                this.feedback.showPreview(view, filePath, start.line, range);
             } else {
-                // 如果没有精确匹配，则找最接近的匹配项
-                if (allMatches.length > 0) {
-                    // 找到与指定位置最接近的匹配项
-                    let closestMatch = allMatches[0];
-                    let minDistance = Math.abs(position - closestMatch);
-                    
-                    for (const match of allMatches) {
-                        const distance = Math.abs(position - match);
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            closestMatch = match;
-                        }
-                    }
-                    
-                    textPosition = closestMatch;
-                }
+                editor.scrollIntoView({ from: start, to: end }, true);
+                const cm = (editor as unknown as { cm?: EditorView }).cm;
+                if (cm) this.feedback.showEditor(cm, range);
             }
+        } catch (error) {
+            if (!current()) return;
+            console.error('[HiNote] Could not reveal highlight:', error);
+            new Notice(t('Could not locate the highlight.'));
         }
-        
-        // 如果没有找到精确匹配项
-        if (textPosition === -1) {
-            if (allMatches.length > 0) {
-                textPosition = allMatches[0];
-            } else {
-                new Notice("未找到高亮内容");
-                return;
-            }
-        }
-        
-        // 将文本位置转换为编辑器位置
-        const start = editor.offsetToPos(textPosition);
-        const end = editor.offsetToPos(textPosition + matchedText.length);
-        
-        // 检查视图模式
-        const mode = markdownView.getMode(); // 'source' | 'preview'
+    }
 
-        if (mode === 'preview') {
-            // 阅读模式下的处理
-            // 使用 setEphemeralState 滚动到指定行
-            // startLoc 和 endLoc 用于传递位置信息
-            leaf.setEphemeralState({
-                line: start.line,
-                startLoc: { line: start.line, col: start.ch },
-                endLoc: { line: end.line, col: end.ch },
-                scroll: start.line
-            });
+    private async openOrActivateFile(filePath: string, current: () => boolean): Promise<WorkspaceLeaf | null> {
+        let leaf = this.app.workspace.getLeavesOfType('markdown')
+            .find(candidate => (candidate.view as MarkdownView).file?.path === filePath);
+        if (!leaf) {
+            const file = this.app.vault.getAbstractFileByPath(filePath);
+            if (!(file instanceof TFile)) { if (current()) new Notice(t('No corresponding file found.')); return null; }
+            leaf = this.app.workspace.getLeaf('tab');
+            await leaf.openFile(file, { active: false });
         } else {
-            // 编辑/实时预览模式下的处理
-            // 1. 选中文本
-            editor.setSelection(start, end);
-            
-            // 2. 滚动到目标位置，并确保选中内容在编辑器中间位置显示
-            editor.scrollIntoView({from: start, to: end}, true);
-            
-            // 3. 聚焦编辑器，确保用户可以看到选中内容
-            this.app.workspace.setActiveLeaf(leaf, { focus: true });
+            await leaf.loadIfDeferred();
         }
+        if (!current()) return null;
+        this.app.workspace.setActiveLeaf(leaf, { focus: false });
+        return leaf;
     }
-
-} 
+}

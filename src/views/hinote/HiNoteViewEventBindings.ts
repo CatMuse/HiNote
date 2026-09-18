@@ -77,20 +77,21 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
         }, 300);
     };
     eventCoordinator.setCallbacks({
+        onFavoritesChanged: () => scheduleRefresh(true),
         onExclusionsChanged: () => {
             highlightListController.cancelPending();
             scheduleRefresh(true);
         },
         onFileOpen: file => { void fileListController.navigate(ViewState.filePage(file)); },
         onFileModify: file => {
-            scheduleRefresh(state.currentFile === file || state.page.kind === 'all' ||
+            scheduleRefresh(state.currentFile === file || state.page.kind === 'all' || state.page.kind === 'favorites' ||
                 state.page.kind === 'canvas' || state.search.scope === 'vault');
         },
-        onFileCreate: () => scheduleRefresh(state.page.kind === 'all' || state.search.scope === 'vault'),
+        onFileCreate: () => scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'favorites' || state.search.scope === 'vault'),
         onFileDelete: file => {
             if (state.mainPage && 'file' in state.mainPage && state.mainPage.file === file) state.mainPage = null;
             if (state.currentFile === file) void fileListController.navigate({ kind: 'empty' });
-            scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'canvas' || state.search.scope === 'vault');
+            scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'favorites' || state.page.kind === 'canvas' || state.search.scope === 'vault');
         },
         onFileRename: () => { state.notify(); scheduleRefresh(true); },
         onLayoutChange: () => { void checkViewPosition(); },

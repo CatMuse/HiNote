@@ -17,6 +17,7 @@ export interface OptimizedHighlight {
     position: number;
     created: number;
     updated: number;
+    favoritedAt?: number;
     backgroundColor?: string;
     syntax?: HiNote['syntax'];
     blockId?: string;
@@ -56,6 +57,7 @@ export function decodeHighlightRecord(
         position: highlight.position,
         createdAt: highlight.created,
         updatedAt: highlight.updated,
+        favoritedAt: highlight.favoritedAt,
         filePath,
         backgroundColor: highlight.backgroundColor,
         syntax: highlight.syntax,
@@ -86,6 +88,8 @@ export function encodeHighlightRecord(highlight: HiNote): OptimizedHighlight {
         created: highlight.createdAt,
         updated: highlight.updatedAt
     };
+
+    if (highlight.favoritedAt !== undefined) optimized.favoritedAt = highlight.favoritedAt;
 
     if (highlight.backgroundColor) {
         optimized.backgroundColor = highlight.backgroundColor;

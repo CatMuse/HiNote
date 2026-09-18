@@ -11,7 +11,7 @@ class Element {
     toggleClass(n,on) { on ? this.addClass(n) : this.removeClass(n); }
     empty() { this.children=[]; }
     appendChild(child) { this.children.push(child); return child; }
-    createDiv(options={}) { const child=new Element(); if(options.cls) child.addClass(...options.cls.split(' ')); if(options.text) child.text=options.text; this.appendChild(child); return child; }
+    createDiv(options={}) { const child=new Element(); if(options.cls) child.addClass(...options.cls.split(' ')); if(options.text) child.text=options.text; if(options.attr) Object.assign(child.attrs,options.attr); this.appendChild(child); return child; }
     createSpan(options) { return this.createDiv(options); }
     createEl(_tag,options={}) { return this.createDiv(options); }
     querySelector() { return this.actions || null; }
@@ -33,7 +33,7 @@ function load(file, overrides) {
     if(!overrides && modules.has(file)) return modules.get(file);
     const exports={}; if(!overrides) modules.set(file,exports);
     vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,
-    {exports,console,window:fakeWindow,activeDocument:{removeEventListener(){},querySelector(){return null;}},require:name=>{
+    {exports,console,window:fakeWindow,createFragment:()=>new Element(),activeDocument:{removeEventListener(){},querySelector(){return null;}},require:name=>{
         if(overrides) return overrides[name] || {};
         if(name==='obsidian') return {TFile,Component:class{},Notice:class{},Platform:{isMobile:false}};
         if(/\/i18n$/.test(name)) return {t:s=>s};
@@ -52,7 +52,7 @@ const {SearchUIManager}=load('src/views/managers/SearchUIManager.ts');
 const deferred=()=>{let resolve,reject; const promise=new Promise((r,j)=>{resolve=r;reject=j;}); return {promise,resolve,reject};};
 const A=new TFile('A.md'), B=new TFile('B.md');
 const row=(text)=>({text,position:0,comments:[]});
-function harness(loadFile=async()=>[],loadAll=async()=>[]) {
+function harness(loadFile=async()=>[],loadAll=async()=>[],loadFavorites=async()=>[]) {
     const state=new ViewState(); state.setPlacement('main'); state.navigate(ViewState.filePage(A));
     const input=new Element(),container=new Element(),loading=new Element();
     const search=new SearchService({fsrsManager:{findCardsBySourceId:()=>[]}});
@@ -62,7 +62,7 @@ function harness(loadFile=async()=>[],loadAll=async()=>[]) {
     const controller=new HighlightListController({state,app:{},highlightContainer:container,loadingIndicator:loading,getSearchInput:()=>input,
         getSearchUIManager:()=>ui,getHighlightRenderManager:()=>({clear(){env.clears++;},refreshCardMetadata(){env.patches++;}}),getHighlightFlashcardMarkers:()=>flashcard,getInfiniteScrollManager:()=>env.scroll||null,
         getGlobalHighlightService:()=>({updateAllHighlights:()=>{env.vaultReads++;return loadAll();}}),
-        getHighlightDataService:()=>({loadFileHighlights:f=>{env.reads++;return loadFile(f);}}),getVirtualHighlightManager:()=>null,
+        getHighlightDataService:()=>({loadFavoriteHighlights:loadFavorites,loadFileHighlights:f=>{env.reads++;return loadFile(f);}}),getVirtualHighlightManager:()=>null,
         getCanvasProcessor:()=>({processCanvasFile:loadFile}),getSelectionManager:()=>({clearSelection(){env.selectionsCleared++;}})});
     controller.renderHighlights=rows=>{env.rendered=rows;env.surface='highlights';};
     const files=new FileListController({state,fileListManager:{updateFileListSelection(){}},
@@ -225,4 +225,70 @@ async function drafts() {
     inputs[1].text='next draft';manager.clearEditingState();assert.equal(drafts.size,1);
     console.log('Drafts: navigation suspension, reopening, successful save and disposal capture passed.');
 }
-(async()=>{await races();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();await metadataRefresh();})().catch(error=>{console.error(error);process.exitCode=1;});
+async function favoriteButtons() {
+    class Component {
+        constructor(){this.subscriptions=[];}
+        register(fn){this.subscriptions.push(fn);}
+        registerDomEvent(el,name,fn){el.addEventListener(name,fn);this.register(()=>el.removeEventListener(name,fn));}
+        unload(){this.subscriptions.forEach(fn=>fn());this.subscriptions=[];}
+    }
+    const notices=[];
+    class Notice {constructor(content){this.content=content;notices.push(this);} hide(){this.hidden=true;}}
+    const dependencies={'obsidian':{Component,Notice,setIcon(){}},'../../../i18n':{t:s=>s},'../../i18n':{t:s=>s}};
+    const {HighlightFavoriteController}=load('src/components/highlight/card/FavoriteController.ts',dependencies);
+    const gate=deferred(); let calls=0; const highlight={text:'saved',id:'record',filePath:'A.md'};
+    const plugin={addChild(c){return c;},removeChild(c){c.unload();},highlightManager:{async setFavorite(row,favorite,time=100){calls++;await gate.promise;row.favoritedAt=favorite?time:undefined;}}};
+    const controller=new HighlightFavoriteController(plugin,()=>highlight,()=>{});
+    const container=new Element();controller.bind(container);const button=container.children[0];
+    assert.equal(button.attrs['aria-pressed'],'false');
+    const first=controller.toggle();const duplicate=controller.toggle();
+    assert.equal(calls,1,'Repeated clicks cannot enqueue duplicate pending writes');assert.equal(button.disabled,true);
+    gate.resolve();await Promise.all([first,duplicate]);
+    assert.equal(button.attrs['aria-pressed'],'true');assert.equal(button.attrs['aria-label'],'Remove from favorites');
+    await controller.toggle();assert.equal(button.attrs['aria-pressed'],'false');
+    assert.equal(highlight.favoritedAt,undefined);
+    assert.equal(notices.length,0,'Successful favorite changes must stay silent');
+    controller.unload();assert.equal(button.listeners.click,undefined);
+    const {BatchFavoriteOperations}=load('src/views/selection/BatchFavoriteOperations.ts',dependencies);
+    const rows=new Set([{id:'one',favoritedAt:100},{id:'two'}]);let cleared=0;
+    const batch=new BatchFavoriteOperations(plugin,()=>rows,()=>cleared++);batch.onload();
+    const toolbar=new Element();batch.addButton(toolbar);const add=toolbar.children[0];
+    assert.equal(add.attrs['aria-label'],'Add to favorites');await batch.run(true,add);
+    assert.ok([...rows].every(row=>row.favoritedAt));assert.equal(cleared,1);
+    batch.addButton(toolbar);const remove=toolbar.children[1];
+    assert.equal(remove.attrs['aria-label'],'Remove from favorites');await batch.run(false,remove);
+    assert.ok([...rows].every(row=>!row.favoritedAt));batch.unload();assert.equal(remove.listeners.click,undefined);
+    console.log('Favorite controls: accessible state, pending-click guard, silent removal, mixed batch actions and listener cleanup passed.');
+}
+async function favoritesNavigation() {
+    let reads = 0;
+    const env = harness(async()=>[row('file')], async()=>[row('unfavorited')], async()=>{
+        reads++; return [{...row('saved'), id:'saved', recordId:'saved', favoritedAt:100}, {...row('other'), id:'other', recordId:'other', favoritedAt:50}];
+    });
+    await env.files.getCallbacks().onFavoritesSelect();
+    assert.equal(env.state.page.kind, 'favorites');
+    assert.equal(env.state.currentFile, null);
+    assert.equal(env.rendered.length, 2);
+    env.input.value = 'all: saved';
+    await env.controller.handleSearch('saved', 'all');
+    assert.equal(env.vaultReads, 0, 'Even an all: prefix stays within the selected favorites page');
+    assert.equal(reads, 1, 'Typing in favorites reuses its loaded scope');
+    assert.equal(env.rendered[0].text, 'saved');
+    env.input.value = 'not found';
+    await env.controller.handleSearch('not found','');
+    assert.equal(env.container.children[0].text, 'No matching favorites.');
+    env.input.value = '';
+    await env.controller.handleSearch('', '');
+    const restored = new ViewState(); restored.restore(env.state.snapshot());
+    assert.equal(restored.page.kind, 'favorites');
+    await env.files.navigate({kind:'all'});
+    assert.equal(env.rendered[0].text, 'unfavorited');
+    const gate = deferred();
+    const racing = harness(async()=>[row('file')],async()=>[],()=>gate.promise);
+    const pending = racing.files.navigate({kind:'favorites'}); await Promise.resolve();
+    await racing.files.navigate(ViewState.filePage(B));
+    gate.resolve([row('late favorite')]); await pending;
+    assert.equal(racing.rendered[0].text, 'file');
+    console.log('Favorites navigation: dedicated scope, filtered/empty states, session restore and late response isolation passed.');
+}
+(async()=>{await favoriteButtons();await favoritesNavigation();await races();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();await metadataRefresh();})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -18,6 +18,7 @@ export class FileListManager {
     
     // 回调函数
     private onFileSelect: ((file: TFile | null) => void) | null = null;
+    private onFavoritesSelect: (() => void) | null = null;
     private onAllHighlightsSelect: (() => void) | null = null;
     private onRefreshView: (() => Promise<void>) | null = null;
     private refreshPending: Promise<void> | null = null;
@@ -43,10 +44,12 @@ export class FileListManager {
             getState: () => ({
                 currentFile: this.state.currentFile,
                 isDraggedToMainView: this.state.isDraggedToMainView,
-                isAllHighlights: this.state.isInAllHighlightsView()
+                isAllHighlights: this.state.isInAllHighlightsView(),
+                isFavorites: this.state.page.kind === 'favorites'
             }),
             onFileSelect: () => this.onFileSelect,
-            onAllHighlightsSelect: () => this.onAllHighlightsSelect
+            onAllHighlightsSelect: () => this.onAllHighlightsSelect,
+            onFavoritesSelect: () => this.onFavoritesSelect
         });
     }
     
@@ -56,8 +59,10 @@ export class FileListManager {
     setCallbacks(callbacks: {
         onFileSelect?: (file: TFile | null) => void;
         onAllHighlightsSelect?: () => void;
+        onFavoritesSelect?: () => void;
         onRefreshView?: () => Promise<void>;
     }) {
+        if (callbacks.onFavoritesSelect) this.onFavoritesSelect = callbacks.onFavoritesSelect;
         if (callbacks.onFileSelect) {
             this.onFileSelect = callbacks.onFileSelect;
         }
@@ -110,6 +115,7 @@ export class FileListManager {
 
         // 添加"全部"选项
         this.itemRenderer.createAllHighlightsItem(fileList);
+        this.itemRenderer.createFavoritesItem(fileList);
 
         // 添加分隔线
         fileList.createDiv({
@@ -166,6 +172,7 @@ export class FileListManager {
         this.container.empty();
         this.onFileSelect = null;
         this.onAllHighlightsSelect = null;
+        this.onFavoritesSelect = null;
         this.onRefreshView = null;
     }
 }

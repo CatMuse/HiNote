@@ -18,6 +18,10 @@ export class BatchHighlightDeletionOperations {
     confirmDeleteSelectedHighlights(): void {
         const selectedHighlights = this.options.getSelectedHighlights();
 
+        if ([...selectedHighlights].some(row => row.sourceUnavailable)) {
+            new Notice(t('Locate the original highlight before deleting it. You can still remove it from favorites.'));
+            return;
+        }
         if (selectedHighlights.size === 0) {
             new Notice(t("No highlights selected"));
             return;
@@ -52,6 +56,10 @@ export class BatchHighlightDeletionOperations {
     private async performDeleteSelectedHighlights(): Promise<void> {
         const selectedHighlights = this.options.getSelectedHighlights();
 
+        if ([...selectedHighlights].some(row => row.sourceUnavailable)) {
+            new Notice(t('Locate the original highlight before deleting it. You can still remove it from favorites.'));
+            return;
+        }
         if (selectedHighlights.size === 0) {
             new Notice(t("No highlights selected"));
             return;

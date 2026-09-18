@@ -153,8 +153,8 @@ async function savesAndViews() {
     const old=state.beginRequest();callbacks.onExclusionsChanged();callbacks.onExclusionsChanged();
     assert.equal(state.isCurrent(old),false);assert.equal(timers.size,1,'Changes coalesce into one view refresh');
     [...timers.values()][0]();timers.clear();await Promise.resolve();assert.equal(refreshes,1);assert.equal(cancels,2);assert.equal(listInvalidations,2);
-    state.navigate({kind:'hicard'});const licenseToken=state.beginRequest();callbacks.onExclusionsChanged();
-    [...timers.values()][0]();timers.clear();await Promise.resolve();assert.equal(state.isCurrent(licenseToken),true);assert.equal(refreshes,1);
-    console.log('Settings/views: successful-save notification, debounced refresh, stale request invalidation and HiCard isolation passed.');
+    state.navigate({kind:'favorites'});const favoritesToken=state.beginRequest();callbacks.onExclusionsChanged();
+    [...timers.values()][0]();timers.clear();await Promise.resolve();assert.equal(state.isCurrent(favoritesToken),false);assert.equal(refreshes,2);
+    console.log('Settings/views: successful-save notification, debounced refresh, stale request invalidation and favorites scope invalidation passed.');
 }
 (async()=>{await matchingAndCaches();await races();await savesAndViews();})().catch(error=>{console.error(error);process.exitCode=1;});

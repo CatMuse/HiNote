@@ -16,7 +16,7 @@ export class HighlightCardColorController extends Component {
 
     bind(card: HTMLElement): void {
         const highlight = this.getHighlight();
-        if (highlight.isVirtual || highlight.isFromCanvas || !highlight.filePath?.endsWith('.md') ||
+        if (highlight.sourceUnavailable || highlight.isVirtual || highlight.isFromCanvas || !highlight.filePath?.endsWith('.md') ||
             !['markdown', 'html'].includes(highlight.syntax || '')) return;
         const decorator = card.querySelector<HTMLElement>('.highlight-text-decorator');
         if (!decorator) return;

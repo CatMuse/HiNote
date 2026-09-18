@@ -156,40 +156,18 @@ export class CommentService {
         highlight.comments = highlight.comments.filter(c => c.id !== commentId);
         highlight.updatedAt = Date.now();
 
-        // 检查高亮是否没有评论了
-        if (highlight.comments.length === 0) {
-            // 检查高亮是否关联了闪卡
-            const hasFlashcard = highlight.id ? this.checkHasFlashcard(highlight.id) : false;
-            
-            if (highlight.isVirtual) {
-                // 虚拟高亮没有对应的文档标记，最后一条评论删除后移除整个高亮
-                await this.highlightManager.removeHighlight(file, highlight);
-                removedHighlight = true;
-                
-                // 从当前高亮列表中移除
-                this.highlights = this.highlights.filter(h => {
-                    // 如果有 ID，通过 ID 比较
-                    if (h.id && highlight.id) {
-                        return h.id !== highlight.id;
-                    }
-                    // 如果没有 ID，通过位置和文本比较
-                    return !(h.position === highlight.position && h.text === highlight.text);
-                });
-                
-                // 通知外部更新高亮列表
-                if (this.onHighlightsUpdate) {
-                    this.onHighlightsUpdate(this.highlights);
-                }
-            } else if (!hasFlashcard) {
-                // 普通高亮仍然存在于 Markdown 文档中。可以清理不再需要的
-                // 评论存储记录，但必须保留侧边栏中的高亮卡片。
-                await this.highlightManager.removeHighlight(file, highlight);
-            } else {
-                // 有关联闪卡，只更新评论
+        const hasFlashcard = highlight.id ? this.checkHasFlashcard(highlight.id) : false;
+        if (highlight.comments.length === 0 && (highlight.isVirtual || !hasFlashcard)) {
+            // The queued removal checks the latest favorite state, including other views.
+            const removed = await this.highlightManager.removeHighlight(file, highlight, true);
+            if (!removed) {
                 await this.highlightManager.addHighlight(file, highlight);
+            } else if (highlight.isVirtual) {
+                removedHighlight = true;
+                this.highlights = this.highlights.filter(h => h.id !== highlight.id);
+                this.onHighlightsUpdate?.(this.highlights);
             }
         } else {
-            // 还有其他评论，只更新评论
             await this.highlightManager.addHighlight(file, highlight);
         }
 
@@ -208,13 +186,13 @@ export class CommentService {
      * 删除虚拟高亮（当取消添加评论时）
      */
     async deleteVirtualHighlight(highlight: HighlightInfo): Promise<void> {
-        if (!highlight.isVirtual || (highlight.comments && highlight.comments.length > 0)) {
+        if (!highlight.isVirtual || highlight.favoritedAt || (highlight.comments && highlight.comments.length > 0)) {
             return;
         }
         
         const file = await this.getFileForHighlight(highlight);
         if (file) {
-            await this.highlightManager.removeHighlight(file, highlight);
+            if (!await this.highlightManager.removeHighlight(file, highlight, true)) return;
             this.highlights = this.highlights.filter(h => {
                 // 如果有 ID，通过 ID 比较
                 if (h.id && highlight.id) {

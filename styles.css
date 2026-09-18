@@ -2285,11 +2285,11 @@ settings:
     z-index: 1000;
 }
 
-.highlight-ai-btn:hover {
+.highlight-ai-btn:not(.highlight-title-btn):hover {
     background-color: var(--background-modifier-hover);
 }
 
-.highlight-ai-btn:hover svg {
+.highlight-ai-btn:not(.highlight-title-btn):hover svg {
     stroke: var(--text-accent);
 }
 
@@ -2306,7 +2306,7 @@ settings:
 }
 
 /* AI 按钮样式 */
-.highlight-ai-btn {
+.highlight-ai-btn:not(.highlight-title-btn) {
     order: -1;
     position: relative;
     padding: 6px;
@@ -3452,13 +3452,18 @@ textarea.flashcard-modal-input {
     font-family: var(--font-monospace);
 }
 
-/* 标题栏按钮样式 */
-.highlight-title-btn {
+/* One action style for sidebar and main-view cards, independent of input focus. */
+.hinote-view-container .highlight-title-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 24px;
     height: 24px;
+    min-width: 24px;
+    flex-shrink: 0;
+    appearance: none;
+    box-shadow: none;
+    opacity: 0.5;
     border-radius: 4px;
     background-color: transparent;
     border: none;
@@ -3468,14 +3473,16 @@ textarea.flashcard-modal-input {
     transition: all 0.2s ease;
 }
 
-.highlight-title-btn:hover {
+.hinote-view-container .highlight-title-btn:hover {
     background-color: var(--background-modifier-hover);
-    color: var(--text-normal);
+    color: var(--text-accent);
 }
 
-.highlight-title-btn svg {
+.hinote-view-container .highlight-title-btn svg {
     width: 16px;
     height: 16px;
+    stroke: currentColor;
+    opacity: 1;
 }
 
 /* AI 按钮加载状态 */
@@ -3483,13 +3490,15 @@ textarea.flashcard-modal-input {
     animation: spin 1s linear infinite;
 }
 
-/* 当鼠标悬停在标题栏上时显示按钮 */
-.highlight-card-title-bar:not(:hover) .highlight-title-btn {
-    opacity: 0.5;
+/* Focus in a comment input must not change the action colors. */
+.hinote-view-container .highlight-card:hover .highlight-title-btn,
+.hinote-view-container .highlight-title-btn:focus-visible {
+    opacity: 1;
 }
 
-.highlight-card-title-bar:hover .highlight-title-btn {
-    opacity: 1;
+.hinote-view-container .highlight-title-btn:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
 }
 
 /* 拖拽状态样式 */
@@ -4206,4 +4215,39 @@ textarea.flashcard-modal-input {
 }
 .hicard-view-message button {
     margin-top: 12px;
+}
+
+/* Favorites share the original cards across views. */
+.hinote-view-container .highlight-card .highlight-favorite-btn.is-favorite {
+    opacity: 1;
+    color: var(--text-accent);
+}
+.hinote-view-container .highlight-favorite-btn.is-favorite svg {
+    fill: currentColor;
+}
+@media (hover: hover) and (pointer: fine) {
+    .hinote-view-container .highlight-card:not(:hover):not(:focus-within) .highlight-favorite-btn:not(.is-favorite) {
+        opacity: 0;
+    }
+}
+.hinote-view-container .highlight-source-unavailable {
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
+    margin-bottom: 8px;
+}
+
+/* A translucent accent overlay preserves the original highlight background. */
+.hinote-navigation-flash {
+    border-radius: 3px;
+    animation: hinote-navigation-pulse 1.5s ease-out both;
+}
+@keyframes hinote-navigation-pulse {
+    0%, 25% { box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--interactive-accent) 22%, transparent); }
+    100% { box-shadow: inset 0 0 0 100vmax transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hinote-navigation-flash {
+        animation: none;
+        box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--interactive-accent) 22%, transparent);
+    }
 }

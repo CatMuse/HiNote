@@ -141,7 +141,8 @@ export class HighlightFlashcardManager {
                 
                 // 检查是否有批注，决定是否删除高亮
                 const hasComments = highlight.comments && highlight.comments.length > 0;
-                const shouldDeleteHighlight = !hasComments;
+                const saved = this.plugin.highlightManager.findHighlightById(highlight.recordId || highlight.id || "");
+                const shouldDeleteHighlight = !hasComments && !saved?.favoritedAt;
                 
                 if (!silent) {
                     if (shouldDeleteHighlight) {

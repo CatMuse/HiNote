@@ -12,6 +12,8 @@
 		"test:storage": "node scripts/test-storage-safety.cjs",
 		"test:colors": "node scripts/test-highlight-colors.cjs",
 		"test:matching": "node scripts/test-highlight-matching.cjs",
+		"test:navigation": "node scripts/test-navigation.cjs",
+		"test:favorites": "node scripts/test-favorites.cjs",
 		"test:models": "node scripts/test-highlight-models.cjs",
 		"test:views": "node scripts/test-view-state.cjs",
 		"test:hicard-view": "node scripts/test-hicard-view.cjs",

@@ -74,7 +74,7 @@ export class HighlightListController {
         state.setSearch(this.options.getSearchInput()?.value || '');
         const page = state.page;
         const query = state.search;
-        const scope = query.scope === 'vault' || page.kind === 'all' ? 'vault' : 'file' in page ? `${page.kind}:${page.file.path}` : page.kind;
+        const scope = page.kind === 'favorites' ? 'favorites' : query.scope === 'vault' || page.kind === 'all' ? 'vault' : 'file' in page ? `${page.kind}:${page.file.path}` : page.kind;
         const token = state.beginRequest();
         const current = () => state.isCurrent(token);
         const canPatch = preserveCards && render && this.loadedScope === scope && this.renderedQuery === query.raw;
@@ -87,7 +87,9 @@ export class HighlightListController {
         try {
             let rows: HighlightInfo[] = [];
             if (reuse && this.loadedScope === scope) { rows = state.highlights; }
-            else if (query.scope === 'vault' || page.kind === 'all') {
+            else if (page.kind === 'favorites') {
+                rows = await this.options.getHighlightDataService()?.loadFavoriteHighlights() || [];
+            } else if (query.scope === 'vault' || page.kind === 'all') {
                 // Load the underlying scope; filters never replace the selected page.
                 rows = await this.options.getGlobalHighlightService()?.updateAllHighlights() || [];
             } else if ('file' in page) {
@@ -100,7 +102,7 @@ export class HighlightListController {
             if (!current()) return;
             this.loadedScope = scope;
             const next = rows.map(row => ({ ...row,
-                isGlobalSearch: query.scope === 'vault' || page.kind === 'all' || !!row.isFromCanvas }));
+                isGlobalSearch: query.scope === 'vault' || page.kind === 'all' || page.kind === 'favorites' || !!row.isFromCanvas }));
             if (canPatch && refreshHighlightMetadata(state.highlights, next)) {
                 this.options.getHighlightRenderManager()?.refreshCardMetadata();
                 const filtered = this.options.getSearchUIManager()?.filterHighlightsByTerm(query.term, query.type) || state.highlights;
@@ -151,6 +153,16 @@ export class HighlightListController {
         this.renderedQuery = state.search.raw;
     }
     private async renderPaginated(rows: HighlightInfo[], current: () => boolean): Promise<void> {
+        if (!rows.length && this.options.state.page.kind === 'favorites') {
+            if (current()) {
+                this.options.getHighlightRenderManager()?.clear();
+                this.options.highlightContainer.empty();
+                this.options.highlightContainer.createDiv({ cls: 'highlight-empty-state', text: t(
+                    this.options.state.search.raw ? 'No matching favorites.' : 'No favorites yet. Select the star on a highlight card to save it here.'
+                ) });
+            }
+            return;
+        }
         const scroll = this.options.getInfiniteScrollManager();
         const render = async (batch: HighlightInfo[], append: boolean) => { if (current()) this.renderHighlights(batch, append); };
         if (!scroll || !rows.length) { if (current()) this.renderHighlights(rows); return; }

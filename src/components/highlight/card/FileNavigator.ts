@@ -59,7 +59,7 @@ export class HighlightCardFileNavigator {
             || this.plugin.app.workspace.getLeaf('split', 'vertical');
 
         await targetLeaf.openFile(abstractFile);
-        this.scrollToHighlight(targetLeaf.view, highlight);
+        if (!highlight.sourceUnavailable) this.scrollToHighlight(targetLeaf.view, highlight);
     }
 
     private scrollToHighlight(view: unknown, highlight: HighlightInfo): void {

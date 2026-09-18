@@ -1,3 +1,4 @@
+import { BatchFavoriteOperations } from './BatchFavoriteOperations';
 import { BatchColorOperations } from "./BatchColorOperations";
 import { Notice, setIcon } from "obsidian";
 import { HighlightInfo } from "../../types/highlight";
@@ -18,6 +19,7 @@ import { BatchExportOperations } from "./BatchExportOperations";
  * - 批量删除高亮
  */
 export class BatchOperationsHandler {
+    private favoriteOperations: BatchFavoriteOperations;
     private colorOperations: BatchColorOperations;
     private plugin: CommentPlugin;
     private exportService: ExportService;
@@ -56,6 +58,7 @@ export class BatchOperationsHandler {
         onRefreshView: () => Promise<void>
     ) {
         this.getSelectedHighlightsCallback = getSelectedHighlights;
+        this.favoriteOperations = this.plugin.addChild(new BatchFavoriteOperations(this.plugin, getSelectedHighlights, onClearSelection));
         this.exportOperations = new BatchExportOperations({
             exportService: this.exportService,
             getSelectedHighlights,
@@ -108,6 +111,7 @@ export class BatchOperationsHandler {
         });
         
         // 添加导出按钮
+        this.favoriteOperations.addButton(this.multiSelectActionsContainer);
         this.colorOperations.addButton(this.multiSelectActionsContainer);
         this.createExportButton();
         
@@ -122,6 +126,7 @@ export class BatchOperationsHandler {
      * 隐藏多选操作按钮
      */
     hideMultiSelectActions() {
+        this.favoriteOperations?.clearButton();
         this.colorOperations.clearButton();
         if (this.multiSelectActionsContainer) {
             this.multiSelectActionsContainer.empty();
@@ -289,6 +294,7 @@ export class BatchOperationsHandler {
      */
     destroy() {
         this.hideMultiSelectActions();
+        this.plugin.removeChild(this.favoriteOperations);
         this.plugin.removeChild(this.colorOperations);
         if (this.multiSelectActionsContainer) {
             this.multiSelectActionsContainer.remove();

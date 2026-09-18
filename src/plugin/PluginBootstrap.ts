@@ -1,3 +1,4 @@
+import { navigationFlashField } from '../editor/NavigationFlash';
 import { TFile, type WorkspaceLeaf } from 'obsidian';
 import type CommentPlugin from '../../main';
 import { createWindowManager, registerCommands } from '../commands';
@@ -11,6 +12,14 @@ export function createPluginWindowManager(plugin: CommentPlugin): WindowManager 
 }
 
 export function registerPluginViews(plugin: CommentPlugin): void {
+    plugin.registerEditorExtension(navigationFlashField);
+    plugin.registerMarkdownPostProcessor((element, context) => {
+        const section = context.getSectionInfo(element);
+        if (!section) return;
+        element.setAttribute('data-hinote-source-path', context.sourcePath);
+        element.setAttribute('data-hinote-line-end', String(section.lineEnd));
+        element.setAttribute('data-hinote-line-start', String(section.lineStart));
+    });
     plugin.registerView(VIEW_TYPE_HICARD, leaf => new HiCardView(leaf, plugin));
     plugin.registerView(
         VIEW_TYPE_HINOTE,

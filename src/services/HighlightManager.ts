@@ -1,4 +1,4 @@
-import { createHighlightRecord, getHighlightSource, recordToHighlightView } from '../models/HighlightModels';
+import { copyHighlightRecord, createHighlightRecord, getHighlightSource, recordToHighlightView } from '../models/HighlightModels';
 import { findStoredHighlightMatch } from './highlight/HighlightMatchStrategies';
 import { matchFileHighlights } from './highlight/HighlightMatchStrategies';
 import { StorageQueue } from '../storage/StorageQueue';
@@ -39,6 +39,39 @@ export class HighlightManager {
     /** Creating a card must reuse the saved identity without rewriting comments. */
     ensureStoredHighlight(file: TFile, highlight: HiNote): Promise<HighlightRecord> {
         return this.mutations.run(() => this.persistHighlight(file, highlight, true));
+    }
+
+    /** Favorite mutations share the identity/write queue with comments and cards. */
+    setFavorite(highlight: HiNote, favorite: boolean, timestamp = Date.now()): Promise<void> {
+        return this.mutations.run(async () => {
+            const filePath = highlight.filePath;
+            if (!filePath) throw new Error('No corresponding file found.');
+            const records = [...await this.repository.getFileHighlights(filePath)];
+            const requestedId = highlight.recordId || highlight.id;
+            let previous = records.find(record => record.id === requestedId);
+            const source = getHighlightSource(highlight);
+            if (!previous && !highlight.recordId && source) previous = findStoredHighlightMatch(source, records)?.highlight;
+            if (!previous && !favorite) return;
+            // Never resurrect a deleted saved card from a stale view or undo action.
+            if (!previous && highlight.recordId) throw new Error('Highlight no longer exists.');
+            if (!previous && !(this.app.vault.getAbstractFileByPath(filePath) instanceof TFile)) {
+                throw new Error('No corresponding file found.');
+            }
+            if (previous && !!previous.favoritedAt === favorite) {
+                this.publishIdentity(highlight, previous);
+                return;
+            }
+            const record = previous ? copyHighlightRecord(previous) : createHighlightRecord(
+                highlight, IdGenerator.generateHighlightRecordId(), filePath, Date.now()
+            );
+            record.favoritedAt = favorite ? timestamp : undefined;
+            record.updatedAt = Date.now();
+            const index = previous ? records.indexOf(previous) : -1;
+            if (index >= 0) records[index] = record; else records.push(record);
+            await this.repository.saveFileHighlights(filePath, records);
+            this.publishIdentity(highlight, record);
+            this.eventManager.emitFavoritesChanged();
+        });
     }
 
     private async persistHighlight(file: TFile, highlight: HiNote, ensureOnly: boolean): Promise<HighlightRecord> {
@@ -88,6 +121,7 @@ export class HighlightManager {
         view.kind = record.kind;
         view.isVirtual = record.kind === 'file-comment';
         view.filePath = record.filePath;
+        view.favoritedAt = record.favoritedAt;
         view.createdAt = record.createdAt;
         view.updatedAt = record.updatedAt;
         view.comments = record.comments.map(comment => ({ ...comment }));
@@ -99,20 +133,22 @@ export class HighlightManager {
      * @param highlight 高亮信息
      * @returns 是否成功移除
      */
-    removeHighlight(file: TFile, highlight: HiNote): Promise<boolean> {
-        return this.mutations.run(() => this.deleteHighlight(file, highlight));
+    removeHighlight(file: TFile, highlight: HiNote, preserveFavorite = false): Promise<boolean> {
+        return this.mutations.run(() => this.deleteHighlight(file, highlight, preserveFavorite));
     }
 
-    private async deleteHighlight(file: TFile, highlight: HiNote): Promise<boolean> {
+    private async deleteHighlight(file: TFile, highlight: HiNote, preserveFavorite = false): Promise<boolean> {
         const filePath = file.path;
         const fileHighlights = [...await this.repository.getFileHighlights(filePath)];
 
-        const highlightExists = fileHighlights.some(h => h.id === highlight.id);
+        const saved = fileHighlights.find(h => h.id === (highlight.recordId || highlight.id));
+        if (preserveFavorite && saved?.favoritedAt) return false;
+        const highlightExists = !!saved;
         if (!highlightExists) {
             return false;
         }
 
-        const updatedHighlights = fileHighlights.filter(h => h.id !== highlight.id);
+        const updatedHighlights = fileHighlights.filter(h => h.id !== saved?.id);
 
         if (updatedHighlights.length > 0) {
             await this.repository.saveFileHighlights(filePath, updatedHighlights);
@@ -129,6 +165,7 @@ export class HighlightManager {
             }
         }
 
+        if (saved?.favoritedAt) this.eventManager.emitFavoritesChanged();
         return true;
     }
 

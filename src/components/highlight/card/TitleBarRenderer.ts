@@ -15,6 +15,7 @@ interface HighlightCardTitleBarRendererOptions {
     fileNavigator: HighlightCardFileNavigator;
     hasFlashcard: () => boolean;
     onAIResponse: (content: string) => Promise<void>;
+    renderFavorite: (container: HTMLElement) => void;
     onMoreActions: (button: HTMLElement) => void;
 }
 
@@ -107,6 +108,7 @@ export class HighlightCardTitleBarRenderer {
     }
 
     private renderRightSide(container: HTMLElement): void {
+        this.options.renderFavorite(container);
         new AIButton(
             container,
             {

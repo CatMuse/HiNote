@@ -66,6 +66,9 @@ export class PreviewWidgetRenderer {
             if (match) {
                 highlightsWithComments.splice(highlightsWithComments.indexOf(match), 1);
                 mark.setAttribute('data-hi-note-processed', 'true');
+                mark.setAttribute('data-hinote-source-path', file.path);
+                mark.setAttribute('data-hinote-source-to', String(match.position + (match.originalLength ?? match.text.length)));
+                mark.setAttribute('data-hinote-source-from', String(match.position));
                 if (match.comments?.length) this.renderPreviewWidget(mark as HTMLElement, match);
             }
         });

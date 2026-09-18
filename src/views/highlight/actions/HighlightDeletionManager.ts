@@ -124,7 +124,7 @@ export class HighlightDeletionManager {
                 const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
                 if (file instanceof TFile) {
                     // 从 HighlightManager 中删除高亮
-                    await this.plugin.highlightManager.removeHighlight(file, highlight);
+                    if (!await this.plugin.highlightManager.removeHighlight(file, highlight, true)) return;
                     
                     // 触发高亮删除事件
                     this.plugin.eventManager.emitHighlightDelete(

@@ -1,3 +1,4 @@
+import { HighlightFavoriteController } from './card/FavoriteController';
 import { HighlightInfo, CommentItem } from "../../types/highlight";
 import type CommentPlugin from "../../../main";
 import { Notice } from "obsidian";
@@ -23,6 +24,7 @@ import {
 import { HighlightCardColorController } from "./card/ColorController";
 
 export class HighlightCard {
+    private favoriteController?: HighlightFavoriteController;
     private colorController?: HighlightCardColorController;
     private card: HTMLElement;
     private fileName: string | undefined;
@@ -83,6 +85,12 @@ export class HighlightCard {
             hasFlashcard: () => this.checkHasFlashcard(),
             onAIResponse: async (content) => {
                 await this.options.onAIResponse(content);
+            },
+            renderFavorite: container => {
+                this.favoriteController = this.plugin.addChild(new HighlightFavoriteController(
+                    this.plugin, () => this.highlight, () => this.refreshMetadata()
+                ));
+                this.favoriteController.bind(container);
             },
             onMoreActions: (button) => this.toggleMoreActionsDropdown(button)
         });
@@ -158,6 +166,7 @@ export class HighlightCard {
     }
 
     public refreshMetadata(): void {
+        this.favoriteController?.update();
         this.card.setAttribute('data-highlight', JSON.stringify(this.highlight));
         const decorator = this.card.querySelector<HTMLElement>('.highlight-text-decorator');
         if (decorator) decorator.style.backgroundColor = this.highlight.backgroundColor || '';
@@ -184,6 +193,7 @@ export class HighlightCard {
     public update(highlight: HighlightInfo) {
         this.highlight = highlight;
         this.selectionController.resetEditing();
+        if (this.favoriteController) this.plugin.removeChild(this.favoriteController);
         if (this.colorController) this.plugin.removeChild(this.colorController);
         this.card.remove();
         this.render();
@@ -276,6 +286,10 @@ export class HighlightCard {
      * @param skipNotice 是否跳过成功通知，默认为 false
      */
     public async handleDeleteHighlight(skipConfirmation: boolean = false, skipNotice: boolean = false) {
+        if (this.highlight.sourceUnavailable) {
+            new Notice(t('Locate the original highlight before deleting it. You can still remove it from favorites.'));
+            return;
+        }
         try {
             // 如果有闪卡，先删除闪卡
             if (this.hasFlashcard) {
@@ -343,6 +357,7 @@ export class HighlightCard {
     public destroy(): void {
         // 移除事件监听器
         this.selectionController.destroy();
+        if (this.favoriteController) this.plugin.removeChild(this.favoriteController);
         if (this.colorController) this.plugin.removeChild(this.colorController);
         
         this.registry.unregister(this);

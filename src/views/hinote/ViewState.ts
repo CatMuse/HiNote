@@ -2,7 +2,7 @@ import type { TFile } from 'obsidian';
 import type { HighlightInfo } from '../../types/highlight';
 import { parseHighlightQuery, type HighlightQuery } from '../../services/search/HighlightQuery';
 
-export type HiNotePage = { kind: 'empty' | 'all' } | { kind: 'file' | 'canvas'; file: TFile };
+export type HiNotePage = { kind: 'empty' | 'all' | 'favorites' } | { kind: 'file' | 'canvas'; file: TFile };
 export interface ViewSession {
     page: HiNotePage;
     mainPage: HiNotePage | null;

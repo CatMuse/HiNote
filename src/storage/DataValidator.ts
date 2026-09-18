@@ -96,6 +96,11 @@ export class DataValidator {
             errors.push(`高亮 ${id}: backgroundColor必须是字符串`);
         }
 
+        if (highlight.favoritedAt !== undefined && (typeof highlight.favoritedAt !== 'number' ||
+            !Number.isFinite(highlight.favoritedAt) || highlight.favoritedAt <= 0)) {
+            errors.push(`高亮 ${id}: favoritedAt必须是有效时间戳`);
+        }
+
         if (highlight.blockId && typeof highlight.blockId !== 'string') {
             errors.push(`高亮 ${id}: blockId必须是字符串`);
         }
@@ -259,6 +264,10 @@ export class DataValidator {
             sanitized.updated = highlight.updated;
         } else if (typeof highlight.updatedAt === 'number') {
             sanitized.updated = highlight.updatedAt;
+        }
+
+        if (typeof highlight.favoritedAt === "number" && Number.isFinite(highlight.favoritedAt) && highlight.favoritedAt > 0) {
+            sanitized.favoritedAt = highlight.favoritedAt;
         }
 
         // 可选字段

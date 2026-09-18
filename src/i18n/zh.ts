@@ -1,4 +1,17 @@
 export default {
+    "Locate the original highlight before deleting it. You can still remove it from favorites.": "请先定位原文再删除高亮。你仍然可以取消收藏。",
+    "Could not locate the highlight.": "未能定位高亮内容，请刷新后重试。",
+    "Favorites": "收藏",
+    "Add to favorites": "加入收藏",
+    "Remove from favorites": "取消收藏",
+    "Search favorites...": "搜索收藏…",
+    "No matching favorites.": "没有匹配的收藏。",
+    "No favorites yet. Select the star on a highlight card to save it here.": "还没有收藏。选择高亮卡片上的星标，将内容加入这里。",
+    "Original highlight could not be located. Showing saved content.": "原文暂未定位，当前显示已保存的内容。",
+    "Could not update favorites. Please try again.": "更新收藏失败，请重试。",
+    "Undo": "撤销",
+    "Some favorites could not be updated. Please try again.": "部分收藏更新失败，请重试。",
+
     "All cards": "全部卡片",
     "Ungrouped cards": "未分组",
     "Paused cards": "已暂停",

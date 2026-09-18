@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { ViewState } from './ViewState';
 import { HighlightDataService } from "../../services/highlight";
 import { HighlightListController, HighlightRenderManager, InfiniteScrollManager } from "../highlight";
@@ -191,6 +192,9 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
     state.setViewport(deviceInfo.isMobile, deviceInfo.isSmallScreen);
     const layoutManager = layoutAndCanvas.layoutManager;
     const renderLayout = async () => {
+        const placeholder = t(state.page.kind === 'favorites' ? 'Search favorites...' : 'Search...');
+        searchInput.placeholder = placeholder;
+        searchInput.setAttribute('aria-label', placeholder);
         await layoutManager.updateViewLayout();
         highlightContainer.setAttribute('aria-busy', String(state.loading === 'loading'));
         fileListManager.updateFileListSelection();

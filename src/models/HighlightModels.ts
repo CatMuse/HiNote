@@ -23,6 +23,7 @@ export function createHighlightRecord(
         id, filePath,
         kind: isFileComment(view) ? 'file-comment' : 'highlight',
         createdAt: previous?.createdAt ?? now,
+        favoritedAt: previous?.favoritedAt,
         updatedAt: now,
         comments: (view.comments || []).map(comment => ({ ...comment }))
     };
@@ -33,7 +34,7 @@ export function recordToHighlightView(record: HighlightRecord): HighlightInfo & 
         ...copyHighlightContent(record),
         id: record.id, recordId: record.id, kind: record.kind,
         isVirtual: record.kind === 'file-comment',
-        createdAt: record.createdAt, updatedAt: record.updatedAt,
+        createdAt: record.createdAt, updatedAt: record.updatedAt, favoritedAt: record.favoritedAt,
         comments: record.comments.map(comment => ({ ...comment })),
         filePath: record.filePath,
         fileName: record.filePath.split('/').pop()?.replace(/\.md$/, ''),
@@ -48,7 +49,7 @@ export function scanToHighlightView(scan: ScannedHighlight, record?: HighlightRe
         paragraphOffset: scan.paragraphOffset ?? record?.paragraphOffset,
         id: record?.id || scan.scanKey, recordId: record?.id, scanKey: scan.scanKey,
         kind: 'highlight', isVirtual: false, [HIGHLIGHT_SOURCE]: scan,
-        createdAt: record?.createdAt, updatedAt: record?.updatedAt,
+        createdAt: record?.createdAt, updatedAt: record?.updatedAt, favoritedAt: record?.favoritedAt,
         comments: (record?.comments || []).map(comment => ({ ...comment })),
         filePath: scan.filePath,
         fileName: scan.filePath.split('/').pop()?.replace(/\.md$/, ''),
@@ -66,7 +67,7 @@ export function copyHighlightRecord(record: HighlightRecord): HighlightRecord {
     assertHighlightRecord(record);
     return {
         ...copyHighlightContent(record), id: record.id, kind: record.kind,
-        filePath: record.filePath, createdAt: record.createdAt, updatedAt: record.updatedAt,
+        filePath: record.filePath, createdAt: record.createdAt, updatedAt: record.updatedAt, favoritedAt: record.favoritedAt,
         comments: record.comments.map(comment => ({ ...comment }))
     };
 }
@@ -75,6 +76,7 @@ export function copyHighlightRecord(record: HighlightRecord): HighlightRecord {
 export function assertHighlightRecord(record: HighlightRecord): void {
     if (!record.id || typeof record.id !== 'string' ||
         (record.kind !== 'highlight' && record.kind !== 'file-comment') ||
+        (record.favoritedAt !== undefined && (!Number.isFinite(record.favoritedAt) || record.favoritedAt <= 0)) ||
         !Number.isFinite(record.createdAt) || !Number.isFinite(record.updatedAt) ||
         !Array.isArray(record.comments) || 'scanKey' in record || 'recordId' in record || HIGHLIGHT_SOURCE in record) {
         throw new Error('Cannot save a scan or view as a highlight record.');

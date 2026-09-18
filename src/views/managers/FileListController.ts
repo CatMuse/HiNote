@@ -18,6 +18,7 @@ export class FileListController {
         return {
             onFileSelect: (file: TFile | null) => this.navigate(ViewState.filePage(file)),
             onAllHighlightsSelect: () => this.navigate({ kind: 'all' }),
+            onFavoritesSelect: () => this.navigate({ kind: 'favorites' }),
             onRefreshView: () => this.refreshCurrentView()
         };
     }

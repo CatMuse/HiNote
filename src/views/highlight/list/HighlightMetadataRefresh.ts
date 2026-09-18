@@ -3,7 +3,7 @@ import type { HighlightInfo } from '../../../types/highlight';
 // Source offsets and scan IDs can change when an earlier color marker changes length.
 const SOURCE_FIELDS = new Set([
     'id', 'scanKey', 'position', 'originalLength', 'paragraphOffset', 'blockId',
-    'contextBefore', 'contextAfter', 'textFingerprint', 'backgroundColor', 'syntax', 'updatedAt'
+    'favoritedAt', 'contextBefore', 'contextAfter', 'textFingerprint', 'backgroundColor', 'syntax', 'updatedAt'
 ]);
 
 function presentation(row: HighlightInfo): string {

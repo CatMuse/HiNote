@@ -6,6 +6,7 @@ import { FileListDataSource } from "./FileListDataSource";
 interface FileListRenderState {
     currentFile: TFile | null;
     isAllHighlights: boolean;
+    isFavorites: boolean;
     isDraggedToMainView: boolean;
 }
 
@@ -15,6 +16,7 @@ interface FileListItemRendererOptions {
     getState: () => FileListRenderState;
     onFileSelect: () => ((file: TFile | null) => void) | null;
     onAllHighlightsSelect: () => (() => void) | null;
+    onFavoritesSelect: () => (() => void) | null;
 }
 
 export class FileListItemRenderer {
@@ -50,6 +52,23 @@ export class FileListItemRenderer {
         allFilesItem.addEventListener("click", () => {
             this.options.onAllHighlightsSelect()?.();
         });
+    }
+
+    createFavoritesItem(fileList: HTMLElement): void {
+        const item = fileList.createDiv({ cls: 'highlight-file-item highlight-file-item-favorites' });
+        const left = item.createDiv({ cls: 'highlight-file-item-left' });
+        setIcon(left.createSpan({ cls: 'highlight-file-item-icon' }), 'star');
+        left.createSpan({ text: t('Favorites'), cls: 'highlight-file-item-name' });
+        const { plugin } = this.options;
+        let count = 0;
+        for (const [path, records] of plugin.highlightRepository.getAllCachedHighlights()) {
+            const file = plugin.app.vault.getAbstractFileByPath(path);
+            if (file instanceof TFile && !plugin.highlightService.shouldProcessFile(file)) continue;
+            count += records.filter(record => !!record.favoritedAt).length;
+        }
+        item.createSpan({ text: String(count), cls: 'highlight-file-item-count' });
+        this.makeKeyboardAction(item);
+        item.addEventListener('click', () => this.options.onFavoritesSelect()?.());
     }
 
     updateAllHighlightsCount(container: HTMLElement): void {
@@ -112,7 +131,10 @@ export class FileListItemRenderer {
             allFilesItem.setAttribute("aria-current", String(state.isAllHighlights));
         }
 
-        const fileItems = container.querySelectorAll(".highlight-file-item:not(.highlight-file-item-all)");
+        const favoritesItem = container.querySelector('.highlight-file-item-favorites');
+        favoritesItem?.classList.toggle('is-active', state.isFavorites);
+        favoritesItem?.setAttribute('aria-current', String(state.isFavorites));
+        const fileItems = container.querySelectorAll('.highlight-file-item[data-path]');
         fileItems.forEach((item: HTMLElement) => {
             const isActive = state.currentFile?.path === item.getAttribute("data-path");
             item.classList.toggle("is-active", isActive);

@@ -42,7 +42,7 @@ export class HighlightMatcher {
             return scanToHighlightView(highlight, record);
         });
         const fileComments = stored
-            .filter(record => record.kind === 'file-comment' && record.comments.length > 0)
+            .filter(record => record.kind === 'file-comment' && (record.comments.length > 0 || !!record.favoritedAt))
             .map(recordToHighlightView);
         if (patches.length && scan) {
             void this.getHighlightRepository?.()?.patchHighlightAnchors(file.path, patches, scan.isCurrent)

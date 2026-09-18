@@ -47,6 +47,14 @@ Exclusions match actual file suffixes: use `*.xcd.md` for a note stored as `HiNo
 
 Select multiple cards and use the palette button in the selection toolbar to recolor them together. Changes are grouped into one write per file. Unsupported cards are skipped; stale files are left unchanged and reported. The selection stays active after recoloring.
 
+Clicking highlight text in the sidebar scrolls the note to its source without selecting text, moving the caret, or focusing the editor. A brief translucent theme-accent background identifies the destination while preserving Live Preview or Reading view. The hint respects reduced-motion preferences.
+
+## Favorites
+
+Select the star on a highlight card to save it to **Favorites**, directly below **All Highlights** in the main view. Favorites show the same highlights and comments, newest favorites first. Search stays within favorites, including when using search prefixes. Select multiple cards to favorite them together; when all selected cards are already saved, the same toolbar action removes them from favorites.
+
+Removing a favorite preserves the original highlight, comments, and flashcards. Favorites are stored locally with highlight records in `.hinote`; deleting the last comment or flashcard does not remove a favorite. If a source highlight cannot be located, its saved content remains available with a status message. Excluded notes stay hidden until their exclusion is removed.
+
 ## Highlighted comments
 
 The highlight comment feature allows you to quickly engage with highlighted text, preventing your ideas from slipping away. Simply click on the Widgets in the editing area or directly click the add comment button on the card to open the input box.

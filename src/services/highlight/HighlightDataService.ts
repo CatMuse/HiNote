@@ -1,3 +1,4 @@
+import { recordToHighlightView } from '../../models/HighlightModels';
 import { TFile, App } from 'obsidian';
 import { HighlightInfo, ScannedHighlight } from '../../types/highlight';
 import { HighlightRecord as HiNote } from '../../types/highlight';
@@ -47,6 +48,28 @@ export class HighlightDataService {
         return this.mergeHighlightsWithComments(highlights, storedComments, file);
     }
     
+    /** Read only files with favorites; retain saved snapshots while sources are unlocated. */
+    async loadFavoriteHighlights(): Promise<HighlightInfo[]> {
+        await this.highlightRepository.initialize();
+        const result: HighlightInfo[] = [];
+        for (const [path, records] of this.highlightRepository.getAllCachedHighlights()) {
+            const favorites = records.filter(record => !!record.favoritedAt);
+            if (!favorites.length) continue;
+            const file = this.app.vault.getAbstractFileByPath(path);
+            if (file instanceof TFile && !this.highlightService.shouldProcessFile(file)) continue;
+            let live: HighlightInfo[] = [];
+            if (file instanceof TFile) {
+                // Read errors propagate, so a failed refresh is not mistaken for lost sources.
+                live = await this.loadFileHighlights(file);
+            }
+            const byId = new Map(live.filter(row => row.recordId).map(row => [row.recordId, row]));
+            for (const record of favorites) {
+                result.push(byId.get(record.id) || { ...recordToHighlightView(record), sourceUnavailable: true });
+            }
+        }
+        return result.sort((a, b) => (b.favoritedAt || 0) - (a.favoritedAt || 0) || (a.id || '').localeCompare(b.id || ''));
+    }
+
     /**
      * 加载所有文件的高亮数据
      */

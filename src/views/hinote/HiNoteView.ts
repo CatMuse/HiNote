@@ -52,7 +52,7 @@ export class HiNoteView extends ItemView {
         this.highlightManager = services.highlightManager;
         this.highlightRepository = services.highlightRepository;
         // 初始化 LocationService（已移除 TextSimilarityService 依赖）
-        this.locationService = new LocationService(this.app);
+        this.locationService = this.addChild(new LocationService(this.app));
         this.highlightService = services.highlightService;
         this.exportService = new ExportService(
             this.app,

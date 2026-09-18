@@ -36,6 +36,7 @@ export interface HighlightRecord extends HighlightContent {
     filePath: string;
     createdAt: number;
     updatedAt: number;
+    favoritedAt?: number;
     comments: CommentItem[];
 }
 
@@ -50,6 +51,8 @@ export interface HighlightView extends HighlightContent {
     originalLength?: number;
     kind?: HighlightRecordKind;
     readonly [HIGHLIGHT_SOURCE]?: ScannedHighlight;
+    favoritedAt?: number;
+    sourceUnavailable?: boolean;
     createdAt?: number;
     updatedAt?: number;
     comments?: CommentItem[];

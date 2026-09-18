@@ -1,4 +1,5 @@
-import { App } from "obsidian";
+import { t } from '../../i18n';
+import { App, Notice } from "obsidian";
 import { CommentItem, HighlightInfo } from "../../types/highlight";
 import { HighlightContent } from "./HighlightContent";
 import { CommentList } from "./CommentList";
@@ -26,10 +27,19 @@ export function renderHighlightCardContent(
         cls: "highlight-content"
     });
 
+    if (highlight.sourceUnavailable) {
+        highlightContentEl.createDiv({ cls: 'highlight-source-unavailable', text: t('Original highlight could not be located. Showing saved content.') });
+    }
     new HighlightContent(
         highlightContentEl,
         highlight,
-        onHighlightClick,
+        async row => {
+            if (row.sourceUnavailable) {
+                new Notice(t('Original highlight could not be located. Showing saved content.'));
+                return;
+            }
+            await onHighlightClick(row);
+        },
         app,
         isInMainView
     );

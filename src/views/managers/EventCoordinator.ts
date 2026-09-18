@@ -12,6 +12,7 @@ export interface EventCallbacks {
     onFileCreate?: () => void;
     onFileDelete?: (file: TFile) => void;
     onFileRename?: (file: TFile) => void;
+    onFavoritesChanged?: () => void;
     onExclusionsChanged?: () => void;
     onLayoutChange?: () => void;
     onCommentInput?: (highlightId: string, text: string) => void;
@@ -66,6 +67,15 @@ export class EventCoordinator {
         this.component.registerEvent(this.eventManager.on('exclusions:changed', () => {
             if (!this.disposed) this.callbacks.onExclusionsChanged?.();
         }));
+
+        this.component.registerEvent(this.eventManager.on('favorites:changed', () => {
+            if (!this.disposed) this.callbacks.onFavoritesChanged?.();
+        }));
+        for (const event of ['highlight:update', 'highlight:delete', 'comment:update', 'comment:delete'] as const) {
+            this.component.registerEvent(this.eventManager.on(event, () => {
+                if (!this.disposed) this.callbacks.onFavoritesChanged?.();
+            }));
+        }
 
         // 监听布局变化
         this.registerLayoutChangeEvent();

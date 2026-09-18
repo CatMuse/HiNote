@@ -47,7 +47,7 @@ export class HighlightService {
     }
 
     canChangeHighlightColor(highlight: HighlightInfo): boolean {
-        return !highlight.isVirtual && !highlight.isFromCanvas && !!highlight.filePath?.endsWith('.md') &&
+        return !highlight.sourceUnavailable && !highlight.isVirtual && !highlight.isFromCanvas && !!highlight.filePath?.endsWith('.md') &&
             ['markdown', 'html'].includes(highlight.syntax || '');
     }
 
