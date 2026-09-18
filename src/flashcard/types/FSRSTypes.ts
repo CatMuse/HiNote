@@ -1,3 +1,5 @@
+import { default_w } from 'ts-fsrs';
+
 export interface ReviewLog {
     timestamp: number;
     rating: number;     // 1-4 分别对应 Again/Hard/Good/Easy
@@ -119,7 +121,6 @@ export const DEFAULT_FSRS_PARAMETERS: FSRSParameters = {
     maximum_interval: 36500,
     newCardsPerDay: 20,         // 默认每天学习20张新卡片
     reviewsPerDay: 100,         // 默认每天复习100张卡片
-    // FSRS-5 需要 21 个参数（从 ts-fsrs v5 开始）
-    w: [0.4872, 1.4003, 3.7145, 13.8206, 5.1618, 1.2298, 0.8975, 0.031, 1.6474, 
-        0.1367, 1.0461, 2.1072, 0.0793, 0.3246, 1.587, 0.2272, 2.8755, 0.0, 0.0, 0.0, 0.0]
+    // ts-fsrs 5.x implements FSRS-6 (21 weights).
+    w: [...default_w]
 };

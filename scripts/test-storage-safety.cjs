@@ -163,16 +163,18 @@ async function flashcardLifecycle() {
     } };
     const manager = new FSRSManager(plugin, {
         getFlashcardData: async () => { await gate.promise; return new FlashcardStorageService({}).createDefaultStorage(); },
-        saveFlashcardData: async data => { saved.push(data); }
+        saveFlashcardData: async data => { saved.push(structuredClone(data)); }
     });
     assert.throws(() => manager.getAllCards(), /not available/);
     const startup = manager.initialize();
     gate.resolve(); await startup;
     assert.equal(listeners, 4);
+    assert.equal(saved.length, 1, 'Initialization persists normalized scheduler parameters');
+    assert.equal(Object.keys(saved[0].cards).length, 0);
     manager.addCard('question', 'answer');
     await manager.dispose();
-    assert.equal(saved.length, 1, 'Disposal must flush the pending save');
-    assert.equal(Object.values(saved[0].cards)[0].answer, 'answer');
+    assert.equal(saved.length, 2, 'Disposal must flush the pending save after parameter initialization');
+    assert.equal(Object.values(saved[1].cards)[0].answer, 'answer');
     assert.throws(() => manager.getAllCards(), /not available/);
     const neverReady = new FSRSManager(plugin, { getFlashcardData: async () => { throw Error('read failed'); } });
     await assert.rejects(neverReady.initialize(), /read failed/);

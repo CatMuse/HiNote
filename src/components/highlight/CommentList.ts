@@ -1,6 +1,6 @@
 import { CommentItem, HighlightInfo } from "../../types/highlight";
 import { MarkdownRenderer, Component, App } from "obsidian";
-import { t } from "../../i18n";
+import { t, formatDateTime } from "../../i18n";
 
 export class CommentList extends Component {
     private container: HTMLElement;
@@ -119,13 +119,13 @@ export class CommentList extends Component {
 
             // 评论时间
             footer.createDiv({
-                text: new Date(comment.updatedAt).toLocaleString(),
+                text: formatDateTime(comment.updatedAt),
                 cls: "hi-note-time"
             });
 
             // 添加双击编辑提示
             footer.createSpan({
-                text: "Double click to edit",
+                text: t("Double click to edit"),
                 cls: "hi-note-edit-hint"
             });
 

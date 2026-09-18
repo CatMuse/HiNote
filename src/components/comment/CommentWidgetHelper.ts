@@ -1,3 +1,4 @@
+import { t, formatDateTime } from '../../i18n';
 import { MarkdownRenderer, Component, App, setIcon } from "obsidian";
 import { HighlightInfo as HiNote, CommentItem } from "../../types/highlight";
 import type { EventManager } from "../../services/EventManager";
@@ -86,7 +87,7 @@ export class CommentWidgetHelper {
 
             item.createDiv({
                 cls: 'hi-note-tooltip-time',
-                text: new Date(comment.createdAt).toLocaleString()
+                text: formatDateTime(comment.createdAt)
             });
         });
 
@@ -94,7 +95,7 @@ export class CommentWidgetHelper {
         if (comments.length > this.MAX_TOOLTIP_COMMENTS) {
             tooltip.createDiv({
                 cls: "hi-note-tooltip-more",
-                text: `还有 ${comments.length - this.MAX_TOOLTIP_COMMENTS} 条评论...`
+                text: t('{count} more comments…', { count: comments.length - this.MAX_TOOLTIP_COMMENTS })
             });
         }
     }

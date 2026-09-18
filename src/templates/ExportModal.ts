@@ -2,7 +2,7 @@ import { App, Modal, Notice } from 'obsidian';
 import { HighlightInfo } from '../types/highlight';
 import { getTemplate, templates } from './index';
 import { CommentItem } from '../types/highlight';
-import { t } from "../i18n";
+import { t, formatDateTime } from '../i18n';
 import { exportStyles } from './exportStyles';
 import type html2canvas from 'html2canvas';
 
@@ -208,7 +208,7 @@ export class ExportPreviewModal extends Modal {
                 if (comment.createdAt) {
                     const time = createDiv();
                     time.className = 'highlight-export-comment-time';
-                    time.textContent = new Date(comment.createdAt).toLocaleString();
+                    time.textContent = formatDateTime(comment.createdAt);
                     commentItem.appendChild(time);
                 }
                 

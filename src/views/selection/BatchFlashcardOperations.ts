@@ -196,16 +196,14 @@ export class BatchFlashcardOperations {
     }
 
     private showResultNotice(successCount: number, failCount: number, operation: "create" | "delete"): void {
-        const action = operation === "create" ? "created" : "deleted";
-
         if (successCount > 0 && failCount === 0) {
-            new Notice(t(`Successfully ${action} ${successCount} HiCard`));
+            new Notice(t(operation === 'create' ? 'Created {count} HiCards.' : 'Deleted {count} HiCards.', { count: successCount }));
         } else if (successCount > 0 && failCount > 0) {
-            new Notice(t(`Successfully ${action} ${successCount} HiCard, ${failCount} failed`));
+            new Notice(t(operation === 'create' ? 'Created {count} HiCards; {failed} failed.' : 'Deleted {count} HiCards; {failed} failed.', { count: successCount, failed: failCount }));
         } else if (successCount === 0 && failCount === 0) {
-            new Notice(t(`No HiCard to ${operation}`));
+            new Notice(t(operation === 'create' ? 'No HiCards to create.' : 'No HiCards to delete.'));
         } else {
-            new Notice(t(`Failed to ${operation} HiCard! Please check the selected highlight content`));
+            new Notice(t(operation === 'create' ? 'Could not create HiCards. Check the selected highlights.' : 'Could not delete HiCards. Check the selected highlights.'));
         }
     }
 }

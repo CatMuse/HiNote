@@ -77,7 +77,10 @@ export class RegexRuleEditor {
     // 名称输入框
     const nameInput = new TextComponent(ruleContainer);
     nameInput.setPlaceholder(t('Rule name'));
-    nameInput.setValue(rule.name);
+    const builtInNames: Record<string, string> = {
+      'default-md': 'Default Highlight', 'default-mark': 'Mark format', 'default-span': 'Span format'
+    };
+    nameInput.setValue(builtInNames[rule.id] === rule.name ? t(rule.name) : rule.name);
     nameInput.onChange(value => {
       rule.name = value;
       void this.saveRules();

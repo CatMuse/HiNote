@@ -140,7 +140,7 @@ export class AIButton {
             const prompt = this.plugin.settings.ai.prompts[promptName];
             
             if (!prompt) {
-                throw new Error(t(`Not found named "${promptName}" Prompt`));
+                throw new Error(t('Prompt "{name}" not found.', { name: promptName }));
             }
 
             // 从内容提供者获取文本和评论
@@ -160,7 +160,7 @@ export class AIButton {
             new Notice(t('AI comments added'));
 
         } catch (error) {
-            new Notice(t(`AI comments failed: ${error.message}`));
+            new Notice(t('AI comments failed: {error}', { error: error.message }));
         } finally {
             this.setLoading(false);
         }

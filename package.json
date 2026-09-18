@@ -7,6 +7,7 @@
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"test:i18n": "node scripts/test-i18n.cjs",
 		"test:review": "node scripts/test-review-regressions.cjs",
 		"test:flashcards": "node scripts/test-flashcard-learning.cjs",
 		"test:storage": "node scripts/test-storage-safety.cjs",
@@ -36,6 +37,6 @@
 	"dependencies": {
 		"@codemirror/view": "6.38.6",
 		"html2canvas": "^1.4.1",
-		"ts-fsrs": "^5.0.1"
+		"ts-fsrs": "5.4.2"
 	}
 }

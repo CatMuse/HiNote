@@ -23,7 +23,7 @@ export class AITestHelper {
         }
 
         // 返回原始错误消息（截断过长的消息）
-        return message.length > 100 ? message.substring(0, 100) + '...' : message;
+        return t('Request failed: {error}', { error: message.length > 100 ? message.substring(0, 100) + '...' : message });
     }
 
 }

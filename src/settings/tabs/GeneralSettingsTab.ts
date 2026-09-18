@@ -24,7 +24,7 @@ export class GeneralSettingsTab {
             .setName(t('Export Path'))
             .setDesc(t('Relative to vault root. Leave empty to use the root folder.'))
             .addText(text => text
-                .setPlaceholder('Example: folder 1/folder 2')
+                .setPlaceholder(t('Example: folder 1/folder 2'))
                 .setValue(this.plugin.settings.export.exportPath || '')
                 .onChange(async (value) => {
                     // 移除开头的斜杠

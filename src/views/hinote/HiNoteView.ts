@@ -7,7 +7,7 @@ import CommentPlugin from '../../../main';
 import { HighlightService } from '../../services/HighlightService';
 import { LocationService } from '../../services/LocationService';
 import { ExportService } from '../../services/ExportService';
-import {t} from "../../i18n";
+import { t } from '../../i18n';
 import { LicenseManager } from '../../services/LicenseManager';
 import { ExportManager, HighlightFlashcardMarkers, VirtualHighlightManager } from '../highlight';
 import { DeviceManager, EventCoordinator, UIInitializer } from '../managers';
@@ -107,7 +107,7 @@ export class HiNoteView extends ItemView {
         try {
             await this.plugin.ensureServicesInitialized();
         } catch (error) {
-            new Notice('HiNote could not load its data. Check vault storage before editing.');
+            new Notice(t('HiNote could not load its data. Check vault storage before editing.'));
             console.error('[HiNote] View initialization failed:', error);
             return;
         }

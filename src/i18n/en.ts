@@ -160,7 +160,7 @@ export default {
     "Open HiNote window": "Open HiNote window",
 
 // Settings
-    'General': 'Highlight',
+    'General': 'General',
     'Export Path': 'Export path',
     'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.': 'Set the path for exported highlight notes. Leave empty to use vault root. The path should be relative to your vault root.',
     "Exclusions": "Exclusions",

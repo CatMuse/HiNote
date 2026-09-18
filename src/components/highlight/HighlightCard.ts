@@ -312,7 +312,7 @@ export class HighlightCard {
         } catch (error) {
             console.error('删除高亮时出错:', error);
             const message = error instanceof Error ? error.message : String(error);
-            new Notice(t(`删除高亮失败: ${message}`));
+            new Notice(t('Failed to delete highlight: {error}', { error: message }));
         }
     }
     

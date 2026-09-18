@@ -1,5 +1,5 @@
 import { setIcon } from "obsidian";
-import { t } from "../../../i18n";
+import { t, formatDateTime } from '../../../i18n';
 import type { CardGroup } from "../../types/FSRSTypes";
 import { ALL_CARDS_GROUP, PAUSED_CARDS_GROUP } from '../../types/FlashcardGroups';
 import type { FlashcardComponentContext } from "../FlashcardComponentContext";
@@ -110,7 +110,7 @@ export class FlashcardEmptyStateRenderer {
         });
         const next = cards.filter(card => card.nextReview > Date.now()).reduce((time, card) => Math.min(time, card.nextReview), Infinity);
         if (Number.isFinite(next)) {
-            completionContainer.createEl('p', { text: `${t('Next review')}: ${new Date(next).toLocaleString()}` });
+            completionContainer.createEl('p', { text: `${t('Next review')}: ${formatDateTime(next)}` });
         }
     }
 }

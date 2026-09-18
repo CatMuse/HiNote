@@ -41,7 +41,7 @@ export class HighlightFlashcardManager {
         try {
             const fsrsManager = this.plugin.fsrsManager;
             if (!fsrsManager) {
-                if (!silent) new Notice(t('FSRS 管理器未初始化'));
+                if (!silent) new Notice(t('Flashcard service is not initialized.'));
                 return false;
             }
 
@@ -80,7 +80,7 @@ export class HighlightFlashcardManager {
             return true;
         } catch (error) {
             console.error('创建闪卡时出错:', error);
-            if (!silent) new Notice(t(`Failed to create flashcard: ${error.message}`));
+            if (!silent) new Notice(t('Failed to create flashcard: {error}', { error: error.message }));
             return false;
         }
     }
@@ -128,7 +128,7 @@ export class HighlightFlashcardManager {
         try {
             const fsrsManager = this.plugin.fsrsManager;
             if (!fsrsManager) {
-                if (!silent) new Notice(t('FSRS 管理器未初始化'));
+                if (!silent) new Notice(t('Flashcard service is not initialized.'));
                 return { success: false, shouldDeleteHighlight: false };
             }
 
@@ -164,7 +164,7 @@ export class HighlightFlashcardManager {
             }
         } catch (error) {
             console.error('删除闪卡时出错:', error);
-            if (!silent) new Notice(t(`Failed to delete flashcard: ${error.message}`));
+            if (!silent) new Notice(t('Failed to delete flashcard: {error}', { error: error.message }));
             return { success: false, shouldDeleteHighlight: false };
         }
     }

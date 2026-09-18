@@ -31,7 +31,7 @@ export class BatchHighlightDeletionOperations {
         modal.titleEl.setText(t("Confirm delete highlights"));
 
         modal.contentEl.createEl("p", {
-            text: t(`Are you sure you want to delete ${selectedHighlights.size} highlights and all their data, including Comments and HiCards? This action cannot be undone.`)
+            text: t('Delete {count} highlights and all their data, including comments and HiCards? This action cannot be undone.', { count: selectedHighlights.size })
         });
 
         const buttonContainer = modal.contentEl.createDiv({
@@ -197,18 +197,18 @@ export class BatchHighlightDeletionOperations {
         const totalFailed = fileMarkFailed + dataDeleteFailed;
 
         if (fileMarkSuccess > 0 && totalFailed === 0) {
-            new Notice(t(`成功删除 ${fileMarkSuccess} 个高亮`));
+            new Notice(t('Deleted {count} highlights.', { count: fileMarkSuccess }));
         } else if (fileMarkSuccess > 0 && totalFailed > 0) {
-            let message = t(`成功删除 ${fileMarkSuccess} 个高亮`);
+            let message = t('Deleted {count} highlights.', { count: fileMarkSuccess });
             if (fileMarkFailed > 0) {
-                message += t(`，${fileMarkFailed} 个文件标记删除失败`);
+                message += t(' Failed to remove {count} highlight markers.', { count: fileMarkFailed });
             }
             if (dataDeleteFailed > 0) {
-                message += t(`，${dataDeleteFailed} 个数据删除失败`);
+                message += t(' Failed to delete {count} data records.', { count: dataDeleteFailed });
             }
             new Notice(message);
         } else if (totalFailed > 0) {
-            new Notice(t("删除高亮失败"));
+            new Notice(t('Failed to delete highlights.'));
         }
     }
 }

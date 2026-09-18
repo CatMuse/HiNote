@@ -40,24 +40,29 @@ id: highlight-comment-settings
 settings:
     - 
         id: highlight-comment-general
-        title: 高亮卡片
+        title: Highlight cards
+        title.zh: 高亮卡片
         type: heading
         level: 1
     - 
         id: highlight-text-settings
-        title: 文本设置
+        title: Highlight text
+        title.zh: 文本设置
         type: heading
         level: 2
     - 
         id: highlight-text-font-size
-        title: 高亮文本字号
+        title: Highlight font size
+        title.zh: 高亮文本字号
         type: variable-number
         default: 12
         format: px
-        description: 调整高亮文本的字体大小
+        description: Adjust the font size of highlighted text.
+        description.zh: 调整高亮文本的字体大小
     - 
         id: highlight-text-line-height
-        title: 高亮文本行高
+        title: Highlight line height
+        title.zh: 高亮文本行高
         type: variable-number-slider
         default: 1.5
         min: 1
@@ -65,25 +70,30 @@ settings:
         step: 0.1
     - 
         id: highlight-note-settings
-        title: 评论设置
+        title: Comments
+        title.zh: 评论设置
         type: heading
         level: 2
     - 
         id: hi-note-font-size
-        title: 评论文本字号
+        title: Comment font size
+        title.zh: 评论文本字号
         type: variable-number
         default: 13
         format: px
-        description: 调整评论文本的字体大小
+        description: Adjust the font size of comments.
+        description.zh: 调整评论文本的字体大小
     - 
         id: hi-note-line-height
-        title: 评论文本行高
+        title: Comment line height
+        title.zh: 评论文本行高
         type: variable-number-slider
         default: 1.5
         min: 1
         max: 2
         step: 0.1
-        description: 调整评论文本的行间距
+        description: Adjust the line height of comments.
+        description.zh: 调整评论文本的行间距
 */
 
 /* ===================================

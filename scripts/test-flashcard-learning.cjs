@@ -41,6 +41,7 @@ const { LicenseManager } = load('src/services/LicenseManager.ts');
 const { loadFlashcardUIState, saveFlashcardUIState } = load('src/flashcard/components/FlashcardUIState.ts');
 
 async function main() {
+    await upgradedScheduler();
     const service = new FSRSService();
     const adapter = new FSRSAdapter(service.getParameters());
     const lib = require('ts-fsrs');
@@ -219,7 +220,7 @@ async function main() {
     await lateRating;
     assert.equal(renders, afterDispose, 'Late save must not redraw a disposed view');
     await transactions(original);
-    console.log('Flashcard learning passed: FSRS roundtrip, settings restart, groups, limits, transactional writes, undo, ID state, offline license, editor-safe timers and counters.');
+    console.log('Flashcard learning passed: FSRS-6 defaults and migration, parameter validation, preview parity, FSRS roundtrip, settings restart, groups, limits, transactional writes, undo, ID state, offline license, editor-safe timers and counters.');
 }
 
 async function transactions(original) {
@@ -285,3 +286,91 @@ async function transactions(original) {
     await restarted.dispose();
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
+
+async function upgradedScheduler() {
+    const lib = require('ts-fsrs');
+    const { DEFAULT_FSRS_PARAMETERS } = load('src/flashcard/types/FSRSTypes.ts');
+    const legacy = [0.4872, 1.4003, 3.7145, 13.8206, 5.1618, 1.2298, 0.8975, 0.031, 1.6474,
+        0.1367, 1.0461, 2.1072, 0.0793, 0.3246, 1.587, 0.2272, 2.8755, 0, 0, 0, 0];
+    const equal = (a, b, message) => assert.equal(JSON.stringify(a), JSON.stringify(b), message);
+    const service = new FSRSService();
+    equal(service.getParameters().w, lib.default_w, 'New installs use upstream FSRS-6 defaults');
+    service.loadParameters({ w: legacy, request_retention: 0.85, newCardsPerDay: 7 });
+    equal(service.getParameters().w, lib.default_w, 'Exact legacy defaults migrate');
+    assert.equal(service.getParameters().request_retention, 0.85);
+    assert.equal(service.getParameters().newCardsPerDay, 7);
+    const custom = [...legacy]; custom[0] = 0.6;
+    service.loadParameters({ w: custom });
+    const expected = lib.generatorParameters({ w: custom, enable_short_term: true, enable_fuzz: true }).w;
+    equal(service.getParameters().w, expected, 'Custom weights are normalized, never replaced with defaults');
+    equal(new FSRSAdapter(service.getParameters()).getParameters().w, expected, 'Saved weights match the scheduler');
+    assert.equal(custom[20], 0, 'Normalization does not mutate caller data');
+    const saved = service.getParameters();
+    service.loadParameters(saved);
+    equal(service.getParameters(), saved, 'Normalization is idempotent');
+    for (const w of [[], [1], Array(21).fill(NaN), Array(21).fill(Infinity)]) {
+        assert.throws(() => service.setParameters({ w }), /Invalid/);
+        equal(service.getParameters(), saved, 'Failed validation leaves settings intact');
+        assert.throws(() => new FSRSService({ w }), /Invalid/);
+    }
+    service.resetParameters();
+    equal(service.getParameters(), DEFAULT_FSRS_PARAMETERS, 'Reset uses current defaults');
+    const copy = service.getParameters(); copy.w[0] = 100;
+    assert.equal(service.getParameters().w[0], lib.default_w[0]);
+
+    testNow = new Date('2026-09-18T10:00:00Z').getTime();
+    try {
+        let card = service.initializeCard('Question', 'Answer');
+        const before = JSON.stringify(card);
+        let predictions = service.getSchedulingCards(card);
+        assert.equal(predictions[1].nextReview - testNow, 60000, 'Again starts the one-minute learning step');
+        assert.equal(predictions[3].nextReview - testNow, 600000, 'Good starts the ten-minute learning step');
+        assert.equal(predictions[4].state, lib.State.Review);
+        assert.equal(JSON.stringify(card), before, 'Preview never modifies the card or history');
+        for (const grade of [1, 2, 3, 3, 1, 2, 3, 3, 4]) {
+            predictions = service.getSchedulingCards(card);
+            for (const option of [1, 2, 3, 4]) {
+                equal(service.reviewCard(card, option), predictions[option], 'Every preview matches its rating');
+            }
+            const reviewed = service.reviewCard(card, grade);
+            equal(reviewed, predictions[grade], 'All four previews use the same scheduling as actual reviews');
+            assert.ok(Number.isFinite(reviewed.nextReview) && reviewed.nextReview > testNow);
+            card = JSON.parse(JSON.stringify(reviewed));
+            testNow = card.nextReview;
+        }
+        assert.equal(card.reviewHistory.length, 9);
+        const { FSRSManager } = load('src/flashcard/services/FSRSManager.ts');
+        let disk = new FlashcardStorageService({}).createDefaultStorage();
+        disk.parameters = { ...DEFAULT_FSRS_PARAMETERS, w: legacy, newCardsPerDay: 7 };
+        disk.cards[card.id] = card;
+        const originalCard = JSON.stringify(card);
+        let writes = 0;
+        const data = {
+            getFlashcardData: async () => structuredClone(disk),
+            saveFlashcardData: async value => { writes++; disk = structuredClone(value); }
+        };
+        const plugin = { registerEvent: () => {}, eventManager: { on: () => ({}), emitFlashcardChanged: () => {} } };
+        const manager = new FSRSManager(plugin, data);
+        await manager.initialize();
+        equal(disk.parameters.w, lib.default_w);
+        assert.equal(disk.parameters.newCardsPerDay, 7);
+        assert.equal(JSON.stringify(disk.cards[card.id]), originalCard, 'Migration preserves all card data and existing due dates');
+        assert.equal(writes, 1);
+        await manager.dispose();
+        const restarted = new FSRSManager(plugin, data);
+        await restarted.initialize();
+        assert.equal(writes, 1, 'Restart does not repeat the migration');
+        equal(restarted.fsrsService.getParameters(), disk.parameters);
+        await restarted.dispose();
+        disk.parameters.w = [...legacy];
+        const oldDisk = JSON.stringify(disk);
+        const failing = new FSRSManager(plugin, { ...data, saveFlashcardData: async () => { throw Error('disk full'); } });
+        const previousError = console.error;
+        try {
+            console.error = () => {};
+            await assert.rejects(failing.initialize(), /disk full/);
+        } finally { console.error = previousError; }
+        assert.equal(JSON.stringify(disk), oldDisk, 'Failed migration does not lose stored settings or reviews');
+        await failing.dispose();
+    } finally { testNow = undefined; }
+}

@@ -1,5 +1,5 @@
 import { HighlightInfo } from '../types/highlight';
-import { t } from '../i18n';
+import { t, formatDate } from '../i18n';
 
 // 卡片模板接口
 export interface CardTemplate {
@@ -61,7 +61,7 @@ export const defaultTemplate: CardTemplate = {
         // 来源信息
         const source = createDiv();
         source.className = 'highlight-export-source';
-        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
+        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || t('Untitled');
         footer.appendChild(source);
 
         // 日期信息
@@ -73,7 +73,7 @@ export const defaultTemplate: CardTemplate = {
             month: 'long', 
             day: 'numeric'
         };
-        date.textContent = now.toLocaleDateString(undefined, options);
+        date.textContent = formatDate(now, options);
         footer.appendChild(date);
 
         cardContainer.appendChild(footer);
@@ -101,12 +101,12 @@ export const academicTemplate: CardTemplate = {
         
         const source = createDiv();
         source.className = 'highlight-export-source';
-        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
+        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || t('Untitled');
         footer.appendChild(source);
 
         const date = createDiv();
         date.className = 'highlight-export-date';
-        date.textContent = `Retrieved: ${new Date().toLocaleDateString()}`;
+        date.textContent = t('Retrieved: {date}', { date: formatDate(new Date()) });
         footer.appendChild(date);
 
         cardContainer.appendChild(footer);
@@ -169,7 +169,7 @@ export const socialTemplate: CardTemplate = {
         
         const source = createDiv();
         source.className = 'highlight-export-source';
-        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || 'Untitled';
+        source.textContent = highlight.fileName || highlight.filePath?.split('/').pop() || t('Untitled');
         footer.appendChild(source);
 
         cardContainer.appendChild(footer);

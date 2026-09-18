@@ -17,7 +17,7 @@ export class AIServiceTab {
     display(): void {
         // AI 服务设置
         new Setting(this.containerEl)
-            .setName('AI service')
+            .setName(t('AI service'))
             .setDesc(t('Select the AI service provider'))
             .addDropdown(dropdown => {
                 return dropdown
@@ -45,6 +45,7 @@ export class AIServiceTab {
     private getProviderOptions(): Record<AIProvider, string> {
         return {
             ...AI_PROVIDER_LABELS,
+            ollama: t(AI_PROVIDER_LABELS.ollama),
             custom: t(AI_PROVIDER_LABELS.custom)
         };
     }

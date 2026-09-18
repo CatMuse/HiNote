@@ -71,7 +71,7 @@ export class HighlightDeletionManager {
         } catch (error) {
             console.error('删除高亮时出错:', error);
             if (!skipNotice) {
-                new Notice(t(`Failed to delete highlight: ${error.message}`));
+                new Notice(t('Failed to delete highlight: {error}', { error: error.message }));
             }
             return false;
         }

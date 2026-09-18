@@ -194,7 +194,7 @@ export class FlashcardSettingsTab {
 
         // 添加 FSRS 参数说明
         fsrsParamsContainer.createEl('p', {
-            text: t('FSRS weight parameter. The default value is obtained from a smaller sample; if adjustment is needed, please use the FSRS optimizer for calculation.'),
+            text: t('Uses the FSRS-6 default weights. Custom weights are adjusted to valid ranges. Changes apply to future reviews without rescheduling existing cards.'),
             cls: 'setting-item-description'
         });
 
@@ -209,7 +209,7 @@ export class FlashcardSettingsTab {
             .addTextArea(textarea => {
                 textarea
                     .setValue(wParamsString)
-                    .setPlaceholder('[0.4872, 1.4003, ...]')
+                    .setPlaceholder(wParamsString)
                     .onChange(async (value) => {
                         try {
                             // 尝试解析用户输入的 JSON
@@ -218,7 +218,7 @@ export class FlashcardSettingsTab {
                             // 验证参数是否有效（必须是 21 个数字的数组）
                             if (Array.isArray(newParams) && 
                                 newParams.length === 21 && 
-                                newParams.every(p => typeof p === 'number')) {
+                                newParams.every(Number.isFinite)) {
                                 
                                 // 更新参数
                                 const currentParams = this.fsrsService.getParameters();
@@ -226,6 +226,7 @@ export class FlashcardSettingsTab {
                                 this.fsrsService.setParameters(currentParams);
                                 await this.plugin.fsrsManager.saveStoragePublic();
                                 
+                                textarea.setValue(JSON.stringify(this.fsrsService.getParameters().w));
                                 // 显示成功提示
                                 new Notice(t('FSRS weights updated successfully'));
                             } else {

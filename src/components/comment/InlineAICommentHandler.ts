@@ -55,7 +55,7 @@ export class InlineAICommentHandler {
             console.error("AI内联生成失败:", error);
             textarea.value = this.originalContent;
             const message = error instanceof Error ? error.message : String(error);
-            new Notice(t(`AI generation failed: ${message}`));
+            new Notice(t('AI generation failed: {error}', { error: message }));
         } finally {
             this.setLoading(false);
         }

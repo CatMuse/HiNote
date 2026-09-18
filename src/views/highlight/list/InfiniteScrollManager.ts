@@ -1,3 +1,4 @@
+import { t } from '../../../i18n';
 import { Notice } from "obsidian";
 import { HighlightInfo } from "../../../types/highlight";
 
@@ -87,7 +88,7 @@ export class InfiniteScrollManager {
             if (valid()) this.currentBatch++;
         } catch (error) {
             console.error('[InfiniteScrollManager] Error loading highlights:', error);
-            new Notice("加载高亮内容时出错");
+            new Notice(t('Error loading highlights. Please try again.'));
         } finally {
             if (valid()) { this.isLoading = false; this.hideLoading(); }
         }

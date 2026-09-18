@@ -5,13 +5,14 @@ import {
     FSRSRating
 } from '../types/FSRSTypes';
 import { FSRSAdapter } from './FSRSAdapter';
+import { normalizeFSRSParameters } from './FSRSParameters';
 
 export class FSRSService {
     private params: FSRSParameters;
     private adapter: FSRSAdapter;
 
     constructor(params: Partial<FSRSParameters> = {}) {
-        this.params = { ...DEFAULT_FSRS_PARAMETERS, ...params };
+        this.params = normalizeFSRSParameters({ ...DEFAULT_FSRS_PARAMETERS, ...params });
         this.adapter = new FSRSAdapter(this.params);
     }
 
@@ -50,26 +51,22 @@ export class FSRSService {
      * @param params 要设置的 FSRS 参数
      */
     public setParameters(params: Partial<FSRSParameters>): void {
-        const next = { ...this.params, ...params };
-        if (!Number.isFinite(next.request_retention) || next.request_retention <= 0 || next.request_retention >= 1
-            || !Number.isInteger(next.maximum_interval) || next.maximum_interval < 1
-            || !Number.isInteger(next.newCardsPerDay) || next.newCardsPerDay < 0
-            || !Number.isInteger(next.reviewsPerDay) || next.reviewsPerDay < 0
-            || !Array.isArray(next.w) || next.w.length !== 21 || !next.w.every(Number.isFinite)) {
-            throw new Error('Invalid flashcard learning parameters');
-        }
+        const next = normalizeFSRSParameters({ ...this.params, ...params });
         const adapter = new FSRSAdapter(next);
-        this.params = { ...next, w: [...next.w] };
+        this.params = next;
         this.adapter = adapter;
+    }
+
+    /** Upgrade only the exact legacy defaults; never replace custom weights. */
+    public loadParameters(params: Partial<FSRSParameters>): void {
+        this.setParameters(normalizeFSRSParameters({ ...DEFAULT_FSRS_PARAMETERS, ...params }, true));
     }
 
     /**
      * 重置 FSRS 参数为默认值
      */
     public resetParameters(): void {
-        this.params = { ...DEFAULT_FSRS_PARAMETERS };
-        // 更新 adapter 的参数
-        this.adapter.setParameters(this.params);
+        this.setParameters(DEFAULT_FSRS_PARAMETERS);
     }
     
     /**

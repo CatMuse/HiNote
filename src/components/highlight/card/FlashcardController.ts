@@ -36,7 +36,7 @@ export class HighlightCardFlashcardController {
             }
 
             if (!this.plugin.fsrsManager) {
-                new Notice(t('FSRS 管理器未初始化'));
+                new Notice(t('Flashcard service is not initialized.'));
                 return false;
             }
 
@@ -46,7 +46,7 @@ export class HighlightCardFlashcardController {
         } catch (error) {
             console.error('处理闪卡操作时出错:', error);
             const message = error instanceof Error ? error.message : String(error);
-            new Notice(t(`操作失败: ${message}`));
+            new Notice(t('Operation failed: {error}', { error: message }));
             return false;
         }
     }

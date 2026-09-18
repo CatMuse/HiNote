@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { BaseHTTPClient } from './BaseHTTPClient';
 import { Notice } from 'obsidian';
 
@@ -86,7 +87,7 @@ export class OllamaService {
 
     async pullModel(modelName: string): Promise<void> {
         try {
-            new Notice(`Downloading model ${modelName}...`);
+            new Notice(t('Downloading model {model}…', { model: modelName }));
             const response = await this.makeRequest<OllamaPullResponse>({
                 endpoint: '/api/pull',
                 method: 'POST',
@@ -99,7 +100,7 @@ export class OllamaService {
                 throw new Error(`Failed to download model: ${response.status}`);
             }
 
-            new Notice(`Model ${modelName} downloaded successfully`);
+            new Notice(t('Model {model} downloaded successfully.', { model: modelName }));
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             throw new Error(`Failed to download model: ${message}`);
@@ -163,7 +164,7 @@ export class OllamaService {
         const message = error instanceof Error ? error.message : String(error);
 
         if (message.includes('ECONNREFUSED')) {
-            new Notice('Ollama service is not running. Please start the service.');
+            new Notice(t('Ollama service is not running. Please start the service.'));
             return new Error('Unable to connect to Ollama service. Please ensure the service is running.');
         }
         if (error instanceof TypeError && message.includes('Invalid URL')) {

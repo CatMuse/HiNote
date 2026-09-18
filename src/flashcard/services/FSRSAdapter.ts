@@ -50,8 +50,8 @@ export class FSRSAdapter {
             // 启用短期记忆模式，使 Again 评分能够有分钟或小时级别的间隔
             enable_fuzz: true,
             enable_short_term: true,
-            // 使用默认的 w 参数，这是 FSRS 算法的核心参数
-            w: customParams.w || []
+            // The service normalizes persisted weights before creating the scheduler.
+            w: customParams.w ? [...customParams.w] : undefined
         });
     }
 
@@ -216,7 +216,7 @@ export class FSRSAdapter {
         const now = new Date();
         
         // 使用 ts-fsrs 的 repeat 方法获取所有可能的评分结果
-        // 在 ts-fsrs 4.x 版本中，repeat 返回的是一个 Record<Grade, RecordLogItem>
+        // repeat previews the same scheduler used by next.
         const recordLog = this.fsrsInstance.repeat(tsCard, now);
         
         // 转换回 FlashcardState 并按评分分类

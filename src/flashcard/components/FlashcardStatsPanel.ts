@@ -1,6 +1,6 @@
 import { FSRSManager } from "../services/FSRSManager";
 import { DailyStats } from "../types/FSRSTypes";
-import { t } from '../../i18n';
+import { t, formatDate } from '../../i18n';
 
 /**
  * 闪卡统计面板，显示学习统计数据和热力图
@@ -209,11 +209,11 @@ export class FlashcardStatsPanel {
                     cell.addClass(`flashcard-heatmap-level-${level}`);
                     
                     // 添加更详细的提示信息，包括评分分布
-                    let tooltipText = `${date.toLocaleDateString()}: Learned ${stat.newCardsLearned} new cards, reviewed ${stat.cardsReviewed} cards`;
+                    let tooltipText = t('{date}: Learned {new} new cards, reviewed {reviewed} cards', { date: formatDate(date), new: stat.newCardsLearned, reviewed: stat.cardsReviewed });
                     
                     // 如果有评分记录，添加评分分布信息
                     if (stat.reviewCount > 0) {
-                        tooltipText += `\nRating distribution: Again(${stat.againCount}), Hard(${stat.hardCount}), Good(${stat.goodCount}), Easy(${stat.easyCount})`;
+                        tooltipText += '\n' + t('Ratings: Again ({again}), Hard ({hard}), Good ({good}), Easy ({easy})', { again: stat.againCount, hard: stat.hardCount, good: stat.goodCount, easy: stat.easyCount });
                     }
                     
                     cell.setAttribute('title', tooltipText);

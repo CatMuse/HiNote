@@ -325,12 +325,12 @@ export class FlashcardCardRenderer {
 
         if (diffMs < 60 * 60 * 1000) {
             const diffMinutes = Math.max(1, Math.round(diffMs / (1000 * 60)));
-            return `${diffMinutes}m`;
+            return t('{count}m', { count: diffMinutes });
         }
 
         if (diffMs < 24 * 60 * 60 * 1000) {
             const diffHours = Math.round(diffMs / (1000 * 60 * 60));
-            return `${diffHours}h`;
+            return t('{count}h', { count: diffHours });
         }
 
         return this.formatIntervalDays(Math.round(diffMs / (1000 * 60 * 60 * 24)));
@@ -342,11 +342,11 @@ export class FlashcardCardRenderer {
         const intervalHours = this.getDefaultIntervalHours(rating, isNewCard, hasLapses);
 
         if (intervalHours < 1) {
-            return `${Math.round(intervalHours * 60)}m`;
+            return t('{count}m', { count: Math.round(intervalHours * 60) });
         }
 
         if (intervalHours < 24) {
-            return `${Math.round(intervalHours)}h`;
+            return t('{count}h', { count: Math.round(intervalHours) });
         }
 
         return this.formatIntervalDays(intervalHours / 24);
@@ -367,17 +367,17 @@ export class FlashcardCardRenderer {
 
     private formatIntervalDays(intervalDays: number): string {
         if (intervalDays < 1) {
-            return `${Math.round(intervalDays * 24)}h`;
+            return t('{count}h', { count: Math.round(intervalDays * 24) });
         }
 
         if (intervalDays < 30) {
-            return `${Math.round(intervalDays)}d`;
+            return t('{count}d', { count: Math.round(intervalDays) });
         }
 
         if (intervalDays < 365) {
-            return `${Math.round(intervalDays / 30)}mo`;
+            return t('{count}mo', { count: Math.round(intervalDays / 30) });
         }
 
-        return `${Math.round(intervalDays / 365)}y`;
+        return t('{count}y', { count: Math.round(intervalDays / 365) });
     }
 }

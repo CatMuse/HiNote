@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { 
     FlashcardState, 
     FlashcardProgress, 
@@ -123,9 +124,15 @@ export class FSRSManager {
 
     initialize(): Promise<void> {
         if (!this.initialization) {
-            this.initialization = this.storageService.load().then(storage => {
+            this.initialization = this.storageService.load().then(async storage => {
                 this.storage = storage;
-                if (storage.parameters) this.fsrsService.setParameters(storage.parameters);
+                if (storage.parameters) this.fsrsService.loadParameters(storage.parameters);
+                const parameters = this.fsrsService.getParameters();
+                if (JSON.stringify(storage.parameters) !== JSON.stringify(parameters)) {
+                    storage.parameters = parameters;
+                    // Persist the migration before accepting reviews; never reschedule existing cards.
+                    await this.storageService.save(storage);
+                }
                 this.groupRepository = this.createGroupRepository();
                 this.ready = true;
                 if (!this.disposed) this.eventSyncService.registerEventListeners();
@@ -163,7 +170,7 @@ export class FSRSManager {
         try {
             await this.saveQueue.run(() => this.storageService.save(JSON.parse(JSON.stringify(this.storage))));
         } catch (error) {
-            new Notice('HiNote could not save flashcards. Check vault storage before continuing.');
+            new Notice(t('HiNote could not save flashcards. Check vault storage before continuing.'));
             throw error;
         }
     }

@@ -1,3 +1,4 @@
+import { t } from '../../../i18n';
 import { Notice } from 'obsidian';
 import type { HighlightInfo } from '../../../types/highlight';
 
@@ -7,14 +8,14 @@ export class HighlightCardClipboard {
             const content = this.formatHighlightContent(highlight, fileName);
 
             navigator.clipboard.writeText(content).then(() => {
-                new Notice('Copied');
+                new Notice(t('Copied'));
             }).catch(error => {
                 console.error('复制内容失败:', error);
-                new Notice('Failed to copy content');
+                new Notice(t('Failed to copy content'));
             });
         } catch (error) {
             console.error('复制高亮内容时出错:', error);
-            new Notice('Failed to copy content');
+            new Notice(t('Failed to copy content'));
         }
     }
 
