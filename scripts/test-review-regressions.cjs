@@ -135,6 +135,7 @@ async function testAICommentLocalUpdate() {
     let nextId = 0;
     const { CommentService } = load('src/services/comment/CommentService.ts', {
         obsidian: { TFile, Notice: class {} },
+        '../../types/highlight': { isFileComment: value => value.kind === 'file-comment' },
         '../../utils/IdGenerator': { IdGenerator: { generateCommentId: () => `comment-${++nextId}` } },
         '../../i18n': { t: value => value }
     });
@@ -146,6 +147,7 @@ async function testAICommentLocalUpdate() {
         const originalList = state.highlights;
         let updated = 0, saved = 0, refreshed = 0, callbacks;
         const { CommentController } = load('src/views/highlight/comments/CommentController.ts', {
+            '../../../types/highlight': { isFileComment: value => value.kind === 'file-comment' },
             '../../../components/highlight': { defaultHighlightCardRegistry: {
                 findByHighlightId: id => {
                     assert.equal(id, 'target', 'Only the target card may be updated');
@@ -182,15 +184,131 @@ async function testAICommentLocalUpdate() {
     }
 }
 
+async function testFileCommentDraftLifecycle() {
+    const { FileCommentDraftManager } = load('src/views/highlight/file-comments/FileCommentDraftManager.ts', {
+        obsidian: { TFile: class {} },
+        '../../../i18n': { t: value => value },
+        '../../../utils/IdGenerator': { IdGenerator: { generateHighlightRecordId: () => 'highlight-draft-key' } }
+    });
+    const manager = new FileCommentDraftManager();
+    const draft = manager.createDraft({ path: 'note.md' });
+    assert.equal(draft.filePath, 'note.md');
+    assert.equal(draft.id, 'file-comment-draft-highlight-draft-key');
+    assert.equal(draft.recordId, undefined, 'A file-comment draft must not pretend to be stored');
+    assert.equal(draft.isDraft, true);
+    assert.equal(draft.comments.length, 0);
+
+    class TFile { constructor(path) { this.path = path; } }
+    const file = new TFile('note.md');
+    const { CommentService } = load('src/services/comment/CommentService.ts', {
+        obsidian: { TFile, Notice: class {} },
+        '../../types/highlight': { isFileComment: value => value.kind === 'file-comment' },
+        '../../utils/IdGenerator': { IdGenerator: { generateCommentId: () => 'comment-1' } },
+        '../../i18n': { t: value => value }
+    });
+    let storageDeletes = 0, cardRemovals = 0;
+    const service = new CommentService({ vault: { getAbstractFileByPath: () => file } }, {}, {
+        removeHighlight: async () => { storageDeletes++; return true; }
+    });
+    service.updateState({ currentFile: file, highlights: [draft] });
+    service.setCallbacks({ onCardRemove: value => { assert.equal(value, draft); cardRemovals++; } });
+    await service.deleteFileCommentDraft(draft);
+    assert.equal(storageDeletes, 0, 'Cancelling a view-only draft must not touch storage');
+    assert.equal(cardRemovals, 1);
+}
+
+function testFileCommentNewestFirst() {
+    const { sortFileCommentsByNewest } = load('src/views/highlight/rendering/FileCommentSection.ts', {
+        obsidian: { setIcon: () => {} },
+        '../../../i18n': { t: value => value }
+    });
+    const comments = [
+        { id: 'older', kind: 'file-comment', text: 'File Comment', position: 0, createdAt: 100 },
+        { id: 'newest', kind: 'file-comment', text: 'File Comment', position: 0, createdAt: 300 },
+        { id: 'middle', kind: 'file-comment', text: 'File Comment', position: 0, createdAt: 200 }
+    ];
+    assert.deepEqual(Array.from(sortFileCommentsByNewest(comments), item => item.id), ['newest', 'middle', 'older']);
+    assert.deepEqual(Array.from(comments, item => item.id), ['older', 'newest', 'middle'], 'Sorting must not mutate view state');
+}
+
+function testHighlightTitleModes() {
+    const { resolveHighlightTitleMode } = load('src/components/highlight/card/TitleBarMode.ts', {
+        '../../../types/highlight': { isFileComment: value => value.kind === 'file-comment' }
+    });
+    assert.equal(resolveHighlightTitleMode({ kind: 'file-comment', isGlobalSearch: false }, 'note.md', true), 'file');
+    assert.equal(resolveHighlightTitleMode({ kind: 'file-comment', isGlobalSearch: false }, 'note.md', false), 'file-comment');
+    assert.equal(resolveHighlightTitleMode({ kind: 'highlight', isGlobalSearch: false }, 'note.md', true), 'file');
+    assert.equal(resolveHighlightTitleMode({ kind: 'highlight', isGlobalSearch: false }, undefined, false), 'line');
+}
+
+async function testAnnotationContext() {
+    class TFile { constructor(path) { this.path = path; this.name = path.split('/').pop(); } }
+    const file = new TFile('folder/note.md');
+    let reads = 0;
+    const { AnnotationContextResolver } = load('src/services/annotation/AnnotationContextResolver.ts', {
+        obsidian: { TFile },
+        '../../types/highlight': { isFileComment: value => value.kind === 'file-comment' }
+    }, { console });
+    const resolver = new AnnotationContextResolver({ vault: {
+        getAbstractFileByPath: path => path === file.path ? file : null,
+        read: async () => { reads++; return '0123456789'; }
+    } }, 5);
+    const fileContext = await resolver.resolve({
+        kind: 'file-comment', filePath: file.path, text: 'File Comment', position: 0,
+        comments: [{ content: 'Whole-note observation' }]
+    });
+    assert.equal(reads, 1);
+    assert.equal(fileContext.primaryText, '01234\n\n[Source truncated]');
+    assert.equal(fileContext.sourceContentTruncated, true);
+    const aiContext = resolver.formatForAI(fileContext);
+    assert.ok(aiContext.includes('Source file: note.md'));
+    assert.ok(aiContext.includes('Whole-note observation'));
+    const highlightContext = await resolver.resolve({ kind: 'highlight', text: 'selected text', position: 4 });
+    assert.equal(reads, 1, 'Normal highlights must not read the whole file');
+    assert.equal(resolver.formatForAI(highlightContext), 'selected text');
+}
+
+function testCopyHighlightFormatting() {
+    const { HighlightCardClipboard } = load('src/components/highlight/card/Clipboard.ts', {
+        obsidian: { Notice: class {} },
+        '../../../i18n': { t: value => value },
+        '../../../types/highlight': { isFileComment: value => value.kind === 'file-comment' }
+    }, { console, navigator: { clipboard: { writeText: async () => {} } } });
+
+    const normal = HighlightCardClipboard.formatHighlightContent({
+        kind: 'highlight', text: 'first line\nsecond line', position: 2,
+        filePath: 'folder/note.md',
+        comments: [{ content: 'A comment' }]
+    }, 'note.md');
+    assert.ok(normal.includes('> first line\n> second line'));
+    assert.ok(normal.includes('[[folder/note|note]]'));
+    assert.ok(normal.includes('>> A comment'));
+
+    const fileComment = HighlightCardClipboard.formatHighlightContent({
+        kind: 'file-comment', text: 'File Comment', position: 0,
+        filePath: 'folder/note.md',
+        comments: [{ content: 'Whole note\nSecond line' }]
+    });
+    assert.ok(fileComment.includes('> [!note] File comment'));
+    assert.ok(fileComment.includes('> Source: [[folder/note|note]]'));
+    assert.ok(fileComment.includes('> Whole note\n> Second line'));
+    assert.ok(!fileComment.includes('\n> File Comment\n'));
+}
+
 (async () => {
     testReviewDomRules();
     await testKeyboard();
     await testSettings();
     await testAICommentLocalUpdate();
+    await testFileCommentDraftLifecycle();
+    testFileCommentNewestFirst();
+    testHighlightTitleModes();
+    await testAnnotationContext();
+    testCopyHighlightFormatting();
     const manifest = JSON.parse(fs.readFileSync('manifest.json'));
     const versions = JSON.parse(fs.readFileSync('versions.json'));
     assert.equal(manifest.minAppVersion, '1.13.0');
     assert.equal(versions['0.5.8'], '1.8.0');
     assert.equal(versions[manifest.version], manifest.minAppVersion);
-    console.log('Review regressions passed: IME, keyboard shortcuts, settings search definitions and lifecycle, local AI comment updates, versions.');
+    console.log('Review regressions passed: IME, keyboard shortcuts, settings search definitions and lifecycle, local AI comment updates, file-comment drafts/context/copy, versions.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

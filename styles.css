@@ -473,10 +473,88 @@ settings:
     transform: scale(1.1);
 }
 
+.file-comment-section {
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.file-comment-add-button {
+    width: 100%;
+    min-height: 30px;
+    padding: 2px 10px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: var(--background-primary);
+    color: var(--text-normal);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0;
+    cursor: pointer;
+    box-shadow: none;
+    text-align: left;
+}
+
+.file-comment-add-button:hover {
+    background: var(--background-modifier-hover);
+    color: var(--text-accent);
+    box-shadow: none;
+}
+
+.file-comment-add-button:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
+}
+
+.file-comment-add-button .highlight-card-icon {
+    margin-right: 8px;
+}
+
+.file-comment-section.has-open-file-comment-draft > .file-comment-add-button {
+    display: none;
+}
+
+.file-comment-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.file-comment-section.has-open-file-comment-draft .file-comment-cards {
+    margin-top: 0;
+}
+
+.file-comment-cards > .highlight-card {
+    margin-bottom: 0;
+}
+
+.file-comment-draft-card .highlight-card-title-bar {
+    display: none;
+}
+
+.file-comment-card.file-comment-draft-card .hi-notes-section {
+    margin-top: 0;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.file-comment-draft-card .hi-note-input {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.file-comment-draft-card .hi-note-actions-hint {
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
 .highlight-list {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
     min-width: 0;
 }
@@ -485,7 +563,7 @@ settings:
     display: flex;
     flex: 1 1 0;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     min-width: 0;
 }
 
@@ -572,7 +650,12 @@ settings:
 
 .hi-note {
     padding: 8px;
-    background-color: var(--background-secondary);
+    /* Keep a visible note surface when a theme flattens primary/secondary. */
+    background-color: color-mix(
+        in srgb,
+        var(--background-primary) 92%,
+        var(--text-normal) 8%
+    );
     border-radius: 4px;
     margin-bottom: 4px;
     position: relative;
@@ -823,6 +906,8 @@ settings:
 }
 
 .hi-notes-section {
+    /* Keep the outer card surface unchanged; only individual notes get a
+       dedicated surface so the lower half of a card does not become a block. */
     background-color: var(--background-primary);
     padding: 0px 12px 8px 12px;
     border-bottom-right-radius: 8px; /* 右下角圆角 */
@@ -2623,8 +2708,8 @@ settings:
     align-items: center;
 }
 
-/* 虚拟高亮的样式  */
-.virtual-highlight {
+/* 文件批注标签样式 */
+.file-comment-label {
     font-style: italic;
     color: var(--text-muted);
     background-color: var(--background-secondary);
@@ -2633,23 +2718,33 @@ settings:
     margin-bottom: 4px;
 }
 
-.highlight-card .virtual-highlight::before {
+.highlight-card .file-comment-label::before {
     content: "📝";  /* 使用笔记图标 */
     margin-right: 6px;
 }
 
-/* 虚拟高亮卡片样式 */
-.virtual-highlight-card .highlight-content {
+/* 文件批注卡片样式 */
+.file-comment-card .highlight-content {
     display: none;  /* 隐藏整个高亮内容区域 */
 }
 
-.virtual-highlight-card {
+.file-comment-card {
     padding-top: 0;  /* 移除顶部内边距 */
 }
 
-.virtual-highlight-card .hi-notes-section {
+.file-comment-card .hi-notes-section {
     margin-top: 12px;  /* 移除评论区域的顶部边距 */
     border-radius: 8px;
+}
+
+/* File comments hide the normal highlight body, so keep their note surface
+   visibly separated from the card even in flat themes. */
+.file-comment-card .hi-note {
+    background-color: color-mix(
+        in srgb,
+        var(--background-primary) 94%,
+        var(--text-normal) 6%
+    );
 }
 
 /* 插件作用域内的隐藏类 */

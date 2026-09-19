@@ -1,7 +1,7 @@
 import { Component, Notice } from 'obsidian';
 import type CommentPlugin from '../../../../main';
 import type { HighlightInfo } from '../../../types/highlight';
-import { HIGHLIGHT_SOURCE } from '../../../types/highlight';
+import { HIGHLIGHT_SOURCE, isFileComment } from '../../../types/highlight';
 import { HighlightColorPalette } from './ColorPalette';
 import { HighlightColor } from '../../../services/highlight/HighlightColor';
 import { t } from '../../../i18n';
@@ -16,7 +16,7 @@ export class HighlightCardColorController extends Component {
 
     bind(card: HTMLElement): void {
         const highlight = this.getHighlight();
-        if (highlight.sourceUnavailable || highlight.isVirtual || highlight.isFromCanvas || !highlight.filePath?.endsWith('.md') ||
+        if (highlight.sourceUnavailable || isFileComment(highlight) || highlight.isFromCanvas || !highlight.filePath?.endsWith('.md') ||
             !['markdown', 'html'].includes(highlight.syntax || '')) return;
         const decorator = card.querySelector<HTMLElement>('.highlight-text-decorator');
         if (!decorator) return;

@@ -13,6 +13,7 @@ export interface EventCallbacks {
     onFileDelete?: (file: TFile) => void;
     onFileRename?: (file: TFile) => void;
     onFavoritesChanged?: () => void;
+    onRecordsChanged?: (filePath: string) => void;
     onExclusionsChanged?: () => void;
     onLayoutChange?: () => void;
     onCommentInput?: (highlightId: string, text: string) => void;
@@ -71,11 +72,13 @@ export class EventCoordinator {
         this.component.registerEvent(this.eventManager.on('favorites:changed', () => {
             if (!this.disposed) this.callbacks.onFavoritesChanged?.();
         }));
-        for (const event of ['highlight:update', 'highlight:delete', 'comment:update', 'comment:delete'] as const) {
-            this.component.registerEvent(this.eventManager.on(event, () => {
-                if (!this.disposed) this.callbacks.onFavoritesChanged?.();
-            }));
-        }
+        const recordsChanged = (filePath: string) => {
+            if (!this.disposed) this.callbacks.onRecordsChanged?.(filePath);
+        };
+        this.component.registerEvent(this.eventManager.on('highlight:update', recordsChanged));
+        this.component.registerEvent(this.eventManager.on('highlight:delete', recordsChanged));
+        this.component.registerEvent(this.eventManager.on('comment:update', recordsChanged));
+        this.component.registerEvent(this.eventManager.on('comment:delete', recordsChanged));
 
         // 监听布局变化
         this.registerLayoutChangeEvent();

@@ -141,7 +141,7 @@ export default {
     "Export failed: Failed to load necessary components.": "Export failed: Failed to load necessary components.",
     "All Highlight": "All highlight",
     "Export as notes": "Export as notes",
-    "Add File Comment": "Add file comment",
+    "Add File Comment": "Add a document note...",
     "File Comment": "File comment",
     "Successfully exported highlights to: ": "Successfully exported highlights to: ",
     "Failed to export highlights: ": "Failed to export highlights: ",

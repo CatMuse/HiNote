@@ -1,6 +1,6 @@
 import { defaultHighlightCardRegistry } from "../../../components/highlight";
 import { CommentService } from "../../../services/comment";
-import { CommentItem, HighlightInfo } from "../../../types/highlight";
+import { CommentItem, HighlightInfo, isFileComment } from "../../../types/highlight";
 import { ViewState } from "../../hinote/ViewState";
 import { CommentInputManager } from "./CommentInputManager";
 
@@ -36,9 +36,9 @@ export class CommentController {
                 await this.options.commentService.deleteComment(highlight, commentId);
             },
             onCommentCancel: async (highlight) => {
-                if (highlight.isVirtual && (!highlight.comments || highlight.comments.length === 0)) {
+                if (isFileComment(highlight) && highlight.isDraft && (!highlight.comments || highlight.comments.length === 0)) {
                     this.syncCommentServiceState();
-                    await this.options.commentService.deleteVirtualHighlight(highlight);
+                    await this.options.commentService.deleteFileCommentDraft(highlight);
                 }
             }
         });
@@ -62,13 +62,29 @@ export class CommentController {
 
     private updateCard(highlight: HighlightInfo): void {
         if (this.options.state.disposed) return;
+        const cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlight.id || '', this.options.highlightContainer);
+        const getCardElement = cardInstance?.getElement?.bind(cardInstance);
+        const wasInDraftSection = getCardElement?.().closest('.file-comment-section') !== null;
         const index = this.options.state.highlights.findIndex(h => h.id === highlight.id);
         if (index !== -1) {
             this.options.state.highlights[index] = highlight;
         }
 
-        const cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlight.id || '', this.options.highlightContainer);
+        // A newly saved file comment changes from the top draft area into a
+        // normal masonry card in the main view. Re-render once so it moves
+        // immediately instead of remaining stranded in the draft section.
+        if (this.options.state.isDraggedToMainView && wasInDraftSection
+            && isFileComment(highlight) && !!highlight.recordId) {
+            void this.options.refreshView();
+            return;
+        }
+
         if (cardInstance) {
+            if (isFileComment(highlight) && highlight.recordId) {
+                const card = cardInstance.getElement();
+                card.classList.remove('file-comment-draft-card');
+                card.closest('.file-comment-section')?.classList.remove('has-open-file-comment-draft');
+            }
             cardInstance.updateComments(highlight);
         }
     }
@@ -84,7 +100,10 @@ export class CommentController {
 
         const cardInstance = defaultHighlightCardRegistry.findByHighlightId(highlight.id || '', this.options.highlightContainer);
         if (cardInstance) {
-            cardInstance.getElement().remove();
+            const card = cardInstance.getElement();
+            const section = card.closest('.file-comment-section');
+            card.remove();
+            section?.classList.remove('has-open-file-comment-draft');
             cardInstance.destroy();
         }
     }

@@ -1,5 +1,5 @@
 import { App, Modal, Notice } from 'obsidian';
-import { HighlightInfo } from '../types/highlight';
+import { HighlightInfo, isFileComment } from '../types/highlight';
 import { getTemplate, templates } from './index';
 import { CommentItem } from '../types/highlight';
 import { t, formatDateTime } from '../i18n';
@@ -13,12 +13,14 @@ export class ExportPreviewModal extends Modal {
     private html2canvasInstance: Html2Canvas;
     private selectedTemplateId: string = 'default';
     private previewContainer: HTMLElement;
-    private includeComments: boolean = false;
+    private includeComments: boolean;
 
     constructor(app: App, highlight: HighlightInfo & { comments?: CommentItem[] }, html2canvas: Html2Canvas) {
         super(app);
         this.highlight = highlight;
         this.html2canvasInstance = html2canvas;
+        // A file comment has no source quote; its comments are the export body.
+        this.includeComments = isFileComment(highlight);
     }
 
     onOpen(): void {
@@ -97,6 +99,11 @@ export class ExportPreviewModal extends Modal {
                 this.includeComments = (e.target as HTMLInputElement).checked;
                 this.updatePreview();
             });
+
+            if (isFileComment(this.highlight)) {
+                checkbox.checked = true;
+                checkbox.disabled = true;
+            }
         }
 
         // 取消按钮
@@ -125,7 +132,7 @@ export class ExportPreviewModal extends Modal {
             exportContainer.appendChild(cardElement);
 
             // 如果开启了批注显示，则添加批注
-            if (this.includeComments && this.highlight.comments && this.highlight.comments.length > 0) {
+            if (this.shouldRenderComments()) {
                 this.addCommentsToContainer(exportContainer);
             }
 
@@ -169,9 +176,14 @@ export class ExportPreviewModal extends Modal {
         this.previewContainer.appendChild(cardElement);
         
         // 如果开启了批注显示，则添加批注
-        if (this.includeComments && this.highlight.comments && this.highlight.comments.length > 0) {
+        if (this.shouldRenderComments()) {
             this.addCommentsToContainer(this.previewContainer);
         }
+    }
+
+    private shouldRenderComments(): boolean {
+        return (this.includeComments || isFileComment(this.highlight)) &&
+            !!this.highlight.comments?.length;
     }
     
     private addCommentsToContainer(container: HTMLElement) {

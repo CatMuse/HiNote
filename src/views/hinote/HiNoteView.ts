@@ -9,7 +9,7 @@ import { LocationService } from '../../services/LocationService';
 import { ExportService } from '../../services/ExportService';
 import { t } from '../../i18n';
 import { LicenseManager } from '../../services/LicenseManager';
-import { ExportManager, HighlightFlashcardMarkers, VirtualHighlightManager } from '../highlight';
+import { ExportManager, FileCommentDraftManager, HighlightFlashcardMarkers } from '../highlight';
 import { DeviceManager, EventCoordinator, UIInitializer } from '../managers';
 import { ViewState, type ViewSession } from './ViewState';
 import { setupHiNoteView } from './HiNoteViewSetup';
@@ -40,7 +40,7 @@ export class HiNoteView extends ItemView {
     private closed = false;
     private setupResult: HiNoteViewSetupResult | null = null;
     private exportManager: ExportManager | null = null;
-    private virtualHighlightManager: VirtualHighlightManager | null = null;
+    private fileCommentDraftManager: FileCommentDraftManager | null = null;
     private flashcardMarkers: HighlightFlashcardMarkers | null = null;
     private deviceManager: DeviceManager | null = null;
     private uiInitializer: UIInitializer | null = null;
@@ -68,7 +68,7 @@ export class HiNoteView extends ItemView {
         this.uiInitializer = new UIInitializer();
         this.eventCoordinator = new EventCoordinator(this.app, this, services.eventManager);
         this.exportManager = new ExportManager(this.app, this.exportService);
-        this.virtualHighlightManager = new VirtualHighlightManager(this.highlightManager);
+        this.fileCommentDraftManager = new FileCommentDraftManager();
         this.flashcardMarkers = new HighlightFlashcardMarkers(this.plugin);
     }
 
@@ -129,7 +129,7 @@ export class HiNoteView extends ItemView {
             uiInitializer: this.uiInitializer!,
             eventCoordinator: this.eventCoordinator!,
             exportManager: this.exportManager!,
-            virtualHighlightManager: this.virtualHighlightManager!,
+            fileCommentDraftManager: this.fileCommentDraftManager!,
             flashcardMarkers: this.flashcardMarkers!,
             jumpToHighlight: async (highlight) => await this.jumpToHighlight(highlight),
             checkViewPosition: async () => await this.checkViewPosition(),

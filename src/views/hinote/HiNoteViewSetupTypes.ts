@@ -19,7 +19,7 @@ import {
     HighlightRenderController,
     HighlightRenderManager,
     InfiniteScrollManager,
-    VirtualHighlightManager
+    FileCommentDraftManager
 } from "../highlight";
 import { LayoutManager, ViewPositionController, ViewPositionDetector } from "../layout";
 import { BatchOperationsHandler, SelectionManager } from "../selection";
@@ -50,7 +50,7 @@ export interface HiNoteViewSetupOptions {
     uiInitializer: UIInitializer;
     eventCoordinator: EventCoordinator;
     exportManager: ExportManager;
-    virtualHighlightManager: VirtualHighlightManager;
+    fileCommentDraftManager: FileCommentDraftManager;
     flashcardMarkers: HighlightFlashcardMarkers;
     jumpToHighlight: (highlight: HighlightInfo) => Promise<void>;
     checkViewPosition: () => Promise<void>;

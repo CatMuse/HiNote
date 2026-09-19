@@ -1,6 +1,6 @@
 import { t } from '../../../i18n';
 import { Notice } from 'obsidian';
-import type { HighlightInfo } from '../../../types/highlight';
+import { isFileComment, type CommentItem, type HighlightInfo } from '../../../types/highlight';
 
 export class HighlightCardClipboard {
     static copyHighlightContent(highlight: HighlightInfo, fileName?: string): void {
@@ -20,15 +20,47 @@ export class HighlightCardClipboard {
     }
 
     private static formatHighlightContent(highlight: HighlightInfo, fileName?: string): string {
-        let content = '> [!quote] HiNote\n';
-        content += `> ${highlight.text}`;
+        const lines: string[] = [];
+        const source = this.formatSourceLink(highlight, fileName);
 
-        if (highlight.filePath) {
-            const displayName = fileName || highlight.filePath.split('/').pop() || highlight.filePath;
-            content += '\n> \n';
-            content += `> From: [[${displayName}]]`;
+        if (isFileComment(highlight)) {
+            lines.push('> [!note] File comment');
+            if (source) lines.push(`> Source: ${source}`);
+            lines.push('>');
+            for (const [index, comment] of (highlight.comments || []).entries()) {
+                if (index > 0) lines.push('>');
+                lines.push(...this.formatFileComment(comment));
+            }
+        } else {
+            lines.push('> [!quote] HiNote');
+            lines.push(...this.prefixLines(highlight.text || ''));
+            if (source) {
+                lines.push('>');
+                lines.push(`> From: ${source}`);
+            }
+            for (const comment of highlight.comments || []) {
+                lines.push('>');
+                lines.push('>> [!note]+');
+                lines.push(...this.prefixLines(comment.content, '>>'));
+            }
         }
 
-        return `${content}\n\n`;
+        return `${lines.join('\n')}\n\n`;
+    }
+
+    private static formatSourceLink(highlight: HighlightInfo, fileName?: string): string {
+        if (!highlight.filePath) return '';
+        const path = highlight.filePath.replace(/\.md$/i, '');
+        const displayName = (fileName || path.split('/').pop() || path).replace(/\.md$/i, '');
+        return `[[${path}|${displayName}]]`;
+    }
+
+    private static formatFileComment(comment: CommentItem): string[] {
+        return this.prefixLines(comment.content, '>');
+    }
+
+    private static prefixLines(value: string, prefix: string = '>'): string[] {
+        const lines = value.split('\n');
+        return lines.length ? lines.map(line => line ? `${prefix} ${line}` : prefix) : [prefix];
     }
 }

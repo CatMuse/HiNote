@@ -22,6 +22,7 @@ export interface OptimizedHighlight {
     syntax?: HiNote['syntax'];
     blockId?: string;
     isCloze?: boolean;
+    /** Legacy v2 wire marker for file comments. Never exposed as view state. */
     isVirtual?: boolean;
     paragraphOffset?: number;
     contextBefore?: string;

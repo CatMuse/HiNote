@@ -1,13 +1,12 @@
 import { refreshHighlightMetadata } from './HighlightMetadataRefresh';
 import { App } from 'obsidian';
 import { t } from '../../../i18n';
-import type { HighlightInfo } from '../../../types/highlight';
+import { isFileComment, type HighlightInfo } from '../../../types/highlight';
 import { ViewState } from '../../hinote/ViewState';
 import type { HighlightRenderManager } from '../rendering';
 import type { HighlightFlashcardMarkers } from '../flashcards';
 import type { InfiniteScrollManager } from './InfiniteScrollManager';
 import type { GlobalHighlightService, HighlightDataService } from '../../../services/highlight';
-import type { VirtualHighlightManager } from '../virtual';
 import type { CanvasHighlightProcessor } from '../canvas';
 import type { SearchUIManager } from '../../managers';
 import type { SelectionManager } from '../../selection';
@@ -24,7 +23,6 @@ interface HighlightListControllerOptions {
     getInfiniteScrollManager: () => InfiniteScrollManager | null;
     getGlobalHighlightService: () => GlobalHighlightService | null;
     getHighlightDataService: () => HighlightDataService | null;
-    getVirtualHighlightManager: () => VirtualHighlightManager | null;
     getCanvasProcessor: () => CanvasHighlightProcessor | null;
     getSelectionManager: () => SelectionManager | null;
     beforeReplace?: () => void;
@@ -51,11 +49,14 @@ export class HighlightListController {
         if (!append) this.options.beforeReplace?.();
         const renderer = this.options.getHighlightRenderManager();
         if (!renderer) return;
+        const showFileCommentSection = state.page.kind === 'file' && state.search.scope !== 'vault';
         renderer.updateState({
             currentFile: state.search.scope === 'vault' ? null : state.currentFile,
             isDraggedToMainView: state.isDraggedToMainView,
             highlightsWithFlashcards: this.options.getHighlightFlashcardMarkers()?.getFlashcardMarkers(),
-            currentBatch: this.options.getInfiniteScrollManager()?.getCurrentBatch() || 0
+            currentBatch: this.options.getInfiniteScrollManager()?.getCurrentBatch() || 0,
+            showFileCommentSection,
+            fileComments: showFileCommentSection ? state.highlights.filter(isFileComment) : []
         });
         renderer.renderHighlights(rows, append, this.options.getSelectionManager() ?? undefined);
         this.options.getInfiniteScrollManager()?.setCurrentBatch(renderer.getCurrentBatch());

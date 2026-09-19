@@ -1,9 +1,10 @@
-import { HighlightInfo, CommentItem } from '../../../types/highlight';
+import { HighlightInfo, CommentItem, isFileComment } from '../../../types/highlight';
 import { HighlightCard, defaultHighlightCardRegistry } from '../../../components/highlight';
 import { SelectionManager } from '../../selection';
 import { TFile } from 'obsidian';
 import CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
+import { renderFileCommentSection, sortFileCommentsByNewest } from './FileCommentSection';
 
 /**
  * 高亮渲染管理器
@@ -11,7 +12,7 @@ import { t } from '../../../i18n';
  */
 export class HighlightRenderManager {
     private static readonly MASONRY_MIN_COLUMN_WIDTH = 250;
-    private static readonly MASONRY_GAP = 12;
+    private static readonly MASONRY_GAP = 8;
 
     private container: HTMLElement;
     private plugin: CommentPlugin;
@@ -24,12 +25,15 @@ export class HighlightRenderManager {
     private onCommentEdit: ((element: HTMLElement, h: HighlightInfo, c: CommentItem) => void) | null = null;
     private onExport: ((h: HighlightInfo) => void) | null = null;
     private onAIResponse: ((h: HighlightInfo, content: string) => Promise<void>) | null = null;
+    private onFileCommentAdd: (() => void) | null = null;
     
     // 状态
     private currentFile: TFile | null = null;
     private isDraggedToMainView: boolean = false;
     private highlightsWithFlashcards: Set<string> = new Set();
     private currentBatch: number = 0;
+    private fileComments: HighlightInfo[] = [];
+    private showFileCommentSection = false;
     private renderSequence = 0;
     private resizeObserver: ResizeObserver | null = null;
     private resizeTimer: number | null = null;
@@ -55,6 +59,7 @@ export class HighlightRenderManager {
         onCommentEdit?: (element: HTMLElement, h: HighlightInfo, c: CommentItem) => void;
         onExport?: (h: HighlightInfo) => void;
         onAIResponse?: (h: HighlightInfo, content: string) => Promise<void>;
+        onFileCommentAdd?: () => void;
     }) {
         if (callbacks.onHighlightClick) {
             this.onHighlightClick = callbacks.onHighlightClick;
@@ -71,6 +76,9 @@ export class HighlightRenderManager {
         if (callbacks.onAIResponse) {
             this.onAIResponse = callbacks.onAIResponse;
         }
+        if (callbacks.onFileCommentAdd) {
+            this.onFileCommentAdd = callbacks.onFileCommentAdd;
+        }
     }
     
     /**
@@ -81,6 +89,8 @@ export class HighlightRenderManager {
         isDraggedToMainView?: boolean;
         highlightsWithFlashcards?: Set<string>;
         currentBatch?: number;
+        fileComments?: HighlightInfo[];
+        showFileCommentSection?: boolean;
     }) {
         if (state.currentFile !== undefined) {
             this.currentFile = state.currentFile;
@@ -93,6 +103,12 @@ export class HighlightRenderManager {
         }
         if (state.currentBatch !== undefined) {
             this.currentBatch = state.currentBatch;
+        }
+        if (state.fileComments !== undefined) {
+            this.fileComments = state.fileComments;
+        }
+        if (state.showFileCommentSection !== undefined) {
+            this.showFileCommentSection = state.showFileCommentSection;
         }
     }
     
@@ -120,11 +136,36 @@ export class HighlightRenderManager {
             if (this.selectionManager) {
                 this.selectionManager.clearSelection();
             }
+
+            if (this.showFileCommentSection) {
+                const fileCommentsForSection = this.isDraggedToMainView
+                    ? this.fileComments.filter(comment => comment.isDraft && !comment.recordId)
+                    : this.fileComments;
+                renderFileCommentSection(this.container, {
+                    comments: fileCommentsForSection,
+                    onAdd: () => this.onFileCommentAdd?.(),
+                    renderCard: (container, comment) => this.renderHighlightCard(container, comment, false)
+                });
+            }
         }
 
-        if (highlightsToRender.length === 0) {
+        const regularHighlights = this.showFileCommentSection
+            ? highlightsToRender.filter(highlight => !isFileComment(highlight))
+            : highlightsToRender;
+        const savedFileComments = this.showFileCommentSection && this.isDraggedToMainView && !append
+            ? sortFileCommentsByNewest(this.fileComments.filter(comment => isFileComment(comment) && !comment.isDraft && !!comment.recordId))
+            : [];
+        const masonryHighlights = [...savedFileComments, ...regularHighlights];
+
+        if (masonryHighlights.length === 0) {
+            const hasDraft = this.showFileCommentSection && this.fileComments.some(comment => comment.isDraft && !comment.recordId);
+            if (append || hasDraft) return;
             this.renderEmptyState();
             return;
+        }
+
+        if (append) {
+            this.container.querySelector<HTMLElement>('.highlight-empty-state')?.remove();
         }
         
         // 初始化选择功能
@@ -135,7 +176,7 @@ export class HighlightRenderManager {
         const highlightList = this.ensureHighlightList();
         this.syncMasonryColumns(highlightList);
 
-        highlightsToRender.forEach((highlight) => {
+        masonryHighlights.forEach((highlight) => {
             this.renderHighlightCard(this.getShortestMasonryColumn(highlightList), highlight);
         });
     }
@@ -234,7 +275,7 @@ export class HighlightRenderManager {
     /**
      * 渲染单个高亮卡片
      */
-    private renderHighlightCard(container: HTMLElement, highlight: HighlightInfo) {
+    private renderHighlightCard(container: HTMLElement, highlight: HighlightInfo, masonry = true) {
         // 在具体文件视图下，确保高亮有 filePath
         if (this.currentFile && !highlight.filePath) {
             highlight.filePath = this.currentFile.path;
@@ -289,7 +330,12 @@ export class HighlightRenderManager {
 
         // 根据位置更新样式
         const cardElement = highlightCard.getElement();
-        cardElement.dataset.masonryOrder = String(this.renderSequence++);
+        if (isFileComment(highlight) && !highlight.recordId) {
+            cardElement.classList.add('file-comment-draft-card');
+        }
+        if (masonry) {
+            cardElement.dataset.masonryOrder = String(this.renderSequence++);
+        }
         if (this.isDraggedToMainView) {
             cardElement.classList.add('in-main-view');
             // 找到文本内容元素并移除点击提示

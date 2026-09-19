@@ -107,7 +107,8 @@ export class HighlightManager {
         // Publish only after successful persistence. A failed save keeps its
         // draft/scan key and can be retried without dangling flashcard links.
         this.publishIdentity(highlight, record);
-        if (this.eventManager) {
+        const emptyFileComment = record.kind === 'file-comment' && record.comments.length === 0 && !record.favoritedAt;
+        if (this.eventManager && !emptyFileComment) {
             const latest = record.comments[record.comments.length - 1];
             if (latest) this.eventManager.emitCommentUpdate(filePath, record.text, latest.content, record.id);
             else this.eventManager.emitHighlightUpdate(filePath, record.text, record.text, record.id);
@@ -119,7 +120,7 @@ export class HighlightManager {
         view.id = record.id;
         view.recordId = record.id;
         view.kind = record.kind;
-        view.isVirtual = record.kind === 'file-comment';
+        delete view.isDraft;
         view.filePath = record.filePath;
         view.favoritedAt = record.favoritedAt;
         view.createdAt = record.createdAt;

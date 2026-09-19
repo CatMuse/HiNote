@@ -58,12 +58,17 @@ function vault(initial = {}) {
     };
     const disk = new HiNoteDataManager(app);
     const repository = new HighlightRepository(disk);
-    const events = { emitCommentUpdate() {}, emitHighlightUpdate() {}, emitFlashcardChanged() {} };
+    const emitted = [];
+    const events = {
+        emitCommentUpdate(...args) { emitted.push(['comment:update', ...args]); },
+        emitHighlightUpdate(...args) { emitted.push(['highlight:update', ...args]); },
+        emitFlashcardChanged() {}
+    };
     const extractor = new HighlightExtractor(app);
     const manager = new HighlightManager(app, repository, events, {
         shouldProcessFile: () => true, extractHighlights: (text, file) => extractor.extractHighlights(text, file)
     });
-    return { app, file, files, writes, state, disk, repository, manager, events, extractor };
+    return { app, file, files, writes, state, disk, repository, manager, events, emitted, extractor };
 }
 async function modelBoundaries() {
     const env = vault();
@@ -88,7 +93,7 @@ async function modelBoundaries() {
     assert.equal(view.recordId, stored.id);
     assert.equal(view.id, stored.id);
     assert.ok(!(HIGHLIGHT_SOURCE in stored));
-    for (const key of ['scanKey', 'recordId', 'fileName', 'fileIcon', 'isGlobalSearch', 'isFromCanvas', 'canvasSource', 'isVirtual', 'originalLength']) {
+    for (const key of ['scanKey', 'recordId', 'fileName', 'fileIcon', 'isGlobalSearch', 'isFromCanvas', 'canvasSource', 'isDraft', 'originalLength']) {
         assert.ok(!(key in stored), key + ' must not enter a saved record');
         assert.ok(!(key in env.repository.getCachedHighlights(env.file.path)[0]), key + ' must not enter cache');
     }
@@ -181,15 +186,25 @@ async function legacyAndFileComments() {
     const encoded = encodeHighlightRecord(records[1]);
     assert.equal(encoded.isVirtual, true);
     assert.equal(decodeHighlightRecord('file-comment-legacy', encoded, 'note.md').id, 'file-comment-legacy');
-    const newComment = { text: 'File Comment', position: 0, isVirtual: true, kind: 'file-comment', comments: [comment('note-comment')] };
+    const newComment = { text: 'File Comment', position: 0, isDraft: true, kind: 'file-comment', comments: [comment('note-comment')] };
     await env.manager.addHighlight(env.file, newComment);
     const uuid = newComment.recordId;
     assert.ok(uuid && uuid !== 'file-comment-legacy');
     const [sameTextHighlight] = new HighlightMatcher().mergeHighlightsWithComments(
         env.extractor.extractHighlights('==File Comment==', env.file), [await env.repository.findHighlightById(uuid)], env.file
-    ).filter(view => !view.isVirtual);
+    ).filter(view => view.kind !== 'file-comment');
     assert.equal(sameTextHighlight.recordId, undefined, 'File comments never bind to equal source text');
     console.log('Compatibility: legacy IDs/timestamps and file-comment kind survive without migration.');
+}
+async function emptyFileCommentEvents() {
+    const env = vault();
+    const draft = { text: 'File Comment', position: 0, isDraft: true, kind: 'file-comment', comments: [] };
+    await env.manager.addHighlight(env.file, draft);
+    assert.equal(env.emitted.length, 0, 'An empty file-comment placeholder must never trigger a view refresh');
+    draft.comments.push(comment('saved-comment'));
+    await env.manager.addHighlight(env.file, draft);
+    assert.equal(env.emitted.length, 1);
+    assert.equal(env.emitted[0][0], 'comment:update');
 }
 async function flashcardAndFailure() {
     const env = vault();
@@ -245,5 +260,5 @@ function performanceCheck() {
     console.log(`Model benchmark: match + project 5,000 annotated highlights, median ${times[2].toFixed(1)} ms (no disk/DOM).`);
 }
 (async () => {
-    await modelBoundaries(); await firstSaves(); await legacyAndFileComments(); await flashcardAndFailure(); performanceCheck();
+    await modelBoundaries(); await firstSaves(); await legacyAndFileComments(); await emptyFileCommentEvents(); await flashcardAndFailure(); performanceCheck();
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1,6 +1,5 @@
 import { TFile, App } from 'obsidian';
-import { HighlightInfo, ScannedHighlight } from '../../types/highlight';
-import { HighlightRecord as HiNote } from '../../types/highlight';
+import { HighlightInfo, HighlightRecord, ScannedHighlight, isFileComment } from '../../types/highlight';
 import { HighlightService } from '../HighlightService';
 import { HighlightRepository } from '../../repositories/HighlightRepository';
 
@@ -75,9 +74,6 @@ export class GlobalHighlightService {
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
-            // 添加虚拟高亮
-            const virtualHighlights = this.getVirtualHighlights(fileComments, file);
-            result.push(...virtualHighlights);
         }
         
         // 添加稳定排序
@@ -115,9 +111,6 @@ export class GlobalHighlightService {
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
-            // 添加虚拟高亮
-            const virtualHighlights = this.getVirtualHighlights(fileComments, file);
-            result.push(...virtualHighlights);
         }
         
         // 添加稳定排序
@@ -130,7 +123,7 @@ export class GlobalHighlightService {
     private async searchHighlightsFromIndex(searchTerm: string): Promise<HighlightInfo[]> {
         const searchResults = await this.highlightService.searchHighlightsFromIndex(searchTerm);
         
-        return (await this.processCachedHighlights(searchResults)).filter(highlight => !highlight.isVirtual);
+        return (await this.processCachedHighlights(searchResults)).filter(highlight => !isFileComment(highlight));
     }
     
     /**
@@ -156,9 +149,6 @@ export class GlobalHighlightService {
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
-            // 添加虚拟高亮
-            const virtualHighlights = this.getVirtualHighlights(fileComments, file);
-            result.push(...virtualHighlights);
         }
         
         // 添加稳定排序：按文件路径和位置排序
@@ -191,9 +181,6 @@ export class GlobalHighlightService {
             const processedHighlights = this.processFileHighlights(highlights, fileComments, file);
             result.push(...processedHighlights);
             
-            // 添加虚拟高亮
-            const virtualHighlights = this.getVirtualHighlights(fileComments, file);
-            result.push(...virtualHighlights);
         }
         
         // 添加稳定排序：按文件路径和位置排序
@@ -205,20 +192,11 @@ export class GlobalHighlightService {
      */
     private processFileHighlights(
         highlights: ScannedHighlight[],
-        fileComments: HiNote[],
+        fileComments: HighlightRecord[],
         file: TFile
     ): HighlightInfo[] {
         if (!this.highlightService.shouldProcessFile(file)) return [];
         return this.highlightService.mergeHighlightsWithComments(highlights, fileComments, file);
-    }
-    
-    /**
-     * 获取虚拟高亮（已废弃，由 mergeHighlightsWithComments 统一处理）
-     * 保留此方法以兼容现有代码，但实际上不再使用
-     */
-    private getVirtualHighlights(fileComments: HiNote[], file: TFile): HighlightInfo[] {
-        // 虚拟高亮现在由 mergeHighlightsWithComments 统一处理
-        return [];
     }
     
     /**
@@ -234,11 +212,11 @@ export class GlobalHighlightService {
      * 排序规则：
      * 1. 按文件路径字母顺序
      * 2. 同一文件内按位置（position 字段）
-     * 3. 虚拟高亮排在文件最前面
+     * 3. 文件批注排在文件最前面
      */
     private sortHighlights(highlights: HighlightInfo[]): HighlightInfo[] {
         return highlights.sort((a, b) => {
-            // 获取文件路径，虚拟高亮使用其 filePath
+            // 获取文件路径
             const pathA = a.filePath || '';
             const pathB = b.filePath || '';
             
@@ -247,11 +225,11 @@ export class GlobalHighlightService {
                 return pathA.localeCompare(pathB);
             }
             
-            // 同一文件内，虚拟高亮排在前面
-            if (a.isVirtual && !b.isVirtual) return -1;
-            if (!a.isVirtual && b.isVirtual) return 1;
+            // 同一文件内，文件批注排在前面
+            if (isFileComment(a) && !isFileComment(b)) return -1;
+            if (!isFileComment(a) && isFileComment(b)) return 1;
             
-            // 都是虚拟高亮或都不是，按位置排序
+            // 类型相同时按位置排序
             // position 是文本在文档中的位置（数字）
             if (a.position !== undefined && b.position !== undefined) {
                 if (a.position !== b.position) {

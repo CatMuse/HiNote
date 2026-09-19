@@ -1,5 +1,5 @@
 import { TFile, App, Notice } from 'obsidian';
-import { HighlightInfo, CommentItem } from '../../types/highlight';
+import { HighlightInfo, CommentItem, isFileComment } from '../../types/highlight';
 import { HighlightManager } from '../HighlightManager';
 import { IdGenerator } from '../../utils/IdGenerator';
 import CommentPlugin from '../../../main';
@@ -157,12 +157,12 @@ export class CommentService {
         highlight.updatedAt = Date.now();
 
         const hasFlashcard = highlight.id ? this.checkHasFlashcard(highlight.id) : false;
-        if (highlight.comments.length === 0 && (highlight.isVirtual || !hasFlashcard)) {
+        if (highlight.comments.length === 0 && (isFileComment(highlight) || !hasFlashcard)) {
             // The queued removal checks the latest favorite state, including other views.
             const removed = await this.highlightManager.removeHighlight(file, highlight, true);
             if (!removed) {
                 await this.highlightManager.addHighlight(file, highlight);
-            } else if (highlight.isVirtual) {
+            } else if (isFileComment(highlight)) {
                 removedHighlight = true;
                 this.highlights = this.highlights.filter(h => h.id !== highlight.id);
                 this.onHighlightsUpdate?.(this.highlights);
@@ -185,34 +185,34 @@ export class CommentService {
     /**
      * 删除虚拟高亮（当取消添加评论时）
      */
-    async deleteVirtualHighlight(highlight: HighlightInfo): Promise<void> {
-        if (!highlight.isVirtual || highlight.favoritedAt || (highlight.comments && highlight.comments.length > 0)) {
+    async deleteFileCommentDraft(highlight: HighlightInfo): Promise<void> {
+        if (!isFileComment(highlight) || highlight.favoritedAt || (highlight.comments && highlight.comments.length > 0)) {
             return;
         }
-        
+
+        // A new file comment is a view-only draft until its first save.
+        // Cancelling it must not perform a compensating storage delete.
+        if (!highlight.recordId) {
+            await this.removeFileCommentFromView(highlight);
+            return;
+        }
+
         const file = await this.getFileForHighlight(highlight);
         if (file) {
             if (!await this.highlightManager.removeHighlight(file, highlight, true)) return;
-            this.highlights = this.highlights.filter(h => {
-                // 如果有 ID，通过 ID 比较
-                if (h.id && highlight.id) {
-                    return h.id !== highlight.id;
-                }
-                // 如果没有 ID，通过位置和文本比较
-                return !(h.position === highlight.position && h.text === highlight.text);
-            });
-            
-            // 通知外部更新高亮列表
-            if (this.onHighlightsUpdate) {
-                this.onHighlightsUpdate(this.highlights);
-            }
-
-            if (this.onCardRemove) {
-                this.onCardRemove(highlight);
-            } else if (this.onRefreshView) {
-                await this.onRefreshView();
-            }
+            await this.removeFileCommentFromView(highlight);
         }
+    }
+
+    private async removeFileCommentFromView(highlight: HighlightInfo): Promise<void> {
+        this.highlights = this.highlights.filter(h => {
+            if (h.id && highlight.id) return h.id !== highlight.id;
+            return !(h.position === highlight.position && h.text === highlight.text);
+        });
+        this.onHighlightsUpdate?.(this.highlights);
+
+        if (this.onCardRemove) this.onCardRemove(highlight);
+        else if (this.onRefreshView) await this.onRefreshView();
     }
     
     /**

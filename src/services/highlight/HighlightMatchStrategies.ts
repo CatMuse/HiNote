@@ -4,7 +4,7 @@ import { getHighlightSource } from '../../models/HighlightModels';
 
 import { parseHighlightColor } from './HighlightColor';
 
-type HiNote = HighlightContent & { id?: string; kind?: HighlightRecordKind; isVirtual?: boolean };
+type HiNote = HighlightContent & { id?: string; kind?: HighlightRecordKind };
 
 export type HighlightMatchConfidence = 'id' | 'block-text' | 'context' | 'unique-text';
 export interface HighlightMatchResult<R extends HiNote = HiNote> { highlight: R; confidence: HighlightMatchConfidence; }

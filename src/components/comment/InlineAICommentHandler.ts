@@ -1,6 +1,7 @@
 import { Notice, setIcon } from "obsidian";
 import { t } from "../../i18n";
 import { AIServiceManager } from "../../services/ai";
+import { AnnotationContextResolver } from "../../services/annotation/AnnotationContextResolver";
 import { HighlightInfo, CommentItem } from "../../types/highlight";
 import type CommentPlugin from "../../../main";
 
@@ -42,9 +43,11 @@ export class InlineAICommentHandler {
             this.setLoading(true);
 
             const aiService = new AIServiceManager(this.options.plugin.settings.ai, this.options.plugin.app.secretStorage);
+            const contextResolver = new AnnotationContextResolver(this.options.plugin.app);
+            const context = await contextResolver.resolve(this.options.highlight);
             const response = await aiService.generateResponse(
                 userPrompt,
-                this.options.highlight.text || "",
+                contextResolver.formatForAI(context),
                 this.options.existingComment?.content || ""
             );
 

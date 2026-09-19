@@ -1,6 +1,6 @@
 import { t } from '../../i18n';
 import { App, Notice } from "obsidian";
-import { CommentItem, HighlightInfo } from "../../types/highlight";
+import { CommentItem, HighlightInfo, isFileComment } from "../../types/highlight";
 import { HighlightContent } from "./HighlightContent";
 import { CommentList } from "./CommentList";
 
@@ -9,7 +9,7 @@ export function createHighlightCardElement(
     highlight: HighlightInfo
 ): HTMLElement {
     return container.createDiv({
-        cls: `highlight-card ${highlight.isVirtual ? 'virtual-highlight-card' : ''}`,
+        cls: `highlight-card ${isFileComment(highlight) ? 'file-comment-card' : ''}`,
         attr: {
             'data-highlight': JSON.stringify(highlight)
         }

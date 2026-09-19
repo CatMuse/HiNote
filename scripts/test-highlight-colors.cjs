@@ -85,7 +85,7 @@ for (const source of ['==🔵相同正文==', '==相同正文==']) {
 const double = extract('==🔴🔵正文==')[0];
 assert.equal(findStoredHighlightMatch(double, [{ ...double, id: 'normalized' }]).highlight.id, 'normalized');
 assert.equal(findStoredHighlightMatch(extract('==正文==')[0], [{ ...html, id: 'html' }]), null);
-assert.equal(findStoredHighlightMatch(extract('==正文==')[0], [{ ...html, syntax: undefined, isVirtual: true }]), null);
+assert.equal(findStoredHighlightMatch(extract('==正文==')[0], [{ ...html, syntax: undefined, kind: 'file-comment' }]), null);
 const source = '==🔴重复== and ==🔵重复==';
 const current = extract(source);
 const legacy = current.map((h, i) => ({ ...h, syntax: undefined, text: ['🔴重复','🔵重复'][i], id: `old-${i}` }));
@@ -163,7 +163,7 @@ const { ExportContentRenderer } = load('src/services/export/ExportContentRendere
     document = 'inserted text ' + document;
     await assert.rejects(() => service.changeHighlightColor(beforeExternalEdit, 'red'), /source has changed/);
     assert.equal(document, 'inserted text ==重复== and ==重复==');
-    await assert.rejects(() => service.changeHighlightColor({ ...target, isVirtual: true }, 'red'));
+    await assert.rejects(() => service.changeHighlightColor({ ...target, kind: 'file-comment' }, 'red'));
     await assert.rejects(() => service.changeHighlightColor(JSON.parse(JSON.stringify(target)), 'red'));
     document = '<span style="background-color: #abc; color: red">正文</span>';
     const htmlTarget = scanToHighlightView(service.extractHighlights(document, file)[0]);
@@ -183,7 +183,7 @@ const { ExportContentRenderer } = load('src/services/export/ExportContentRendere
     const batchRows = batchService.extractHighlights(documents.get(file.path),file).map(scanToHighlightView);
     batchRows[0].comments=[{id:'comment-kept',content:'Keep this comment'}];
     const otherRow=scanToHighlightView(batchService.extractHighlights(documents.get(secondFile.path),secondFile)[0]);
-    const recolored=await batchService.batchChangeHighlightColors([...batchRows,otherRow,{...otherRow,isVirtual:true}], 'green');
+    const recolored=await batchService.batchChangeHighlightColors([...batchRows,otherRow,{...otherRow,kind:'file-comment'}], 'green');
     assert.equal(writes,2,'One atomic write per file');
     assert.equal(recolored.updated.size,4);
     assert.equal(recolored.skipped,1);
@@ -218,6 +218,13 @@ const { ExportContentRenderer } = load('src/services/export/ExportContentRendere
     const result = await renderer.generateExportContent(file, [red]);
     assert.ok(result.includes('相同正文'));
     assert.ok(!result.includes('🔴'));
+    const fileCommentResult = await renderer.generateExportContent(file, [{
+        kind: 'file-comment', text: 'File Comment', position: 0,
+        comments: [{ id: 'file-note', content: 'Whole-note observation', createdAt: 1, updatedAt: 1 }]
+    }]);
+    assert.ok(fileCommentResult.includes('[!note] File comment'));
+    assert.ok(fileCommentResult.includes('[[example.md|example]]'));
+    assert.ok(fileCommentResult.includes('Whole-note observation'));
     await renderer.generateExportContent(file, [red], '{{highlightText}} {{highlightBlockRef}}');
     assert.equal(anchor[1], red.position);
     assert.equal(anchor[2], '==🔴相同正文=='.length);

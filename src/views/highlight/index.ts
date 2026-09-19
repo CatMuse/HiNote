@@ -2,7 +2,7 @@
  * Highlight 模块统一导出
  */
 export { HighlightRenderManager, HighlightRenderController } from './rendering';
-export { VirtualHighlightManager } from './virtual';
+export { FileCommentDraftManager } from './file-comments';
 export { HighlightFlashcardMarkers, HighlightFlashcardManager } from './flashcards';
 export { HighlightDeletionManager, HighlightIconManager } from './actions';
 export { ExportManager } from './exports';

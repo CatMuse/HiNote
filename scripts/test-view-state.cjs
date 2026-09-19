@@ -62,7 +62,7 @@ function harness(loadFile=async()=>[],loadAll=async()=>[],loadFavorites=async()=
     const controller=new HighlightListController({state,app:{},highlightContainer:container,loadingIndicator:loading,getSearchInput:()=>input,
         getSearchUIManager:()=>ui,getHighlightRenderManager:()=>({clear(){env.clears++;},refreshCardMetadata(){env.patches++;}}),getHighlightFlashcardMarkers:()=>flashcard,getInfiniteScrollManager:()=>env.scroll||null,
         getGlobalHighlightService:()=>({updateAllHighlights:()=>{env.vaultReads++;return loadAll();}}),
-        getHighlightDataService:()=>({loadFavoriteHighlights:loadFavorites,loadFileHighlights:f=>{env.reads++;return loadFile(f);}}),getVirtualHighlightManager:()=>null,
+        getHighlightDataService:()=>({loadFavoriteHighlights:loadFavorites,loadFileHighlights:f=>{env.reads++;return loadFile(f);}}),
         getCanvasProcessor:()=>({processCanvasFile:loadFile}),getSelectionManager:()=>({clearSelection(){env.selectionsCleared++;}})});
     controller.renderHighlights=rows=>{env.rendered=rows;env.surface='highlights';};
     const files=new FileListController({state,fileListManager:{updateFileListSelection(){}},

@@ -33,7 +33,6 @@ export function recordToHighlightView(record: HighlightRecord): HighlightInfo & 
     return {
         ...copyHighlightContent(record),
         id: record.id, recordId: record.id, kind: record.kind,
-        isVirtual: record.kind === 'file-comment',
         createdAt: record.createdAt, updatedAt: record.updatedAt, favoritedAt: record.favoritedAt,
         comments: record.comments.map(comment => ({ ...comment })),
         filePath: record.filePath,
@@ -48,7 +47,7 @@ export function scanToHighlightView(scan: ScannedHighlight, record?: HighlightRe
         blockId: scan.blockId ?? record?.blockId,
         paragraphOffset: scan.paragraphOffset ?? record?.paragraphOffset,
         id: record?.id || scan.scanKey, recordId: record?.id, scanKey: scan.scanKey,
-        kind: 'highlight', isVirtual: false, [HIGHLIGHT_SOURCE]: scan,
+        kind: 'highlight', [HIGHLIGHT_SOURCE]: scan,
         createdAt: record?.createdAt, updatedAt: record?.updatedAt, favoritedAt: record?.favoritedAt,
         comments: (record?.comments || []).map(comment => ({ ...comment })),
         filePath: scan.filePath,
@@ -78,7 +77,7 @@ export function assertHighlightRecord(record: HighlightRecord): void {
         (record.kind !== 'highlight' && record.kind !== 'file-comment') ||
         (record.favoritedAt !== undefined && (!Number.isFinite(record.favoritedAt) || record.favoritedAt <= 0)) ||
         !Number.isFinite(record.createdAt) || !Number.isFinite(record.updatedAt) ||
-        !Array.isArray(record.comments) || 'scanKey' in record || 'recordId' in record || HIGHLIGHT_SOURCE in record) {
+        !Array.isArray(record.comments) || 'scanKey' in record || 'recordId' in record || 'isDraft' in record || HIGHLIGHT_SOURCE in record) {
         throw new Error('Cannot save a scan or view as a highlight record.');
     }
 }

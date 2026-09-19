@@ -73,7 +73,7 @@ function scenarios() {
     assert.equal(matchFileHighlights(withoutContext, withoutContext.map(x => saved(x, x.id))).size, 0);
     const blocks = [h('重复', 'one'), h('重复', 'two')].map((x, i) => ({ ...x, blockId: 'block' + i }));
     assert.equal(matchFileHighlights(blocks, blocks.map(x => saved(x, x.id))).size, 2);
-    assert.equal(matchFileHighlights([h('文件评论', 'x')], [{ ...h('文件评论', 'x'), isVirtual: true }]).size, 0);
+    assert.equal(matchFileHighlights([h('文件评论', 'x')], [{ ...h('文件评论', 'x'), kind: 'file-comment' }]).size, 0);
 
     // Certain exact pairs win before fuzzy proposals, regardless of input order.
     const certain = h('knowledge', 'certain', 'prefix', 'suffix');

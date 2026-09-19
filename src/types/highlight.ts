@@ -59,7 +59,8 @@ export interface HighlightView extends HighlightContent {
     filePath?: string;
     fileName?: string;
     fileIcon?: string;
-    isVirtual?: boolean;
+    /** View-only state for a file comment that has not been persisted yet. */
+    isDraft?: boolean;
     isGlobalSearch?: boolean;
     isFromCanvas?: boolean;
     canvasSource?: string;
@@ -68,8 +69,8 @@ export interface HighlightView extends HighlightContent {
 /** Existing UI imports keep their name while storage/scanning use strict types. */
 export type HighlightInfo = HighlightView;
 
-export function isFileComment(record: { kind?: HighlightRecordKind; isVirtual?: boolean }): boolean {
-    return record.kind === 'file-comment' || record.isVirtual === true;
+export function isFileComment(record: { kind?: HighlightRecordKind }): boolean {
+    return record.kind === 'file-comment';
 }
 
 export interface RegexRule {

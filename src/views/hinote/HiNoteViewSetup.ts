@@ -2,6 +2,7 @@ import { t } from '../../i18n';
 import { ViewState } from './ViewState';
 import { HighlightDataService } from "../../services/highlight";
 import { HighlightListController, HighlightRenderManager, InfiniteScrollManager } from "../highlight";
+import { defaultHighlightCardRegistry } from "../../components/highlight";
 import { SelectionManager } from "../selection";
 import { SearchUIManager } from "../managers";
 import { setupSearchAndSelection } from "./setup/SearchSelectionSetup";
@@ -29,7 +30,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         uiInitializer,
         eventCoordinator,
         exportManager,
-        virtualHighlightManager,
+        fileCommentDraftManager,
         flashcardMarkers,
         jumpToHighlight,
         checkViewPosition,
@@ -73,7 +74,6 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         getInfiniteScrollManager: () => infiniteScrollManager,
         getGlobalHighlightService: () => layoutAndCanvas?.globalHighlightService ?? null,
         getHighlightDataService: () => highlightDataService,
-        getVirtualHighlightManager: () => virtualHighlightManager,
         getCanvasProcessor: () => layoutAndCanvas?.canvasProcessor ?? null,
         getSelectionManager: () => selectionManager,
         beforeReplace: () => highlightRendering?.commentInputManager.suspendAll()
@@ -89,20 +89,6 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
             }
         }
     });
-
-    virtualHighlightManager.createFileCommentButton(
-        uiElements.iconButtonsContainer,
-        {
-            getCurrentFile: () => state.disposed || state.search.scope === 'vault' ? null : state.currentFile,
-            getHighlights: () => state.highlights,
-            onVirtualHighlightCreated: (vh) => {
-                state.highlights.unshift(vh);
-                highlightListController.renderHighlights(state.highlights);
-            },
-            onShowCommentInput: (card, highlight) => highlightRendering?.commentController.showCommentInput(card, highlight),
-            getHighlightContainer: () => highlightContainer
-        }
-    );
 
     exportManager.createExportButton(
         uiElements.iconButtonsContainer,
@@ -145,7 +131,27 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         highlightContainer,
         exportManager,
         highlightListController,
-        jumpToHighlight
+        jumpToHighlight,
+        onFileCommentAdd: () => {
+            const currentFile = state.disposed || state.page.kind !== 'file' || state.search.scope === 'vault'
+                ? null
+                : state.currentFile;
+            if (!currentFile) return;
+
+            const draft = fileCommentDraftManager.createDraft(currentFile);
+            const existing = state.highlights.find(highlight =>
+                highlight.isDraft && !highlight.recordId && highlight.filePath === draft.filePath
+            );
+            const target = existing || draft;
+            if (!existing) {
+                state.highlights.unshift(target);
+                highlightListController.renderWithCurrentSearch();
+            }
+            const card = defaultHighlightCardRegistry.findByHighlightId(target.id || '', highlightContainer)?.getElement();
+            if (!card || !highlightRendering) return;
+            highlightRendering.commentController.showCommentInput(card, target);
+            highlightContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     });
     highlightRenderManager = highlightRendering.highlightRenderManager;
 

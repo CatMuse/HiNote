@@ -7,7 +7,7 @@ import CommentPlugin from "../../main";
  * 内容提供者接口，用于获取 AI 分析所需的文本和评论
  */
 export interface ContentProvider {
-    getText: () => string;
+    getText: () => string | Promise<string>;
     getComments: () => string;
 }
 
@@ -144,7 +144,7 @@ export class AIButton {
             }
 
             // 从内容提供者获取文本和评论
-            const text = this.contentProvider.getText();
+            const text = await this.contentProvider.getText();
             const commentsText = this.contentProvider.getComments();
 
             // 调用 AI 服务进行分析

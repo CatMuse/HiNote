@@ -5,6 +5,8 @@ import type { HighlightInfo } from '../../../types/highlight';
 import { AIButton } from '../../AIButton';
 import type { HighlightCardDragController } from './DragController';
 import type { HighlightCardFileNavigator } from './FileNavigator';
+import { AnnotationContextResolver } from '../../../services/annotation/AnnotationContextResolver';
+import { resolveHighlightTitleMode } from './TitleBarMode';
 
 interface HighlightCardTitleBarRendererOptions {
     plugin: CommentPlugin;
@@ -40,13 +42,28 @@ export class HighlightCardTitleBarRenderer {
     private renderLeftSide(container: HTMLElement): void {
         const highlight = this.options.getHighlight();
         const fileName = this.options.getFileName();
+        const titleMode = resolveHighlightTitleMode(highlight, fileName, this.options.isInMainView);
 
-        if ((this.options.isInMainView || highlight.isGlobalSearch) && fileName) {
+        if (titleMode === 'file' && fileName) {
             this.renderFileTitle(container, highlight, fileName);
             return;
         }
 
+        if (titleMode === 'file-comment') {
+            this.renderFileCommentTitle(container);
+            return;
+        }
+
         this.renderHighlightTitle(container, highlight);
+    }
+
+    private renderFileCommentTitle(container: HTMLElement): void {
+        const icon = container.createDiv({ cls: 'highlight-card-icon' });
+        this.setTitleIcon(icon, 'file');
+        container.createSpan({
+            text: t('File Comment'),
+            cls: 'highlight-card-title-text'
+        });
     }
 
     private renderFileTitle(container: HTMLElement, highlight: HighlightInfo, fileName: string): void {
@@ -112,7 +129,11 @@ export class HighlightCardTitleBarRenderer {
         new AIButton(
             container,
             {
-                getText: () => this.options.getHighlight().text,
+                getText: async () => {
+                    const resolver = new AnnotationContextResolver(this.options.plugin.app);
+                    const context = await resolver.resolve(this.options.getHighlight());
+                    return resolver.formatForAI(context);
+                },
                 getComments: () => (this.options.getHighlight().comments || [])
                     .map(comment => comment.content || '')
                     .join('\n')

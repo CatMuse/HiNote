@@ -1,4 +1,4 @@
-import { HighlightInfo, CommentItem } from "../../types/highlight";
+import { HighlightInfo, CommentItem, isFileComment } from "../../types/highlight";
 import { TFile } from "obsidian";
 import type CommentPlugin from "../../../main";
 
@@ -15,7 +15,7 @@ export class DragContentGenerator {
         const lines: string[] = [];
 
         // 使用与 ExportService 相同的格式
-        if (this.highlight.isVirtual) {
+        if (isFileComment(this.highlight)) {
             const fileName = this.highlight.filePath?.split('/').pop()?.replace('.md', '') || 'File';
             lines.push(`> [!note] [[${fileName}]]`);
             lines.push("> ");
@@ -80,7 +80,7 @@ export class DragContentGenerator {
         // 添加评论
         if (this.highlight.comments && this.highlight.comments.length > 0) {
             for (const comment of this.highlight.comments) {
-                lines.push(...this.formatComment(comment, false));
+                lines.push(...this.formatComment(comment, isFileComment(this.highlight)));
             }
         }
 
@@ -98,11 +98,11 @@ export class DragContentGenerator {
     /**
      * 格式化评论内容
      */
-    private formatComment(comment: CommentItem, isVirtual: boolean): string[] {
+    private formatComment(comment: CommentItem, fileLevel: boolean): string[] {
         const lines: string[] = [];
-        const indentation = isVirtual ? '>' : '>>';
+        const indentation = fileLevel ? '>' : '>>';
 
-        if (!isVirtual) {
+        if (!fileLevel) {
             // 使用新的模板格式：时间戳在标题中
             const date = comment.updatedAt ? window.moment(comment.updatedAt).format("YYYY-MM-DD HH:mm:ss") : '';
             lines.push(`>> [!note]+ ${date}`);
@@ -117,7 +117,7 @@ export class DragContentGenerator {
             })
             .join('\n');
         lines.push(commentLines);
-        lines.push(isVirtual ? ">" : ">");
+        lines.push(">");
 
         return lines;
     }

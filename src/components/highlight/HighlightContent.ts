@@ -1,5 +1,5 @@
 import { MarkdownRenderer, Component, App } from "obsidian";
-import { HighlightInfo } from "../../types/highlight";
+import { HighlightInfo, isFileComment } from "../../types/highlight";
 import { t } from "../../i18n";
 
 export class HighlightContent extends Component {
@@ -51,7 +51,7 @@ export class HighlightContent extends Component {
 
         // 创建文本内容元素，如果是虚拟高亮则使用 displayText
         const textContent = textEl.createDiv({
-            cls: `highlight-text-content ${this.highlight.isVirtual ? 'virtual-highlight' : ''} markdown-rendered`
+            cls: `highlight-text-content ${isFileComment(this.highlight) ? 'file-comment-label' : ''} markdown-rendered`
         });
 
         // 处理文本中的换行符，添加空值检查

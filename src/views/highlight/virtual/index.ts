@@ -1,1 +1,0 @@
-export { VirtualHighlightManager } from './VirtualHighlightManager';

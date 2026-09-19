@@ -1,5 +1,5 @@
 import { TFile } from "obsidian";
-import { CommentItem, HighlightInfo } from "../../types/highlight";
+import { CommentItem, HighlightInfo, isFileComment } from "../../types/highlight";
 import { HighlightService } from "../HighlightService";
 
 export class ExportContentRenderer {
@@ -51,11 +51,11 @@ export class ExportContentRenderer {
         return result;
     }
 
-    private formatComment(comment: CommentItem, isVirtual: boolean = false): string[] {
+    private formatComment(comment: CommentItem, fileLevel: boolean = false): string[] {
         const lines: string[] = [];
-        const indentation = isVirtual ? '>' : '>>';
+        const indentation = fileLevel ? '>' : '>>';
 
-        if (!isVirtual) {
+        if (!fileLevel) {
             const date = comment.updatedAt ? window.moment(comment.updatedAt).format("YYYY-MM-DD HH:mm:ss") : '';
             lines.push(`>> [!note]+ ${date}`);
         }
@@ -68,7 +68,7 @@ export class ExportContentRenderer {
             })
             .join('\n');
         lines.push(commentLines);
-        lines.push(isVirtual ? ">" : ">");
+        lines.push(">");
 
         return lines;
     }
@@ -80,11 +80,19 @@ export class ExportContentRenderer {
     ): Promise<string[]> {
         const lines: string[] = [];
 
-        if (highlight.isVirtual) {
-            lines.push(`> [!note] [[${file.basename}]]`);
+        if (isFileComment(highlight)) {
+            lines.push(`> [!note] File comment`);
+            lines.push(`> Source: [[${file.path}|${file.basename}]]`);
             lines.push("> ");
-        } else {
-            if (template && (template.includes('{{highlightText}}') || template.includes('{{highlightBlockRef}}'))) {
+            if (highlight.comments && highlight.comments.length > 0) {
+                for (const comment of highlight.comments) {
+                    lines.push(...this.formatComment(comment, true));
+                }
+            }
+            return lines;
+        }
+
+        if (template && (template.includes('{{highlightText}}') || template.includes('{{highlightBlockRef}}'))) {
                 const highlightTemplate = this.extractHighlightTemplate(template);
                 const blockIdRef = await this.createBlockIdRef(file, highlight, template);
 
@@ -97,16 +105,15 @@ export class ExportContentRenderer {
                     commentDate: ''
                 });
                 lines.push(...processedTemplate.split('\n'));
-            } else {
-                lines.push("> [!quote] HiNote");
-                lines.push(`> ${highlight.text || ''}`);
-                lines.push("> ");
-            }
+        } else {
+            lines.push("> [!quote] HiNote");
+            lines.push(`> ${highlight.text || ''}`);
+            lines.push("> ");
         }
 
         if (highlight.comments && highlight.comments.length > 0) {
             for (const comment of highlight.comments) {
-                lines.push(...this.formatComment(comment, highlight.isVirtual));
+                lines.push(...this.formatComment(comment, false));
             }
         }
 

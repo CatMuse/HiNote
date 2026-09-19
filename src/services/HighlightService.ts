@@ -3,7 +3,7 @@ import { getHighlightSource } from '../models/HighlightModels';
 import { HighlightColor } from './highlight/HighlightColor';
 import { recolorHighlightSource } from './highlight/HighlightColorEdit';
 import { App, TFile } from "obsidian";
-import { HighlightInfo, ScannedHighlight } from '../types/highlight';
+import { HighlightInfo, ScannedHighlight, isFileComment } from '../types/highlight';
 import { HighlightRecord as HiNote } from '../types/highlight';
 import { HighlightRepository } from '../repositories/HighlightRepository';
 import type { PluginSettings } from '../types/settings';
@@ -47,7 +47,7 @@ export class HighlightService {
     }
 
     canChangeHighlightColor(highlight: HighlightInfo): boolean {
-        return !highlight.sourceUnavailable && !highlight.isVirtual && !highlight.isFromCanvas && !!highlight.filePath?.endsWith('.md') &&
+        return !highlight.sourceUnavailable && !isFileComment(highlight) && !highlight.isFromCanvas && !!highlight.filePath?.endsWith('.md') &&
             ['markdown', 'html'].includes(highlight.syntax || '');
     }
 
