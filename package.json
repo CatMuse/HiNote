@@ -35,6 +35,7 @@
 		"typescript": "^4.7.4"
 	},
 	"dependencies": {
+		"@codemirror/state": "6.5.0",
 		"@codemirror/view": "6.38.6",
 		"html2canvas": "^1.4.1",
 		"ts-fsrs": "5.4.2"
