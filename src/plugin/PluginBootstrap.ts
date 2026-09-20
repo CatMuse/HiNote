@@ -6,7 +6,6 @@ import { WindowManager } from './WindowManager';
 import { HiNoteView, VIEW_TYPE_HINOTE } from '../views/hinote/HiNoteView';
 import { HiCardView, VIEW_TYPE_HICARD } from '../views/hicard/HiCardView';
 import { openHiCard } from '../commands/openHiCard';
-import { ContextMemoryView, VIEW_TYPE_CONTEXT_MEMORY } from '../views/context-memory';
 
 export function createPluginWindowManager(plugin: CommentPlugin): WindowManager {
     return createWindowManager(plugin);
@@ -22,7 +21,6 @@ export function registerPluginViews(plugin: CommentPlugin): void {
         element.setAttribute('data-hinote-line-start', String(section.lineStart));
     });
     plugin.registerView(VIEW_TYPE_HICARD, leaf => new HiCardView(leaf, plugin));
-    plugin.registerView(VIEW_TYPE_CONTEXT_MEMORY, leaf => new ContextMemoryView(leaf, plugin));
     plugin.registerView(
         VIEW_TYPE_HINOTE,
         (leaf: WorkspaceLeaf) => {

@@ -6,7 +6,6 @@ import { registerOpenMainWindowCommand } from './openMainWindow';
 import { registerOpenHiCardCommand } from './openHiCard';
 import { registerSmartHighlightCommand } from './smartHighlight';
 import { registerRelatedHighlightsCommand } from './relatedHighlights';
-import { registerContextMemoryCommand } from './contextMemory';
 
 /**
  * 注册所有命令
@@ -25,7 +24,6 @@ export function registerCommands(
     registerOpenHiCardCommand(plugin, windowManager);
     registerSmartHighlightCommand(plugin, ensureInitialized);
     registerRelatedHighlightsCommand(plugin, ensureInitialized);
-    registerContextMemoryCommand(plugin, ensureInitialized);
 }
 
 /**
