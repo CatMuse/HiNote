@@ -5,6 +5,7 @@ import { registerOpenCommentPanelCommand } from './openCommentPanel';
 import { registerOpenMainWindowCommand } from './openMainWindow';
 import { registerOpenHiCardCommand } from './openHiCard';
 import { registerSmartHighlightCommand } from './smartHighlight';
+import { registerRelatedHighlightsCommand } from './relatedHighlights';
 
 /**
  * 注册所有命令
@@ -22,6 +23,7 @@ export function registerCommands(
     registerOpenMainWindowCommand(plugin, windowManager, ensureInitialized);
     registerOpenHiCardCommand(plugin, windowManager);
     registerSmartHighlightCommand(plugin, ensureInitialized);
+    registerRelatedHighlightsCommand(plugin, ensureInitialized);
 }
 
 /**

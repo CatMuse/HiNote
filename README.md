@@ -113,6 +113,10 @@ Run **HiNote: Suggest smart highlights** while editing a Markdown note to review
 
 Smart highlight is an optional TypeSafe AI integration. Configure a TypeSafe API key through Obsidian Keychain in **Settings → HiNote → Smart highlight**. HiNote sends candidate passages from the current note, their section headings, and nearby lines to TypeSafe only after you select **Analyze**. It does not scan the vault in the background, and the key itself is not stored in plugin settings. Review [TypeSafe's privacy policy](https://typesafe.ai/legal/privacy-policy) before enabling the feature.
 
+## Related highlights
+
+Run **HiNote: Show related highlights** to rediscover highlights from other notes while reading. HiNote first ranks the local highlight index using titles, headings, note text, highlight text, and comments. Local recommendations remain on the device and limit repeated results from the same source note. Select **AI rerank** to send only the top 30 candidates plus a limited current-note profile to TypeSafe; the size of the full highlight library does not increase AI input. Each result shows a 0–100 ranking score, and AI-ranked results also show the primary relationship. Select a result to open its source without moving the editor caret.
+
 ---
 
 ## Pro Features

@@ -4449,3 +4449,62 @@ textarea.flashcard-modal-input {
     padding-top: 12px;
     background: var(--background-primary);
 }
+
+.hinote-related-highlights-modal .modal-content {
+    max-height: min(78vh, 760px);
+    overflow: auto;
+}
+.hinote-related-disclosure,
+.hinote-related-status {
+    color: var(--text-muted);
+    font-size: var(--font-small);
+}
+.hinote-related-actions {
+    margin-bottom: 8px;
+}
+.hinote-related-status {
+    padding: 8px 0;
+}
+.hinote-related-results {
+    display: grid;
+    gap: 8px;
+}
+button.hinote-related-card {
+    width: 100%;
+    height: auto;
+    display: block;
+    padding: 12px;
+    text-align: left;
+    white-space: normal;
+    color: var(--text-normal);
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+}
+button.hinote-related-card:hover,
+button.hinote-related-card:focus-visible {
+    border-color: var(--interactive-accent);
+}
+.hinote-related-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+.hinote-related-source,
+.hinote-related-relation {
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
+}
+.hinote-related-score {
+    min-width: 2.2em;
+    color: var(--text-accent);
+    font-weight: var(--font-semibold);
+    text-align: right;
+}
+.hinote-related-text {
+    overflow-wrap: anywhere;
+}
+.hinote-related-relation {
+    margin-top: 6px;
+}
