@@ -8,8 +8,11 @@ export interface RelatedHighlightResult {
     highlight: HighlightInfo;
     localScore: number;
     relevanceScore: number;
+    noveltyScore?: number;
     finalScore: number;
     relation?: RelatedHighlightRelation;
+    confidence?: number;
+    relationConfidence?: number;
     aiRanked: boolean;
 }
 

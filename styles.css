@@ -4497,10 +4497,21 @@ button.hinote-related-card:focus-visible {
     font-size: var(--font-smallest);
 }
 .hinote-related-score {
-    min-width: 2.2em;
+    min-width: 6em;
     color: var(--text-accent);
     font-weight: var(--font-semibold);
     text-align: right;
+}
+.hinote-related-card-uncertain {
+    opacity: 0.72;
+}
+.hinote-related-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
 }
 .hinote-related-text {
     overflow-wrap: anywhere;

@@ -100,10 +100,21 @@ export class RelatedHighlightsModal extends Modal {
         if (this.aiButton) this.aiButton.disabled = this.results[0].aiRanked;
         for (const item of this.results.slice(0, 15)) {
             const card = this.resultsEl.createEl('button', { cls: 'hinote-related-card', attr: { type: 'button' } });
+            if (item.aiRanked && typeof item.confidence === 'number' && item.confidence < 0.6) {
+                card.addClass('hinote-related-card-uncertain');
+            }
             const header = card.createDiv({ cls: 'hinote-related-card-header' });
             header.createDiv({ cls: 'hinote-related-source', text: item.highlight.fileName || item.highlight.filePath || '' });
-            header.createDiv({ cls: 'hinote-related-score', text: `${Math.round(item.finalScore * 100)}` });
+            header.createDiv({ cls: 'hinote-related-score', text: t('Overall {score}', { score: Math.round(item.finalScore * 100) }) });
             card.createDiv({ cls: 'hinote-related-text', text: item.highlight.text });
+            if (item.aiRanked) {
+                const metrics = card.createDiv({ cls: 'hinote-related-metrics' });
+                metrics.createSpan({ text: t('Match {score}', { score: Math.round(item.relevanceScore * 100) }) });
+                metrics.createSpan({ text: t('Novelty {score}', { score: Math.round((item.noveltyScore || 0) * 100) }) });
+                if (typeof item.confidence === 'number') {
+                    metrics.createSpan({ text: t('Confidence {score}', { score: Math.round(item.confidence * 100) }) });
+                }
+            }
             if (item.relation) card.createDiv({ cls: 'hinote-related-relation', text: t(RELATION_LABELS[item.relation]) });
             card.addEventListener('click', () => {
                 void this.locationService.jumpToHighlight(item.highlight, item.highlight.filePath || '');
