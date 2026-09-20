@@ -25,6 +25,8 @@ export default {
     "AI comment": "AI 批注",
     "More": "更多",
     "Groups": "分组",
+    "Question": "问题",
+    "Answer": "答案",
     "{date}: Learned {new} new cards, reviewed {reviewed} cards": "{date}：学习了 {new} 张新卡片，复习了 {reviewed} 张卡片",
     "Ratings: Again ({again}), Hard ({hard}), Good ({good}), Easy ({easy})": "评分分布：重来（{again}）、困难（{hard}）、良好（{good}）、简单（{easy}）",
     "Update group failed": "更新分组失败",

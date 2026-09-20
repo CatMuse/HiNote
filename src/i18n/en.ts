@@ -225,6 +225,8 @@ export default {
     "Again": "Again",
     "Hard": "Hard",
     "Good": "Good",
+    "Question": "Question",
+    "Answer": "Answer",
     "Add answer": "Add answer",
     "Add answer...": "Add answer...",
     "Please enter an answer.": "Please enter an answer.",

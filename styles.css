@@ -1654,6 +1654,41 @@ settings:
     white-space: pre-wrap;
 }
 
+.flashcard-back-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    text-align: left;
+}
+
+.flashcard-question-context {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    color: var(--text-muted);
+    font-size: 0.82em;
+    opacity: 0.78;
+}
+
+.flashcard-context-label,
+.flashcard-answer-label {
+    margin-bottom: 6px;
+    color: var(--text-faint);
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.flashcard-context-content {
+    max-height: 7em;
+    overflow-y: auto;
+}
+
+.flashcard-answer-content {
+    min-height: 0;
+}
+
 .flashcard-answer-empty-state {
     width: min(100%, 360px);
     max-width: 90%;

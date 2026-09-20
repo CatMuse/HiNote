@@ -70,13 +70,22 @@ export class FlashcardCardRenderer {
         const backEl = card.createDiv({
             cls: "flashcard-side flashcard-back"
         }).createDiv({
-            cls: "flashcard-content markdown-rendered"
+            cls: "flashcard-content flashcard-back-content"
         });
 
+        const context = backEl.createDiv({ cls: 'flashcard-question-context' });
+        context.createDiv({ cls: 'flashcard-context-label', text: t('Question') });
+        const contextContent = context.createDiv({ cls: 'flashcard-context-content markdown-rendered' });
+        void this.markdownRenderer.render(contextContent, frontContent, currentCard.filePath);
+
+        const answer = backEl.createDiv({ cls: 'flashcard-answer-content' });
+        answer.createDiv({ cls: 'flashcard-answer-label', text: t('Answer') });
+
         if (this.shouldRenderAnswerEmptyState(currentCard, isReversed, backContent)) {
-            this.renderAnswerEmptyState(backEl, currentCard);
+            this.renderAnswerEmptyState(answer, currentCard);
         } else {
-            void this.markdownRenderer.render(backEl, backContent, currentCard.filePath);
+            const answerContent = answer.createDiv({ cls: 'markdown-rendered' });
+            void this.markdownRenderer.render(answerContent, backContent, currentCard.filePath);
         }
     }
 
