@@ -20,6 +20,10 @@ export function normalizeSettings(raw: SettingsData, existingData?: SettingsData
             ...(source.export ?? {})
         },
         ai: normalizeAISettings(source.ai, defaults.ai),
+        smartHighlight: {
+            ...defaults.smartHighlight,
+            ...(source.smartHighlight ?? {})
+        },
         regexRules: Array.isArray(source.regexRules)
             ? source.regexRules
             : defaults.regexRules,

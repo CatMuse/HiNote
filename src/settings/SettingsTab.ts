@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from 'obsidian';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { AIServiceTab } from './tabs/AIServiceTab';
+import { SmartHighlightSettingsTab } from './tabs/SmartHighlightSettingsTab';
 import { FlashcardSettingsTab } from '../flashcard';
 import { t } from '../i18n';
 import { LicenseManager } from '../services/LicenseManager';
@@ -29,6 +30,9 @@ export class AISettingTab extends PluginSettingTab {
                 'AI service', 'API key', 'Server URL', 'Model', 'Prompt settings',
                 'OpenAI', 'Anthropic', 'Gemini', 'Deepseek', 'SiliconFlow', 'Ollama', 'Custom'
             ], container => new AIServiceTab(this.plugin, container).display()),
+            this.createSettingsSection(t('Smart highlight'), [
+                'Smart highlight', 'TypeSafe', 'Jev', 'Reading goal', 'Suggestion density', 'Highlight color'
+            ], container => new SmartHighlightSettingsTab(this.plugin, container).display()),
             this.createSettingsSection('HiCard', [
                 'Activate HiCard', 'Flashcard learning', 'New cards per day', 'Reviews per day',
                 'Target retention', 'Maximum interval', 'Reset daily stats', 'FSRS parameters',

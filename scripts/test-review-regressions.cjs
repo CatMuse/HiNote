@@ -95,6 +95,7 @@ async function testSettings() {
         },
         './tabs/GeneralSettingsTab': { GeneralSettingsTab: renderer },
         './tabs/AIServiceTab': { AIServiceTab: renderer },
+        './tabs/SmartHighlightSettingsTab': { SmartHighlightSettingsTab: renderer },
         '../flashcard': { FlashcardSettingsTab: renderer },
         '../i18n': { t: text => text },
         '../services/LicenseManager': { LicenseManager: class { async isActivated() { return true; } } },
@@ -107,10 +108,10 @@ async function testSettings() {
     } });
     const definitions = tab.getSettingDefinitions();
     assert.equal(initialized, 0, 'Search indexing must not initialize vault services');
-    assert.equal(definitions.length, 3);
+    assert.equal(definitions.length, 4);
     assert.ok(definitions.every(item => item.searchable !== false));
     assert.ok(definitions.every(item => item.type !== 'page'), 'No secondary settings pages');
-    for (const term of ['Export Path', 'API key', 'Target retention']) {
+    for (const term of ['Export Path', 'API key', 'Smart highlight', 'Target retention']) {
         assert.ok(definitions.some(item => item.aliases?.includes(term)));
     }
     const setting = { settingEl: { empty() {}, addClass() {}, createEl() {}, createDiv() { return this; }, removeAttribute() {} } };
@@ -127,7 +128,7 @@ async function testSettings() {
         resolveInitialization();
         await new Promise(resolve => setImmediate(resolve));
     }
-    assert.equal(renders, 4, 'All three sections must render without tab selection');
+    assert.equal(renders, 5, 'All four sections must render without tab selection');
 }
 
 async function testAICommentLocalUpdate() {

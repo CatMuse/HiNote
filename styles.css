@@ -4391,3 +4391,61 @@ textarea.flashcard-modal-input {
         box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--interactive-accent) 22%, transparent);
     }
 }
+
+/* Smart-highlight review stays opt-in until the user applies exact source ranges. */
+.hinote-smart-highlight-modal .modal-content {
+    max-height: min(78vh, 760px);
+    overflow: auto;
+}
+.hinote-smart-highlight-disclosure,
+.hinote-smart-highlight-status {
+    color: var(--text-muted);
+    font-size: var(--font-small);
+}
+.hinote-smart-highlight-status {
+    padding: 8px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--background-primary);
+}
+.hinote-smart-highlight-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.hinote-smart-highlight-item {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    cursor: pointer;
+}
+.hinote-smart-highlight-item:hover,
+.hinote-smart-highlight-item:focus-within {
+    border-color: var(--interactive-accent);
+    background: var(--background-secondary);
+}
+.hinote-smart-highlight-item input {
+    flex: 0 0 auto;
+    margin-top: 3px;
+}
+.hinote-smart-highlight-item-content {
+    min-width: 0;
+}
+.hinote-smart-highlight-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.hinote-smart-highlight-meta {
+    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
+}
+.hinote-smart-highlight-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 12px;
+    background: var(--background-primary);
+}

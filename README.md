@@ -107,6 +107,12 @@ Finally, you can use your custom Prompt in the AI button on the highlighted card
 
 ![AI Comment](./doc/ai-comment.jpg)
 
+## Smart highlight
+
+Run **HiNote: Suggest smart highlights** while editing a Markdown note to review passages that may be worth highlighting. Choose a reading goal, recommendation density, and color; HiNote shows every suggestion before changing the note. Applying suggestions uses one editor transaction, so the change can be undone in one step. Existing highlights, frontmatter, code blocks, formulas, tables, and unsafe Markdown ranges are skipped.
+
+Smart highlight is an optional TypeSafe AI integration. Configure a TypeSafe API key through Obsidian Keychain in **Settings → HiNote → Smart highlight**. HiNote sends candidate passages from the current note, their section headings, and nearby lines to TypeSafe only after you select **Analyze**. It does not scan the vault in the background, and the key itself is not stored in plugin settings. Review [TypeSafe's privacy policy](https://typesafe.ai/legal/privacy-policy) before enabling the feature.
+
 ---
 
 ## Pro Features
