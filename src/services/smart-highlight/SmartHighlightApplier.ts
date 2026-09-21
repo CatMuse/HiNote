@@ -20,11 +20,22 @@ export class SmartHighlightApplier {
         }
         const marker = options.color
             ? HIGHLIGHT_COLOR_CHOICES.find(choice => choice.color === options.color)?.marker || '' : '';
-        editor.transaction({ changes: selected.map(item => ({
-            from: editor.offsetToPos(item.candidate.start),
-            to: editor.offsetToPos(item.candidate.end),
-            text: `==${marker}${item.candidate.rawText}==`
-        })) }, 'hinote-smart-highlight');
+        editor.transaction({ changes: selected.map((item, index) => {
+            const { candidate } = item;
+            const nextCandidate = selected[index + 1]?.candidate;
+            const touchesExistingHighlightOnLeft = options.snapshot.slice(
+                Math.max(0, candidate.start - 2), candidate.start
+            ) === '==';
+            const touchesExistingHighlightOnRight = options.snapshot.slice(candidate.end, candidate.end + 2) === '==';
+            const touchesNextSuggestion = nextCandidate?.start === candidate.end;
+            const leadingSeparator = touchesExistingHighlightOnLeft ? ' ' : '';
+            const trailingSeparator = touchesExistingHighlightOnRight || touchesNextSuggestion ? ' ' : '';
+            return {
+                from: editor.offsetToPos(candidate.start),
+                to: editor.offsetToPos(candidate.end),
+                text: `${leadingSeparator}==${marker}${candidate.rawText}==${trailingSeparator}`
+            };
+        }) }, 'hinote-smart-highlight');
         return selected.length;
     }
 }

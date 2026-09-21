@@ -61,6 +61,40 @@ const selected = candidates.slice(0, 2).map(candidate => ({
 const target = editor(source);
 assert.equal(new SmartHighlightApplier().apply(target, { snapshot: source, evaluations: selected, color: 'blue' }), 2);
 assert.equal((target.value().match(/==🔵/g) || []).length, 2);
+
+const evaluation = (snapshot, start, end) => ({
+    candidate: { start, end, rawText: snapshot.slice(start, end), text: snapshot.slice(start, end) },
+    selected: true, category: 'claim', categoryConfidence: 1,
+    importanceConfidence: 1, importanceProbabilities: { 3: 1 }, standaloneProbability: 1, rank: 1
+});
+const adjacentSource = 'First thought.Second thought.';
+const adjacentTarget = editor(adjacentSource);
+new SmartHighlightApplier().apply(adjacentTarget, {
+    snapshot: adjacentSource,
+    evaluations: [evaluation(adjacentSource, 0, 14), evaluation(adjacentSource, 14, adjacentSource.length)],
+    color: null
+});
+assert.equal(adjacentTarget.value(), '==First thought.== ==Second thought.==',
+    'Adjacent smart highlights must be separated instead of producing four equals');
+
+const beforeExisting = 'Fresh thought.==Existing==';
+const beforeExistingTarget = editor(beforeExisting);
+new SmartHighlightApplier().apply(beforeExistingTarget, {
+    snapshot: beforeExisting,
+    evaluations: [evaluation(beforeExisting, 0, 'Fresh thought.'.length)],
+    color: null
+});
+assert.equal(beforeExistingTarget.value(), '==Fresh thought.== ==Existing==');
+
+const afterExisting = '==Existing==Fresh thought.';
+const afterExistingTarget = editor(afterExisting);
+new SmartHighlightApplier().apply(afterExistingTarget, {
+    snapshot: afterExisting,
+    evaluations: [evaluation(afterExisting, '==Existing=='.length, afterExisting.length)],
+    color: null
+});
+assert.equal(afterExistingTarget.value(), '==Existing== ==Fresh thought.==');
+
 assert.throws(() => new SmartHighlightApplier().apply(target, {
     snapshot: source, evaluations: selected, color: null
 }), /document changed/);
@@ -73,4 +107,4 @@ const overlap = [{ ...selected[0], candidate: overlapCandidate }, selected[1]];
 assert.throws(() => new SmartHighlightApplier().apply(editor(source), {
     snapshot: source, evaluations: overlap, color: null
 }), /overlap/);
-console.log('Smart highlights passed: safe Markdown candidates, exact offsets, atomic colored apply, stale and overlap guards.');
+console.log('Smart highlights passed: safe candidates, adjacent-mark separators, atomic colored apply, stale and overlap guards.');
