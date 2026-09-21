@@ -72,19 +72,20 @@ export class UIInitializer {
             attr: { "aria-live": "polite" }
         });
 
-        // 创建图标按钮容器
-        const iconButtonsContainer = toolbarRow.createDiv({
-            cls: "highlight-search-icons"
-        });
-
-        // 搜索框作为页头的第二行。
-        const searchField = searchContainer.createDiv({ cls: "highlight-search-field highlight-display-none" });
+        // Keep all toolbar controls in one row so the main view can use a
+        // regular grid without relying on display: contents.
+        const searchField = toolbarRow.createDiv({ cls: "highlight-search-field highlight-display-none" });
         const searchComponent = new SearchComponent(searchField)
             .setPlaceholder(t("Search..."));
         const searchInput = searchComponent.inputEl;
         searchInput.addClass("highlight-search-input");
         searchInput.setAttribute("aria-label", t("Search..."));
         const searchLoadingIndicator = this.createSearchLoadingIndicator(searchField);
+
+        // 创建图标按钮容器
+        const iconButtonsContainer = toolbarRow.createDiv({
+            cls: "highlight-search-icons"
+        });
 
         // 页头下方的主工作区。
         const workspaceBody = mainContainer.createDiv({

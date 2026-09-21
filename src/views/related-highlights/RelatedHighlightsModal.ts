@@ -1,4 +1,4 @@
-import { MarkdownView, Modal, Notice, type Editor } from 'obsidian';
+import { MarkdownView, Modal, type Editor } from 'obsidian';
 import type CommentPlugin from '../../../main';
 import { t } from '../../i18n';
 import { LocationService } from '../../services/LocationService';

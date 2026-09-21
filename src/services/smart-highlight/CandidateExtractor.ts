@@ -92,7 +92,7 @@ export class SmartHighlightCandidateExtractor {
     }
 
     private hasMarkdownSyntax(text: string): boolean {
-        return /[`\[\]<>]|(?:^|\s)[*_~]{1,2}\S/.test(text);
+        return /[`<>[\]]|(?:^|\s)[*_~]{1,2}\S/.test(text);
     }
 
     private isSafe(text: string): boolean {

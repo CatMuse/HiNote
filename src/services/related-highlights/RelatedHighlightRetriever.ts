@@ -43,7 +43,7 @@ export class RelatedHighlightRetriever {
             .map(match => match[1]).slice(0, 30);
         const plain = content.replace(/^---\s*\n[\s\S]*?\n---\s*(?:\n|$)/, '')
             .replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, '')
-            .replace(/[#>*_`=\[\]()]/g, ' ').replace(/\s+/g, ' ').trim();
+            .replace(/[#>*_`=()[\]]/g, ' ').replace(/\s+/g, ' ').trim();
         return { title: path.split('/').pop()?.replace(/\.md$/i, '') || '', headings, excerpt: plain.slice(0, 4000) };
     }
 
