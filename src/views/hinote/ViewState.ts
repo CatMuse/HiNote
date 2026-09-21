@@ -3,10 +3,15 @@ import type { HighlightInfo } from '../../types/highlight';
 import { parseHighlightQuery, type HighlightQuery } from '../../services/search/HighlightQuery';
 
 export type HiNotePage = { kind: 'empty' | 'all' | 'favorites' } | { kind: 'file' | 'canvas'; file: TFile };
+export type HighlightCardType = 'all' | 'hicard' | 'comment';
+export type HighlightSort = 'position' | 'updated-desc' | 'updated-asc';
 export interface ViewSession {
     page: HiNotePage;
     mainPage: HiNotePage | null;
     search: string;
+    cardType: HighlightCardType;
+    sort: HighlightSort;
+    commentsVisible: boolean;
     drafts: Map<string, string>;
 }
 
@@ -15,6 +20,9 @@ export class ViewState {
     private pageValue: HiNotePage = { kind: 'empty' };
     private placementValue: 'sidebar' | 'main' = 'sidebar';
     private queryValue: HighlightQuery = parseHighlightQuery('');
+    private cardTypeValue: HighlightCardType = 'all';
+    private sortValue: HighlightSort = 'position';
+    private commentsVisibleValue = true;
     highlights: HighlightInfo[] = [];
     isMobileView = false;
     isSmallScreen = false;
@@ -29,6 +37,9 @@ export class ViewState {
     get page(): HiNotePage { return this.pageValue; }
     get placement(): 'sidebar' | 'main' { return this.placementValue; }
     get search(): HighlightQuery { return this.queryValue; }
+    get cardType(): HighlightCardType { return this.cardTypeValue; }
+    get sort(): HighlightSort { return this.sortValue; }
+    get commentsVisible(): boolean { return this.commentsVisibleValue; }
     get currentFile(): TFile | null { return 'file' in this.page ? this.page.file : null; }
     get isDraggedToMainView(): boolean { return this.placementValue === 'main'; }
     get isShowingFileList(): boolean { return this.navigationOpen; }
@@ -52,6 +63,23 @@ export class ViewState {
         if (this.search.raw === raw) return;
         this.invalidate();
         this.queryValue = parseHighlightQuery(raw);
+        this.notify();
+    }
+    setCardType(cardType: HighlightCardType): void {
+        if (this.cardTypeValue === cardType) return;
+        this.cardTypeValue = cardType;
+        this.invalidate();
+        this.notify();
+    }
+    setSort(sort: HighlightSort): void {
+        if (this.sortValue === sort) return;
+        this.sortValue = sort;
+        this.invalidate();
+        this.notify();
+    }
+    setCommentsVisible(visible: boolean): void {
+        if (this.commentsVisibleValue === visible) return;
+        this.commentsVisibleValue = visible;
         this.notify();
     }
     setPlacement(placement: 'sidebar' | 'main'): void {
@@ -78,10 +106,23 @@ export class ViewState {
     notify(): void { if (!this.closed) this.listeners.forEach(listener => listener()); }
     dispose(): void { this.closed = true; this.invalidate(); this.listeners.clear(); }
     resetHighlights(): void { this.highlights = []; }
-    snapshot(): ViewSession { return { page: this.page, mainPage: this.mainPage, search: this.search.raw, drafts: new Map(this.drafts) }; }
+    snapshot(): ViewSession {
+        return {
+            page: this.page,
+            mainPage: this.mainPage,
+            search: this.search.raw,
+            cardType: this.cardType,
+            sort: this.sort,
+            commentsVisible: this.commentsVisible,
+            drafts: new Map(this.drafts)
+        };
+    }
     restore(session: ViewSession): void {
         this.pageValue = session.page; this.mainPage = session.mainPage;
         this.queryValue = parseHighlightQuery(session.search);
+        this.cardTypeValue = session.cardType ?? 'all';
+        this.sortValue = session.sort ?? 'position';
+        this.commentsVisibleValue = session.commentsVisible ?? true;
         session.drafts.forEach((value, key) => this.drafts.set(key, value));
         this.invalidate(); this.notify();
     }

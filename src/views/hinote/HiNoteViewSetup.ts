@@ -1,3 +1,4 @@
+import { Notice } from 'obsidian';
 import { t } from '../../i18n';
 import { ViewState } from './ViewState';
 import { HighlightDataService } from "../../services/highlight";
@@ -11,6 +12,7 @@ import { setupHighlightRendering } from "./setup/HighlightRenderingSetup";
 import { setupLayoutAndCanvas } from "./setup/LayoutCanvasSetup";
 import { registerHiNoteViewEvents } from "./HiNoteViewEventBindings";
 import { HiNoteViewSetupOptions, HiNoteViewSetupResult } from "./HiNoteViewSetupTypes";
+import { HighlightToolbar } from './HighlightToolbar';
 
 export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<HiNoteViewSetupResult> {
     const {
@@ -45,16 +47,18 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
     let highlightRendering: ReturnType<typeof setupHighlightRendering> | null = null;
     let layoutAndCanvas: ReturnType<typeof setupLayoutAndCanvas> | null = null;
 
-    const uiElements = uiInitializer.initializeUI(container, component);
+    const uiElements = uiInitializer.initializeUI(container);
     const {
         fileListContainer,
         mainContentContainer,
         searchContainer,
+        searchComponent,
         searchInput,
         searchLoadingIndicator,
         highlightContainer,
         loadingIndicator
     } = uiElements;
+    searchInput.value = state.search.raw;
 
     const highlightDataService = new HighlightDataService(
         app,
@@ -90,11 +94,6 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         }
     });
 
-    exportManager.createExportButton(
-        uiElements.iconButtonsContainer,
-        () => state.search.scope === 'vault' ? null : state.currentFile
-    );
-
     const interactions = setupSearchAndSelection({
         plugin,
         exportService,
@@ -102,7 +101,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         highlightService,
         containerEl,
         state,
-        searchInput,
+        searchComponent,
         searchLoadingIndicator,
         highlightContainer,
         highlightListController
@@ -122,6 +121,25 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
     });
     const fileListManager = fileList.fileListManager;
 
+    const addFileComment = async () => {
+        const currentFile = state.disposed || state.page.kind !== 'file' ? null : state.currentFile;
+        if (!currentFile) return;
+
+        const draft = fileCommentDraftManager.createDraft(currentFile);
+        const existing = state.highlights.find(highlight =>
+            highlight.isDraft && !highlight.recordId && highlight.filePath === draft.filePath
+        );
+        const target = existing || draft;
+        if (!existing) {
+            state.highlights.unshift(target);
+            await highlightListController.renderWithCurrentSearch();
+        }
+        const card = defaultHighlightCardRegistry.findByHighlightId(target.id || '', highlightContainer)?.getElement();
+        if (!card || !highlightRendering) return;
+        highlightRendering.commentController.showCommentInput(card, target);
+        highlightContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     highlightRendering = setupHighlightRendering({
         app,
         plugin,
@@ -131,29 +149,34 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         highlightContainer,
         exportManager,
         highlightListController,
-        jumpToHighlight,
-        onFileCommentAdd: () => {
-            const currentFile = state.disposed || state.page.kind !== 'file' || state.search.scope === 'vault'
-                ? null
-                : state.currentFile;
-            if (!currentFile) return;
-
-            const draft = fileCommentDraftManager.createDraft(currentFile);
-            const existing = state.highlights.find(highlight =>
-                highlight.isDraft && !highlight.recordId && highlight.filePath === draft.filePath
-            );
-            const target = existing || draft;
-            if (!existing) {
-                state.highlights.unshift(target);
-                highlightListController.renderWithCurrentSearch();
-            }
-            const card = defaultHighlightCardRegistry.findByHighlightId(target.id || '', highlightContainer)?.getElement();
-            if (!card || !highlightRendering) return;
-            highlightRendering.commentController.showCommentInput(card, target);
-            highlightContainer.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        jumpToHighlight
     });
     highlightRenderManager = highlightRendering.highlightRenderManager;
+
+    new HighlightToolbar(component, state, {
+        toolbar: searchContainer,
+        toolbarTitle: uiElements.toolbarTitle,
+        searchField: uiElements.searchField,
+        searchInput,
+        actions: uiElements.iconButtonsContainer
+    }, {
+        onCurrentDocument: async () => {
+            const page = ViewState.filePage(app.workspace.getActiveFile());
+            if (page.kind === 'empty') {
+                new Notice(t('Please open a file first.'));
+                return;
+            }
+            await fileList.fileListController.navigate(page);
+        },
+        onAllDocuments: async () => await fileList.fileListController.navigate({ kind: 'all' }),
+        onAddFileComment: addFileComment,
+        onViewOptionsChanged: () => { void highlightListController.renderWithCurrentSearch(); },
+        onRefresh: async () => {
+            await fileListManager.updateFileList(true);
+            if (!state.disposed) await highlightListController.refreshView();
+        },
+        onExport: async () => await exportManager.exportCurrentFile(state.page.kind === 'file' ? state.currentFile : null)
+    });
 
     layoutAndCanvas = setupLayoutAndCanvas({
         app,
@@ -167,8 +190,7 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         fileListManager,
         fileListController: fileList.fileListController,
         fileListContainer,
-        mainContentContainer,
-        searchContainer,
+        mainContentContainer
     });
 
     registerHiNoteViewEvents({
@@ -201,6 +223,10 @@ export async function setupHiNoteView(options: HiNoteViewSetupOptions): Promise<
         const placeholder = t(state.page.kind === 'favorites' ? 'Search favorites...' : 'Search...');
         searchInput.placeholder = placeholder;
         searchInput.setAttribute('aria-label', placeholder);
+        const visibleCount = searchUIManager?.filterHighlightsByTerm(searchInput.value).length ?? 0;
+        uiElements.toolbarMeta.setText(state.loading === 'loading'
+            ? t('Loading...')
+            : t('{count} results', { count: visibleCount }));
         await layoutManager.updateViewLayout();
         highlightContainer.setAttribute('aria-busy', String(state.loading === 'loading'));
         fileListManager.updateFileListSelection();

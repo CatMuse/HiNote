@@ -49,21 +49,28 @@ export class HighlightListController {
         if (!append) this.options.beforeReplace?.();
         const renderer = this.options.getHighlightRenderManager();
         if (!renderer) return;
-        const showFileCommentSection = state.page.kind === 'file' && state.search.scope !== 'vault';
+        const showFileCommentSection = state.page.kind === 'file';
+        const visibleFileComments = showFileCommentSection
+            ? this.getVisibleRows().filter(isFileComment)
+            : [];
+        const visibleFileCommentIds = new Set(visibleFileComments.map(comment => comment.id));
+        const openDrafts = showFileCommentSection
+            ? state.highlights.filter(comment => isFileComment(comment) && comment.isDraft && !visibleFileCommentIds.has(comment.id))
+            : [];
         renderer.updateState({
-            currentFile: state.search.scope === 'vault' ? null : state.currentFile,
+            currentFile: state.currentFile,
             isDraggedToMainView: state.isDraggedToMainView,
             highlightsWithFlashcards: this.options.getHighlightFlashcardMarkers()?.getFlashcardMarkers(),
             currentBatch: this.options.getInfiniteScrollManager()?.getCurrentBatch() || 0,
             showFileCommentSection,
-            fileComments: showFileCommentSection ? state.highlights.filter(isFileComment) : []
+            fileComments: [...openDrafts, ...visibleFileComments]
         });
         renderer.renderHighlights(rows, append, this.options.getSelectionManager() ?? undefined);
         this.options.getInfiniteScrollManager()?.setCurrentBatch(renderer.getCurrentBatch());
     }
     async updateAllHighlights(): Promise<void> { await this.refreshView(); }
     async updateHighlights(_isInCanvas = false, render = true): Promise<void> { await this.refreshView(render); }
-    async handleSearch(_term: string, _type: string): Promise<void> {
+    async handleSearch(_term: string): Promise<void> {
         this.options.state.setSearch(this.options.getSearchInput()?.value || '');
         await this.refreshView(true, true);
     }
@@ -75,7 +82,7 @@ export class HighlightListController {
         state.setSearch(this.options.getSearchInput()?.value || '');
         const page = state.page;
         const query = state.search;
-        const scope = page.kind === 'favorites' ? 'favorites' : query.scope === 'vault' || page.kind === 'all' ? 'vault' : 'file' in page ? `${page.kind}:${page.file.path}` : page.kind;
+        const scope = page.kind === 'favorites' ? 'favorites' : page.kind === 'all' ? 'vault' : 'file' in page ? `${page.kind}:${page.file.path}` : page.kind;
         const token = state.beginRequest();
         const current = () => state.isCurrent(token);
         const canPatch = preserveCards && render && this.loadedScope === scope && this.renderedQuery === query.raw;
@@ -90,7 +97,7 @@ export class HighlightListController {
             if (reuse && this.loadedScope === scope) { rows = state.highlights; }
             else if (page.kind === 'favorites') {
                 rows = await this.options.getHighlightDataService()?.loadFavoriteHighlights() || [];
-            } else if (query.scope === 'vault' || page.kind === 'all') {
+            } else if (page.kind === 'all') {
                 // Load the underlying scope; filters never replace the selected page.
                 rows = await this.options.getGlobalHighlightService()?.updateAllHighlights() || [];
             } else if ('file' in page) {
@@ -103,10 +110,10 @@ export class HighlightListController {
             if (!current()) return;
             this.loadedScope = scope;
             const next = rows.map(row => ({ ...row,
-                isGlobalSearch: query.scope === 'vault' || page.kind === 'all' || page.kind === 'favorites' || !!row.isFromCanvas }));
+                isGlobalSearch: page.kind === 'all' || page.kind === 'favorites' || !!row.isFromCanvas }));
             if (canPatch && refreshHighlightMetadata(state.highlights, next)) {
                 this.options.getHighlightRenderManager()?.refreshCardMetadata();
-                const filtered = this.options.getSearchUIManager()?.filterHighlightsByTerm(query.term, query.type) || state.highlights;
+                const filtered = this.getVisibleRows();
                 const scroll = this.options.getInfiniteScrollManager();
                 if (scroll) {
                     const batch = scroll.getCurrentBatch();
@@ -126,7 +133,7 @@ export class HighlightListController {
             }
             state.highlights = next;
             this.options.getHighlightFlashcardMarkers()?.updateFlashcardMarkers(state.highlights);
-            const filtered = this.options.getSearchUIManager()?.filterHighlightsByTerm(query.term, query.type) || state.highlights;
+            const filtered = this.getVisibleRows();
             if (render) {
                 await this.renderPaginated(filtered, current);
                 if (current()) this.renderedQuery = query.raw;
@@ -145,13 +152,32 @@ export class HighlightListController {
         }
     }
 
-    renderWithCurrentSearch(): void {
+    async renderWithCurrentSearch(): Promise<void> {
+        // Reuse the loaded rows, but go through the normal refresh path so the
+        // previous sentinel/batch is reset before the first page is rendered.
+        // Rendering every row directly while leaving the old observer alive
+        // lets that observer append page one again, producing duplicate cards.
+        await this.refreshView(true, true);
+    }
+    private getVisibleRows(): HighlightInfo[] {
         const { state } = this.options;
-        if (state.disposed) return;
-        state.setSearch(this.options.getSearchInput()?.value || '');
-        const rows = this.options.getSearchUIManager()?.filterHighlightsByTerm(state.search.term, state.search.type) || state.highlights;
-        this.renderHighlights(rows);
-        this.renderedQuery = state.search.raw;
+        const filtered = this.options.getSearchUIManager()?.filterHighlightsByTerm(state.search.term) || state.highlights;
+        return [...filtered].sort((left, right) => this.compareHighlights(left, right));
+    }
+    private compareHighlights(left: HighlightInfo, right: HighlightInfo): number {
+        const sort = this.options.state.sort;
+        if (sort === 'updated-desc' || sort === 'updated-asc') {
+            const leftTime = left.updatedAt ?? left.createdAt ?? 0;
+            const rightTime = right.updatedAt ?? right.createdAt ?? 0;
+            const difference = leftTime - rightTime;
+            if (difference !== 0) return sort === 'updated-desc' ? -difference : difference;
+        }
+        const pathDifference = (left.filePath || '').localeCompare(right.filePath || '');
+        if (pathDifference !== 0) return pathDifference;
+        if (isFileComment(left) !== isFileComment(right)) return isFileComment(left) ? -1 : 1;
+        const positionDifference = (left.position ?? Number.MAX_SAFE_INTEGER) - (right.position ?? Number.MAX_SAFE_INTEGER);
+        if (positionDifference !== 0) return positionDifference;
+        return (left.id || '').localeCompare(right.id || '');
     }
     private async renderPaginated(rows: HighlightInfo[], current: () => boolean): Promise<void> {
         if (!rows.length && this.options.state.page.kind === 'favorites') {

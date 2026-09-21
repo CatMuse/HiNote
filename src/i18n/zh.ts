@@ -156,6 +156,8 @@ export default {
     "Some favorites could not be updated. Please try again.": "部分收藏更新失败，请重试。",
 
     "All cards": "全部卡片",
+    "HiCard": "HiCard",
+    "Comment": "批注",
     "Ungrouped cards": "未分组",
     "Paused cards": "已暂停",
     "Pause card": "暂停此卡片",
@@ -327,6 +329,7 @@ export default {
     "Retry": "重试",
     "Loading...": "加载中...",
     "Search...": "搜索高亮或评论...",
+    "{count} results": "{count} 条结果",
     "Finish searching": "完成搜索",
     "No matching content found.": "未找到匹配的内容。",
     "The current document has no highlighted content.": "当前文档没有高亮内容。",
@@ -334,8 +337,22 @@ export default {
     "Export failed: Failed to load necessary components.": "导出失败：加载必要组件失败。",
     "All Highlight": "全部高亮",
     "Export as notes": "导出为笔记",
-    "Add File Comment": "添加文件评论",
-    "File Comment": "文件评论",
+    "Add File Comment": "添加文档批注",
+    "Search highlights": "搜索高亮",
+    "Filter highlights": "筛选高亮",
+    "Sort highlights": "排序高亮",
+    "Current document": "当前文档",
+    "All documents": "全部文档",
+    "Highlight position": "高亮位置",
+    "Recently updated": "最近更新",
+    "Least recently updated": "最早更新",
+    "Export current document as notes": "将当前文档高亮导出为笔记",
+    "Toolbar Search": "搜索",
+    "Toolbar Note": "批注",
+    "Toolbar Filter": "筛选",
+    "Toolbar Sort": "排序",
+    "Toolbar Export": "导出",
+    "File Comment": "文档批注",
     "Successfully exported highlights to: ": "成功导出高亮到：",
     "Failed to export highlights: ": "无法导出高亮：",
 
@@ -455,11 +472,6 @@ export default {
     "Learning completed!": "学习完成！",
     "Group deleted": "分组已删除",
     
-    // 搜索前缀提示
-    "search-prefix-all": "跨文件搜索所有高亮",
-    "search-prefix-hicard": "只搜索闪卡高亮",
-    "search-prefix-comment": "只搜索带批注的高亮",
-    "search-prefix-path": "按文件路径搜索高亮",
 
     // 其他
 

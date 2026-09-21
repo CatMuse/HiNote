@@ -25,7 +25,6 @@ export class HighlightRenderManager {
     private onCommentEdit: ((element: HTMLElement, h: HighlightInfo, c: CommentItem) => void) | null = null;
     private onExport: ((h: HighlightInfo) => void) | null = null;
     private onAIResponse: ((h: HighlightInfo, content: string) => Promise<void>) | null = null;
-    private onFileCommentAdd: (() => void) | null = null;
     
     // 状态
     private currentFile: TFile | null = null;
@@ -59,7 +58,6 @@ export class HighlightRenderManager {
         onCommentEdit?: (element: HTMLElement, h: HighlightInfo, c: CommentItem) => void;
         onExport?: (h: HighlightInfo) => void;
         onAIResponse?: (h: HighlightInfo, content: string) => Promise<void>;
-        onFileCommentAdd?: () => void;
     }) {
         if (callbacks.onHighlightClick) {
             this.onHighlightClick = callbacks.onHighlightClick;
@@ -75,9 +73,6 @@ export class HighlightRenderManager {
         }
         if (callbacks.onAIResponse) {
             this.onAIResponse = callbacks.onAIResponse;
-        }
-        if (callbacks.onFileCommentAdd) {
-            this.onFileCommentAdd = callbacks.onFileCommentAdd;
         }
     }
     
@@ -143,7 +138,6 @@ export class HighlightRenderManager {
                     : this.fileComments;
                 renderFileCommentSection(this.container, {
                     comments: fileCommentsForSection,
-                    onAdd: () => this.onFileCommentAdd?.(),
                     renderCard: (container, comment) => this.renderHighlightCard(container, comment, false)
                 });
             }

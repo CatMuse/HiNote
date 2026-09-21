@@ -86,13 +86,13 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
         onFileOpen: file => { void fileListController.navigate(ViewState.filePage(file)); },
         onFileModify: file => {
             scheduleRefresh(state.currentFile === file || state.page.kind === 'all' || state.page.kind === 'favorites' ||
-                state.page.kind === 'canvas' || state.search.scope === 'vault');
+                state.page.kind === 'canvas');
         },
-        onFileCreate: () => scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'favorites' || state.search.scope === 'vault'),
+        onFileCreate: () => scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'favorites'),
         onFileDelete: file => {
             if (state.mainPage && 'file' in state.mainPage && state.mainPage.file === file) state.mainPage = null;
             if (state.currentFile === file) void fileListController.navigate({ kind: 'empty' });
-            scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'favorites' || state.page.kind === 'canvas' || state.search.scope === 'vault');
+            scheduleRefresh(state.page.kind === 'all' || state.page.kind === 'favorites' || state.page.kind === 'canvas');
         },
         onFileRename: () => { state.notify(); scheduleRefresh(true); },
         onLayoutChange: () => { void checkViewPosition(); },

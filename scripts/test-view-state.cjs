@@ -17,8 +17,11 @@ class Element {
     querySelector() { return this.actions || null; }
     querySelectorAll() { return []; }
     setAttribute(k,v) { this.attrs[k]=v; }
+    removeAttribute(k) { delete this.attrs[k]; }
     setText(text) { this.text=text; }
     setCssProps() {}
+    focus() { this.focused=true; }
+    blur() { this.focused=false; }
     remove() { this.isConnected=false; }
     addEventListener(name,handler) { this.listeners[name]=handler; }
     removeEventListener(name,handler) { if(this.listeners[name]===handler) delete this.listeners[name]; }
@@ -56,7 +59,7 @@ function harness(loadFile=async()=>[],loadAll=async()=>[],loadFavorites=async()=
     const state=new ViewState(); state.setPlacement('main'); state.navigate(ViewState.filePage(A));
     const input=new Element(),container=new Element(),loading=new Element();
     const search=new SearchService({fsrsManager:{findCardsBySourceId:()=>[]}});
-    const ui={filterHighlightsByTerm:(term,type)=>search.filterHighlights(state.highlights,term,type,state.search.scope==='vault'?null:state.currentFile),cancelScheduledSearch(){}};
+    const ui={filterHighlightsByTerm:term=>search.filterHighlights(state.highlights,term,state.cardType,state.currentFile),cancelScheduledSearch(){}};
     const env={state,input,container,loading,rendered:[],surface:'highlights',reads:0,vaultReads:0,clears:0,patches:0,selectionsCleared:0};
     const flashcard={getFlashcardMarkers:()=>new Set(),updateFlashcardMarkers(){}};
     const controller=new HighlightListController({state,app:{},highlightContainer:container,loadingIndicator:loading,getSearchInput:()=>input,
@@ -79,10 +82,11 @@ async function races() {
         await Promise.all([old,next]); assert.equal(env.state.currentFile,B); assert.equal(env.rendered[0].text,'B');
     }
     const searchGate=deferred(), env=harness(async()=>[row('B')],()=>searchGate.promise);
-    env.input.value='all: anything'; const searching=env.controller.handleSearch('anything','all');
-    assert.equal(env.state.currentFile,A,'Searching must not change the selected page');
+    const openingAll=env.files.navigate({kind:'all'});await Promise.resolve();
+    env.input.value='anything'; const searching=env.controller.handleSearch('anything');
+    assert.equal(env.state.page.kind,'all','Searching must not change the selected page');
     env.input.value=''; const next=env.files.navigate(ViewState.filePage(B)); await next;
-    searchGate.resolve([row('late all')]);await searching;
+    searchGate.resolve([row('late all')]);await Promise.all([openingAll,searching]);
     assert.equal(env.state.currentFile,B);assert.equal(env.rendered[0].text,'B');
     const gate=deferred(),hi=harness(()=>gate.promise);const pending=hi.controller.updateHighlights();
     await hi.files.navigate({kind:'all'});gate.resolve([row('old file')]);await pending;
@@ -100,30 +104,40 @@ async function races() {
 }
 async function queries() {
     const rows=[{...row('annotated'),comments:[{content:'note'}]},row('plain')];const env=harness(async()=>rows,async()=>rows);
-    env.input.value='comment:';await env.controller.handleSearch('','comment');assert.equal(env.rendered.length,1);
+    env.state.setCardType('comment');await env.controller.updateHighlights();assert.equal(env.rendered.length,1);
     await env.controller.updateHighlights();assert.equal(env.rendered.length,1);
     await env.files.navigate(ViewState.filePage(B));assert.equal(env.rendered.length,1);
-    const reads=env.reads; env.input.value='plain';await env.controller.handleSearch('plain','');assert.equal(env.reads,reads);assert.equal(env.rendered[0].text,'plain');
-    env.state.highlights[1].comments=[{content:'fresh'}];env.input.value='comment:';await env.controller.handleSearch('','comment');assert.equal(env.rendered.length,2,'Filtering must retain local comment edits');
-    env.input.value='all: plain';await env.controller.handleSearch('plain','all');assert.equal(env.state.currentFile,B);assert.equal(env.rendered.length,1);
-    const vaultReads=env.vaultReads;env.input.value='all: annotated';await env.controller.handleSearch('annotated','all');assert.equal(env.vaultReads,vaultReads,'Typing must reuse loaded scope');
-    env.input.value='';await env.controller.handleSearch('','');assert.equal(env.state.currentFile,B);assert.equal(env.rendered.length,2);
-    await env.files.navigate({kind:'all'});assert.equal(env.state.isInAllHighlightsView(),true);
+    const reads=env.reads; env.state.setCardType('all');env.input.value='plain';await env.controller.handleSearch('plain');assert.equal(env.reads,reads);assert.equal(env.rendered[0].text,'plain');
+    env.state.highlights[1].comments=[{content:'fresh'}];env.state.setCardType('comment');env.input.value='';env.controller.renderWithCurrentSearch();assert.equal(env.rendered.length,2,'Filtering must retain local comment edits');
+    env.state.setCardType('all');env.input.value='plain';await env.files.navigate({kind:'all'});assert.equal(env.state.currentFile,null);assert.equal(env.rendered.length,1);
+    const vaultReads=env.vaultReads;env.input.value='annotated';await env.controller.handleSearch('annotated');assert.equal(env.vaultReads,vaultReads,'Typing must reuse loaded scope');
+    env.input.value='';await env.controller.handleSearch('');assert.equal(env.state.currentFile,null);assert.equal(env.rendered.length,2);
+    assert.equal(env.state.isInAllHighlightsView(),true);
     await env.files.navigate({kind:'empty'});assert.equal(env.state.isInAllHighlightsView(),false);assert.equal(env.rendered.length,0);
-    console.log('Search: one prefix parser, refresh/navigation, scope clearing, local mutations and cache reuse passed.');
+    const ordered=harness(async()=>[
+        {...row('first in source'),position:10,updatedAt:100},
+        {...row('last updated'),position:20,updatedAt:300},
+        {...row('middle updated'),position:30,updatedAt:200}
+    ]);
+    await ordered.controller.updateHighlights();assert.equal(ordered.rendered[0].text,'first in source');
+    ordered.state.setSort('updated-desc');ordered.controller.renderWithCurrentSearch();assert.equal(ordered.rendered[0].text,'last updated');
+    ordered.state.setSort('updated-asc');ordered.controller.renderWithCurrentSearch();assert.equal(ordered.rendered[0].text,'first in source');
+    const fileComment={...row('document note'),kind:'file-comment'};
+    const commentRows=harness(async()=>[fileComment,row('plain')]);commentRows.state.setCardType('comment');
+    await commentRows.controller.updateHighlights();assert.equal(commentRows.rendered[0].kind,'file-comment');
+    console.log('Search/filter: plain text, explicit scope/type, local mutations and cache reuse passed.');
 }
 async function layoutAndLifetime() {
     const state=new ViewState();state.setPlacement('main');state.navigate(ViewState.filePage(A));
     const root=new Element();root.children=[new Element(),new Element()];const nav=new Element(),content=new Element(),search=new Element();search.actions=new Element();
-    const layout=new LayoutManager(root,nav,content,search,state);
+    const layout=new LayoutManager(root,nav,content,state);
     const token=state.beginRequest();state.setViewport(false,true);await layout.updateViewLayout();
     assert.ok(nav.classes.has('highlight-display-none'));assert.ok(!content.classes.has('highlight-display-none'));
     state.setNavigationOpen(true);await layout.updateViewLayout();assert.ok(!nav.classes.has('highlight-display-none'));assert.ok(content.classes.has('highlight-display-none'));
     assert.equal(state.currentFile,A);assert.ok(state.isCurrent(token),'Resizing/navigation drawer must not invalidate content');
     state.setViewport(false,false);await layout.updateViewLayout();assert.ok(!nav.classes.has('highlight-display-none'));assert.ok(!content.classes.has('highlight-display-none'));
-    state.setSearch('all:');await layout.updateViewLayout();assert.ok(search.actions.classes.has('highlight-display-none'));
     state.drafts.set('draft','keep');const session=state.snapshot();const restored=new ViewState();restored.restore(session);
-    assert.equal(restored.search.raw,'all:');assert.equal(restored.drafts.get('draft'),'keep');
+    assert.equal(restored.search.raw,'');assert.equal(restored.cardType,'all');assert.equal(restored.sort,'position');assert.equal(restored.commentsVisible,true);assert.equal(restored.drafts.get('draft'),'keep');
     const scroll=new InfiniteScrollManager(new Element());scroll.setLoadingIndicator(new Element());const gate=deferred();
     const old=scroll.loadMoreHighlights([row('old')],()=>gate.promise,false);
     scroll.reset();await scroll.loadMoreHighlights([row('new')],async()=>{},false);
@@ -134,12 +148,14 @@ async function layoutAndLifetime() {
 }
 async function debounceAndLicense() {
     timers.clear();const state=new ViewState(),input=new Element(),indicator=new Element();
-    const search=new SearchUIManager({},input,indicator,state);let calls=0;const gate=deferred();
+    const searchComponent={inputEl:input,onChange(callback){this.callback=callback;return this;}};
+    const search=new SearchUIManager({},searchComponent,indicator,state);let calls=0;const gate=deferred();
     search.setCallbacks(async()=>{calls++;await gate.promise;},()=>[],()=>null);search.initialize();
-    const old=state.beginRequest();input.value='all: query';input.listeners.input();assert.equal(state.isCurrent(old),false);
+    const old=state.beginRequest();input.value='query';searchComponent.callback();assert.equal(state.isCurrent(old),false);
     [...timers.values()][0]();timers.clear();assert.equal(calls,1);
     search.cancelScheduledSearch();gate.resolve();await Promise.resolve();assert.ok(indicator.classes.has('highlight-display-none'));
-    input.value='new';input.listeners.input();search.destroy();assert.equal(timers.size,0);assert.equal(input.listeners.input,undefined);
+    input.value='new';searchComponent.callback();search.destroy();assert.equal(timers.size,0);
+    searchComponent.callback();assert.equal(timers.size,0,'Native search callbacks become inert after disposal');
     const {FlashcardComponent}=load('src/flashcard/components/FlashcardComponent.ts',{obsidian:{Component:class{}}});
     const license=deferred();let renders=0;const fake={isActive:false,activationVersion:0,licenseManager:{isActivated:()=>license.promise,isFeatureEnabled:async()=>true},
         operations:{refreshCardList(){}},renderer:{render(){renders++;},renderActivation(){renders++;}}};
@@ -260,6 +276,106 @@ async function favoriteButtons() {
     assert.ok([...rows].every(row=>!row.favoritedAt));batch.unload();assert.equal(remove.listeners.click,undefined);
     console.log('Favorite controls: accessible state, pending-click guard, silent removal, mixed batch actions and listener cleanup passed.');
 }
+async function toolbarFileComment() {
+    class Component {
+        register() {}
+        registerDomEvent(element,name,handler) { element.addEventListener(name,handler); }
+    }
+    let lastMenu;
+    class MenuItem {
+        setTitle(title) { this.title=title;return this; }
+        setIcon(icon) { this.icon=icon;return this; }
+        setChecked(checked) { this.checked=checked;return this; }
+        setDisabled(disabled) { this.disabled=disabled;return this; }
+        onClick(click) { this.click=click;return this; }
+    }
+    class Menu {
+        constructor() { this.items=[];lastMenu=this; }
+        addItem(configure) { const item=new MenuItem();configure(item);this.items.push(item);return this; }
+        addSeparator() { this.items.push({separator:true});return this; }
+        showAtMouseEvent() {}
+    }
+    class ExtraButtonComponent {
+        constructor(container) { this.extraSettingsEl=new Element();container.appendChild(this.extraSettingsEl); }
+        setIcon(icon) { this.icon=icon;return this; }
+        setTooltip(tooltip) { this.tooltip=tooltip;return this; }
+        setDisabled(disabled) { this.disabled=disabled;return this; }
+    }
+    const {HighlightToolbar}=load('src/views/hinote/HighlightToolbar.ts',{
+        obsidian:{Component,ExtraButtonComponent,Menu},'../../i18n':{t:value=>value}
+    });
+    let notifyToolbar;
+    const state={page:{kind:'file'},placement:'sidebar',search:{term:''},cardType:'all',sort:'position',commentsVisible:true,
+        subscribe(listener){notifyToolbar=listener;return ()=>{};},setCommentsVisible(){}};
+    const toolbar=new Element(),toolbarTitle=new Element(),searchField=new Element(),searchInput=new Element(),actions=new Element(),highlights=new Element();
+    searchField.addClass('highlight-display-none');
+    let opened=0,refreshed=0,currentSelections=0,allSelections=0;
+    new HighlightToolbar(new Component(),state,{toolbar,toolbarTitle,searchField,searchInput,actions},{
+        onCurrentDocument:async()=>{currentSelections++;},onAllDocuments:async()=>{allSelections++;},onAddFileComment:()=>opened++,onViewOptionsChanged(){},onRefresh:async()=>{refreshed++;},onExport:async()=>{}
+    });
+    toolbarTitle.listeners.click({});
+    assert.equal(refreshed,1,'The main-view HINOTE title remains a refresh action');
+    actions.children[0].listeners.click({});
+    assert.equal(searchField.classes.has('highlight-display-none'),false);
+    assert.equal(actions.classes.has('highlight-display-none'),false,'Opening search keeps the toolbar row visible');
+    assert.equal(searchInput.focused,true);
+    actions.children[0].listeners.click({});
+    assert.equal(searchField.classes.has('highlight-display-none'),true);
+    assert.equal(actions.classes.has('highlight-display-none'),false);
+    let prevented=false,stopped=false;
+    actions.children[1].listeners.click({preventDefault(){prevented=true;},stopPropagation(){stopped=true;}});
+    assert.equal(opened,1);assert.equal(prevented,true);assert.equal(stopped,true,
+        'The toolbar click must not reach the newly installed outside-click handler');
+    state.page={kind:'all'};notifyToolbar();
+    assert.equal(actions.children[1].classes.has('highlight-display-none'),true,'All highlights hides document-note action');
+    assert.equal(actions.children[3].classes.has('highlight-display-none'),true,'All highlights hides sorting');
+    assert.equal(actions.children[4].classes.has('highlight-display-none'),true,'All highlights hides document export');
+    assert.equal(actions.children[0].classes.has('highlight-display-none'),false,'All highlights keeps search visible');
+    assert.equal(actions.children[2].classes.has('highlight-display-none'),false,'All highlights keeps filtering visible');
+    state.page={kind:'favorites'};notifyToolbar();
+    assert.equal(actions.children[1].classes.has('highlight-display-none'),true,'Favorites hides document-note action');
+    assert.equal(actions.children[3].classes.has('highlight-display-none'),true,'Favorites hides sorting');
+    assert.equal(actions.children[4].classes.has('highlight-display-none'),true,'Favorites hides document export');
+    assert.equal(actions.children[0].classes.has('highlight-display-none'),false,'Favorites keeps search visible');
+    assert.equal(actions.children[2].classes.has('highlight-display-none'),false,'Favorites keeps filtering visible');
+    state.page={kind:'file'};notifyToolbar();
+    assert.equal(actions.children[1].classes.has('highlight-display-none'),false,'Document view restores document-note action');
+    assert.equal(actions.children[3].classes.has('highlight-display-none'),false,'Document view restores sorting');
+    assert.equal(actions.children[4].classes.has('highlight-display-none'),false,'Document view restores export');
+    actions.children[2].listeners.click({});
+    assert.equal(lastMenu.items[1].disabled,false,'Sidebar document scope can switch to all documents');
+    lastMenu.items[1].click();assert.equal(allSelections,1);
+    state.page={kind:'all'};notifyToolbar();actions.children[2].listeners.click({});
+    assert.equal(lastMenu.items[0].disabled,false,'Sidebar all-documents scope can return to the active document');
+    lastMenu.items[0].click();assert.equal(currentSelections,1);
+    state.placement='main';state.page={kind:'file'};notifyToolbar();actions.children[2].listeners.click({});
+    assert.equal(lastMenu.items[1].disabled,true,'Main document scope stays locked to its file');
+    assert.equal(actions.children[0].attrs['aria-label'],undefined,'Main-view text actions do not keep redundant hover tooltips');
+    assert.ok(actions.children[0].children.some(child=>child.text==='Toolbar Search'),'Main-view actions expose their short text label');
+    state.page={kind:'all'};notifyToolbar();actions.children[2].listeners.click({});
+    assert.equal(lastMenu.items[0].disabled,true,'Main all-documents scope stays locked to the collection');
+    console.log('Toolbar: document-note input and sidebar scope round-trip passed.');
+}
+async function paginationRerender() {
+    const rows=[row('first'),row('second')];
+    const env=harness(async()=>rows);
+    let resets=0;
+    env.scroll={
+        batch:0,
+        reset(){resets++;this.batch=0;},
+        getCurrentBatch(){return this.batch;},
+        setCurrentBatch(batch){this.batch=batch;},
+        async loadMoreHighlights(all,render,append=false){await render(all.slice(0,20),append);this.batch++;},
+        async loadUntilScrollable(){},
+        setupInfiniteScroll(){}
+    };
+    await env.controller.refreshView();
+    const initialResets=resets;
+    await env.controller.renderWithCurrentSearch();
+    assert.ok(resets>initialResets,'A local rerender resets the old infinite-scroll generation');
+    assert.equal(env.rendered.map(item=>item.text).join(','),'first,second');
+    console.log('Pagination rerender: old sentinels cannot append the first page twice.');
+}
 async function favoritesNavigation() {
     let reads = 0;
     const env = harness(async()=>[row('file')], async()=>[row('unfavorited')], async()=>{
@@ -269,9 +385,9 @@ async function favoritesNavigation() {
     assert.equal(env.state.page.kind, 'favorites');
     assert.equal(env.state.currentFile, null);
     assert.equal(env.rendered.length, 2);
-    env.input.value = 'all: saved';
-    await env.controller.handleSearch('saved', 'all');
-    assert.equal(env.vaultReads, 0, 'Even an all: prefix stays within the selected favorites page');
+    env.input.value = 'saved';
+    await env.controller.handleSearch('saved');
+    assert.equal(env.vaultReads, 0, 'Searching stays within the selected favorites page');
     assert.equal(reads, 1, 'Typing in favorites reuses its loaded scope');
     assert.equal(env.rendered[0].text, 'saved');
     env.input.value = 'not found';
@@ -291,4 +407,4 @@ async function favoritesNavigation() {
     assert.equal(racing.rendered[0].text, 'file');
     console.log('Favorites navigation: dedicated scope, filtered/empty states, session restore and late response isolation passed.');
 }
-(async()=>{await favoriteButtons();await favoritesNavigation();await races();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();await metadataRefresh();})().catch(error=>{console.error(error);process.exitCode=1;});
+(async()=>{await toolbarFileComment();await paginationRerender();await favoriteButtons();await favoritesNavigation();await races();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();await metadataRefresh();})().catch(error=>{console.error(error);process.exitCode=1;});

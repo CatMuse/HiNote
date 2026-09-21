@@ -23,7 +23,6 @@ interface HighlightRenderingSetupOptions {
     exportManager: ExportManager;
     highlightListController: HighlightListController;
     jumpToHighlight: (highlight: HighlightInfo) => Promise<void>;
-    onFileCommentAdd: () => void;
 }
 
 export function setupHighlightRendering(options: HighlightRenderingSetupOptions): {
@@ -42,8 +41,7 @@ export function setupHighlightRendering(options: HighlightRenderingSetupOptions)
         highlightContainer,
         exportManager,
         highlightListController,
-        jumpToHighlight,
-        onFileCommentAdd
+        jumpToHighlight
     } = options;
 
     const highlightRenderManager = new HighlightRenderManager(
@@ -70,8 +68,7 @@ export function setupHighlightRendering(options: HighlightRenderingSetupOptions)
         highlightRenderManager,
         commentController,
         exportManager,
-        jumpToHighlight,
-        onFileCommentAdd
+        jumpToHighlight
     });
     highlightRenderController.configure();
 

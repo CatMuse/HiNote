@@ -6,7 +6,6 @@ export class LayoutManager {
         private containerEl: HTMLElement,
         private fileListContainer: HTMLElement,
         private mainContentContainer: HTMLElement,
-        private searchContainer: HTMLElement,
         private state: ViewState
     ) {}
     async updateViewLayout(): Promise<void> {
@@ -21,7 +20,5 @@ export class LayoutManager {
         this.fileListContainer.toggleClass('highlight-display-block', showNavigation);
         this.fileListContainer.toggleClass('highlight-full-width', navigationOnly);
         this.mainContentContainer.toggleClass('highlight-display-none', navigationOnly);
-        const fileActions = this.searchContainer.querySelector('.highlight-search-icons');
-        fileActions?.toggleClass('highlight-display-none', state.page.kind !== 'file' || state.search.scope === 'vault');
     }
 }

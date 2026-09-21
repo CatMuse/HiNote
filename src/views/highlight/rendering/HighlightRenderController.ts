@@ -8,7 +8,6 @@ interface HighlightRenderControllerOptions {
     commentController: CommentController;
     exportManager: ExportManager;
     jumpToHighlight: (highlight: HighlightInfo) => Promise<void>;
-    onFileCommentAdd: () => void;
 }
 
 export class HighlightRenderController {
@@ -26,8 +25,7 @@ export class HighlightRenderController {
             },
             onAIResponse: async (highlight, content) => {
                 await this.options.commentController.addAIComment(highlight, content);
-            },
-            onFileCommentAdd: this.options.onFileCommentAdd
+            }
         });
     }
 }

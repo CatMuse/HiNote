@@ -1,4 +1,4 @@
-import { App, TFile, Notice, setIcon } from "obsidian";
+import { App, TFile, Notice } from "obsidian";
 import { HighlightInfo, CommentItem } from "../../../types/highlight";
 import { ExportService } from "../../../services/ExportService";
 import { t } from "../../../i18n";
@@ -11,42 +11,16 @@ import { t } from "../../../i18n";
  * 3. 处理导出为图片的逻辑
  */
 export class ExportManager {
-    private exportButton: HTMLElement | null = null;
-
     constructor(
         private app: App,
         private exportService: ExportService
     ) {}
 
     /**
-     * 创建导出按钮
-     * @param container 按钮容器
-     * @param getCurrentFile 获取当前文件的回调
-     */
-    createExportButton(
-        container: HTMLElement,
-        getCurrentFile: () => TFile | null
-    ): HTMLElement {
-        this.exportButton = container.createDiv({
-            cls: "highlight-icon-button"
-        });
-        
-        setIcon(this.exportButton, "file-symlink");
-        this.exportButton.setAttribute("aria-label", t("Export as notes"));
-
-        // 添加导出按钮点击事件
-        this.exportButton.addEventListener("click", () => {
-            void this.handleExportClick(getCurrentFile());
-        });
-
-        return this.exportButton;
-    }
-
-    /**
      * 处理导出按钮点击
      * @param currentFile 当前文件
      */
-    private async handleExportClick(currentFile: TFile | null): Promise<void> {
+    async exportCurrentFile(currentFile: TFile | null): Promise<void> {
         if (!currentFile) {
             new Notice(t("Please open a file first."));
             return;
@@ -84,9 +58,6 @@ export class ExportManager {
      * 销毁导出管理器
      */
     destroy(): void {
-        if (this.exportButton) {
-            this.exportButton.remove();
-            this.exportButton = null;
-        }
+        // Toolbar buttons are owned by the view Component lifecycle.
     }
 }

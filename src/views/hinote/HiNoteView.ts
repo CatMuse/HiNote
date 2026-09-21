@@ -1,4 +1,4 @@
-import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, Scope, WorkspaceLeaf } from "obsidian";
 import { CanvasService } from '../../services/CanvasService';
 import { HighlightInfo } from '../../types/highlight';
 import { HighlightManager } from '../../services/HighlightManager';
@@ -48,6 +48,15 @@ export class HiNoteView extends ItemView {
 
     constructor(leaf: WorkspaceLeaf, plugin: CommentPlugin, services: PluginServices) {
         super(leaf);
+        // Keep a bare Escape inside the main HiNote tab. Without a view scope,
+        // Obsidian handles the key at the app level and focuses the previously
+        // active leaf, which looks like HiNote switched to another tab.
+        this.scope = new Scope(this.app.scope);
+        this.scope.register([], 'Escape', (event: KeyboardEvent) => {
+            if (!this.state.isDraggedToMainView || event.isComposing) return false;
+            event.preventDefault();
+            event.stopPropagation();
+        });
         this.plugin = plugin;
         this.highlightManager = services.highlightManager;
         this.highlightRepository = services.highlightRepository;

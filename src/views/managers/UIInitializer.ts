@@ -1,4 +1,4 @@
-import { Component, setIcon } from "obsidian";
+import { SearchComponent, setIcon } from "obsidian";
 import { t } from "../../i18n";
 
 /**
@@ -6,11 +6,16 @@ import { t } from "../../i18n";
  */
 export interface UIElements {
     mainContainer: HTMLElement;
+    workspaceBody: HTMLElement;
     fileListContainer: HTMLElement;
     mainContentContainer: HTMLElement;
     backButtonContainer: HTMLElement;
     backButton: HTMLElement;
     searchContainer: HTMLElement;
+    toolbarTitle: HTMLElement;
+    toolbarMeta: HTMLElement;
+    searchField: HTMLElement;
+    searchComponent: SearchComponent;
     searchInput: HTMLInputElement;
     searchLoadingIndicator: HTMLElement;
     iconButtonsContainer: HTMLElement;
@@ -31,7 +36,7 @@ export class UIInitializer {
      * @param container 根容器
      * @returns UI 元素引用
      */
-    initializeUI(container: HTMLElement, component: Component): UIElements {
+    initializeUI(container: HTMLElement): UIElements {
         // 清空容器并添加类
         container.empty();
         container.addClass("comment-view-container");
@@ -42,52 +47,62 @@ export class UIInitializer {
             cls: "highlight-main-container"
         });
 
+        // 主视图页头；侧栏模式通过样式隐藏标题，只保留紧凑操作栏。
+        const searchContainer = mainContainer.createDiv({
+            cls: "highlight-search-container"
+        });
+        const toolbarRow = searchContainer.createDiv({
+            cls: "hinote-toolbar-row"
+        });
+        const titleGroup = toolbarRow.createDiv({
+            cls: "hinote-toolbar-title-group"
+        });
+        const toolbarTitle = titleGroup.createDiv({
+            text: "HINOTE",
+            cls: "hinote-toolbar-title",
+            attr: {
+                role: "button",
+                tabindex: "0",
+                title: t("Refresh view"),
+                "aria-label": `HINOTE: ${t("Refresh view")}`
+            }
+        });
+        const toolbarMeta = titleGroup.createDiv({
+            cls: "hinote-toolbar-meta",
+            attr: { "aria-live": "polite" }
+        });
+
+        // 创建图标按钮容器
+        const iconButtonsContainer = toolbarRow.createDiv({
+            cls: "highlight-search-icons"
+        });
+
+        // 搜索框作为页头的第二行。
+        const searchField = searchContainer.createDiv({ cls: "highlight-search-field highlight-display-none" });
+        const searchComponent = new SearchComponent(searchField)
+            .setPlaceholder(t("Search..."));
+        const searchInput = searchComponent.inputEl;
+        searchInput.addClass("highlight-search-input");
+        searchInput.setAttribute("aria-label", t("Search..."));
+        const searchLoadingIndicator = this.createSearchLoadingIndicator(searchField);
+
+        // 页头下方的主工作区。
+        const workspaceBody = mainContainer.createDiv({
+            cls: "hinote-workspace-body"
+        });
+
         // 创建文件列表区域（只在主视图中显示）
-        const fileListContainer = mainContainer.createDiv({
+        const fileListContainer = workspaceBody.createDiv({
             cls: "highlight-file-list-container"
         });
 
         // 创建右侧内容区域
-        const mainContentContainer = mainContainer.createDiv({
+        const mainContentContainer = workspaceBody.createDiv({
             cls: "highlight-content-container"
         });
 
         // 保留窄窗格原有的返回入口
         const { backButtonContainer, backButton } = this.createBackButton(mainContentContainer);
-
-        // 创建搜索区域
-        const searchContainer = mainContentContainer.createDiv({
-            cls: "highlight-search-container"
-        });
-
-        // 创建搜索输入框
-        const searchField = searchContainer.createDiv({ cls: "highlight-search-field" });
-        const searchInput = this.createSearchInput(searchField);
-
-        // 创建搜索加载指示器
-        const searchLoadingIndicator = this.createSearchLoadingIndicator(searchField);
-        const finishSearchButton = searchField.createEl("button", {
-            cls: "highlight-search-finish",
-            attr: { type: "button", "aria-label": t("Finish searching"), title: t("Finish searching") }
-        });
-        setIcon(finishSearchButton, "check");
-        const finishSearching = () => {
-            searchInput.blur();
-            finishSearchButton.blur();
-        };
-        component.registerDomEvent(finishSearchButton, "click", finishSearching);
-        component.registerDomEvent(searchField, "keydown", (event: KeyboardEvent) => {
-            if (event.key === "Escape" && !event.isComposing) {
-                event.preventDefault();
-                event.stopPropagation();
-                finishSearching();
-            }
-        });
-
-        // 创建图标按钮容器
-        const iconButtonsContainer = searchContainer.createDiv({
-            cls: "highlight-search-icons"
-        });
 
         // 创建高亮容器
         const highlightContainer = mainContentContainer.createDiv({
@@ -99,11 +114,16 @@ export class UIInitializer {
 
         return {
             mainContainer,
+            workspaceBody,
             fileListContainer,
             mainContentContainer,
             backButtonContainer,
             backButton,
             searchContainer,
+            toolbarTitle,
+            toolbarMeta,
+            searchField,
+            searchComponent,
             searchInput,
             searchLoadingIndicator,
             iconButtonsContainer,
@@ -132,22 +152,6 @@ export class UIInitializer {
         });
 
         return { backButtonContainer, backButton };
-    }
-
-    /**
-     * 创建搜索输入框
-     */
-    private createSearchInput(parent: HTMLElement): HTMLInputElement {
-        const searchInput = parent.createEl("input", {
-            cls: "highlight-search-input",
-            attr: {
-                type: "text",
-                placeholder: t("Search..."),
-                "aria-label": t("Search..."),
-            }
-        });
-
-        return searchInput;
     }
 
     /**

@@ -21,7 +21,6 @@ interface LayoutAndCanvasSetupOptions {
     fileListController: FileListController;
     fileListContainer: HTMLElement;
     mainContentContainer: HTMLElement;
-    searchContainer: HTMLElement;
 }
 
 export function setupLayoutAndCanvas(options: LayoutAndCanvasSetupOptions): {
@@ -44,10 +43,9 @@ export function setupLayoutAndCanvas(options: LayoutAndCanvasSetupOptions): {
         fileListController,
         fileListContainer,
         mainContentContainer,
-        searchContainer,
     } = options;
 
-    const layoutManager = new LayoutManager(containerEl, fileListContainer, mainContentContainer, searchContainer, state);
+    const layoutManager = new LayoutManager(containerEl, fileListContainer, mainContentContainer, state);
     const viewPositionDetector = new ViewPositionDetector(app, leaf, state);
     const viewPositionController = new ViewPositionController({
         app, state, fileListController, fileListManager,

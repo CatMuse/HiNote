@@ -1,4 +1,5 @@
 import CommentPlugin from "../../../../main";
+import type { SearchComponent } from "obsidian";
 import { ExportService } from "../../../services/ExportService";
 import { HighlightService } from "../../../services/HighlightService";
 import { LicenseManager } from "../../../services/LicenseManager";
@@ -14,7 +15,7 @@ interface SearchAndSelectionOptions {
     highlightService: HighlightService;
     containerEl: HTMLElement;
     state: ViewState;
-    searchInput: HTMLInputElement;
+    searchComponent: SearchComponent;
     searchLoadingIndicator: HTMLElement;
     highlightContainer: HTMLElement;
     highlightListController: HighlightListController;
@@ -32,7 +33,7 @@ export function setupSearchAndSelection(options: SearchAndSelectionOptions): {
         highlightService,
         containerEl,
         state,
-        searchInput,
+        searchComponent,
         searchLoadingIndicator,
         highlightContainer,
         highlightListController
@@ -40,13 +41,13 @@ export function setupSearchAndSelection(options: SearchAndSelectionOptions): {
 
     const searchUIManager = new SearchUIManager(
         plugin,
-        searchInput,
+        searchComponent,
         searchLoadingIndicator,
         state
     );
     searchUIManager.setCallbacks(
-        async (searchTerm: string, searchType: string) => {
-            await highlightListController.handleSearch(searchTerm, searchType);
+        async (searchTerm: string) => {
+            await highlightListController.handleSearch(searchTerm);
         },
         () => state.highlights,
         () => state.currentFile

@@ -1,15 +1,14 @@
-import { parseHighlightQuery } from './HighlightQuery';
 import { TFile } from "obsidian";
 import { HighlightInfo } from "../../types/highlight";
 import CommentPlugin from "../../../main";
+import type { HighlightCardType } from '../../views/hinote/ViewState';
 
 /**
  * 搜索服务
  * 负责搜索相关的业务逻辑
  * 
  * 职责：
- * - 解析搜索输入（前缀识别）
- * - 过滤高亮数据
+ * - 按独立的卡片类型状态过滤高亮数据
  * - 搜索匹配逻辑
  */
 export class SearchService {
@@ -20,66 +19,26 @@ export class SearchService {
     }
     
     /**
-     * 解析搜索输入，提取搜索词和搜索类型
-     */
-    parseSearchInput(searchInput: string): { searchTerm: string; searchType: string } {
-        const query = parseHighlightQuery(searchInput);
-        return { searchTerm: query.term, searchType: query.type };
-    }
-    
-    /**
-     * 根据搜索词和搜索类型过滤高亮
+     * 根据纯文本搜索词和卡片类型过滤高亮
      */
     filterHighlights(
         highlights: HighlightInfo[],
         searchTerm: string,
-        searchType: string = '',
+        cardType: HighlightCardType = 'all',
         currentFile: TFile | null
     ): HighlightInfo[] {
-        // 如果是按路径搜索
-        if (searchType === 'path') {
-            return this.filterByPath(highlights, searchTerm);
-        }
-        
         // 如果是搜索闪卡
-        if (searchType === 'hicard') {
+        if (cardType === 'hicard') {
             return this.filterByFlashcard(highlights, searchTerm, currentFile);
         }
         
         // 如果是搜索批注
-        if (searchType === 'comment') {
+        if (cardType === 'comment') {
             return this.filterByComment(highlights, searchTerm, currentFile);
         }
         
         // 常规搜索逻辑
         return this.filterByGeneral(highlights, searchTerm, currentFile);
-    }
-    
-    /**
-     * 按路径过滤高亮
-     */
-    private filterByPath(highlights: HighlightInfo[], searchTerm: string): HighlightInfo[] {
-        // 确保所有高亮都有文件名和路径信息
-        highlights.forEach(highlight => {
-            if (highlight.filePath && !highlight.fileName) {
-                const pathParts = highlight.filePath.split('/');
-                highlight.fileName = pathParts[pathParts.length - 1];
-            }
-        });
-        
-        // 如果搜索词为空，返回所有有文件路径的高亮
-        if (!searchTerm || searchTerm.trim() === '') {
-            return highlights.filter(highlight => !!highlight.filePath);
-        }
-        
-        // 如果有搜索词，过滤出路径匹配的高亮
-        return highlights.filter(highlight => {
-            if (!highlight.filePath) {
-                return false;
-            }
-            const filePath = highlight.filePath.toLowerCase();
-            return filePath.includes(searchTerm.toLowerCase());
-        });
     }
     
     /**
@@ -124,7 +83,7 @@ export class SearchService {
     ): HighlightInfo[] {
         return highlights.filter(highlight => {
             // 检查高亮是否包含批注
-            const hasComments = highlight.comments && highlight.comments.length > 0;
+            const hasComments = highlight.kind === 'file-comment' || !!highlight.comments?.length;
             
             if (!hasComments) {
                 return false;

@@ -134,6 +134,7 @@ export default {
 
     "Loading...": "Loading...",
     "Search...": "Search...",
+    "{count} results": "{count} results",
     "Finish searching": "Finish searching",
     "No matching content found.": "No matching content found.",
     "The current document has no highlighted content.": "The current document has no highlighted content.",
@@ -142,6 +143,23 @@ export default {
     "All Highlight": "All highlight",
     "Export as notes": "Export as notes",
     "Add File Comment": "Add a document note...",
+    "Search highlights": "Search highlights",
+    "Filter highlights": "Filter highlights",
+    "Sort highlights": "Sort highlights",
+    "Current document": "Current document",
+    "All documents": "All documents",
+    "All cards": "All cards",
+    "HiCard": "HiCard",
+    "Comment": "Comment",
+    "Highlight position": "Highlight position",
+    "Recently updated": "Recently updated",
+    "Least recently updated": "Least recently updated",
+    "Export current document as notes": "Export current document as notes",
+    "Toolbar Search": "Search",
+    "Toolbar Note": "Note",
+    "Toolbar Filter": "Filter",
+    "Toolbar Sort": "Sort",
+    "Toolbar Export": "Export",
     "File Comment": "File comment",
     "Successfully exported highlights to: ": "Successfully exported highlights to: ",
     "Failed to export highlights: ": "Failed to export highlights: ",
@@ -258,10 +276,6 @@ export default {
     "Group deleted": "Group deleted",
     
     // 搜索前缀提示
-    "search-prefix-all": "match all file highlights",
-    "search-prefix-hicard": "match flashcards only",
-    "search-prefix-comment": "match with comments only",
-    "search-prefix-path": "match path of the file",
 
     // 其他
 
