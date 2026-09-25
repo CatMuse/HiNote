@@ -183,6 +183,8 @@ export default {
     "Refresh the highlights and try again.": "请刷新高亮列表后重试。",
 
     "Change highlight color": "修改高亮颜色",
+    "The selection changed. Select the text again.": "选区内容已变化，请重新选择文本。",
+    "Could not save the selection.": "无法保存选区，请重试。",
     "Default yellow": "默认黄色",
     "Red": "红色",
     "Orange": "橙色",

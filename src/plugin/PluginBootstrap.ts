@@ -1,4 +1,5 @@
 import { navigationFlashField } from '../editor/NavigationFlash';
+import { registerSelectionColorToolbar } from '../editor/selection/SelectionColorToolbar';
 import { TFile, type WorkspaceLeaf } from 'obsidian';
 import type CommentPlugin from '../../main';
 import { createWindowManager, registerCommands } from '../commands';
@@ -13,6 +14,7 @@ export function createPluginWindowManager(plugin: CommentPlugin): WindowManager 
 
 export function registerPluginViews(plugin: CommentPlugin): void {
     plugin.registerEditorExtension(navigationFlashField);
+    registerSelectionColorToolbar(plugin);
     plugin.registerMarkdownPostProcessor((element, context) => {
         const section = context.getSectionInfo(element);
         if (!section) return;

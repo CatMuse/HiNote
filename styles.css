@@ -4510,3 +4510,34 @@ button.hinote-related-card:focus-visible {
 .hinote-related-relation {
     margin-top: 6px;
 }
+
+.hinote-selection-color-toolbar {
+    position: fixed;
+    z-index: var(--layer-popover, 300);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-primary);
+    box-shadow: var(--shadow-s);
+}
+.hinote-selection-color-toolbar .hinote-selection-color-swatch {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    background: var(--swatch-color);
+}
+.hinote-selection-color-toolbar .hinote-selection-color-swatch:hover,
+.hinote-selection-color-toolbar .hinote-selection-color-swatch:focus-visible {
+    border-color: var(--text-normal);
+}
+.is-mobile .hinote-selection-color-toolbar .hinote-selection-color-swatch {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+}
