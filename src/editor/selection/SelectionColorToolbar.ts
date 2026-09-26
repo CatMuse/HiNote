@@ -1,11 +1,12 @@
-import { Component, MarkdownView, Notice, editorInfoField, editorLivePreviewField, setIcon } from 'obsidian';
+import { Component, Notice, setIcon } from 'obsidian';
 import { EditorView, ViewPlugin, ViewUpdate, type Rect } from '@codemirror/view';
 import type { EditorFeatureContext } from '../../types/plugin';
 import { HIGHLIGHT_COLOR_CHOICES, recolorHighlightSource } from '../../services/highlight/HighlightColorEdit';
 import type { HighlightColor } from '../../services/highlight/HighlightColor';
 import { HighlightExtractor } from '../../services/highlight/HighlightExtractor';
 import { highlightColorStyle } from '../../services/highlight/HighlightColor';
-import { readPreviewSection, resolvePreviewSelection, resolveSourceSelection, type SelectionRangePlan } from './SelectionRangeResolver';
+import type { SelectionRangePlan } from './SelectionRangeResolver';
+import { SelectionCapture, type SelectionContext } from './SelectionCapture';
 import { t } from '../../i18n';
 import { CommentService } from '../../services/comment';
 import { FloatingCommentInput } from '../../components/comment';
@@ -13,14 +14,6 @@ import { scanToHighlightView } from '../../models/HighlightModels';
 import type { HighlightInfo } from '../../types/highlight';
 import { HighlightCardClipboard } from '../../components/highlight/card/Clipboard';
 import { HighlightDeletionManager } from '../../views/highlight/actions/HighlightDeletionManager';
-
-interface SelectionContext {
-    view?: EditorView;
-    markdownView: MarkdownView;
-    file: import('obsidian').TFile;
-    snapshot: string;
-    plan: SelectionRangePlan;
-}
 
 interface PendingAutoHighlight {
     context: SelectionContext;
@@ -34,6 +27,7 @@ class SelectionColorController extends Component {
     private pointerDownInEditor = false;
     private disposed = false;
     private extractor: HighlightExtractor;
+    private selectionCapture: SelectionCapture;
     private commentInput?: FloatingCommentInput;
     private annotateButton?: HTMLButtonElement;
     private deleteButton?: HTMLButtonElement;
@@ -46,6 +40,7 @@ class SelectionColorController extends Component {
     constructor(private plugin: EditorFeatureContext) {
         super();
         this.extractor = new HighlightExtractor(plugin.app, () => plugin.settings);
+        this.selectionCapture = new SelectionCapture(plugin, this.extractor);
     }
 
     onload(): void {
@@ -55,19 +50,19 @@ class SelectionColorController extends Component {
         this.registerDomEvent(doc, 'pointerdown', event => {
             const target = event.target as Node;
             if (this.toolbar?.contains(target)) return;
-            const editor = this.getEditorView();
-            const preview = this.getMarkdownView()?.previewMode?.containerEl;
+            const editor = this.selectionCapture.getEditorView();
+            const preview = this.selectionCapture.getMarkdownView()?.previewMode?.containerEl;
             this.pointerDownInEditor = !!editor?.dom.contains(target) || !!preview?.contains(target);
             this.hide();
         });
         this.registerDomEvent(doc, 'pointerup', () => {
-            if ((this.pointerDownInEditor || this.isPreview()) && !this.selectionUpdatesSuppressed()) {
+            if ((this.pointerDownInEditor || this.selectionCapture.isPreview()) && !this.selectionUpdatesSuppressed()) {
                 this.pointerDownInEditor = false;
                 this.schedule();
             }
         });
         this.registerDomEvent(doc, 'selectionchange', () => {
-            if (this.isPreview() && !this.commentInputActive && !this.selectionUpdatesSuppressed()) this.schedule();
+            if (this.selectionCapture.isPreview() && !this.commentInputActive && !this.selectionUpdatesSuppressed()) this.schedule();
         });
         this.registerDomEvent(doc, 'click', event => {
             if (this.toolbar?.contains(event.target as Node) || this.commentInputActive) return;
@@ -84,28 +79,9 @@ class SelectionColorController extends Component {
     }
 
     onEditorUpdate(view: EditorView, update: ViewUpdate): void {
-        if (view !== this.getEditorView() || this.commentInputActive || this.selectionUpdatesSuppressed()) return;
+        if (view !== this.selectionCapture.getEditorView() || this.commentInputActive || this.selectionUpdatesSuppressed()) return;
         if (update.selectionSet || update.focusChanged) this.schedule();
         if (update.docChanged) this.hide();
-    }
-
-    private getMarkdownView(): MarkdownView | null {
-        return this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-    }
-
-    private getEditorView(): EditorView | null {
-        const editor = this.getMarkdownView()?.editor as unknown as { cm?: EditorView } | undefined;
-        return editor?.cm || null;
-    }
-
-    private isPreviewView(view: EditorView): boolean {
-        return view.state.field(editorLivePreviewField, false) === true;
-    }
-
-    private isPreview(): boolean {
-        const markdownView = this.getMarkdownView();
-        const editor = this.getEditorView();
-        return markdownView?.getMode() === 'preview' || (!!editor && this.isPreviewView(editor));
     }
 
     private selectionUpdatesSuppressed(): boolean {
@@ -123,127 +99,21 @@ class SelectionColorController extends Component {
         }, 140);
     }
 
-    private selectionRect(range: Range): Rect | null {
-        const rects = Array.from(range.getClientRects());
-        const rect = rects.length ? rects.reduce((merged, current) => ({
-            left: Math.min(merged.left, current.left), right: Math.max(merged.right, current.right),
-            top: Math.min(merged.top, current.top), bottom: Math.max(merged.bottom, current.bottom)
-        }), { left: rects[0].left, right: rects[0].right, top: rects[0].top, bottom: rects[0].bottom }) : range.getBoundingClientRect();
-        return rect.right > rect.left && rect.bottom > rect.top ? rect : null;
-    }
-
-    private editorRangeRect(view: EditorView, from: number, to: number): Rect | null {
-        try {
-            const start = view.domAtPos(from);
-            const end = view.domAtPos(to);
-            const range = view.dom.ownerDocument.createRange();
-            range.setStart(start.node, start.offset);
-            range.setEnd(end.node, end.offset);
-            const rect = this.selectionRect(range);
-            if (rect) return rect;
-        } catch {
-            // Virtualized or replaced content may not have a complete DOM range.
-        }
-        const start = view.coordsAtPos(from), end = view.coordsAtPos(to);
-        return start && end ? {
-            left: Math.min(start.left, end.left), right: Math.max(start.right, end.right),
-            top: Math.min(start.top, end.top), bottom: Math.max(start.bottom, end.bottom)
-        } : null;
-    }
-
-    private async capture(): Promise<{ context: SelectionContext; anchor: Rect } | null> {
-        const markdownView = this.getMarkdownView();
-        const view = this.getEditorView();
-        if (!markdownView) return null;
-        const file = view?.state.field(editorInfoField, false)?.file || markdownView.file;
-        if (!file || !this.extractor.shouldProcessFile(file)) return null;
-        const isReadingPreview = markdownView.getMode() === 'preview';
-        const snapshot = view && !isReadingPreview ? view.state.doc.toString() : await this.plugin.app.vault.read(file);
-        const scans = this.extractor.extractHighlights(snapshot, file);
-
-        if (isReadingPreview) {
-            const selection = activeDocument.getSelection();
-            if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) return null;
-            const range = selection.getRangeAt(0);
-            const host = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
-                ? range.commonAncestorContainer as Element : range.commonAncestorContainer.parentElement;
-            const sectionElement = host?.closest<HTMLElement>('[data-hinote-source-path]');
-            const section = sectionElement ? readPreviewSection(sectionElement) : null;
-            if (!section || section.sourcePath !== file.path) return null;
-            const plan = resolvePreviewSelection(snapshot, section, selection.toString(), scans);
-            const rect = this.selectionRect(range);
-            return plan && rect ? { context: { view: undefined, markdownView, file, snapshot, plan }, anchor: rect } : null;
-        }
-
-        // Source mode and Live Preview share the same CodeMirror source selection.
-        if (!view || !view.hasFocus) return null;
-        const selection = view.state.selection.main;
-        if (selection.empty) return null;
-        const plan = resolveSourceSelection(snapshot, selection.from, selection.to, scans);
-        const anchor = this.editorRangeRect(view, selection.from, selection.to);
-        if (!plan || !anchor) return null;
-        return { context: { view, markdownView, file, snapshot, plan }, anchor };
-    }
-
     private async show(): Promise<void> {
         if (this.openingComment || this.commentInputActive || this.disposed) return;
         this.hide();
-        const captured = await this.capture();
+        const captured = await this.selectionCapture.captureSelection();
         if (captured) this.render(captured);
     }
 
     private async showForHighlightClick(event: MouseEvent): Promise<void> {
-        const captured = this.isPreview() && this.getMarkdownView()?.getMode() === 'preview'
-            ? await this.captureReadingHighlightClick(event)
-            : this.captureEditorHighlightClick(event);
+        const captured = await this.selectionCapture.captureHighlightClick(event);
         // Ordinary clicks must remain available for double-click and triple-click
         // selection. Suppress later selection updates only after a real highlight hit.
         if (!captured) return;
         this.selectionSuppressedUntil = Date.now() + 500;
         this.hide();
         this.render(captured);
-    }
-
-    private captureEditorHighlightClick(event: MouseEvent): { context: SelectionContext; anchor: Rect } | null {
-        const markdownView = this.getMarkdownView();
-        const view = this.getEditorView();
-        const file = view?.state.field(editorInfoField, false)?.file || markdownView?.file;
-        if (!markdownView || !view || !file || !this.extractor.shouldProcessFile(file) || !view.dom.isConnected) return null;
-        const position = view.posAtCoords({ x: event.clientX, y: event.clientY });
-        if (position === null || position === undefined) return null;
-        const snapshot = view.state.doc.toString();
-        const scan = this.extractor.extractHighlights(snapshot, file).find(item =>
-            item.syntax === 'markdown' && item.position <= position && position <= item.position + item.originalLength
-        );
-        if (!scan) return null;
-        const anchor = this.editorRangeRect(view, scan.position, scan.position + scan.originalLength);
-        if (!anchor) return null;
-        return {
-            context: { view, markdownView, file, snapshot, plan: { from: scan.position, to: scan.position + scan.originalLength, source: scan } },
-            anchor
-        };
-    }
-
-    private async captureReadingHighlightClick(event: MouseEvent): Promise<{ context: SelectionContext; anchor: Rect } | null> {
-        const markdownView = this.getMarkdownView();
-        const file = markdownView?.file;
-        const target = event.target as HTMLElement | null;
-        const mark = target?.closest<HTMLElement>('mark, span.highlight');
-        if (!markdownView || !file || !mark || !this.extractor.shouldProcessFile(file)) return null;
-        if (mark.dataset.hinoteSourcePath !== file.path) return null;
-        const snapshot = await this.plugin.app.vault.read(file);
-        const scans = this.extractor.extractHighlights(snapshot, file);
-        const sourceFrom = Number(mark.dataset.hinoteSourceFrom);
-        const sourceTo = Number(mark.dataset.hinoteSourceTo);
-        const exactScan = Number.isInteger(sourceFrom) && Number.isInteger(sourceTo) && sourceTo > sourceFrom
-            ? scans.find(scan => scan.position === sourceFrom && scan.position + scan.originalLength === sourceTo)
-            : undefined;
-        const plan: SelectionRangePlan | null = exactScan
-            ? { from: sourceFrom, to: sourceTo, source: exactScan }
-            : null;
-        if (!plan) return null;
-        const rect = mark.getBoundingClientRect();
-        return { context: { view: undefined, markdownView, file, snapshot, plan }, anchor: rect };
     }
 
     private render(captured: { context: SelectionContext; anchor: Rect }): void {
