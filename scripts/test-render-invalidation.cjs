@@ -68,8 +68,12 @@ const coordinator = new moduleExports.RenderInvalidationCoordinator(
 );
 coordinator.enable();
 
-for (const callback of listeners.get('comment:update')) callback('a.md', '', '', 'record');
-for (const callback of listeners.get('highlight:update')) callback('a.md', '', '', 'record');
+for (const callback of listeners.get('records:changed')) callback({
+    entity: 'comment', action: 'update', filePath: 'a.md', sourceId: 'record'
+});
+for (const callback of listeners.get('records:changed')) callback({
+    entity: 'highlight', action: 'update', filePath: 'a.md', sourceId: 'record'
+});
 flushTimer();
 assert.deepEqual(editorRefreshes, ['a.md']);
 assert.equal(readingA.renders, 1);

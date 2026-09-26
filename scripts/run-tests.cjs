@@ -3,6 +3,7 @@ const { spawnSync } = require('node:child_process');
 const tasks = [
     'test:architecture',
     'test:rendering',
+    'test:events',
     'test:i18n',
     'test:review',
     'test:flashcards',

@@ -1,8 +1,5 @@
 import { MarkdownView, Plugin } from 'obsidian';
-import type { HighlightEvents, EventManager } from '../services/EventManager';
-
-type FileRefreshEvent = keyof Pick<HighlightEvents,
-    'comment:update' | 'comment:delete' | 'highlight:update' | 'highlight:delete'>;
+import type { EventManager } from '../services/EventManager';
 
 /** Coalesces model changes into one editor/reading-mode refresh per task. */
 export class RenderInvalidationCoordinator {
@@ -20,18 +17,10 @@ export class RenderInvalidationCoordinator {
     enable(): void {
         if (this.enabled) return;
         this.enabled = true;
-        const events: FileRefreshEvent[] = [
-            'comment:update',
-            'comment:delete',
-            'highlight:update',
-            'highlight:delete'
-        ];
-        for (const eventName of events) {
-            this.host.registerEvent(this.eventManager.on(
-                eventName,
-                (filePath: string, ..._details: string[]) => this.invalidate(filePath)
-            ));
-        }
+        this.host.registerEvent(this.eventManager.on(
+            'records:changed',
+            change => this.invalidate(change.filePath)
+        ));
         this.host.registerEvent(this.eventManager.on('exclusions:changed', () => this.invalidate()));
         this.host.register(() => this.destroy());
     }

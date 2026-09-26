@@ -72,13 +72,9 @@ export class EventCoordinator {
         this.component.registerEvent(this.eventManager.on('favorites:changed', () => {
             if (!this.disposed) this.callbacks.onFavoritesChanged?.();
         }));
-        const recordsChanged = (filePath: string) => {
-            if (!this.disposed) this.callbacks.onRecordsChanged?.(filePath);
-        };
-        this.component.registerEvent(this.eventManager.on('highlight:update', recordsChanged));
-        this.component.registerEvent(this.eventManager.on('highlight:delete', recordsChanged));
-        this.component.registerEvent(this.eventManager.on('comment:update', recordsChanged));
-        this.component.registerEvent(this.eventManager.on('comment:delete', recordsChanged));
+        this.component.registerEvent(this.eventManager.on('records:changed', change => {
+            if (!this.disposed) this.callbacks.onRecordsChanged?.(change.filePath);
+        }));
 
         // 监听布局变化
         this.registerLayoutChangeEvent();

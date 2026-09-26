@@ -1,6 +1,14 @@
 import { App, Events, EventRef } from 'obsidian';
 
+export interface RecordChangeEvent {
+    entity: 'highlight' | 'comment';
+    action: 'update' | 'delete';
+    filePath: string;
+    sourceId: string;
+}
+
 export interface HighlightEvents {
+    'records:changed': [change: RecordChangeEvent];
     'highlight:update': [filePath: string, oldText: string, newText: string, sourceId: string];
     'highlight:delete': [filePath: string, text: string, sourceId: string];
     'comment:update': [filePath: string, oldComment: string, newComment: string, sourceId: string];
@@ -23,6 +31,7 @@ export class EventManager {
      */
     public emitHighlightUpdate(filePath: string, oldText: string, newText: string, sourceId: string) {
         this.events.trigger('highlight:update', filePath, oldText, newText, sourceId);
+        this.emitRecordChange({ entity: 'highlight', action: 'update', filePath, sourceId });
     }
 
     /**
@@ -30,6 +39,7 @@ export class EventManager {
      */
     public emitHighlightDelete(filePath: string, text: string, sourceId: string) {
         this.events.trigger('highlight:delete', filePath, text, sourceId);
+        this.emitRecordChange({ entity: 'highlight', action: 'delete', filePath, sourceId });
     }
 
     /**
@@ -37,6 +47,7 @@ export class EventManager {
      */
     public emitCommentUpdate(filePath: string, oldComment: string, newComment: string, sourceId: string) {
         this.events.trigger('comment:update', filePath, oldComment, newComment, sourceId);
+        this.emitRecordChange({ entity: 'comment', action: 'update', filePath, sourceId });
     }
 
     /**
@@ -44,6 +55,7 @@ export class EventManager {
      */
     public emitCommentDelete(filePath: string, comment: string, sourceId: string) {
         this.events.trigger('comment:delete', filePath, comment, sourceId);
+        this.emitRecordChange({ entity: 'comment', action: 'delete', filePath, sourceId });
     }
 
     /**
@@ -64,6 +76,10 @@ export class EventManager {
 
     public emitExclusionsChanged(): void {
         this.events.trigger('exclusions:changed');
+    }
+
+    private emitRecordChange(change: RecordChangeEvent): void {
+        this.events.trigger('records:changed', change);
     }
 
     /**
