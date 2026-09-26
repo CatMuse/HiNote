@@ -1,19 +1,16 @@
 import { Component, Notice, setIcon } from 'obsidian';
 import { EditorView, ViewPlugin, ViewUpdate, type Rect } from '@codemirror/view';
 import type { EditorFeatureContext } from '../../types/plugin';
-import { HIGHLIGHT_COLOR_CHOICES, recolorHighlightSource } from '../../services/highlight/HighlightColorEdit';
+import { HIGHLIGHT_COLOR_CHOICES } from '../../services/highlight/HighlightColorEdit';
 import type { HighlightColor } from '../../services/highlight/HighlightColor';
 import { HighlightExtractor } from '../../services/highlight/HighlightExtractor';
 import { highlightColorStyle } from '../../services/highlight/HighlightColor';
 import type { SelectionRangePlan } from './SelectionRangeResolver';
 import { SelectionCapture, type SelectionContext } from './SelectionCapture';
+import { SelectionHighlightActions } from './SelectionHighlightActions';
 import { t } from '../../i18n';
 import { CommentService } from '../../services/comment';
 import { FloatingCommentInput } from '../../components/comment';
-import { scanToHighlightView } from '../../models/HighlightModels';
-import type { HighlightInfo } from '../../types/highlight';
-import { HighlightCardClipboard } from '../../components/highlight/card/Clipboard';
-import { HighlightDeletionManager } from '../../views/highlight/actions/HighlightDeletionManager';
 
 interface PendingAutoHighlight {
     context: SelectionContext;
@@ -28,6 +25,7 @@ class SelectionColorController extends Component {
     private disposed = false;
     private extractor: HighlightExtractor;
     private selectionCapture: SelectionCapture;
+    private actions: SelectionHighlightActions;
     private commentInput?: FloatingCommentInput;
     private annotateButton?: HTMLButtonElement;
     private deleteButton?: HTMLButtonElement;
@@ -41,6 +39,7 @@ class SelectionColorController extends Component {
         super();
         this.extractor = new HighlightExtractor(plugin.app, () => plugin.settings);
         this.selectionCapture = new SelectionCapture(plugin, this.extractor);
+        this.actions = new SelectionHighlightActions(plugin, this.extractor);
     }
 
     onload(): void {
@@ -173,7 +172,7 @@ class SelectionColorController extends Component {
         copy.addEventListener('click', event => {
             event.preventDefault();
             event.stopPropagation();
-            void this.copyHighlight(captured.context).catch(error => {
+            void this.actions.copyHighlight(captured.context).catch(error => {
                 console.error('[HiNote] Could not copy the selected highlight:', error);
                 new Notice(t('Failed to copy content'));
             });
@@ -202,35 +201,22 @@ class SelectionColorController extends Component {
         if (!popover?.isConnected || this.openingComment) return;
         this.openingComment = true;
         try {
+        // Initialize persistence before adding an automatic highlight so a
+        // service startup failure cannot leave an unannotated source change.
         const services = await this.plugin.ensureServicesInitialized();
-        let prepared = context;
-        if (!prepared.plan.source) {
-            const originalSnapshot = prepared.snapshot;
-            const originalPlan = { ...prepared.plan };
-            await this.writeSelectionChange(prepared, null);
-            const snapshot = prepared.view ? prepared.view.state.doc.toString() : await this.plugin.app.vault.read(prepared.file);
-            const scans = this.extractor.extractHighlights(snapshot, prepared.file);
-            const scan = scans.find(item => item.position === prepared.plan.from);
-            if (!scan) throw new Error(t('This selection cannot be highlighted safely.'));
-            prepared = { ...prepared, snapshot, plan: {
-                from: scan.position, to: scan.position + scan.originalLength, source: scan
-            } };
+        const result = await this.actions.ensureHighlighted(context);
+        const prepared = result.context;
+        if (result.rollback) {
             // Keep the toolbar's captured context current so closing and reopening
             // the comment panel does not try to highlight the same selection twice.
             context.snapshot = prepared.snapshot;
             context.plan = prepared.plan;
-            this.pendingAutoHighlight = { context, originalSnapshot, originalPlan };
+            this.pendingAutoHighlight = { context, ...result.rollback };
             this.updateColorSelection(context);
             this.updateDeleteButton(true);
         }
-        const snapshot = prepared.view ? prepared.view.state.doc.toString() : await this.plugin.app.vault.read(prepared.file);
-        const scans = this.extractor.extractHighlights(snapshot, prepared.file);
-        const scan = scans.find(item => item.position === prepared.plan.from);
-        if (!scan) throw new Error(t('This selection cannot be highlighted safely.'));
-        const merged = services.highlightService.mergeHighlightsWithComments(
-            scans, services.highlightRepository.getCachedHighlights(prepared.file.path) || [], prepared.file
-        );
-        const highlight = merged.find(item => item.position === scan.position) || scanToHighlightView(scan);
+        const highlight = await this.actions.getExistingHighlight(prepared);
+        if (!highlight) throw new Error(t('This selection cannot be highlighted safely.'));
         const commentService = new CommentService(this.plugin.app, {
             eventManager: services.eventManager,
             fsrsManager: services.fsrsManager
@@ -263,46 +249,14 @@ class SelectionColorController extends Component {
         }
     }
 
-    private async getExistingHighlight(context: SelectionContext): Promise<HighlightInfo | null> {
-        if (!context.plan.source) return null;
-        const services = await this.plugin.ensureServicesInitialized();
-        const snapshot = context.view ? context.view.state.doc.toString() : await this.plugin.app.vault.read(context.file);
-        const scans = this.extractor.extractHighlights(snapshot, context.file);
-        const scan = scans.find(item => item.position === context.plan.from);
-        if (!scan) return null;
-        const merged = services.highlightService.mergeHighlightsWithComments(
-            scans, services.highlightRepository.getCachedHighlights(context.file.path) || [], context.file
-        );
-        return merged.find(item => item.position === scan.position) || scanToHighlightView(scan);
-    }
-
-    private async copyHighlight(context: SelectionContext): Promise<void> {
-        const existing = await this.getExistingHighlight(context);
-        const highlight: HighlightInfo = existing || {
-            text: context.snapshot.slice(context.plan.from, context.plan.to),
-            position: context.plan.from,
-            filePath: context.file.path,
-            fileName: context.file.basename,
-            comments: []
-        };
-        HighlightCardClipboard.copyHighlightContent(highlight, context.file.basename);
-    }
-
     private async deleteHighlight(context: SelectionContext): Promise<void> {
         try {
-            const highlight = await this.getExistingHighlight(context);
-            if (!highlight) {
+            const result = await this.actions.deleteHighlight(context);
+            if (result === 'missing') {
                 new Notice(t('Select an existing highlight to delete.'));
                 return;
             }
-            const services = await this.plugin.ensureServicesInitialized();
-            const deleted = await new HighlightDeletionManager({
-                app: this.plugin.app,
-                settings: this.plugin.settings,
-                highlightManager: services.highlightManager,
-                eventManager: services.eventManager
-            }).deleteHighlight(highlight);
-            if (!deleted) return;
+            if (result === 'cancelled') return;
             this.pendingAutoHighlight = undefined;
             this.closeComment(true);
         } catch (error) {
@@ -402,34 +356,8 @@ class SelectionColorController extends Component {
     }
 
     private async apply(context: SelectionContext, color: HighlightColor | null): Promise<void> {
-        await this.writeSelectionChange(context, color);
+        await this.actions.writeSelectionChange(context, color);
         this.hide();
-    }
-
-    private async writeSelectionChange(context: SelectionContext, color: HighlightColor | null): Promise<void> {
-        if (context.view
-            ? context.view.state.doc.toString() !== context.snapshot || !context.view.dom.isConnected
-            : this.plugin.app.vault.getAbstractFileByPath(context.file.path) !== context.file) {
-            throw new Error(t('The selection changed. Select the text again.'));
-        }
-        const { plan } = context;
-        const original = context.snapshot.slice(plan.from, plan.to);
-        const replacement = plan.source
-            ? recolorHighlightSource(original, color)
-            : recolorHighlightSource(`==${original}==`, color);
-        if (context.view) {
-            context.view.dispatch({
-                changes: { from: plan.from, to: plan.to, insert: replacement },
-                selection: { anchor: plan.from + replacement.length },
-                userEvent: 'input.hinote-highlight-color'
-            });
-        } else {
-            await this.plugin.app.vault.process(context.file, current => {
-                if (current !== context.snapshot) throw new Error(t('The selection changed. Select the text again.'));
-                return current.slice(0, plan.from) + replacement + current.slice(plan.to);
-            });
-        }
-        this.plugin.services?.highlightDecorator.invalidate(context.file.path);
     }
 
     private hide(force = false): void {
