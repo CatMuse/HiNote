@@ -144,7 +144,7 @@ export class BatchOperationsHandler {
             cls: 'multi-select-action-button'
         });
         exportButton.setAttribute('aria-label', t('Export'));
-        setIcon(exportButton, 'file-input');
+        setIcon(exportButton, 'file-output');
         exportButton.addEventListener('click', () => {
             void this.exportOperations?.exportSelectedHighlights();
         });
