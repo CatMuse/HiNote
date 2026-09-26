@@ -70,6 +70,11 @@ export function resolveSourceSelection(
     scans: ScannedHighlight[]
 ): SelectionRangePlan | null {
     if (from < 0 || to > snapshot.length || from >= to) return null;
+    // Double/triple-click selections often include paragraph whitespace. Trim only
+    // the edges; internal newlines remain unsupported for native == highlighting.
+    while (from < to && /\s/.test(snapshot[from])) from++;
+    while (to > from && /\s/.test(snapshot[to - 1])) to--;
+    if (from >= to) return null;
     const selected = snapshot.slice(from, to);
     const containing = scans.filter(scan => scan.position <= from && scan.position + scan.originalLength >= to);
     const overlapping = scans.filter(scan => overlaps(from, to, scan.position, scan.position + scan.originalLength));

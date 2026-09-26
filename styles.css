@@ -4516,7 +4516,7 @@ button.hinote-related-card:focus-visible {
     z-index: var(--layer-popover, 300);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     padding: 6px;
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-m);
@@ -4524,20 +4524,134 @@ button.hinote-related-card:focus-visible {
     box-shadow: var(--shadow-s);
 }
 .hinote-selection-color-toolbar .hinote-selection-color-swatch {
-    width: 26px;
-    height: 26px;
-    min-width: 26px;
+    appearance: none;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
     padding: 0;
-    border: 2px solid transparent;
+    border: 0;
     border-radius: 50%;
     background: var(--swatch-color);
+    box-shadow: none;
 }
 .hinote-selection-color-toolbar .hinote-selection-color-swatch:hover,
-.hinote-selection-color-toolbar .hinote-selection-color-swatch:focus-visible {
-    border-color: var(--text-normal);
+.hinote-selection-color-toolbar .hinote-selection-color-swatch:focus-visible,
+.hinote-selection-annotate-button:hover,
+.hinote-selection-annotate-button:focus-visible,
+.hinote-selection-action-button:hover,
+.hinote-selection-action-button:focus-visible {
+    outline: 2px solid var(--background-modifier-border-hover);
+    outline-offset: 1px;
 }
 .is-mobile .hinote-selection-color-toolbar .hinote-selection-color-swatch {
+    flex-basis: 38px;
     width: 38px;
     height: 38px;
     min-width: 38px;
+    min-height: 38px;
+}
+
+.hinote-selection-color-popover {
+    box-sizing: border-box;
+    align-items: flex-start;
+    position: fixed;
+    z-index: var(--layer-popover, 300);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: min(420px, calc(100vw - 16px));
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.hinote-selection-color-popover .hinote-selection-color-toolbar {
+    position: static;
+}
+.hinote-selection-annotate-button,
+.hinote-selection-action-button {
+    appearance: none;
+    display: inline-flex;
+    flex: 0 0 22px;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--background-modifier-hover);
+    box-shadow: none;
+    color: var(--text-muted);
+}
+.hinote-selection-annotate-button svg,
+.hinote-selection-action-button svg {
+    width: 14px;
+    height: 14px;
+}
+.hinote-selection-annotate-button:hover,
+.hinote-selection-annotate-button:focus-visible,
+.hinote-selection-action-button:hover,
+.hinote-selection-action-button:focus-visible {
+    background: var(--background-modifier-hover);
+    color: var(--interactive-accent);
+}
+.hinote-selection-delete-button:hover,
+.hinote-selection-delete-button:focus-visible {
+    background: var(--background-modifier-hover);
+    color: var(--text-error);
+}
+.hinote-selection-delete-button:disabled,
+.hinote-selection-delete-button:disabled:hover,
+.hinote-selection-delete-button:disabled:focus-visible {
+    cursor: default;
+    opacity: 0.4;
+    outline: 0;
+    background: var(--background-modifier-hover);
+    color: var(--text-faint);
+}
+.hinote-selection-annotate-button.is-active {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+.hinote-selection-annotate-button.is-active:hover,
+.hinote-selection-annotate-button.is-active:focus-visible {
+    background: var(--interactive-accent-hover);
+    color: var(--text-on-accent);
+}
+.is-mobile .hinote-selection-annotate-button,
+.is-mobile .hinote-selection-action-button {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+}
+.is-mobile .hinote-selection-annotate-button svg,
+.is-mobile .hinote-selection-action-button svg {
+    width: 18px;
+    height: 18px;
+}
+.hinote-selection-color-popover .hinote-selection-comment-input {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: var(--comment-width, 320px);
+    min-width: 0;
+    max-height: var(--comment-max-height, 300px);
+    overflow: auto;
+    padding: 8px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    box-shadow: var(--shadow-s);
+}
+.hinote-selection-comment-input textarea {
+    display: block;
+    width: 100%;
+    min-height: 72px;
+    resize: vertical;
 }
