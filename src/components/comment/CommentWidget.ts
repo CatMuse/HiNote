@@ -2,9 +2,10 @@ import { WidgetType } from "@codemirror/view";
 import type { Plugin } from "obsidian";
 import { HighlightInfo as HiNote } from "../../types/highlight";
 import { CommentWidgetHelper } from "./CommentWidgetHelper";
+import type { CommentTooltipBinding } from './CommentTooltipController';
 
 export class CommentWidget extends WidgetType {
-    private cleanupResizePositioning: (() => void) | null = null;
+    private tooltipBinding?: CommentTooltipBinding;
     
     /**
      * 构造函数
@@ -32,7 +33,9 @@ export class CommentWidget extends WidgetType {
         const idMatch = !!this.highlight.id && this.highlight.id === widget.highlight.id;
         const textMatch = this.highlight.text === widget.highlight.text;
         const positionMatch = this.highlight.position === widget.highlight.position;
-        const commentsMatch = (this.highlight.comments?.length ?? 0) === (widget.highlight.comments?.length ?? 0);
+        const commentSignature = (highlight: HiNote) => (highlight.comments || [])
+            .map(comment => `${comment.id}:${comment.updatedAt}:${comment.content}`).join('|');
+        const commentsMatch = commentSignature(this.highlight) === commentSignature(widget.highlight);
 
         return (idMatch || (textMatch && positionMatch)) && commentsMatch;
     }
@@ -84,19 +87,14 @@ export class CommentWidget extends WidgetType {
             CommentWidgetHelper.addCommentCount(iconContainer, comments.length);
         }
 
-        const tooltip = CommentWidgetHelper.createTooltip(this.plugin.app, this.highlight);
-
         if (hasComments) {
             button.removeClass("hi-note-button-hidden");
-            CommentWidgetHelper.setupTooltipEvents(button, wrapper, tooltip);
+            this.tooltipBinding = CommentWidgetHelper.bindTooltip(this.plugin.app, button, wrapper, this.highlight);
         } else {
             CommentWidgetHelper.setupEmptyCommentHover(wrapper, button);
         }
 
-        CommentWidgetHelper.setupClickEvent(button, tooltip, () => this.onClick());
-
-        // CodeMirror Widget 有独立 destroy 生命周期，这里保留监听器引用便于卸载。
-        this.cleanupResizePositioning = CommentWidgetHelper.registerResizePositioning(wrapper, tooltip);
+        CommentWidgetHelper.setupClickEvent(button, () => this.tooltipBinding?.hide(), () => this.onClick());
     }
 
     /**
@@ -104,13 +102,8 @@ export class CommentWidget extends WidgetType {
      * @param dom 小部件的 DOM 元素
      */
     destroy(dom: HTMLElement): void {
-        // 移除 resize 监听器，防止内存泄漏
-        if (this.cleanupResizePositioning) {
-            this.cleanupResizePositioning();
-            this.cleanupResizePositioning = null;
-        }
-        
-        CommentWidgetHelper.removeTooltipsForHighlight(this.highlight);
+        this.tooltipBinding?.destroy();
+        this.tooltipBinding = undefined;
         
         // 移除 DOM 元素
         dom.remove();

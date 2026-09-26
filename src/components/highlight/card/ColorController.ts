@@ -6,6 +6,8 @@ import { HighlightColorPalette } from './ColorPalette';
 import { HighlightColor } from '../../../services/highlight/HighlightColor';
 import { t } from '../../../i18n';
 
+let colorLabelSequence = 0;
+
 export class HighlightCardColorController extends Component {
     private palette?: HighlightColorPalette;
     private busy = false;
@@ -20,10 +22,12 @@ export class HighlightCardColorController extends Component {
             !['markdown', 'html'].includes(highlight.syntax || '')) return;
         const decorator = card.querySelector<HTMLElement>('.highlight-text-decorator');
         if (!decorator) return;
+        const label = card.createSpan({ cls: 'hinote-sr-only', text: t('Change highlight color') });
+        label.id = `hinote-color-label-${++colorLabelSequence}`;
         decorator.addClass('highlight-color-trigger');
         decorator.setAttribute('role', 'button');
         decorator.setAttribute('tabindex', '0');
-        decorator.setAttribute('aria-label', t('Change highlight color'));
+        decorator.setAttribute('aria-labelledby', label.id);
         decorator.setAttribute('aria-haspopup', 'menu');
         decorator.setAttribute('aria-expanded', 'false');
         this.registerDomEvent(decorator, 'click', event => {

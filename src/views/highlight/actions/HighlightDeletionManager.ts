@@ -47,7 +47,8 @@ export class HighlightDeletionManager {
             
             // 删除文件中的高亮格式
             if (highlight.filePath) {
-                await this.removeHighlightFromFile(highlight);
+                const sourceRemoved = await this.removeHighlightFromFile(highlight);
+                if (!sourceRemoved) throw new Error(t('Could not locate the highlight.'));
                 
                 // 从 HighlightManager 中删除高亮
                 const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
@@ -81,11 +82,11 @@ export class HighlightDeletionManager {
      * 从文件中移除高亮格式
      * @param highlight 高亮信息
      */
-    private async removeHighlightFromFile(highlight: HighlightInfo): Promise<void> {
-        if (!highlight.filePath) return;
+    private async removeHighlightFromFile(highlight: HighlightInfo): Promise<boolean> {
+        if (!highlight.filePath) return false;
         
         const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
-        if (!(file instanceof TFile)) return;
+        if (!(file instanceof TFile)) return false;
         
         const highlightText = highlight.text;
         
@@ -94,10 +95,12 @@ export class HighlightDeletionManager {
         
         // 使用 vault.process() 原子性地修改文件内容
         // 这会正确同步已打开的编辑器视图，不会导致编辑器状态重置或焦点丢失
+        let sourceRemoved = false;
         await this.plugin.app.vault.process(file, (fileContent) => {
+            let updated: string;
             if (typeof highlight.position === 'number') {
                 const endPos = highlight.position + (highlight.originalLength || highlightText.length);
-                return HighlightRegexUtils.removeHighlightFormatInRange(
+                updated = HighlightRegexUtils.removeHighlightFormatInRange(
                     fileContent,
                     highlightText,
                     highlight.position,
@@ -105,13 +108,16 @@ export class HighlightDeletionManager {
                     customRegex
                 );
             } else {
-                return HighlightRegexUtils.removeHighlightFormat(
+                updated = HighlightRegexUtils.removeHighlightFormat(
                     fileContent,
                     highlightText,
                     customRegex
                 );
             }
+            sourceRemoved = updated !== fileContent;
+            return updated;
         });
+        return sourceRemoved;
     }
     
     /**

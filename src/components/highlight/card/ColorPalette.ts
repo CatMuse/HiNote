@@ -25,13 +25,16 @@ export class HighlightColorPalette extends Component {
         if (!win) return;
         const palette = this.element = doc.body.createDiv({
             cls: 'hinote-color-palette',
-            attr: { role: 'menu', 'aria-label': t('Change highlight color') }
+            attr: { role: 'menu' }
         });
+        const labelId = this.trigger.getAttribute('aria-labelledby');
+        if (labelId) palette.setAttribute('aria-labelledby', labelId);
         this.trigger.setAttribute('aria-expanded', 'true');
         this.registerDomEvent(palette, 'click', event => event.stopPropagation());
         const swatches: HTMLButtonElement[] = [];
         let selected = 0;
         HIGHLIGHT_COLOR_CHOICES.forEach((choice, index) => {
+            const label = t(choice.color === null ? 'Default' : choice.label);
             const checked = choice.color ? this.current === highlightColorStyle(choice.color) :
                 !this.current || ['#ffeb3b', 'var(--text-highlight-bg, #ffeb3b)', highlightColorStyle('yellow')].includes(this.current);
             if (checked) selected = index;
@@ -39,7 +42,7 @@ export class HighlightColorPalette extends Component {
                 cls: 'hinote-color-swatch',
                 attr: {
                     type: 'button', role: 'menuitemradio', tabindex: '-1',
-                    'aria-label': t(choice.label), 'aria-checked': String(checked), title: t(choice.label)
+                    'aria-label': label, 'aria-checked': String(checked)
                 }
             });
             swatch.style.setProperty('--swatch-color', highlightColorStyle(choice.color || 'yellow'));

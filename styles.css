@@ -2372,7 +2372,7 @@ settings:
     isolation: isolate;
     z-index: 999;
     height: 20px;
-    vertical-align: text-top;
+    vertical-align: middle;
     margin-top: 0px;
     background-color: var(--background-secondary-alt);
     border-radius: 4px;
@@ -4257,48 +4257,65 @@ textarea.flashcard-modal-input {
     cursor: progress;
 }
 
+.hinote-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .hinote-color-palette {
     position: fixed;
     z-index: max(1002, var(--layer-menu, 1000));
     display: flex;
-    gap: 4px;
+    align-items: center;
+    gap: 5px;
     padding: 6px;
     max-width: calc(100vw - 16px);
     overflow-x: auto;
     border: 1px solid var(--background-modifier-border);
-    border-radius: 10px;
+    border-radius: var(--radius-m);
     background: var(--background-primary);
     box-shadow: var(--shadow-s);
 }
 .hinote-color-palette .hinote-color-swatch {
-    position: relative;
-    flex: 0 0 28px;
-    width: 28px;
-    height: 28px;
-    min-width: 0;
+    appearance: none;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
     padding: 0;
-    border: 1px solid transparent;
-    border-radius: 50%;
-    background: transparent;
-    box-shadow: none;
-    cursor: pointer;
-}
-.hinote-color-swatch::before {
-    content: "";
-    position: absolute;
-    inset: 4px;
+    border: 0;
     border-radius: 50%;
     background: var(--swatch-color);
-}
-.hinote-color-palette .hinote-color-swatch[aria-checked="true"] {
-    border-color: var(--swatch-color);
+    box-shadow: none;
+    cursor: pointer;
+    transition: transform 120ms ease;
 }
 .hinote-color-palette .hinote-color-swatch:hover {
-    background: var(--background-modifier-hover);
+    transform: scale(1.08);
 }
 .hinote-color-palette .hinote-color-swatch:focus-visible {
-    outline: 1px solid var(--text-muted);
+    outline: 2px solid var(--background-modifier-border-hover);
     outline-offset: 1px;
+}
+.hinote-color-palette .hinote-color-swatch[aria-checked="true"] {
+    box-shadow:
+        inset 0 0 0 2px var(--background-primary),
+        0 0 0 2px var(--swatch-color);
+}
+.is-mobile .hinote-color-palette .hinote-color-swatch {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
 }
 
 .multi-select-actions button.multi-select-action-button {
@@ -4535,12 +4552,25 @@ button.hinote-related-card:focus-visible {
     border-radius: 50%;
     background: var(--swatch-color);
     box-shadow: none;
+    transition: transform 120ms ease;
 }
-.hinote-selection-color-toolbar .hinote-selection-color-swatch:hover,
-.hinote-selection-color-toolbar .hinote-selection-color-swatch:focus-visible,
+.hinote-selection-color-toolbar .hinote-selection-color-swatch:hover {
+    transform: scale(1.08);
+}
+.hinote-selection-color-toolbar .hinote-selection-color-swatch:focus-visible {
+    outline: 2px solid var(--background-modifier-border-hover);
+    outline-offset: 1px;
+}
+.hinote-selection-color-toolbar .hinote-selection-color-swatch[aria-pressed="true"] {
+    box-shadow:
+        inset 0 0 0 2px var(--background-primary),
+        0 0 0 2px var(--swatch-color);
+}
 .hinote-selection-annotate-button:hover,
+.hinote-selection-action-button:hover:not(:disabled) {
+    transform: scale(1.08);
+}
 .hinote-selection-annotate-button:focus-visible,
-.hinote-selection-action-button:hover,
 .hinote-selection-action-button:focus-visible {
     outline: 2px solid var(--background-modifier-border-hover);
     outline-offset: 1px;
@@ -4587,6 +4617,7 @@ button.hinote-related-card:focus-visible {
     background: var(--background-modifier-hover);
     box-shadow: none;
     color: var(--text-muted);
+    transition: transform 120ms ease;
 }
 .hinote-selection-annotate-button svg,
 .hinote-selection-action-button svg {

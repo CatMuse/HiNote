@@ -1,10 +1,20 @@
-import { TFile, MarkdownPostProcessorContext } from "obsidian";
+import { TFile, MarkdownPostProcessorContext, MarkdownRenderChild } from "obsidian";
 import { HighlightInfo as HiNote } from "../../../types/highlight";
 import { HighlightRepository } from "../../../repositories/HighlightRepository";
 import { HighlightService } from '../../../services/HighlightService';
 import { CommentWidgetHelper } from '../../../components/comment';
 import { PreviewHighlightResolver } from "./PreviewHighlightResolver";
 import type { HiNotePluginContext } from "../../../types/plugin";
+
+class TooltipCleanupChild extends MarkdownRenderChild {
+    constructor(containerEl: HTMLElement, private cleanup: () => void) {
+        super(containerEl);
+    }
+
+    onunload(): void {
+        this.cleanup();
+    }
+}
 
 /**
  * 阅读模式下的批注小部件渲染器
@@ -69,7 +79,7 @@ export class PreviewWidgetRenderer {
                 mark.setAttribute('data-hinote-source-path', file.path);
                 mark.setAttribute('data-hinote-source-to', String(match.position + (match.originalLength ?? match.text.length)));
                 mark.setAttribute('data-hinote-source-from', String(match.position));
-                if (match.comments?.length) this.renderPreviewWidget(mark as HTMLElement, match);
+                if (match.comments?.length) this.renderPreviewWidget(mark as HTMLElement, match, context);
             }
         });
     }
@@ -77,7 +87,11 @@ export class PreviewWidgetRenderer {
     /**
      * 渲染阅读模式下的批注小部件
      */
-    private renderPreviewWidget(mark: HTMLElement, highlight: HiNote): void {
+    private renderPreviewWidget(
+        mark: HTMLElement,
+        highlight: HiNote,
+        context: MarkdownPostProcessorContext
+    ): void {
         const widget = mark.createSpan({ cls: 'hi-note-widget hi-note-preview-widget' });
         const hasComments = !!(highlight.comments && highlight.comments.length > 0);
         
@@ -89,19 +103,14 @@ export class PreviewWidgetRenderer {
             // 添加评论数量
             CommentWidgetHelper.addCommentCount(iconContainer, highlight.comments.length);
 
-            // 创建工具提示
-            const tooltip = CommentWidgetHelper.createTooltip(this.plugin.app, highlight);
-            
-            // 设置工具提示事件
-            CommentWidgetHelper.setupTooltipEvents(button, widget, tooltip);
+            const tooltipBinding = CommentWidgetHelper.bindTooltip(this.plugin.app, button, widget, highlight);
             
             // 设置点击事件
-            CommentWidgetHelper.setupClickEvent(button, tooltip, () => 
+            CommentWidgetHelper.setupClickEvent(button, tooltipBinding.hide, () =>
                 CommentWidgetHelper.openCommentPanel(this.plugin.app, highlight, this.plugin.eventManager)
             );
-            
-            // 创建清理观察器
-            CommentWidgetHelper.createCleanupObserver(widget, tooltip);
+
+            context.addChild(new TooltipCleanupChild(widget, tooltipBinding.destroy));
         }
     }
 }

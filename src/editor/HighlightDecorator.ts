@@ -54,6 +54,16 @@ export class HighlightDecorator {
         });
     }
 
+    /** Refresh every reading-mode leaf showing the affected file. */
+    private refreshPreviews(filePath?: string): void {
+        for (const leaf of this.plugin.app.workspace.getLeavesOfType('markdown')) {
+            if (!(leaf.view instanceof MarkdownView)) continue;
+            const view = leaf.view;
+            if (view.getMode() !== 'preview' || (filePath && view.file?.path !== filePath)) continue;
+            view.previewMode.rerender(true);
+        }
+    }
+
 
     
 
@@ -79,21 +89,30 @@ export class HighlightDecorator {
     }
 
     private registerRefreshEvents(): void {
-        const refreshEvents: (keyof HighlightEvents)[] = [
+        const fileRefreshEvents: (keyof Pick<HighlightEvents,
+            'comment:update' | 'comment:delete' | 'highlight:update' | 'highlight:delete'
+        >)[] = [
             'comment:update',
             'comment:delete',
             'highlight:update',
-            'highlight:delete',
-            'exclusions:changed'
+            'highlight:delete'
         ];
 
-        refreshEvents.forEach(eventName => {
+        fileRefreshEvents.forEach(eventName => {
             this.plugin.registerEvent(
-                this.eventManager.on(eventName, () => {
+                this.eventManager.on(eventName, (filePath: string, ..._details: string[]) => {
                     this.refreshDecorations();
+                    this.refreshPreviews(filePath);
                 })
             );
         });
+
+        this.plugin.registerEvent(
+            this.eventManager.on('exclusions:changed', () => {
+                this.refreshDecorations();
+                this.refreshPreviews();
+            })
+        );
     }
 
     disable() {

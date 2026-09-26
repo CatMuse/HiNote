@@ -26,6 +26,7 @@ const { HighlightExtractor } = load('src/services/highlight/HighlightExtractor.t
 const { highlightColorStyle } = load('src/services/highlight/HighlightColor.ts');
 const { HighlightMatcher } = load('src/services/highlight/HighlightMatcher.ts');
 const { HighlightBatchOps } = load('src/services/highlight/HighlightBatchOps.ts');
+const { HighlightRegexUtils } = load('src/utils/HighlightRegexUtils.ts');
 const { findStoredHighlightMatch } = load('src/services/highlight/HighlightMatchStrategies.ts');
 const { createHighlightRecord } = load('src/models/HighlightModels.ts');
 const { encodeHighlightRecord, decodeHighlightRecord } = load('src/storage/HighlightDataFormat.ts');
@@ -93,6 +94,12 @@ const merged = matcher.mergeHighlightsWithComments(current, legacy, file);
 assert.equal(merged[0].id, 'old-0');
 assert.equal(merged[1].id, 'old-1');
 assert.equal(batch.removeHighlightMarkFromContent(source, current[1]), '==🔴重复== and 重复');
+assert.equal(
+    HighlightRegexUtils.removeHighlightFormatInRange(
+        source, current[1].text, current[1].position, current[1].position + current[1].originalLength
+    ),
+    '==🔴重复== and 重复'
+);
 assert.equal(batch.removeHighlightMarkFromContent(source, { text: '重复' }), source);
 assert.equal(batch.removeHighlightMarkFromContent('==🔴正文==', { text: '🔴正文', position: 0 }), '正文');
 

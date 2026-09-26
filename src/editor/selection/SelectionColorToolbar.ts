@@ -4,7 +4,7 @@ import type CommentPlugin from '../../../main';
 import { HIGHLIGHT_COLOR_CHOICES, recolorHighlightSource } from '../../services/highlight/HighlightColorEdit';
 import type { HighlightColor } from '../../services/highlight/HighlightColor';
 import { HighlightExtractor } from '../../services/highlight/HighlightExtractor';
-import { highlightColorStyle, parseHighlightColor } from '../../services/highlight/HighlightColor';
+import { highlightColorStyle } from '../../services/highlight/HighlightColor';
 import { readPreviewSection, resolvePreviewSelection, resolveSourceSelection, type SelectionRangePlan } from './SelectionRangeResolver';
 import { t } from '../../i18n';
 import { CommentService } from '../../services/comment';
@@ -37,6 +37,7 @@ class SelectionColorController extends Component {
     private commentInput?: FloatingCommentInput;
     private annotateButton?: HTMLButtonElement;
     private deleteButton?: HTMLButtonElement;
+    private colorButtons: Array<{ color: HighlightColor | null; button: HTMLButtonElement }> = [];
     private openingComment = false;
     private commentInputActive = false;
     private pendingAutoHighlight?: PendingAutoHighlight;
@@ -227,15 +228,19 @@ class SelectionColorController extends Component {
         const markdownView = this.getMarkdownView();
         const file = markdownView?.file;
         const target = event.target as HTMLElement | null;
-        const mark = target?.closest<HTMLElement>('mark');
+        const mark = target?.closest<HTMLElement>('mark, span.highlight');
         if (!markdownView || !file || !mark || !this.extractor.shouldProcessFile(file)) return null;
-        const sectionElement = mark.closest<HTMLElement>('[data-hinote-source-path]');
-        const section = sectionElement ? readPreviewSection(sectionElement) : null;
-        if (!section || section.sourcePath !== file.path) return null;
+        if (mark.dataset.hinoteSourcePath !== file.path) return null;
         const snapshot = await this.plugin.app.vault.read(file);
         const scans = this.extractor.extractHighlights(snapshot, file);
-        const selectedText = parseHighlightColor(mark.textContent || '').text;
-        const plan = resolvePreviewSelection(snapshot, section, selectedText, scans);
+        const sourceFrom = Number(mark.dataset.hinoteSourceFrom);
+        const sourceTo = Number(mark.dataset.hinoteSourceTo);
+        const exactScan = Number.isInteger(sourceFrom) && Number.isInteger(sourceTo) && sourceTo > sourceFrom
+            ? scans.find(scan => scan.position === sourceFrom && scan.position + scan.originalLength === sourceTo)
+            : undefined;
+        const plan: SelectionRangePlan | null = exactScan
+            ? { from: sourceFrom, to: sourceTo, source: exactScan }
+            : null;
         if (!plan) return null;
         const rect = mark.getBoundingClientRect();
         return { context: { view: undefined, markdownView, file, snapshot, plan }, anchor: rect };
@@ -251,6 +256,7 @@ class SelectionColorController extends Component {
             cls: 'hinote-selection-color-toolbar',
             attr: { role: 'toolbar' }
         });
+        this.colorButtons = [];
         this.registerToolbarEvents(popover, captured.context);
         for (const choice of HIGHLIGHT_COLOR_CHOICES) {
             const label = t(choice.color === null ? 'Default' : choice.label);
@@ -258,6 +264,7 @@ class SelectionColorController extends Component {
                 type: 'button', 'aria-label': label
             } });
             button.style.setProperty('--swatch-color', highlightColorStyle(choice.color || 'yellow'));
+            this.colorButtons.push({ color: choice.color, button });
             button.addEventListener('click', event => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -266,6 +273,7 @@ class SelectionColorController extends Component {
                 });
             });
         }
+        this.updateColorSelection(captured.context);
         const annotate = this.annotateButton = colorBar.createEl('button', {
             cls: 'hinote-selection-annotate-button clickable-icon',
             attr: {
@@ -342,6 +350,7 @@ class SelectionColorController extends Component {
             context.snapshot = prepared.snapshot;
             context.plan = prepared.plan;
             this.pendingAutoHighlight = { context, originalSnapshot, originalPlan };
+            this.updateColorSelection(context);
             this.updateDeleteButton(true);
         }
         const snapshot = prepared.view ? prepared.view.state.doc.toString() : await this.plugin.app.vault.read(prepared.file);
@@ -439,7 +448,25 @@ class SelectionColorController extends Component {
     private updateDeleteButton(enabled: boolean): void {
         if (!this.deleteButton) return;
         this.deleteButton.disabled = !enabled;
-        this.deleteButton.setAttribute('aria-disabled', String(!enabled));
+        if (enabled) this.deleteButton.removeAttribute('aria-disabled');
+        else this.deleteButton.setAttribute('aria-disabled', 'true');
+    }
+
+    private updateColorSelection(context: SelectionContext): void {
+        const source = context.plan.source;
+        const current = source?.backgroundColor;
+        const defaultColors = new Set([
+            undefined,
+            '#ffeb3b',
+            'var(--text-highlight-bg, #ffeb3b)',
+            highlightColorStyle('yellow')
+        ]);
+        for (const { color, button } of this.colorButtons) {
+            const selected = !!source && (color
+                ? current === highlightColorStyle(color)
+                : defaultColors.has(current));
+            button.setAttribute('aria-pressed', String(selected));
+        }
     }
 
     private closeComment(hideToolbar: boolean): void {
@@ -541,6 +568,7 @@ class SelectionColorController extends Component {
         this.toolbar = undefined;
         this.annotateButton = undefined;
         this.deleteButton = undefined;
+        this.colorButtons = [];
     }
 
     onunload(): void {
