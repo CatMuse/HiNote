@@ -4,9 +4,9 @@ import { HighlightRepository } from "../repositories/HighlightRepository";
 import { HighlightService } from '../services/HighlightService';
 import { PreviewWidgetRenderer } from '../views/highlight';
 import { createEditorHighlightDecorations } from "./EditorHighlightDecorations";
-import type { HighlightEvents } from "../services/EventManager";
 import type { EventManager } from "../services/EventManager";
 import type { HiNotePluginContext } from "../types/plugin";
+import { RenderInvalidationCoordinator } from './RenderInvalidationCoordinator';
 
 interface EditorWithCodeMirror {
     cm?: EditorView;
@@ -18,12 +18,13 @@ export class HighlightDecorator {
     private highlightPlugin: ReturnType<typeof createEditorHighlightDecorations> | null = null;
     private highlightService: HighlightService;
     private previewRenderer: PreviewWidgetRenderer;
+    private renderInvalidation: RenderInvalidationCoordinator;
 
     constructor(
         plugin: Plugin,
         highlightRepository: HighlightRepository,
         highlightService: HighlightService,
-        private eventManager: EventManager
+        eventManager: EventManager
     ) {
         this.plugin = plugin as HiNotePluginContext;
         this.highlightRepository = highlightRepository;
@@ -33,15 +34,20 @@ export class HighlightDecorator {
             this.highlightRepository,
             this.highlightService
         );
+        this.renderInvalidation = new RenderInvalidationCoordinator(
+            plugin,
+            eventManager,
+            filePath => this.refreshDecorations(filePath)
+        );
     }
 
     /**
      * 强制刷新装饰器
      * 当评论数据发生变化时调用此方法来更新 CommentWidget 的显示
      */
-    public refreshDecorations() {
+    public refreshDecorations(filePath?: string): void {
         const view = this.getActiveMarkdownView();
-        if (!view?.editor) return;
+        if (!view?.editor || (filePath && view.file?.path !== filePath)) return;
         
         const editorView = (view.editor as unknown as EditorWithCodeMirror).cm;
         if (!editorView) return;
@@ -54,14 +60,8 @@ export class HighlightDecorator {
         });
     }
 
-    /** Refresh every reading-mode leaf showing the affected file. */
-    private refreshPreviews(filePath?: string): void {
-        for (const leaf of this.plugin.app.workspace.getLeavesOfType('markdown')) {
-            if (!(leaf.view instanceof MarkdownView)) continue;
-            const view = leaf.view;
-            if (view.getMode() !== 'preview' || (filePath && view.file?.path !== filePath)) continue;
-            view.previewMode.rerender(true);
-        }
+    public invalidate(filePath?: string): void {
+        this.renderInvalidation.invalidate(filePath);
     }
 
 
@@ -76,7 +76,7 @@ export class HighlightDecorator {
             void this.previewRenderer.processPreview(element, context);
         });
 
-        this.registerRefreshEvents();
+        this.renderInvalidation.enable();
 
         const highlightPlugin = createEditorHighlightDecorations({
             plugin: this.plugin,
@@ -88,34 +88,8 @@ export class HighlightDecorator {
         this.plugin.registerEditorExtension([highlightPlugin]);
     }
 
-    private registerRefreshEvents(): void {
-        const fileRefreshEvents: (keyof Pick<HighlightEvents,
-            'comment:update' | 'comment:delete' | 'highlight:update' | 'highlight:delete'
-        >)[] = [
-            'comment:update',
-            'comment:delete',
-            'highlight:update',
-            'highlight:delete'
-        ];
-
-        fileRefreshEvents.forEach(eventName => {
-            this.plugin.registerEvent(
-                this.eventManager.on(eventName, (filePath: string, ..._details: string[]) => {
-                    this.refreshDecorations();
-                    this.refreshPreviews(filePath);
-                })
-            );
-        });
-
-        this.plugin.registerEvent(
-            this.eventManager.on('exclusions:changed', () => {
-                this.refreshDecorations();
-                this.refreshPreviews();
-            })
-        );
-    }
-
     disable() {
+        this.renderInvalidation.destroy();
         // 移除编辑器扩展
         if (this.highlightPlugin) {
             const view = this.getActiveMarkdownView();

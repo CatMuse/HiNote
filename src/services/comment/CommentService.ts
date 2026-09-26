@@ -2,8 +2,15 @@ import { TFile, App, Notice } from 'obsidian';
 import { HighlightInfo, CommentItem, isFileComment } from '../../types/highlight';
 import { HighlightManager } from '../HighlightManager';
 import { IdGenerator } from '../../utils/IdGenerator';
-import CommentPlugin from '../../../main';
 import { t } from '../../i18n';
+import type { EventManager } from '../EventManager';
+
+export interface CommentServiceDependencies {
+    eventManager?: Pick<EventManager, 'emitCommentUpdate'>;
+    fsrsManager?: {
+        findCardsBySourceId(sourceId: string, sourceType: 'highlight'): unknown[];
+    };
+}
 
 /**
  * 评论服务
@@ -17,7 +24,7 @@ import { t } from '../../i18n';
  */
 export class CommentService {
     private app: App;
-    private plugin: CommentPlugin;
+    private dependencies: CommentServiceDependencies;
     private highlightManager: HighlightManager;
     
     // 回调函数
@@ -32,11 +39,11 @@ export class CommentService {
     
     constructor(
         app: App,
-        plugin: CommentPlugin,
+        dependencies: CommentServiceDependencies,
         highlightManager: HighlightManager
     ) {
         this.app = app;
-        this.plugin = plugin;
+        this.dependencies = dependencies;
         this.highlightManager = highlightManager;
     }
     
@@ -131,7 +138,7 @@ export class CommentService {
 
             // 通过 EventManager 触发批注更新事件，用于闪卡同步
             if (highlight.id) {
-                this.plugin.eventManager.emitCommentUpdate(file.path, oldContent, content, highlight.id);
+                this.dependencies.eventManager?.emitCommentUpdate(file.path, oldContent, content, highlight.id);
             }
 
             // 只更新单个卡片，而不是刷新整个视图
@@ -238,7 +245,7 @@ export class CommentService {
      * 检查高亮是否已经创建了闪卡
      */
     private checkHasFlashcard(highlightId: string): boolean {
-        const fsrsManager = this.plugin.fsrsManager;
+        const fsrsManager = this.dependencies.fsrsManager;
         if (!fsrsManager || !highlightId) {
             return false;
         }

@@ -1,5 +1,5 @@
-import type CommentPlugin from '../../../main';
 import type { HighlightInfo } from '../../types/highlight';
+import type { PluginSettingsContext } from '../../types/plugin';
 import { InlineAICommentHandler } from './InlineAICommentHandler';
 import { CommentInputActionBar } from './CommentInputActionBar';
 import { CommentInputSaveController } from './CommentInputSaveController';
@@ -24,7 +24,7 @@ export class FloatingCommentInput {
     constructor(
         private container: HTMLElement,
         private highlight: HighlightInfo,
-        private plugin: CommentPlugin,
+        private plugin: PluginSettingsContext,
         private options: FloatingCommentInputOptions
     ) {}
 

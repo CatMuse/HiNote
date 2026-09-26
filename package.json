@@ -6,7 +6,12 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"lint": "eslint main.ts src --ext .ts",
+		"test": "node scripts/run-tests.cjs",
+		"check": "npm run lint && npm run build && npm test",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"test:architecture": "node scripts/test-architecture.cjs",
+		"test:rendering": "node scripts/test-render-invalidation.cjs",
 		"test:i18n": "node scripts/test-i18n.cjs",
 		"test:review": "node scripts/test-review-regressions.cjs",
 		"test:flashcards": "node scripts/test-flashcard-learning.cjs",

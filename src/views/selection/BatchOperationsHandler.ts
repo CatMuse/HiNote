@@ -2,7 +2,7 @@ import { BatchFavoriteOperations } from './BatchFavoriteOperations';
 import { BatchColorOperations } from "./BatchColorOperations";
 import { Notice, setIcon } from "obsidian";
 import { HighlightInfo } from "../../types/highlight";
-import CommentPlugin from "../../../main";
+import type CommentPlugin from "../../../main";
 import { ExportService } from "../../services/ExportService";
 import { LicenseManager } from "../../services/LicenseManager";
 import { HighlightService } from "../../services/HighlightService";

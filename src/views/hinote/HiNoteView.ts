@@ -3,7 +3,7 @@ import { CanvasService } from '../../services/CanvasService';
 import { HighlightInfo } from '../../types/highlight';
 import { HighlightManager } from '../../services/HighlightManager';
 import { HighlightRepository } from '../../repositories/HighlightRepository';
-import CommentPlugin from '../../../main';
+import type CommentPlugin from '../../../main';
 import { HighlightService } from '../../services/HighlightService';
 import { LocationService } from '../../services/LocationService';
 import { ExportService } from '../../services/ExportService';

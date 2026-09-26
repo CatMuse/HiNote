@@ -3,10 +3,10 @@ import { t } from "../../i18n";
 import { AIServiceManager } from "../../services/ai";
 import { AnnotationContextResolver } from "../../services/annotation/AnnotationContextResolver";
 import { HighlightInfo, CommentItem } from "../../types/highlight";
-import type CommentPlugin from "../../../main";
+import type { PluginSettingsContext } from '../../types/plugin';
 
 interface InlineAICommentHandlerOptions {
-    plugin: CommentPlugin;
+    plugin: PluginSettingsContext;
     highlight: HighlightInfo;
     existingComment?: CommentItem;
     getTextarea: () => HTMLTextAreaElement;

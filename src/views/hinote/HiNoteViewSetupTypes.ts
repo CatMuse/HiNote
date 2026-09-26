@@ -1,5 +1,5 @@
 import { App, Component, WorkspaceLeaf } from "obsidian";
-import CommentPlugin from "../../../main";
+import type CommentPlugin from "../../../main";
 import { CanvasService } from "../../services/CanvasService";
 import { ExportService } from "../../services/ExportService";
 import { HighlightManager } from "../../services/HighlightManager";

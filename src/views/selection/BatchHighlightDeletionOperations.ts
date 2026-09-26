@@ -1,6 +1,6 @@
 import { Modal, Notice, TFile } from "obsidian";
 import { defaultHighlightCardRegistry } from "../../components/highlight";
-import CommentPlugin from "../../../main";
+import type CommentPlugin from "../../../main";
 import { HighlightService } from "../../services/HighlightService";
 import { HighlightInfo } from "../../types/highlight";
 import { t } from "../../i18n";

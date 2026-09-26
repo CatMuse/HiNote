@@ -1,4 +1,4 @@
-import CommentPlugin from "../../../../main";
+import type CommentPlugin from "../../../../main";
 import { HighlightService } from "../../../services/HighlightService";
 import { LicenseManager } from "../../../services/LicenseManager";
 import { HighlightListController } from "../../highlight";

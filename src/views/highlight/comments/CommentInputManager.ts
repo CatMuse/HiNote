@@ -1,7 +1,7 @@
 import { HighlightInfo, CommentItem } from '../../../types/highlight';
 import { CommentInput } from '../../../components/comment';
 import { defaultHighlightCardRegistry } from '../../../components/highlight';
-import CommentPlugin from '../../../../main';
+import type CommentPlugin from '../../../../main';
 
 /**
  * 评论输入管理器

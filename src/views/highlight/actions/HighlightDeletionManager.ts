@@ -1,23 +1,31 @@
-import { TFile, Notice } from 'obsidian';
+import { App, TFile, Notice } from 'obsidian';
 import { HighlightInfo } from '../../../types/highlight';
 import { HighlightRegexUtils } from '../../../utils/HighlightRegexUtils';
-import CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 import type { PluginSettings } from '../../../types/settings';
 import { showConfirmModal } from '../../../utils/ConfirmModal';
+import type { HighlightManager } from '../../../services/HighlightManager';
+import type { EventManager } from '../../../services/EventManager';
 
 type LegacyHighlightSettings = PluginSettings & {
     customHighlightRegex?: string;
 };
+
+export interface HighlightDeletionContext {
+    app: App;
+    settings: PluginSettings;
+    highlightManager: Pick<HighlightManager, 'removeHighlight'>;
+    eventManager: Pick<EventManager, 'emitHighlightDelete'>;
+}
 
 /**
  * 高亮删除管理器
  * 负责高亮的删除逻辑，包括文件操作和格式移除
  */
 export class HighlightDeletionManager {
-    private plugin: CommentPlugin;
+    private plugin: HighlightDeletionContext;
     
-    constructor(plugin: CommentPlugin) {
+    constructor(plugin: HighlightDeletionContext) {
         this.plugin = plugin;
     }
     

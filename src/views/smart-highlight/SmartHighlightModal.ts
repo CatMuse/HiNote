@@ -163,7 +163,7 @@ export class SmartHighlightModal extends Modal {
                 snapshot: this.snapshot, evaluations: this.evaluations,
                 color: this.plugin.settings.smartHighlight.color
             });
-            this.plugin.highlightDecorator.refreshDecorations();
+            this.plugin.highlightDecorator.invalidate(this.view.file?.path);
             new Notice(t('Applied {count} smart highlights.', { count }));
             this.close();
         } catch (error) {

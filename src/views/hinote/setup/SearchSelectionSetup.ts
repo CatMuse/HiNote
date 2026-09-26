@@ -1,4 +1,4 @@
-import CommentPlugin from "../../../../main";
+import type CommentPlugin from "../../../../main";
 import type { SearchComponent } from "obsidian";
 import { ExportService } from "../../../services/ExportService";
 import { HighlightService } from "../../../services/HighlightService";

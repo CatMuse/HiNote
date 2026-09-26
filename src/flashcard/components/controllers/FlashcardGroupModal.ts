@@ -47,18 +47,16 @@ export function createFlashcardGroupModal(group?: CardGroup): FlashcardGroupModa
         text: group ? t('Save') : t('Create')
     });
 
-    let handleKeyDown: (event: KeyboardEvent) => void;
+    function handleKeyDown(event: KeyboardEvent): void {
+        if (event.key === 'Escape') {
+            close();
+        }
+    }
     const close = () => {
         if (modalOverlay.isConnected) {
             ownerDocument.body.removeChild(modalOverlay);
         }
         ownerDocument.removeEventListener('keydown', handleKeyDown);
-    };
-
-    handleKeyDown = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') {
-            close();
-        }
     };
     ownerDocument.addEventListener('keydown', handleKeyDown);
 

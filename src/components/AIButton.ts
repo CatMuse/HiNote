@@ -1,7 +1,7 @@
 import { setIcon, Notice, Menu, MenuItem } from "obsidian";
 import { AIServiceManager } from "../services/ai";
 import { t } from "../i18n";
-import CommentPlugin from "../../main";
+import type CommentPlugin from "../../main";
 
 /**
  * 内容提供者接口，用于获取 AI 分析所需的文本和评论

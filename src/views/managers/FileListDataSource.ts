@@ -1,5 +1,5 @@
 import { TFile } from "obsidian";
-import CommentPlugin from "../../../main";
+import type CommentPlugin from "../../../main";
 import { HighlightService } from "../../services/HighlightService";
 
 export class FileListDataSource {

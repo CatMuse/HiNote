@@ -1,6 +1,6 @@
 import { Component, MarkdownView, Notice, editorInfoField, editorLivePreviewField, setIcon } from 'obsidian';
 import { EditorView, ViewPlugin, ViewUpdate, type Rect } from '@codemirror/view';
-import type CommentPlugin from '../../../main';
+import type { EditorFeatureContext } from '../../types/plugin';
 import { HIGHLIGHT_COLOR_CHOICES, recolorHighlightSource } from '../../services/highlight/HighlightColorEdit';
 import type { HighlightColor } from '../../services/highlight/HighlightColor';
 import { HighlightExtractor } from '../../services/highlight/HighlightExtractor';
@@ -43,7 +43,7 @@ class SelectionColorController extends Component {
     private pendingAutoHighlight?: PendingAutoHighlight;
     private selectionSuppressedUntil = 0;
 
-    constructor(private plugin: CommentPlugin) {
+    constructor(private plugin: EditorFeatureContext) {
         super();
         this.extractor = new HighlightExtractor(plugin.app, () => plugin.settings);
     }
@@ -361,7 +361,10 @@ class SelectionColorController extends Component {
             scans, services.highlightRepository.getCachedHighlights(prepared.file.path) || [], prepared.file
         );
         const highlight = merged.find(item => item.position === scan.position) || scanToHighlightView(scan);
-        const commentService = new CommentService(this.plugin.app, this.plugin, services.highlightManager);
+        const commentService = new CommentService(this.plugin.app, {
+            eventManager: services.eventManager,
+            fsrsManager: services.fsrsManager
+        }, services.highlightManager);
         commentService.updateState({ currentFile: prepared.file, highlights: [highlight] });
         if (!popover.isConnected) return;
         this.commentInput?.destroy();
@@ -370,7 +373,6 @@ class SelectionColorController extends Component {
             onSave: async content => {
                 await commentService.addComment(highlight, content);
                 this.pendingAutoHighlight = undefined;
-                this.plugin.services?.highlightDecorator.refreshDecorations();
                 this.commentInputActive = false;
                 this.hide();
             },
@@ -423,11 +425,15 @@ class SelectionColorController extends Component {
                 new Notice(t('Select an existing highlight to delete.'));
                 return;
             }
-            const deleted = await new HighlightDeletionManager(this.plugin).deleteHighlight(highlight);
+            const services = await this.plugin.ensureServicesInitialized();
+            const deleted = await new HighlightDeletionManager({
+                app: this.plugin.app,
+                settings: this.plugin.settings,
+                highlightManager: services.highlightManager,
+                eventManager: services.eventManager
+            }).deleteHighlight(highlight);
             if (!deleted) return;
             this.pendingAutoHighlight = undefined;
-            this.plugin.services?.highlightDecorator.refreshDecorations();
-            if (context.markdownView.getMode() === 'preview') context.markdownView.previewMode.rerender(true);
             this.closeComment(true);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -506,11 +512,10 @@ class SelectionColorController extends Component {
                 return current.slice(0, currentPlan.from) + originalText + current.slice(currentPlan.to);
             });
             if (!restored) return;
-            context.markdownView.previewMode.rerender(true);
         }
         context.snapshot = originalSnapshot;
         context.plan = originalPlan;
-        this.plugin.services?.highlightDecorator.refreshDecorations();
+        this.plugin.services?.highlightDecorator.invalidate(context.file.path);
     }
 
     private registerToolbarEvents(toolbar: HTMLElement, context: SelectionContext): void {
@@ -529,7 +534,6 @@ class SelectionColorController extends Component {
     private async apply(context: SelectionContext, color: HighlightColor | null): Promise<void> {
         await this.writeSelectionChange(context, color);
         this.hide();
-        this.plugin.services?.highlightDecorator.refreshDecorations();
     }
 
     private async writeSelectionChange(context: SelectionContext, color: HighlightColor | null): Promise<void> {
@@ -554,8 +558,8 @@ class SelectionColorController extends Component {
                 if (current !== context.snapshot) throw new Error(t('The selection changed. Select the text again.'));
                 return current.slice(0, plan.from) + replacement + current.slice(plan.to);
             });
-            context.markdownView.previewMode.rerender(true);
         }
+        this.plugin.services?.highlightDecorator.invalidate(context.file.path);
     }
 
     private hide(force = false): void {
@@ -582,7 +586,7 @@ class SelectionColorController extends Component {
     }
 }
 
-export function registerSelectionColorToolbar(plugin: CommentPlugin): void {
+export function registerSelectionColorToolbar(plugin: EditorFeatureContext): void {
     const controller = plugin.addChild(new SelectionColorController(plugin));
     const extension = ViewPlugin.fromClass(class {
         update(update: ViewUpdate): void { controller.onEditorUpdate(update.view, update); }

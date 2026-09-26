@@ -2,7 +2,7 @@ import { t } from '../../i18n';
 import type { ViewState } from '../hinote/ViewState';
 import { TFile } from "obsidian";
 import { HighlightService } from "../../services/HighlightService";
-import CommentPlugin from "../../../main";
+import type CommentPlugin from "../../../main";
 import { LicenseManager } from "../../services/LicenseManager";
 import { FileListDataSource } from "./FileListDataSource";
 import { FileListItemRenderer } from "./FileListItemRenderer";

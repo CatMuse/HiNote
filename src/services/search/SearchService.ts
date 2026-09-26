@@ -1,6 +1,6 @@
 import { TFile } from "obsidian";
 import { HighlightInfo } from "../../types/highlight";
-import CommentPlugin from "../../../main";
+import type CommentPlugin from "../../../main";
 import type { HighlightCardType } from '../../views/hinote/ViewState';
 
 /**

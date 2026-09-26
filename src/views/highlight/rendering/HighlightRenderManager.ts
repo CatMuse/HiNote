@@ -2,7 +2,7 @@ import { HighlightInfo, CommentItem, isFileComment } from '../../../types/highli
 import { HighlightCard, defaultHighlightCardRegistry } from '../../../components/highlight';
 import { SelectionManager } from '../../selection';
 import { TFile } from 'obsidian';
-import CommentPlugin from '../../../../main';
+import type CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 import { renderFileCommentSection, sortFileCommentsByNewest } from './FileCommentSection';
 

@@ -1,5 +1,5 @@
 import { MarkdownView, TFile, setIcon } from "obsidian";
-import CommentPlugin from "../../../main";
+import type CommentPlugin from "../../../main";
 import { t } from "../../i18n";
 import { FileListDataSource } from "./FileListDataSource";
 

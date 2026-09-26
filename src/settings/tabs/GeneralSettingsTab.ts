@@ -95,7 +95,7 @@ export class GeneralSettingsTab {
                     await this.plugin.saveSettings();
                     // 刷新高亮装饰器以立即应用更改
                     if (this.plugin.highlightDecorator) {
-                        this.plugin.highlightDecorator.refreshDecorations();
+                        this.plugin.highlightDecorator.invalidate();
                     }
                 }));
 
