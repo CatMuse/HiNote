@@ -3868,8 +3868,28 @@ textarea.flashcard-modal-input {
 .fsrs-weights-textarea {
     font-family: var(--font-monospace);
     width: 100%;
-    min-height: 80px;
+    min-height: 96px;
     resize: vertical;
+}
+
+.fsrs-params-container > .setting-item {
+    display: block;
+}
+
+.fsrs-params-container > .setting-item .setting-item-info {
+    max-width: none;
+    margin-bottom: 10px;
+}
+
+.fsrs-params-container > .setting-item .setting-item-control {
+    width: 100%;
+    justify-content: stretch;
+}
+
+.fsrs-params-container > .setting-item .fsrs-weights-textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
 }
 
 .fsrs-buttons-container {
@@ -5364,6 +5384,27 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 .hicard-settings-page .flashcard-settings-container {
     max-width: 760px;
 }
+.hicard-settings-page .flashcard-settings-container > .setting-item:not(.setting-item-heading),
+.hicard-settings-page .fsrs-params-container,
+.hicard-settings-page .hicard-settings-data {
+    border-radius: var(--radius-m);
+}
+.hicard-settings-page .flashcard-settings-container > .setting-item:not(.setting-item-heading) {
+    margin-bottom: 10px;
+}
+.hicard-settings-page .flashcard-activation-container {
+    max-width: 760px;
+    margin: 20px 0;
+    padding: 18px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+    box-shadow: none;
+}
+.hicard-settings-page .flashcard-activation-input,
+.hicard-settings-page .flashcard-activation-button {
+    border-radius: var(--radius-s);
+}
 .hicard-settings-data {
     max-width: 760px;
     padding: 18px;
@@ -5762,12 +5803,14 @@ button.hinote-related-card:focus-visible {
 
 /* Focused HiCard study experience */
 .hicard-study-toolbar {
+    position: relative;
     display: grid;
     grid-template-columns: 32px minmax(0, 1fr) auto;
     align-items: center;
     width: min(1120px, 100%);
     gap: 8px 10px;
     margin: 0 auto 18px;
+    padding-bottom: 11px;
 }
 .hicard-study-toolbar > .clickable-icon { grid-column: 1; grid-row: 1; }
 .hicard-study-title {
@@ -5779,18 +5822,29 @@ button.hinote-related-card:focus-visible {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.hicard-study-toolbar > .flashcard-progress-container { display: contents; }
+.hicard-study-toolbar > .flashcard-progress-container {
+    position: absolute;
+    inset: 0;
+    display: block;
+    padding: 0;
+    pointer-events: none;
+    background: transparent;
+}
 .hicard-study-toolbar .flashcard-progress-container::before { display: none; }
 .hicard-study-toolbar .flashcard-progress-text {
-    grid-column: 3;
-    grid-row: 1;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
     color: var(--text-normal);
     font-size: var(--font-ui-small);
     font-variant-numeric: tabular-nums;
 }
 .hicard-study-toolbar .flashcard-progress-bar-container {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
     height: 3px;
     overflow: hidden;
     border-radius: 999px;
@@ -5970,7 +6024,7 @@ button.flashcard-reveal-button {
     text-transform: uppercase;
 }
 @media (max-width: 700px) {
-    .hicard-workspace-content:has(.hicard-study-container) { padding: 18px 14px; }
+    .hicard-workspace-content.is-study-page { padding: 18px 14px; }
     .hicard-study-container .flashcard-container {
         min-height: calc(100vh - 210px);
         padding: 18px 12px;

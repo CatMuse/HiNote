@@ -126,6 +126,7 @@ export class HiCardWorkspace extends Component {
         this.currentPage = page;
         this.updateNavigation();
         this.contentEl.empty();
+        this.contentEl.toggleClass('is-study-page', page === 'study');
         if (page === 'study') {
             const bar = this.contentEl.createDiv({ cls: 'hicard-study-toolbar' });
             const back = bar.createEl('button', { cls: 'clickable-icon', attr: { type: 'button', 'aria-label': t('Back to today') } });
