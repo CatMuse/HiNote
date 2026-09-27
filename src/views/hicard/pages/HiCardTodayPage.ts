@@ -3,7 +3,8 @@ import type CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 import type { FlashcardStudySession } from '../../../flashcard/components/FlashcardComponent';
 import type { FlashcardState } from '../../../flashcard';
-import { ALL_CARDS_GROUP, isSystemCardGroup, PAUSED_CARDS_GROUP } from '../../../flashcard/types/FlashcardGroups';
+import type { DailyStats } from '../../../flashcard/types/FSRSTypes';
+import { ALL_CARDS_GROUP, isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
 import { renderHiCardPageHeader } from './HiCardPageHeader';
 
 type StudyMode = 'today' | 'new' | 'difficult' | 'all';
@@ -31,13 +32,14 @@ export class HiCardTodayPage {
         const due = active.filter(card => card.lastReview > 0 && card.nextReview <= Date.now()).length;
         const learning = active.filter(card => card.state === 1 || card.state === 3).length;
         const newCards = active.filter(card => card.lastReview === 0).length;
-        const today = this.getTodayReviewed();
+        const todayStats = this.getTodayStats();
+        const today = todayStats?.cardsReviewed ?? 0;
 
         const hero = container.createDiv({ cls: 'hicard-today-hero' });
         const heroCopy = hero.createDiv({ cls: 'hicard-today-hero-copy' });
         heroCopy.createDiv({ cls: 'hicard-eyebrow', text: t('Today’s queue') });
         heroCopy.createEl('h3', { text: due + newCards > 0 ? t('{count} cards are ready', { count: due + Math.min(newCards, this.plugin.fsrsManager.getRemainingNewCardsToday()) }) : t('You’re caught up') });
-        heroCopy.createEl('p', { text: due + newCards > 0 ? t('Start with reviews, then learn a few new cards.') : t('There is nothing due right now. You can still start a custom session.') });
+        heroCopy.createEl('p', { text: due + newCards > 0 ? t('Study due and new cards from all active cards.') : t('There is nothing due right now. You can still start a custom session.') });
         const start = hero.createEl('button', { cls: 'mod-cta hicard-primary-action' });
         const startIcon = start.createSpan();
         setIcon(startIcon, 'play');
@@ -52,6 +54,7 @@ export class HiCardTodayPage {
         this.metric(metrics, 'sparkles', t('New available'), newCards, t('{count} remaining today', { count: this.plugin.fsrsManager.getRemainingNewCardsToday() }));
         this.metric(metrics, 'brain', t('In learning'), learning, t('Short learning steps'));
         this.metric(metrics, 'circle-check-big', t('Finished today'), today, t('Cards reviewed'));
+        this.renderStudySummary(container, todayStats);
 
         const insights = container.createDiv({ cls: 'hicard-today-insights' });
         this.renderActivity(insights.createDiv({ cls: 'hicard-surface hicard-today-panel' }));
@@ -135,17 +138,21 @@ export class HiCardTodayPage {
         const heading = section.createDiv({ cls: 'hicard-section-heading' });
         heading.createEl('h3', { text: t('Continue a group') });
         const groups = this.plugin.fsrsManager.getCardGroups()
-            .filter(group => group.id !== PAUSED_CARDS_GROUP)
+            .filter(group => !isSystemCardGroup(group.id))
             .map(group => ({ group, progress: this.plugin.fsrsManager.getGroupProgress(group.id) }))
             .sort((a, b) => (b.progress?.due ?? 0) - (a.progress?.due ?? 0))
             .slice(0, 5);
         const list = section.createDiv({ cls: 'hicard-continue-list' });
+        if (groups.length === 0) {
+            list.createDiv({ cls: 'hicard-management-empty', text: t('No custom study groups yet.') });
+            return;
+        }
         for (const { group, progress } of groups) {
             const button = list.createEl('button', { cls: 'hicard-continue-row' });
             const icon = button.createSpan({ cls: 'hicard-list-icon' });
-            setIcon(icon, isSystemCardGroup(group.id) ? 'inbox' : 'folder');
+            setIcon(icon, 'folder');
             const copy = button.createSpan({ cls: 'hicard-continue-copy' });
-            copy.createSpan({ cls: 'hicard-continue-name', text: isSystemCardGroup(group.id) ? t(group.name) : group.name });
+            copy.createSpan({ cls: 'hicard-continue-name', text: group.name });
             copy.createSpan({ cls: 'hicard-continue-meta', text: t('{due} due · {new} new', { due: progress?.due ?? 0, new: progress?.newCards ?? 0 }) });
             const arrow = button.createSpan();
             setIcon(arrow, 'chevron-right');
@@ -177,9 +184,36 @@ export class HiCardTodayPage {
         new HiCardStudyPlanModal(this.plugin, initialMode, session => this.startStudy(session)).open();
     }
 
-    private getTodayReviewed(): number {
+    private renderStudySummary(container: HTMLElement, stats?: DailyStats): void {
+        const studiedCards = stats?.reviewedCardIds?.length
+            ?? ((stats?.newCardsLearned ?? 0) + (stats?.cardsReviewed ?? 0));
+        const studyTimeMs = stats?.studyTimeMs ?? 0;
+        const averageTimeMs = studiedCards > 0 ? studyTimeMs / studiedCards : 0;
+        const summary = container.createDiv({ cls: 'hicard-surface hicard-today-study-summary' });
+        const icon = summary.createSpan({ cls: 'hicard-today-study-summary-icon' });
+        setIcon(icon, 'timer');
+        summary.createSpan({
+            text: t('Today you studied {cards} cards in {duration} (average {average} per card)', {
+                cards: studiedCards,
+                duration: this.formatStudyDuration(studyTimeMs),
+                average: this.formatStudyDuration(averageTimeMs)
+            })
+        });
+    }
+
+    private formatStudyDuration(milliseconds: number): string {
+        const seconds = Math.max(0, Math.round(milliseconds / 1000));
+        if (seconds < 60) return t('{count} seconds', { count: seconds });
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return remainingSeconds
+            ? t('{minutes}m {seconds}s', { minutes, seconds: remainingSeconds })
+            : t('{count} minutes', { count: minutes });
+    }
+
+    private getTodayStats(): DailyStats | undefined {
         const key = new Date().toDateString();
-        return this.plugin.fsrsManager.getDailyStats().find(item => new Date(item.date).toDateString() === key)?.cardsReviewed ?? 0;
+        return this.plugin.fsrsManager.getDailyStats().find(item => new Date(item.date).toDateString() === key);
     }
 }
 
@@ -196,9 +230,10 @@ class HiCardStudyPlanModal extends Modal {
         const intro = this.contentEl.createEl('p', { cls: 'hicard-modal-intro', text: t('Build a focused one-time session. Your scheduling data is still updated normally.') });
         intro.setAttr('aria-live', 'polite');
         const form = this.contentEl.createDiv({ cls: 'hicard-study-plan-form' });
-        const group = this.field(form, t('Study group')).createEl('select', { cls: 'dropdown' });
-        for (const item of this.plugin.fsrsManager.getCardGroups().filter(item => item.id !== PAUSED_CARDS_GROUP)) {
-            group.createEl('option', { value: item.id, text: isSystemCardGroup(item.id) ? t(item.name) : item.name });
+        const group = this.field(form, t('Study source')).createEl('select', { cls: 'dropdown' });
+        group.createEl('option', { value: ALL_CARDS_GROUP, text: t('All cards') });
+        for (const item of this.plugin.fsrsManager.getCardGroups().filter(item => !isSystemCardGroup(item.id))) {
+            group.createEl('option', { value: item.id, text: item.name });
         }
         group.value = ALL_CARDS_GROUP;
         const mode = this.field(form, t('Study mode')).createEl('select', { cls: 'dropdown' });

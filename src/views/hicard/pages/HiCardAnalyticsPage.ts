@@ -1,7 +1,7 @@
 import type CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 import { FlashcardStatsPanel } from '../../../flashcard/components/FlashcardStatsPanel';
-import { isSystemCardGroup, PAUSED_CARDS_GROUP } from '../../../flashcard/types/FlashcardGroups';
+import { isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
 import { renderHiCardPageHeader } from './HiCardPageHeader';
 
 export class HiCardAnalyticsPage {
@@ -123,7 +123,7 @@ export class HiCardAnalyticsPage {
         header.createSpan({ text: t('Cards') });
         header.createSpan({ text: t('Due') });
         header.createSpan({ text: t('Learned') });
-        for (const group of this.plugin.fsrsManager.getCardGroups().filter(group => group.id !== PAUSED_CARDS_GROUP)) {
+        for (const group of this.plugin.fsrsManager.getCardGroups().filter(group => !isSystemCardGroup(group.id))) {
             const progress = this.plugin.fsrsManager.getGroupProgress(group.id);
             const row = table.createDiv({ cls: 'hicard-management-row' });
             row.createSpan({ text: isSystemCardGroup(group.id) ? t(group.name) : group.name });

@@ -6,6 +6,7 @@ import { restoreReviewPosition } from "./FlashcardReviewQueue";
 
 /** One queue for selection, limits and short-term learning. */
 export class FlashcardOperations {
+    private static readonly MAX_CARD_STUDY_TIME_MS = 10 * 60 * 1000;
     private saving = false;
     private completed = 0;
     private sessionGroup = '';
@@ -16,6 +17,8 @@ export class FlashcardOperations {
     private timer: number | null = null;
     private timerWindow: Window | null = null;
     private externalTimer: number | null = null;
+    private currentCardStartedAt = 0;
+    private currentCardId: string | undefined;
 
     constructor(private component: FlashcardComponentContext) {}
 
@@ -46,6 +49,8 @@ export class FlashcardOperations {
     public dispose(): void {
         this.revision++;
         this.cancelTimer();
+        this.currentCardStartedAt = 0;
+        this.currentCardId = undefined;
         if (this.externalTimer !== null) this.component.getContainer().ownerDocument.defaultView?.clearTimeout(this.externalTimer);
         this.externalTimer = null;
     }
@@ -81,6 +86,28 @@ export class FlashcardOperations {
         finally { this.saving = false; }
     }
 
+    private syncCurrentCardTimer(force = false): void {
+        const card = this.component.getCards()[this.component.getCurrentIndex()];
+        if (!card) {
+            this.currentCardId = undefined;
+            this.currentCardStartedAt = 0;
+            return;
+        }
+        if (force || this.currentCardId !== card.id) {
+            this.currentCardId = card.id;
+            this.currentCardStartedAt = Date.now();
+        }
+    }
+
+    private getCurrentCardStudyTime(): number {
+        this.syncCurrentCardTimer();
+        if (!this.currentCardStartedAt) return 0;
+        return Math.min(
+            FlashcardOperations.MAX_CARD_STUDY_TIME_MS,
+            Math.max(0, Date.now() - this.currentCardStartedAt)
+        );
+    }
+
     private cancelTimer(): void {
         if (this.timer !== null) this.timerWindow?.clearTimeout(this.timer);
         this.timer = null;
@@ -99,6 +126,7 @@ export class FlashcardOperations {
         if (this.saving || !cards.length) return;
         this.component.setCurrentIndex((this.component.getCurrentIndex() + 1) % cards.length);
         this.component.setCardFlipped(false);
+        this.syncCurrentCardTimer(true);
         this.component.saveState();
         this.component.getRenderer().renderStudyArea();
     }
@@ -108,13 +136,20 @@ export class FlashcardOperations {
         const card = this.component.getCards()[this.component.getCurrentIndex()];
         if (!card) return;
         const groupId = this.component.getCurrentGroupId();
+        const studyTimeMs = this.getCurrentCardStudyTime();
         const revision = this.revision;
         this.saving = true;
         const buttons = this.component.getContainer().querySelectorAll<HTMLButtonElement>(".flashcard-rating-button");
         buttons.forEach(button => button.disabled = true);
         try {
             const session = this.component.getStudySession?.();
-            const saved = await this.component.getFsrsManager().trackStudyProgress(card.id, rating, groupId, session?.allowEarlyReview);
+            const saved = await this.component.getFsrsManager().trackStudyProgress(
+                card.id,
+                rating,
+                groupId,
+                session?.allowEarlyReview,
+                studyTimeMs
+            );
             if (!saved) {
                 if (revision === this.revision && this.component.getIsActive() && this.component.getCurrentGroupId() === groupId) {
                     this.refreshCardList(false);
@@ -128,6 +163,7 @@ export class FlashcardOperations {
             this.lastRatedCardId = card.id;
             this.component.setCardFlipped(false);
             this.refreshCardList(false);
+            this.syncCurrentCardTimer(true);
             this.component.getRenderer().renderStudyArea();
             this.component.getContainer().focus();
         } catch (error) {
@@ -167,6 +203,7 @@ export class FlashcardOperations {
         const position = restoreReviewPosition(cards, restore && !session ? this.component.getGroupProgress() : null);
         this.component.setCurrentIndex(Math.max(0, position.currentIndex));
         this.component.setCardFlipped(cards.length > 0 && position.isFlipped);
+        this.syncCurrentCardTimer();
         this.component.setCompletionMessage(null);
         this.component.setGroupCompletionMessage(groupId, null);
         this.component.saveState();

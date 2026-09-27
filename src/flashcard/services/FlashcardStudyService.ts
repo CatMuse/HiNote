@@ -24,7 +24,7 @@ export class FlashcardStudyService {
         }
 
         const groupRepository = this.options.getGroupRepository();
-        if (groupId === PAUSED_CARDS_GROUP) return groupRepository.getCardsByGroupId(groupId);
+        if (groupId === PAUSED_CARDS_GROUP) return [];
         const allCards = groupRepository.getCardsByGroupId(groupId).filter(card => !card.suspended);
         if (allCards.length === 0) {
             return [];

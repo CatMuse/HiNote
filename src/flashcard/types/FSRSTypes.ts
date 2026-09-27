@@ -90,6 +90,7 @@ export interface DailyStats {
     newCardsLearned: number;  // 当天学习的新卡片数量
     cardsReviewed: number;    // 当天复习的卡片数量
     reviewCount: number;      // 当天评分总数
+    studyTimeMs?: number;     // 当天有效学习时长（毫秒）
     newCount: number;         // 当天新卡片数
     againCount: number;       // Again 评分数量
     hardCount: number;        // Hard 评分数量

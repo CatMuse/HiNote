@@ -61,7 +61,14 @@ export class DailyStatsService {
         return Math.max(0, Math.min(globalRemaining, groupRemaining));
     }
 
-    public updateDailyStats(isNewCard: boolean, rating: FSRSRating, cardId?: string, groupId?: string, learning = false): void {
+    public updateDailyStats(
+        isNewCard: boolean,
+        rating: FSRSRating,
+        cardId?: string,
+        groupId?: string,
+        learning = false,
+        studyTimeMs = 0
+    ): void {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayTimestamp = today.getTime();
@@ -82,6 +89,12 @@ export class DailyStatsService {
 
         const todayStats = this.getTodayStats();
         todayStats.reviewCount++;
+        const safeStudyTimeMs = Number.isFinite(studyTimeMs)
+            ? Math.min(10 * 60 * 1000, Math.max(0, studyTimeMs))
+            : 0;
+        if (safeStudyTimeMs > 0) {
+            todayStats.studyTimeMs = (todayStats.studyTimeMs ?? 0) + safeStudyTimeMs;
+        }
 
         const counted = cardId ? todayStats.reviewedCardIds?.includes(cardId) : false;
         const countReview = !isNewCard && !learning && !counted;
@@ -200,6 +213,7 @@ export class DailyStatsService {
             newCardsLearned: 0,
             cardsReviewed: 0,
             reviewCount: 0,
+            studyTimeMs: 0,
             newCount: 0,
             againCount: 0,
             hardCount: 0,

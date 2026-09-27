@@ -20,6 +20,7 @@ import { FlashcardStudyService } from './FlashcardStudyService';
 import { FlashcardReviewService } from './FlashcardReviewService';
 import { FlashcardCardService } from './FlashcardCardService';
 import { FlashcardUIStateService } from './FlashcardUIStateService';
+import { PAUSED_CARDS_GROUP } from '../types/FlashcardGroups';
 import { FlashcardGroupService } from './FlashcardGroupService';
 import { Notice } from 'obsidian';
 import { StorageQueue } from '../../storage/StorageQueue';
@@ -213,14 +214,21 @@ export class FSRSManager {
      * @param rating 评分
      * @returns 更新后的卡片状态
      */
-    public trackStudyProgress(cardId: string, rating: FSRSRating, groupId?: string, allowEarlyReview = false): Promise<FlashcardState | null> {
+    public trackStudyProgress(
+        cardId: string,
+        rating: FSRSRating,
+        groupId?: string,
+        allowEarlyReview = false,
+        studyTimeMs = 0
+    ): Promise<FlashcardState | null> {
+        if (groupId === PAUSED_CARDS_GROUP) return Promise.resolve(null);
         return this.runReviewTransaction(() => cardId, async () => {
             const card = this.reviewDraft?.cards[cardId];
             const limits = this.createReviewDailyStats();
             if (!card || card.suspended || (!allowEarlyReview && card.nextReview > Date.now())) return null;
             if (card.lastReview === 0 && !limits.canLearnNewCardsToday(groupId)) return null;
             if (card.lastReview > 0 && card.state !== 1 && card.state !== 3 && !limits.canReviewCardsToday(groupId)) return null;
-            return this.reviewService.trackStudyProgress(cardId, rating, groupId);
+            return this.reviewService.trackStudyProgress(cardId, rating, groupId, studyTimeMs);
         });
     }
     

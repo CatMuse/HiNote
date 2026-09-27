@@ -1,7 +1,8 @@
-import { Notice, setIcon } from 'obsidian';
+import { Menu, Notice, setIcon } from 'obsidian';
 import type CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 import type { CardGroup } from '../../../flashcard';
+import type { FlashcardState } from '../../../flashcard/types/FSRSTypes';
 import type { HiCardManagementViewMode } from '../../../flashcard/types/FSRSTypes';
 import { isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
 import {
@@ -34,7 +35,11 @@ export class HiCardGroupsPage {
         const create = actions.createEl('button', { cls: 'mod-cta', text: t('Create group') });
         create.addEventListener('click', () => this.openGroupModal());
 
-        const groups = this.plugin.fsrsManager.getCardGroups();
+        const groups = this.plugin.fsrsManager.getCardGroups().filter(group => !isSystemCardGroup(group.id));
+        if (groups.length === 0) {
+            this.renderEmptyState(container);
+            return;
+        }
         if (viewMode === 'grid') {
             const grid = container.createDiv({ cls: 'hicard-group-grid' });
             for (const group of groups) this.renderGroupCard(grid, group);
@@ -46,6 +51,14 @@ export class HiCardGroupsPage {
         for (const group of groups) this.renderGroup(table, group);
     }
 
+    private renderEmptyState(container: HTMLElement): void {
+        const empty = container.createDiv({ cls: 'hicard-management-empty hicard-groups-empty' });
+        empty.createDiv({ text: t('No custom study groups yet.') });
+        empty.createDiv({ text: t('Create a group to organize cards into a focused study queue.') });
+        const create = empty.createEl('button', { cls: 'mod-cta', text: t('Create group') });
+        create.addEventListener('click', () => this.openGroupModal());
+    }
+
     destroy(): void {
         this.modal?.close();
         this.modal = null;
@@ -55,8 +68,9 @@ export class HiCardGroupsPage {
         const row = table.createDiv({ cls: 'hicard-management-row hicard-management-table-header' });
         row.createSpan({ text: t('Group') });
         row.createSpan({ text: t('Type') });
-        row.createSpan({ text: t('Cards') });
-        row.createSpan({ text: t('Due today') });
+        row.createSpan({ text: t('Unlearned') });
+        row.createSpan({ text: t('Learning') });
+        row.createSpan({ text: t('Due') });
         row.createSpan({ text: t('Actions') });
     }
 
@@ -74,7 +88,7 @@ export class HiCardGroupsPage {
 
     private renderGroupCard(grid: HTMLElement, group: CardGroup): void {
         const cards = this.plugin.fsrsManager.getCardsByGroupId(group.id);
-        const progress = this.plugin.fsrsManager.getGroupProgress(group.id);
+        const counts = this.getGroupStudyCounts(cards);
         const system = isSystemCardGroup(group.id);
         const card = grid.createDiv({ cls: 'hicard-group-card' });
         const heading = card.createDiv({ cls: 'hicard-group-card-heading' });
@@ -82,32 +96,94 @@ export class HiCardGroupsPage {
         const icon = identity.createSpan();
         setIcon(icon, system ? 'folder-cog' : group.filter?.trim() ? 'list-filter' : 'folder');
         identity.createSpan({ text: system ? t(group.name) : group.name });
-        heading.createSpan({
-            cls: 'hicard-group-card-type',
-            text: t(system ? 'System group' : group.filter?.trim() ? 'Filtered group' : 'Manual group')
-        });
+        if (system) {
+            heading.createSpan({
+                cls: 'hicard-group-card-type',
+                text: t('System group')
+            });
+        } else {
+            this.renderGroupMenu(heading, group);
+        }
 
         const stats = card.createDiv({ cls: 'hicard-group-card-stats' });
-        this.renderGroupStat(stats, t('Cards'), cards.length);
-        this.renderGroupStat(stats, t('Due today'), progress?.due ?? 0);
+        this.renderGroupStat(stats, t('Unlearned'), counts.unlearned, 'unlearned');
+        this.renderGroupStat(stats, t('Learning'), counts.learning, 'learning');
+        this.renderGroupStat(stats, t('Due'), counts.due, 'due');
 
-        const actions = card.createDiv({ cls: 'hicard-management-actions hicard-group-card-actions' });
-        this.addIconButton(actions, 'play', t('Study'), () => { void this.openStudyGroup(group.id); });
-        if (!system) {
-            this.addIconButton(actions, 'pencil', t('Edit'), () => this.openGroupModal(group));
-            this.addIconButton(actions, 'trash-2', t('Delete'), () => { void this.deleteGroup(group); }, true);
-        }
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `${t('Study')}: ${system ? t(group.name) : group.name}`);
+        card.addEventListener('click', event => {
+            if ((event.target as HTMLElement).closest('button')) return;
+            void this.openStudyGroup(group.id);
+        });
+        card.addEventListener('keydown', event => {
+            if ((event.target as HTMLElement).closest('button') || (event.key !== 'Enter' && event.key !== ' ')) return;
+            event.preventDefault();
+            void this.openStudyGroup(group.id);
+        });
     }
 
-    private renderGroupStat(container: HTMLElement, label: string, value: number): void {
-        const stat = container.createDiv({ cls: 'hicard-group-card-stat' });
+    private renderGroupMenu(container: HTMLElement, group: CardGroup): void {
+        const button = container.createEl('button', {
+            cls: 'clickable-icon hicard-group-card-more',
+            attr: {
+                type: 'button',
+                'aria-label': t('More actions'),
+                'aria-haspopup': 'menu',
+                'data-tooltip-position': 'top'
+            }
+        });
+        button.setAttribute('data-tooltip', t('More actions'));
+        setIcon(button, 'ellipsis');
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            const menu = new Menu();
+            menu.addItem(item => item
+                .setTitle(t('Edit'))
+                .setIcon('pencil')
+                .onClick(() => this.openGroupModal(group)));
+            menu.addItem(item => item
+                .setTitle(t('Delete'))
+                .setIcon('trash-2')
+                .setWarning(true)
+                .onClick(() => { void this.deleteGroup(group); }));
+            const rect = button.getBoundingClientRect();
+            menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+        });
+    }
+
+    private getGroupStudyCounts(cards: FlashcardState[]): {
+        unlearned: number;
+        learning: number;
+        due: number;
+    } {
+        const activeCards = cards.filter(card => !card.suspended);
+        const now = Date.now();
+        const isUnlearned = (card: FlashcardState): boolean => card.lastReview === 0 && card.reviews === 0;
+        const isLearning = (card: FlashcardState): boolean => card.state === 1 || card.state === 3;
+
+        return {
+            unlearned: activeCards.filter(isUnlearned).length,
+            learning: activeCards.filter(card => !isUnlearned(card) && isLearning(card)).length,
+            due: activeCards.filter(card => !isUnlearned(card) && !isLearning(card) && card.nextReview <= now).length
+        };
+    }
+
+    private renderGroupStat(
+        container: HTMLElement,
+        label: string,
+        value: number,
+        tone: 'unlearned' | 'learning' | 'due'
+    ): void {
+        const stat = container.createDiv({ cls: `hicard-group-card-stat is-${tone}` });
         stat.createSpan({ text: label });
         stat.createEl('strong', { text: String(value) });
     }
 
     private renderGroup(table: HTMLElement, group: CardGroup): void {
         const cards = this.plugin.fsrsManager.getCardsByGroupId(group.id);
-        const progress = this.plugin.fsrsManager.getGroupProgress(group.id);
+        const counts = this.getGroupStudyCounts(cards);
         const system = isSystemCardGroup(group.id);
         const row = table.createDiv({ cls: 'hicard-management-row' });
         const identity = row.createDiv({ cls: 'hicard-management-identity' });
@@ -115,8 +191,9 @@ export class HiCardGroupsPage {
         setIcon(icon, system ? 'folder-cog' : group.filter?.trim() ? 'list-filter' : 'folder');
         identity.createSpan({ text: system ? t(group.name) : group.name });
         row.createSpan({ text: t(system ? 'System group' : group.filter?.trim() ? 'Filtered group' : 'Manual group') });
-        row.createSpan({ text: String(cards.length) });
-        row.createSpan({ text: String(progress?.due ?? 0) });
+        row.createSpan({ text: String(counts.unlearned) });
+        row.createSpan({ text: String(counts.learning) });
+        row.createSpan({ text: String(counts.due) });
         const actions = row.createDiv({ cls: 'hicard-management-actions' });
         this.addIconButton(actions, 'play', t('Study'), () => { void this.openStudyGroup(group.id); });
         if (!system) {

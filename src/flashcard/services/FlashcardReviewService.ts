@@ -56,7 +56,12 @@ export class FlashcardReviewService {
     }
     constructor(private options: FlashcardReviewServiceOptions) {}
 
-    async trackStudyProgress(cardId: string, rating: FSRSRating, groupId?: string): Promise<FlashcardState | null> {
+    async trackStudyProgress(
+        cardId: string,
+        rating: FSRSRating,
+        groupId?: string,
+        studyTimeMs = 0
+    ): Promise<FlashcardState | null> {
         if (this.saving) return null;
         const storage = this.options.getStorage();
         const card = storage.cards[cardId];
@@ -73,7 +78,14 @@ export class FlashcardReviewService {
         storage.cards[cardId] = updatedCard;
 
         this.updateGlobalStats(rating === 1 ? 0 : 1);
-        this.options.getDailyStatsService().updateDailyStats(isNewCard, rating, cardId, groupId, card.state === 1 || card.state === 3);
+        this.options.getDailyStatsService().updateDailyStats(
+            isNewCard,
+            rating,
+            cardId,
+            groupId,
+            card.state === 1 || card.state === 3,
+            studyTimeMs
+        );
 
         try {
             await this.options.saveStorage();

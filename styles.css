@@ -4700,6 +4700,23 @@ button.hicard-primary-action {
 .hicard-overview-value { font-size: 1.55rem; font-weight: 650; line-height: 1.2; }
 .hicard-overview-label { margin-top: 4px; font-weight: var(--font-medium); }
 .hicard-overview-helper { margin-top: 2px; color: var(--text-muted); font-size: var(--font-smallest); }
+.hicard-today-study-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    margin: 10px 0 18px;
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
+}
+.hicard-today-study-summary-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    color: var(--text-accent);
+}
+.hicard-today-study-summary-icon svg { width: 15px; height: 15px; }
 
 /* Today page insights */
 .hicard-today-insights {
@@ -4867,7 +4884,7 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 }
 .hicard-management-row {
     display: grid;
-    grid-template-columns: minmax(180px, 2fr) minmax(110px, 1fr) 80px 100px 120px;
+    grid-template-columns: minmax(180px, 2fr) minmax(110px, 1fr) repeat(3, 80px) 120px;
     align-items: center;
     gap: 14px;
     min-height: 52px;
@@ -4909,7 +4926,8 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 .hicard-group-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    align-items: start;
+    gap: 10px;
 }
 .hicard-card-grid {
     display: grid;
@@ -4918,19 +4936,32 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 }
 .hicard-group-card {
     display: flex;
-    min-height: 170px;
+    align-self: start;
+    min-height: 0;
     flex-direction: column;
-    gap: 16px;
-    padding: 16px;
+    gap: 8px;
+    padding: 12px;
     border: 1px solid var(--background-modifier-border);
     border-radius: var(--radius-m);
     background: var(--background-secondary);
+    cursor: pointer;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.hicard-group-card:hover,
+.hicard-group-card:focus-visible {
+    border-color: var(--background-modifier-border-hover);
+    box-shadow: var(--shadow-s);
+}
+.hicard-group-card:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: 2px;
 }
 .hicard-group-card-heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
+    min-height: 28px;
 }
 .hicard-group-card-type {
     flex: 0 0 auto;
@@ -4940,16 +4971,20 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     background: var(--background-primary);
     font-size: var(--font-smallest);
 }
+.hicard-group-card-more {
+    flex: 0 0 auto;
+    margin: -6px -6px 0 0;
+}
 .hicard-group-card-stats {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 0;
 }
 .hicard-group-card-stat {
     display: grid;
-    gap: 4px;
-    padding: 10px;
+    gap: 2px;
+    padding: 7px 8px;
     border-radius: 8px;
     background: var(--background-primary);
 }
@@ -4958,8 +4993,12 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     font-size: var(--font-smallest);
 }
 .hicard-group-card-stat strong {
-    font-size: 1.35em;
+    font-size: 1.15em;
+    line-height: 1.1;
 }
+.hicard-group-card-stat.is-unlearned strong { color: var(--text-accent); }
+.hicard-group-card-stat.is-learning strong { color: var(--text-warning); }
+.hicard-group-card-stat.is-due strong { color: var(--text-muted); }
 .hicard-group-card-actions {
     justify-content: flex-start;
     padding-top: 10px;
@@ -5438,10 +5477,10 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     .hicard-today-insights { grid-template-columns: 1fr; }
     .hicard-today-columns { grid-template-columns: 1fr; }
     .hicard-management-row {
-        grid-template-columns: minmax(150px, 2fr) 80px 100px;
+        grid-template-columns: minmax(150px, 2fr) 80px 80px 100px;
     }
     .hicard-management-row > :nth-child(2),
-    .hicard-management-row > :nth-child(4) {
+    .hicard-management-row > :nth-child(3) {
         display: none;
     }
     .hicard-card-filters {
@@ -5469,6 +5508,7 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 
 @media (max-width: 520px) {
     .hicard-page-header { flex-direction: column; }
+    .hicard-group-card-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .hicard-group-grid { grid-template-columns: 1fr; }
     .hicard-today-hero { align-items: flex-start; flex-direction: column; padding: 21px; }
     .hicard-overview-grid { grid-template-columns: 1fr 1fr; }

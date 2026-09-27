@@ -97,11 +97,12 @@ async function main() {
     const daily = new DailyStatsService({ getDailyStats: () => storage.dailyStats,
         setDailyStats: value => storage.dailyStats = value, getGlobalStats: () => storage.globalStats,
         getCardGroups: () => storage.cardGroups, getParameters: () => service.getParameters(), saveDebounced: () => {} });
-    daily.updateDailyStats(true, 1, 'first', 'a');
-    daily.updateDailyStats(false, 3, 'first', 'a', true);
+    daily.updateDailyStats(true, 1, 'first', 'a', false, 5000);
+    daily.updateDailyStats(false, 3, 'first', 'a', true, 2000);
     assert.equal(daily.getRemainingNewCardsToday('a'), 4);
     assert.equal(daily.getRemainingNewCardsToday('b'), 5);
     assert.equal(storage.dailyStats[0].cardsReviewed, 0);
+    assert.equal(storage.dailyStats[0].studyTimeMs, 7000);
     const tomorrow = new Date(); tomorrow.setHours(24, 0, 1, 0);
     testNow = tomorrow.getTime();
     assert.equal(daily.getRemainingNewCardsToday('a'), 5, 'Group limit resets on local midnight');
@@ -268,7 +269,7 @@ async function transactions(original) {
     const schedule = disk.cards[original.id].nextReview;
     await manager.setCardSuspended(original.id, true);
     assert.equal(manager.getCardsForStudy('hinote:all').length, 0);
-    assert.equal(manager.getCardsForStudy('hinote:paused').length, 1);
+    assert.equal(manager.getCardsForStudy('hinote:paused').length, 0, 'Paused cards are not a study queue');
     assert.equal(manager.getGroupProgress('hinote:all').newCards, 0);
     assert.equal(await manager.trackStudyProgress(original.id, 3), null, 'Paused cards cannot be rated');
     assert.equal(disk.cardGroups.length, 1, 'Built-in groups must not be written into user groups');
