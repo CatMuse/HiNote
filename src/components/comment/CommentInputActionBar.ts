@@ -5,6 +5,7 @@ interface CommentInputActionBarOptions {
     onSave: () => Promise<void>;
     onDelete?: () => Promise<void>;
     saveHintText?: string;
+    showSaveButton?: boolean;
 }
 
 export class CommentInputActionBar {
@@ -34,18 +35,19 @@ export class CommentInputActionBar {
                 cls: "hi-note-hint",
                 text: this.options.saveHintText || t("Tab AI, Shift + Enter Wrap, Enter Save")
             });
-            return;
         }
 
-        const saveButton = actionHint.createEl("button", {
-            cls: "hi-note-save-button",
-            text: t("Submit")
-        });
+        if (Platform.isMobile || this.options.showSaveButton) {
+            const saveButton = actionHint.createEl("button", {
+                cls: "hi-note-save-button",
+                text: this.options.showSaveButton ? t("Save") : t("Submit")
+            });
 
-        saveButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            void this.options.onSave();
-        });
+            saveButton.addEventListener("click", (e) => {
+                e.stopPropagation();
+                void this.options.onSave();
+            });
+        }
     }
 
     private renderDeleteAction(actionHint: HTMLElement): void {

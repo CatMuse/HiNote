@@ -160,9 +160,21 @@ export class FlashcardStatsPanel {
             return {
                 date,
                 stat,
-                value: stat ? stat.newCardsLearned + stat.cardsReviewed : 0
+                value: this.getActivityValue(stat)
             };
         });
+    }
+
+    private getActivityValue(stat?: DailyStats): number {
+        if (!stat) return 0;
+
+        // Heatmap intensity represents every study action, including learning steps
+        // and repeated ratings that are intentionally excluded from cardsReviewed.
+        // Keep the legacy aggregate as a fallback for older stored statistics.
+        return Math.max(
+            stat.reviewCount ?? 0,
+            (stat.newCardsLearned ?? 0) + (stat.cardsReviewed ?? 0)
+        );
     }
 
     private getIntensityThresholds(days: CalendarDay[]): number[] {

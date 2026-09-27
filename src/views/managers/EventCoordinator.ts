@@ -14,6 +14,7 @@ export interface EventCallbacks {
     onFileRename?: (file: TFile) => void;
     onFavoritesChanged?: () => void;
     onRecordsChanged?: (filePath: string) => void;
+    onFlashcardsChanged?: () => void;
     onExclusionsChanged?: () => void;
     onLayoutChange?: () => void;
     onCommentInput?: (highlightId: string, text: string) => void;
@@ -74,6 +75,9 @@ export class EventCoordinator {
         }));
         this.component.registerEvent(this.eventManager.on('records:changed', change => {
             if (!this.disposed) this.callbacks.onRecordsChanged?.(change.filePath);
+        }));
+        this.component.registerEvent(this.eventManager.on('flashcard:changed', () => {
+            if (!this.disposed) this.callbacks.onFlashcardsChanged?.();
         }));
 
         // 监听布局变化

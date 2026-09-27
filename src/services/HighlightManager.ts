@@ -3,7 +3,7 @@ import { findStoredHighlightMatch } from './highlight/HighlightMatchStrategies';
 import { matchFileHighlights } from './highlight/HighlightMatchStrategies';
 import { StorageQueue } from '../storage/StorageQueue';
 import { App, TFile } from 'obsidian';
-import { HighlightInfo as HiNote, HighlightRecord } from '../types/highlight';
+import { CommentItem, HighlightInfo as HiNote, HighlightRecord } from '../types/highlight';
 import { IHighlightRepository } from '../repositories/IHighlightRepository';
 import { EventManager } from './EventManager';
 import { HighlightService } from './HighlightService';
@@ -39,6 +39,33 @@ export class HighlightManager {
     /** Creating a card must reuse the saved identity without rewriting comments. */
     ensureStoredHighlight(file: TFile, highlight: HiNote): Promise<HighlightRecord> {
         return this.mutations.run(() => this.persistHighlight(file, highlight, true));
+    }
+
+    /** Apply annotation edits to the latest record inside the shared write queue. */
+    updateHighlightComments(
+        file: TFile,
+        recordId: string,
+        update: (comments: CommentItem[]) => CommentItem[]
+    ): Promise<HighlightRecord> {
+        return this.mutations.run(async () => {
+            const records = [...await this.repository.getFileHighlights(file.path)];
+            const previous = records.find(record => record.id === recordId);
+            if (!previous) throw new Error('No corresponding highlight found.');
+
+            const record = copyHighlightRecord(previous);
+            const oldComment = record.comments[record.comments.length - 1]?.content || '';
+            record.comments = update(record.comments.map(comment => ({ ...comment }))).map(comment => ({ ...comment }));
+            record.updatedAt = Date.now();
+            records[records.indexOf(previous)] = record;
+            await this.repository.saveFileHighlights(file.path, records);
+            this.eventManager.emitCommentUpdate(
+                file.path,
+                oldComment,
+                record.comments[record.comments.length - 1]?.content || '',
+                record.id
+            );
+            return record;
+        });
     }
 
     /** Favorite mutations share the identity/write queue with comments and cards. */

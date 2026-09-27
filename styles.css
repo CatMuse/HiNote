@@ -286,6 +286,15 @@ settings:
     padding-inline: 8px;
 }
 
+/* In the sidebar, keep actions on the first row and reveal search below them. */
+.hinote-view-container:not(.is-in-main-view) .highlight-search-icons {
+    order: 1;
+}
+
+.hinote-view-container:not(.is-in-main-view) .highlight-search-field {
+    order: 2;
+}
+
 .hinote-toolbar-row {
     display: flex;
     align-items: center;
@@ -1332,19 +1341,19 @@ settings:
 }
 
 .flashcard-rating-button[data-rating='again'] {
-    background-color: #6A8390;
+    background-color: var(--color-red);
 }
 
 .flashcard-rating-button[data-rating='hard'] {
-    background-color: #FF977B;
+    background-color: var(--color-yellow);
 }
 
 .flashcard-rating-button[data-rating='good'] {
-    background-color: #77D1C1;
+    background-color: var(--color-blue);
 }
 
 .flashcard-rating-button[data-rating='easy'] {
-    background-color: #6BC8FC;
+    background-color: var(--color-green);
 }
 
 .flashcard-rating-button:hover {
@@ -2142,10 +2151,15 @@ settings:
 
 /* 调整提示文本样式 */
 .hi-note-hint {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
     font-size: 10px;
     color: var(--text-muted);
     margin-right: auto;
     font-style: italic;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* 主容布局 */
@@ -2588,6 +2602,7 @@ settings:
 /* 添加新的操作提示区域样式 */
 .hi-note-actions-hint {
     display: flex;
+    min-width: 0;
     justify-content: space-between;
     align-items: center;
     margin-top: 4px;
@@ -2597,6 +2612,8 @@ settings:
 
 /* 删除按钮样式，Obsidian默认按钮样式，不需要重复定义 */
 .hi-note-delete-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
     font-size: 11px;
     padding: 4px 6px;
     color: var(--text-muted);
@@ -4586,6 +4603,7 @@ button.hicard-workspace-nav-item.is-active {
     white-space: nowrap;
 }
 .hicard-workspace-content {
+    position: relative;
     min-width: 0;
     min-height: 0;
     overflow: auto;
@@ -4662,6 +4680,77 @@ button.hicard-primary-action {
 .hicard-overview-value { font-size: 1.55rem; font-weight: 650; line-height: 1.2; }
 .hicard-overview-label { margin-top: 4px; font-weight: var(--font-medium); }
 .hicard-overview-helper { margin-top: 2px; color: var(--text-muted); font-size: var(--font-smallest); }
+
+/* Today page insights */
+.hicard-today-insights {
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, .82fr);
+    gap: 14px;
+    margin-bottom: 14px;
+}
+.hicard-today-panel { min-width: 0; padding: 16px; }
+.hicard-panel-period { color: var(--text-faint); font-size: var(--font-smallest); }
+.hicard-today-bar-chart {
+    display: flex;
+    align-items: stretch;
+    height: 132px;
+    gap: 6px;
+    margin-top: 12px;
+}
+.hicard-today-bar-column {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+}
+.hicard-today-bar-value { height: 18px; color: var(--text-muted); font-size: 9px; }
+.hicard-today-bar-track {
+    position: relative;
+    width: min(22px, 72%);
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 6px 6px 3px 3px;
+    background: var(--background-secondary);
+}
+.hicard-today-bar-fill {
+    position: absolute;
+    inset: auto 0 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, var(--interactive-accent), color-mix(in srgb, var(--interactive-accent) 68%, var(--text-accent)));
+}
+.hicard-today-bar-label { margin-top: 5px; color: var(--text-faint); font-size: 9px; }
+.hicard-snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+.hicard-snapshot-item {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 9px;
+    padding: 9px 8px;
+    border-radius: 9px;
+    background: var(--background-secondary);
+}
+.hicard-snapshot-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    color: var(--text-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 11%, var(--background-primary));
+}
+.hicard-snapshot-icon svg { width: 15px; height: 15px; }
+.hicard-snapshot-copy { min-width: 0; }
+.hicard-snapshot-value { font-weight: var(--font-semibold); line-height: 1.2; }
+.hicard-snapshot-label { margin-top: 2px; overflow: hidden; color: var(--text-muted); font-size: var(--font-smallest); text-overflow: ellipsis; white-space: nowrap; }
+
 .hicard-today-columns {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
@@ -4730,7 +4819,28 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 }
 .hicard-page-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
+}
+.hicard-view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: var(--background-secondary);
+}
+.hicard-view-toggle-button {
+    width: 28px;
+    height: 28px;
+    color: var(--text-muted);
+    border-radius: 6px;
+}
+.hicard-view-toggle-button.is-active {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+    box-shadow: var(--shadow-s);
 }
 .hicard-management-table {
     border-top: 1px solid var(--background-modifier-border);
@@ -4776,6 +4886,65 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     text-align: center;
 }
 .hicard-management-empty button { margin-top: 12px; }
+.hicard-group-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+.hicard-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+    gap: 12px;
+}
+.hicard-group-card {
+    display: flex;
+    min-height: 170px;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    background: var(--background-secondary);
+}
+.hicard-group-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+.hicard-group-card-type {
+    flex: 0 0 auto;
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: var(--text-muted);
+    background: var(--background-primary);
+    font-size: var(--font-smallest);
+}
+.hicard-group-card-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: auto;
+}
+.hicard-group-card-stat {
+    display: grid;
+    gap: 4px;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--background-primary);
+}
+.hicard-group-card-stat span {
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
+}
+.hicard-group-card-stat strong {
+    font-size: 1.35em;
+}
+.hicard-group-card-actions {
+    justify-content: flex-start;
+    padding-top: 10px;
+    border-top: 1px solid var(--background-modifier-border);
+}
 .hicard-card-filters {
     display: flex;
     align-items: center;
@@ -4794,24 +4963,212 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     font-size: var(--font-smallest);
 }
 .hicard-select-all { display: inline-flex; align-items: center; gap: 8px; }
-.hicard-card-row.is-selected { background: color-mix(in srgb, var(--interactive-accent) 7%, transparent); }
+.hicard-card-row.is-selected,
+.hicard-card-tile.is-selected { background: color-mix(in srgb, var(--interactive-accent) 7%, transparent); }
+.hicard-card-row {
+    outline: none;
+    transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+.hicard-card-row:hover,
+.hicard-card-row:focus-visible {
+    background: var(--background-secondary-alt);
+}
+.hicard-card-row.is-selected,
+.hicard-card-row.is-selected:hover,
+.hicard-card-row.is-selected:focus-visible {
+    background: color-mix(in srgb, var(--interactive-accent) 7%, transparent);
+}
+.hicard-card-row.is-selected {
+    box-shadow: none;
+}
 .hicard-card-check { flex: 0 0 auto; }
-.hicard-bulk-bar {
-    position: sticky;
-    top: -8px;
-    z-index: 4;
+.hicard-card-grid .hicard-card-tile {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 48px;
-    padding: 8px 10px;
-    margin-bottom: 10px;
-    border: 1px solid color-mix(in srgb, var(--interactive-accent) 35%, var(--background-modifier-border));
-    border-radius: 10px;
-    background: var(--background-primary-alt);
+    min-height: 250px;
+    flex-direction: column;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    overflow: hidden;
+    background: var(--background-primary);
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.hicard-card-grid .hicard-card-tile:hover {
+    border-color: var(--background-modifier-border-hover);
     box-shadow: var(--shadow-s);
 }
-.hicard-bulk-count { margin-right: auto; font-weight: var(--font-medium); }
+.hicard-card-tile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 42px;
+    gap: 8px;
+    padding: 2px 10px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background: var(--background-primary);
+}
+.hicard-card-grid .hicard-card-source-name:hover,
+.hicard-card-grid .hicard-card-source-name:focus-visible,
+.hicard-card-list .hicard-card-source-name:hover,
+.hicard-card-list .hicard-card-source-name:focus-visible,
+.hicard-card-grid .hicard-card-tile.is-selected .hicard-card-source-name {
+    color: var(--text-accent);
+}
+.hicard-card-tile-header-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+    gap: 7px;
+}
+.hicard-card-selector {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--text-accent);
+}
+.hicard-card-selector-icon,
+.hicard-card-selector-icon svg {
+    width: 16px;
+    height: 16px;
+}
+.hicard-card-selector .hicard-card-check {
+    display: none;
+    margin: 0;
+}
+.hicard-card-tile:hover .hicard-card-selector-icon,
+.hicard-card-tile:focus-within .hicard-card-selector-icon,
+.hicard-card-tile.is-selected .hicard-card-selector-icon {
+    display: none;
+}
+.hicard-card-tile:hover .hicard-card-selector .hicard-card-check,
+.hicard-card-tile:focus-within .hicard-card-selector .hicard-card-check,
+.hicard-card-tile.is-selected .hicard-card-selector .hicard-card-check {
+    display: block;
+}
+.hicard-card-source-name {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: var(--font-small);
+    font-weight: var(--font-medium);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hicard-card-source-name.is-openable {
+    cursor: pointer;
+}
+.hicard-card-tile-header .hicard-card-status {
+    margin: 0;
+    font-size: var(--font-smallest);
+}
+.hicard-card-grid .hicard-card-row-content {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 10px;
+}
+.hicard-card-side {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+}
+.hicard-card-side-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    background: var(--background-secondary);
+    font-size: var(--font-smallest);
+    font-weight: var(--font-semibold);
+}
+.hicard-card-side-label.is-q {
+    color: var(--text-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-secondary));
+}
+.hicard-card-side-label.is-a {
+    color: var(--text-muted);
+    border: 1px solid var(--background-modifier-border);
+    background: transparent;
+}
+.hicard-card-grid .hicard-card-question {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: var(--font-small);
+    font-weight: var(--font-normal);
+    line-height: 1.5;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+}
+.hicard-card-annotations {
+    display: grid;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+.hicard-card-annotation {
+    padding: 0;
+}
+.hicard-card-side-body {
+    min-width: 0;
+}
+.hicard-card-annotation-content {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--text-normal);
+    font-size: var(--font-small);
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+.hicard-card-annotation-time {
+    margin-top: 4px;
+    color: var(--text-faint);
+    font-size: var(--font-smallest);
+}
+.hicard-card-annotation.is-empty .hicard-card-annotation-content {
+    color: var(--text-faint);
+    font-style: italic;
+}
+.hicard-card-grid .hicard-management-actions {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+}
+.hicard-card-grid .hicard-management-actions .clickable-icon {
+    width: 26px;
+    height: 26px;
+    opacity: .55;
+}
+.hicard-card-grid .hicard-card-tile:hover .hicard-management-actions .clickable-icon,
+.hicard-card-grid .hicard-management-actions .clickable-icon:focus-visible {
+    opacity: 1;
+}
+.hicard-cards-page {
+    position: static;
+}
+.hicard-bulk-bar.multi-select-actions {
+    position: absolute;
+    top: auto;
+    right: auto;
+    bottom: 20px;
+    left: 50%;
+    z-index: 1001;
+    width: fit-content;
+    margin: 0;
+    transform: translateX(-50%);
+}
+.hicard-bulk-bar .selected-count {
+    margin-right: 0;
+}
 .hicard-destructive-button { color: var(--text-error); }
 .hicard-form-field { display: grid; gap: 7px; }
 .hicard-form-field > span,
@@ -4821,6 +5178,51 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 .hicard-form-field select { width: 100%; }
 .hicard-study-plan-form,
 .hicard-card-editor { display: grid; gap: 16px; }
+.hicard-editor-modal .modal { width: min(640px, calc(100vw - 32px)); }
+.hicard-editor-modal .modal-content { padding-top: 4px; }
+.hicard-editor-modal .hicard-card-editor { gap: 18px; }
+.hicard-editor-modal .hicard-card-editor textarea {
+    max-width: 100%;
+    resize: vertical;
+}
+.hicard-annotation-card-list .hi-notes-section {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+}
+.hicard-annotation-card-list .hi-notes-list { gap: 8px; }
+.hicard-annotation-card-list .hi-note {
+    padding: 10px 12px;
+    margin: 0;
+    border-radius: 8px;
+}
+.hicard-annotation-card-list .hi-note-input { margin: 0; }
+.hicard-annotation-card-list .hi-note-actions-hint {
+    min-height: 22px;
+    margin-top: 2px;
+    padding-top: 3px;
+    gap: 8px;
+}
+.hicard-annotation-card-list .hi-note-hint {
+    font-size: 10px;
+    line-height: 1.25;
+}
+.hicard-annotation-card-list .hi-note-delete-link {
+    padding: 2px 4px;
+    font-size: 10px;
+}
+.hicard-annotation-card-list .hi-note-actions-hint .hi-note-save-button {
+    width: auto;
+    min-width: 64px;
+    margin: 0;
+}
+.hicard-annotation-empty {
+    padding: 18px 12px;
+    border-radius: 8px;
+    color: var(--text-faint);
+    background: var(--background-secondary);
+    text-align: center;
+}
 .hicard-modal-intro { margin-top: 0; color: var(--text-muted); }
 .hicard-study-plan-preview {
     padding: 10px 12px;
@@ -4850,11 +5252,13 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     flex: 1;
 }
 .hicard-card-question {
+    display: -webkit-box;
     overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     color: var(--text-normal);
     font-weight: var(--font-medium);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.4;
 }
 .hicard-card-meta {
     display: flex;
@@ -4863,6 +5267,12 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     margin-top: 5px;
     color: var(--text-muted);
     font-size: var(--font-smallest);
+}
+.hicard-card-row .hicard-management-actions {
+    flex: 0 0 auto;
+}
+.hicard-card-row .hicard-card-source-name {
+    max-width: min(34vw, 280px);
 }
 .hicard-card-meta > span:not(.hicard-card-status) {
     overflow: hidden;
@@ -4935,9 +5345,9 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
 .hicard-rating-stack { display: flex; height: 10px; margin: 16px 0; overflow: hidden; border-radius: 999px; background: var(--background-secondary); }
 .hicard-rating-stack > div { min-width: 1px; }
 .hicard-rating-stack .is-again, .hicard-rating-dot.is-again { background: var(--color-red); }
-.hicard-rating-stack .is-hard, .hicard-rating-dot.is-hard { background: var(--color-orange); }
-.hicard-rating-stack .is-good, .hicard-rating-dot.is-good { background: var(--color-green); }
-.hicard-rating-stack .is-easy, .hicard-rating-dot.is-easy { background: var(--color-cyan); }
+.hicard-rating-stack .is-hard, .hicard-rating-dot.is-hard { background: var(--color-yellow); }
+.hicard-rating-stack .is-good, .hicard-rating-dot.is-good { background: var(--color-blue); }
+.hicard-rating-stack .is-easy, .hicard-rating-dot.is-easy { background: var(--color-green); }
 .hicard-rating-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .hicard-rating-legend > div { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--font-smallest); }
 .hicard-rating-legend strong { margin-left: auto; color: var(--text-normal); }
@@ -4983,6 +5393,8 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
         padding: 16px;
     }
     .hicard-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hicard-group-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hicard-today-insights { grid-template-columns: 1fr; }
     .hicard-today-columns { grid-template-columns: 1fr; }
     .hicard-management-row {
         grid-template-columns: minmax(150px, 2fr) 80px 100px;
@@ -5004,16 +5416,25 @@ button.hicard-quick-action:hover { background: var(--background-modifier-hover);
     }
     .hicard-insight-grid { grid-template-columns: 1fr; }
     .hicard-rating-card { grid-column: auto; }
-    .hicard-bulk-bar { flex-wrap: wrap; }
-    .hicard-bulk-count { width: 100%; }
+    .hicard-bulk-bar.multi-select-actions {
+        right: 16px;
+        bottom: 16px;
+        left: 16px;
+        width: auto;
+        transform: none;
+    }
+    .hicard-bulk-bar .selected-count { margin-right: auto; }
 }
 
 @media (max-width: 520px) {
     .hicard-page-header { flex-direction: column; }
+    .hicard-group-grid { grid-template-columns: 1fr; }
     .hicard-today-hero { align-items: flex-start; flex-direction: column; padding: 21px; }
     .hicard-overview-grid { grid-template-columns: 1fr 1fr; }
     .hicard-rating-legend { grid-template-columns: repeat(2, 1fr); }
     .hicard-card-row { gap: 9px; }
+    .hicard-page-actions { flex-wrap: wrap; justify-content: flex-end; }
+    .hicard-view-toggle { order: 2; }
     .hicard-card-meta > span:nth-child(n+3) { display: none; }
 }
 
@@ -5483,9 +5904,9 @@ button.flashcard-reveal-button {
     transform: none;
 }
 .hicard-study-container .flashcard-rating-button[data-rating='again'] { --rating-color: var(--color-red); }
-.hicard-study-container .flashcard-rating-button[data-rating='hard'] { --rating-color: var(--color-orange); }
-.hicard-study-container .flashcard-rating-button[data-rating='good'] { --rating-color: var(--color-green); }
-.hicard-study-container .flashcard-rating-button[data-rating='easy'] { --rating-color: var(--color-cyan); }
+.hicard-study-container .flashcard-rating-button[data-rating='hard'] { --rating-color: var(--color-yellow); }
+.hicard-study-container .flashcard-rating-button[data-rating='good'] { --rating-color: var(--color-blue); }
+.hicard-study-container .flashcard-rating-button[data-rating='easy'] { --rating-color: var(--color-green); }
 .hicard-study-container .flashcard-rating-button:hover:not(:disabled) {
     border-color: color-mix(in srgb, var(--rating-color) 42%, var(--background-modifier-border));
     background: var(--background-modifier-hover);

@@ -2,13 +2,14 @@ import { Notice, setIcon } from 'obsidian';
 import type CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 import type { CardGroup } from '../../../flashcard';
+import type { HiCardManagementViewMode } from '../../../flashcard/types/FSRSTypes';
 import { isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
 import {
     createFlashcardGroupModal,
     type FlashcardGroupModal
 } from '../../../flashcard/components/controllers/FlashcardGroupModal';
 import { showConfirmModal } from '../../../utils/ConfirmModal';
-import { renderHiCardPageHeader } from './HiCardPageHeader';
+import { renderHiCardPageHeader, renderHiCardViewToggle } from './HiCardPageHeader';
 
 export class HiCardGroupsPage {
     private container: HTMLElement | null = null;
@@ -28,12 +29,21 @@ export class HiCardGroupsPage {
             t('Study groups'),
             t('Organize cards and configure group learning limits.')
         );
+        const viewMode = this.getViewMode();
+        renderHiCardViewToggle(actions, viewMode, mode => this.setViewMode(mode));
         const create = actions.createEl('button', { cls: 'mod-cta', text: t('Create group') });
         create.addEventListener('click', () => this.openGroupModal());
 
+        const groups = this.plugin.fsrsManager.getCardGroups();
+        if (viewMode === 'grid') {
+            const grid = container.createDiv({ cls: 'hicard-group-grid' });
+            for (const group of groups) this.renderGroupCard(grid, group);
+            return;
+        }
+
         const table = container.createDiv({ cls: 'hicard-management-table hicard-groups-table' });
         this.renderHeader(table);
-        for (const group of this.plugin.fsrsManager.getCardGroups()) this.renderGroup(table, group);
+        for (const group of groups) this.renderGroup(table, group);
     }
 
     destroy(): void {
@@ -48,6 +58,51 @@ export class HiCardGroupsPage {
         row.createSpan({ text: t('Cards') });
         row.createSpan({ text: t('Due today') });
         row.createSpan({ text: t('Actions') });
+    }
+
+    private getViewMode(): HiCardManagementViewMode {
+        return this.plugin.fsrsManager.getUIState().viewModes?.groups === 'grid' ? 'grid' : 'list';
+    }
+
+    private setViewMode(mode: HiCardManagementViewMode): void {
+        const uiState = this.plugin.fsrsManager.getUIState();
+        this.plugin.fsrsManager.updateUIState({
+            viewModes: { ...uiState.viewModes, groups: mode }
+        });
+        if (this.container) this.render(this.container);
+    }
+
+    private renderGroupCard(grid: HTMLElement, group: CardGroup): void {
+        const cards = this.plugin.fsrsManager.getCardsByGroupId(group.id);
+        const progress = this.plugin.fsrsManager.getGroupProgress(group.id);
+        const system = isSystemCardGroup(group.id);
+        const card = grid.createDiv({ cls: 'hicard-group-card' });
+        const heading = card.createDiv({ cls: 'hicard-group-card-heading' });
+        const identity = heading.createDiv({ cls: 'hicard-management-identity' });
+        const icon = identity.createSpan();
+        setIcon(icon, system ? 'folder-cog' : group.filter?.trim() ? 'list-filter' : 'folder');
+        identity.createSpan({ text: system ? t(group.name) : group.name });
+        heading.createSpan({
+            cls: 'hicard-group-card-type',
+            text: t(system ? 'System group' : group.filter?.trim() ? 'Filtered group' : 'Manual group')
+        });
+
+        const stats = card.createDiv({ cls: 'hicard-group-card-stats' });
+        this.renderGroupStat(stats, t('Cards'), cards.length);
+        this.renderGroupStat(stats, t('Due today'), progress?.due ?? 0);
+
+        const actions = card.createDiv({ cls: 'hicard-management-actions hicard-group-card-actions' });
+        this.addIconButton(actions, 'play', t('Study'), () => { void this.openStudyGroup(group.id); });
+        if (!system) {
+            this.addIconButton(actions, 'pencil', t('Edit'), () => this.openGroupModal(group));
+            this.addIconButton(actions, 'trash-2', t('Delete'), () => { void this.deleteGroup(group); }, true);
+        }
+    }
+
+    private renderGroupStat(container: HTMLElement, label: string, value: number): void {
+        const stat = container.createDiv({ cls: 'hicard-group-card-stat' });
+        stat.createSpan({ text: label });
+        stat.createEl('strong', { text: String(value) });
     }
 
     private renderGroup(table: HTMLElement, group: CardGroup): void {

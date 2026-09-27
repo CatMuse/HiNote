@@ -78,6 +78,24 @@ async function testKeyboard() {
     platform.isMobile = true; await key('Enter');
     assert.equal(saves, 2);
     platform.isMobile = false; await key('Tab'); assert.equal(ai, 1);
+
+    const buttonTextarea = { addEventListener() {} };
+    let buttonSaves = 0;
+    setupCommentInputKeyboard(buttonTextarea, {
+        submitMode: 'button',
+        onSave: async () => { buttonSaves++; },
+        onInlineAI: async () => {}
+    });
+    const buttonKey = async (options = {}) => {
+        let prevented = false;
+        await buttonTextarea.onkeydown({ key: 'Enter', preventDefault: () => { prevented = true; }, ...options });
+        return prevented;
+    };
+    assert.equal(await buttonKey(), false, 'Button mode keeps Enter available for new lines');
+    assert.equal(buttonSaves, 0);
+    assert.equal(await buttonKey({ metaKey: true }), true);
+    assert.equal(await buttonKey({ ctrlKey: true }), true);
+    assert.equal(buttonSaves, 2, 'Button mode supports Cmd/Ctrl + Enter as an optional save shortcut');
 }
 
 async function testSettings() {

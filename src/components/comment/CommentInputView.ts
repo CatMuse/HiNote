@@ -1,4 +1,5 @@
 import { CommentItem } from "../../types/highlight";
+import { t } from "../../i18n";
 import { CommentInputActionBar } from "./CommentInputActionBar";
 
 export interface CommentInputEditContext {
@@ -17,6 +18,7 @@ export interface CommentInputViewCallbacks {
     onInput: () => void;
     onSave: () => Promise<void>;
     onDelete?: () => Promise<void>;
+    submitMode?: 'enter' | 'button';
 }
 
 export function renderEditCommentInput(
@@ -50,7 +52,11 @@ export function renderEditCommentInput(
 
     const actionHint = new CommentInputActionBar(commentEl as HTMLElement, {
         onSave: callbacks.onSave,
-        onDelete: callbacks.onDelete
+        onDelete: callbacks.onDelete,
+        showSaveButton: callbacks.submitMode === 'button',
+        saveHintText: callbacks.submitMode === 'button'
+            ? t('Tab AI, Enter Wrap, Mod + Enter Save')
+            : undefined
     }).render();
 
     return {
@@ -95,7 +101,11 @@ export function renderCreateCommentInput(
     }
 
     const actionHint = new CommentInputActionBar(inputSection, {
-        onSave: callbacks.onSave
+        onSave: callbacks.onSave,
+        showSaveButton: callbacks.submitMode === 'button',
+        saveHintText: callbacks.submitMode === 'button'
+            ? t('Tab AI, Enter Wrap, Mod + Enter Save')
+            : undefined
     }).render();
 
     return {

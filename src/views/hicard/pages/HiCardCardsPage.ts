@@ -1,11 +1,14 @@
-import { Notice, setIcon, TFile } from 'obsidian';
+import { MarkdownView, Menu, Notice, setIcon, TFile } from 'obsidian';
 import type CommentPlugin from '../../../../main';
-import { t } from '../../../i18n';
+import { formatDate, formatDateTime, t } from '../../../i18n';
 import type { FlashcardState } from '../../../flashcard';
+import type { HiCardManagementViewMode } from '../../../flashcard/types/FSRSTypes';
 import { isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
+import type { HighlightRecord } from '../../../types/highlight';
 import { showConfirmModal } from '../../../utils/ConfirmModal';
-import { renderHiCardPageHeader } from './HiCardPageHeader';
+import { renderHiCardPageHeader, renderHiCardViewToggle } from './HiCardPageHeader';
 import { HiCardEditorModal } from '../modals/HiCardEditorModal';
+import { createBulkActionButton } from '../../../components/BulkActionButton';
 
 type CardStatusFilter = 'all' | 'new' | 'learning' | 'due' | 'scheduled' | 'paused';
 
@@ -28,8 +31,7 @@ export class HiCardCardsPage {
             t('Card management'),
             t('Find, inspect, pause, resume, and delete HiCards.')
         );
-        const create = actions.createEl('button', { cls: 'mod-cta', text: t('Create card'), attr: { 'data-action': 'create-card' } });
-        create.addEventListener('click', () => this.openEditor());
+        renderHiCardViewToggle(actions, this.getViewMode(), mode => this.setViewMode(mode));
         this.renderFilters(container);
         if (this.selected.size) this.renderBulkActions(container);
         this.renderCards(container);
@@ -44,12 +46,17 @@ export class HiCardCardsPage {
             attr: { type: 'search', placeholder: t('Search cards') }
         });
         search.value = this.query;
+        let composing = false;
         search.addEventListener('input', () => {
-            this.query = search.value;
-            this.render(container);
-            const next = container.querySelector<HTMLInputElement>('.hicard-card-search');
-            next?.focus();
-            next?.setSelectionRange(this.query.length, this.query.length);
+            if (composing) return;
+            this.updateSearchQuery(container, search);
+        });
+        search.addEventListener('compositionstart', () => {
+            composing = true;
+        });
+        search.addEventListener('compositionend', () => {
+            composing = false;
+            this.updateSearchQuery(container, search);
         });
 
         const status = filters.createEl('select', { cls: 'dropdown' });
@@ -75,6 +82,14 @@ export class HiCardCardsPage {
         });
     }
 
+    private updateSearchQuery(container: HTMLElement, search: HTMLInputElement): void {
+        this.query = search.value;
+        this.render(container);
+        const next = container.querySelector<HTMLInputElement>('.hicard-card-search');
+        next?.focus();
+        next?.setSelectionRange(this.query.length, this.query.length);
+    }
+
     private addOption(select: HTMLSelectElement, value: string, label: string, selected: string): void {
         const option = select.createEl('option', { text: label, value });
         option.selected = value === selected;
@@ -93,43 +108,186 @@ export class HiCardCardsPage {
         selectAll.createSpan({ text: t('{count} cards', { count: cards.length }) });
         if (cards.length === 0) {
             const empty = container.createDiv({ cls: 'hicard-management-empty' });
-            empty.createDiv({ text: t('No matching cards.') });
-            if (this.plugin.fsrsManager.getAllCards().length === 0) {
-                const create = empty.createEl('button', { cls: 'mod-cta', text: t('Create your first card') });
-                create.addEventListener('click', () => this.openEditor());
-            }
+            empty.createDiv({ text: t(this.plugin.fsrsManager.getAllCards().length === 0
+                ? 'Create a HiCard from a highlight in HiNote.'
+                : 'No matching cards.') });
             return;
         }
-        const list = container.createDiv({ cls: 'hicard-card-list' });
-        for (const card of cards.slice(0, 200)) this.renderCard(list, card);
+        const viewMode = this.getViewMode();
+        const list = container.createDiv({
+            cls: viewMode === 'grid' ? 'hicard-card-grid' : 'hicard-card-list',
+            attr: viewMode === 'grid' ? undefined : { role: 'list' }
+        });
+        for (const card of cards.slice(0, 200)) this.renderCard(list, card, viewMode);
         if (cards.length > 200) {
             list.createDiv({ cls: 'hicard-management-empty', text: t('Showing the first 200 cards.') });
         }
     }
 
-    private renderCard(list: HTMLElement, card: FlashcardState): void {
-        const row = list.createDiv({ cls: `hicard-card-row${this.selected.has(card.id) ? ' is-selected' : ''}` });
-        const check = row.createEl('input', { cls: 'hicard-card-check', attr: { type: 'checkbox', 'aria-label': t('Select card') } });
+    private renderCard(list: HTMLElement, card: FlashcardState, viewMode: HiCardManagementViewMode): void {
+        const isGrid = viewMode === 'grid';
+        const isSelected = this.selected.has(card.id);
+        const row = list.createEl('article', {
+            cls: `hicard-card-${isGrid ? 'tile' : 'row'}${isSelected ? ' is-selected' : ''}`,
+            attr: isGrid ? undefined : {
+                tabindex: '0',
+                'aria-selected': String(isSelected),
+                role: 'listitem'
+            }
+        });
+        const source = card.sourceId ? this.plugin.highlightRepository.findHighlightById(card.sourceId) : null;
+        const gridHeader = isGrid ? this.renderGridHeader(row, card) : null;
+        const checkHost = gridHeader?.selector ?? row;
+        const check = checkHost.createEl('input', {
+            cls: 'hicard-card-check',
+            attr: {
+                type: 'checkbox',
+                'aria-label': t('Select card: {question}', { question: card.text || t('Untitled card') })
+            }
+        });
         check.checked = this.selected.has(card.id);
         check.addEventListener('change', () => {
             check.checked ? this.selected.add(card.id) : this.selected.delete(card.id);
             if (this.container) this.render(this.container);
         });
-        const content = row.createDiv({ cls: 'hicard-card-row-content' });
-        content.createDiv({ cls: 'hicard-card-question', text: card.text || t('Untitled card') });
-        const details = content.createDiv({ cls: 'hicard-card-meta' });
-        details.createSpan({ cls: `hicard-card-status is-${this.getCardStatus(card)}`, text: this.getCardStatusLabel(card) });
-        if (card.filePath) details.createSpan({ text: card.filePath });
-        details.createSpan({ text: this.getNextReviewLabel(card) });
-
-        const actions = row.createDiv({ cls: 'hicard-management-actions' });
-        this.addAction(actions, 'pencil', t('Edit'), () => this.openEditor(card));
-        const filePath = card.filePath;
-        if (filePath) this.addAction(actions, 'file-text', t('Open source'), () => this.openSource(filePath));
-        this.addAction(actions, card.suspended ? 'play' : 'pause', t(card.suspended ? 'Resume card' : 'Pause card'), () => {
-            void this.toggleSuspended(card);
+        row.addEventListener('click', event => {
+            const target = event.target as HTMLElement;
+            if (target.closest('button, input, a, [role="button"], .hicard-management-actions, .hicard-card-source-name')) return;
+            if (this.selected.has(card.id)) this.selected.delete(card.id);
+            else this.selected.add(card.id);
+            if (this.container) this.render(this.container);
         });
-        this.addAction(actions, 'trash-2', t('Delete'), () => { void this.deleteCard(card); }, true);
+        if (!isGrid) {
+            row.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                const target = event.target as HTMLElement;
+                if (target.closest('button, input, a, [role="button"]')) return;
+                event.preventDefault();
+                if (this.selected.has(card.id)) this.selected.delete(card.id);
+                else this.selected.add(card.id);
+                if (this.container) this.render(this.container);
+            });
+        }
+        const content = row.createDiv({ cls: 'hicard-card-row-content' });
+        if (isGrid) {
+            const question = content.createDiv({ cls: 'hicard-card-side hicard-card-front' });
+            this.renderSideLabel(question, 'Q', t('Question'));
+            question.createDiv({ cls: 'hicard-card-question', text: card.text || t('Untitled card') });
+            this.renderGridAnnotations(content, card, source);
+        } else {
+            content.createDiv({ cls: 'hicard-card-question', text: card.text || t('Untitled card') });
+            const details = content.createDiv({ cls: 'hicard-card-meta' });
+            details.createSpan({ cls: `hicard-card-status is-${this.getCardStatus(card)}`, text: this.getCardStatusLabel(card) });
+            if (card.filePath) {
+                const sourceName = details.createSpan({ cls: 'hicard-card-source-name', text: this.getSourceFileName(card.filePath) });
+                sourceName.addClass('is-openable');
+                sourceName.setAttribute('data-tooltip', `${card.filePath} · ${t('Open source (double-click)')}`);
+                sourceName.addEventListener('dblclick', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void this.openCardSource(card, source);
+                });
+            }
+            details.createSpan({ text: this.getNextReviewLabel(card) });
+        }
+
+        const actions = gridHeader?.actions ?? row.createDiv({ cls: 'hicard-management-actions' });
+        this.addAction(actions, 'pencil', t(isGrid && card.sourceType === 'highlight' ? 'Edit annotations' : 'Edit'), () => this.openEditor(card));
+        this.addMoreActions(actions, card);
+    }
+
+    private renderGridHeader(
+        container: HTMLElement,
+        card: FlashcardState
+    ): { selector: HTMLElement; actions: HTMLElement } {
+        const header = container.createDiv({ cls: 'hicard-card-tile-header' });
+        const left = header.createDiv({ cls: 'hicard-card-tile-header-left' });
+        const selector = left.createDiv({ cls: 'hicard-card-selector' });
+        const icon = selector.createSpan({ cls: 'hicard-card-selector-icon' });
+        setIcon(icon, 'book-heart');
+        this.renderGridSourceName(left, card);
+
+        const actions = header.createDiv({ cls: 'hicard-management-actions' });
+        const status = this.getCardStatus(card);
+        actions.createSpan({
+            cls: `hicard-card-status is-${status}`,
+            text: status === 'scheduled'
+                ? formatDate(card.nextReview, { month: 'short', day: 'numeric' })
+                : t({ paused: 'Paused', new: 'New card', learning: 'Learning', due: 'Due now' }[status])
+        });
+        return { selector, actions };
+    }
+
+    private renderGridSourceName(container: HTMLElement, card: FlashcardState): void {
+        const fileName = card.filePath ? this.getSourceFileName(card.filePath) : t('Source');
+        const label = container.createSpan({ cls: 'hicard-card-source-name', text: fileName });
+        if (card.filePath) {
+            label.addClass('is-openable');
+            label.setAttribute('data-tooltip', `${card.filePath} · ${t('Open source (double-click)')}`);
+            label.addEventListener('dblclick', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                const source = card.sourceId ? this.plugin.highlightRepository.findHighlightById(card.sourceId) : null;
+                void this.openCardSource(card, source);
+            });
+        }
+    }
+
+    private renderGridAnnotations(container: HTMLElement, card: FlashcardState, source: HighlightRecord | null): void {
+        const section = container.createDiv({ cls: 'hicard-card-annotations' });
+        if (source?.comments.length) {
+            const comments = [...source.comments].sort((a, b) => b.updatedAt - a.updatedAt);
+            for (const comment of comments) {
+                const annotation = section.createDiv({ cls: 'hicard-card-side hicard-card-annotation' });
+                this.renderSideLabel(annotation, 'A', t('Answer'));
+                const body = annotation.createDiv({ cls: 'hicard-card-side-body' });
+                body.createDiv({ cls: 'hicard-card-annotation-content', text: comment.content });
+                body.createDiv({ cls: 'hicard-card-annotation-time', text: formatDateTime(comment.updatedAt || comment.createdAt) });
+            }
+            return;
+        }
+        const annotation = section.createDiv({ cls: `hicard-card-side hicard-card-annotation${card.answer ? '' : ' is-empty'}` });
+        this.renderSideLabel(annotation, 'A', t('Answer'));
+        const body = annotation.createDiv({ cls: 'hicard-card-side-body' });
+        body.createDiv({
+            cls: 'hicard-card-annotation-content',
+            text: card.answer || t('No annotations')
+        });
+    }
+
+    private renderSideLabel(container: HTMLElement, letter: 'Q' | 'A', label: string): void {
+        container.createSpan({
+            cls: `hicard-card-side-label is-${letter.toLowerCase()}`,
+            text: letter,
+            attr: { 'aria-label': label, title: label }
+        });
+    }
+
+    private addMoreActions(container: HTMLElement, card: FlashcardState): void {
+        const button = container.createEl('button', {
+            cls: 'clickable-icon',
+            attr: { type: 'button', 'aria-label': t('More actions'), 'aria-haspopup': 'menu' }
+        });
+        button.setAttribute('data-tooltip', t('More actions'));
+        setIcon(button, 'ellipsis');
+        button.addEventListener('click', () => {
+            const menu = new Menu();
+            menu.addItem(item => item
+                .setTitle(t(card.suspended ? 'Resume card' : 'Pause card'))
+                .setIcon(card.suspended ? 'play' : 'pause')
+                .onClick(() => { void this.toggleSuspended(card); }));
+            menu.addItem(item => item
+                .setTitle(t('Delete'))
+                .setIcon('trash-2')
+                .setWarning(true)
+                .onClick(() => { void this.deleteCard(card); }));
+            const rect = button.getBoundingClientRect();
+            menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+        });
+    }
+
+    private getSourceFileName(filePath: string): string {
+        return filePath.split('/').pop()?.replace(/\.md$/i, '') || filePath;
     }
 
     private addAction(
@@ -146,6 +304,18 @@ export class HiCardCardsPage {
         button.setAttribute('data-tooltip', label);
         setIcon(button, iconName);
         button.addEventListener('click', action);
+    }
+
+    private getViewMode(): HiCardManagementViewMode {
+        return this.plugin.fsrsManager.getUIState().viewModes?.cards === 'grid' ? 'grid' : 'list';
+    }
+
+    private setViewMode(mode: HiCardManagementViewMode): void {
+        const uiState = this.plugin.fsrsManager.getUIState();
+        this.plugin.fsrsManager.updateUIState({
+            viewModes: { ...uiState.viewModes, cards: mode }
+        });
+        if (this.container) this.render(this.container);
     }
 
     private getFilteredCards(): FlashcardState[] {
@@ -204,7 +374,7 @@ export class HiCardCardsPage {
         if (this.container) this.render(this.container);
     }
 
-    private openEditor(card?: FlashcardState): void {
+    private openEditor(card: FlashcardState): void {
         this.editor?.close();
         this.editor = new HiCardEditorModal(this.plugin, card, () => {
             this.editor = null;
@@ -214,28 +384,64 @@ export class HiCardCardsPage {
     }
 
     private renderBulkActions(container: HTMLElement): void {
-        const bar = container.createDiv({ cls: 'hicard-bulk-bar' });
-        bar.createSpan({ cls: 'hicard-bulk-count', text: t('{count} selected', { count: this.selected.size }) });
-        const group = bar.createEl('select', { cls: 'dropdown' });
-        group.createEl('option', { value: '', text: t('Add to group…') });
-        for (const item of this.plugin.fsrsManager.getCardGroups().filter(item => !isSystemCardGroup(item.id))) {
-            group.createEl('option', { value: item.id, text: item.name });
-        }
-        group.addEventListener('change', () => {
-            if (!group.value) return;
-            for (const cardId of this.selected) this.plugin.fsrsManager.addCardToGroup(cardId, group.value);
-            new Notice(t('Cards added to group'));
-            group.value = '';
+        const bar = container.createDiv({ cls: 'multi-select-actions hicard-bulk-bar' });
+        const count = bar.createDiv({
+            cls: 'selected-count',
+            text: String(this.selected.size),
+            attr: { 'aria-label': t('Selected {count}').replace('{count}', String(this.selected.size)) }
         });
-        const pause = bar.createEl('button', { text: t('Pause') });
-        pause.addEventListener('click', () => { void this.setSelectedSuspended(true); });
-        const resume = bar.createEl('button', { text: t('Resume') });
-        resume.addEventListener('click', () => { void this.setSelectedSuspended(false); });
-        const remove = bar.createEl('button', { cls: 'hicard-destructive-button', text: t('Delete') });
-        remove.addEventListener('click', () => { void this.deleteSelected(); });
-        const clear = bar.createEl('button', { cls: 'clickable-icon', attr: { type: 'button', 'aria-label': t('Clear selection') } });
-        setIcon(clear, 'x');
-        clear.addEventListener('click', () => { this.selected.clear(); this.render(container); });
+        count.setAttribute('data-tooltip', t('{count} selected', { count: this.selected.size }));
+
+        createBulkActionButton(bar, {
+            icon: 'folder-plus',
+            label: t('Add to group…'),
+            hasPopup: true,
+            action: () => this.openAddToGroupMenu(bar)
+        });
+        createBulkActionButton(bar, {
+            icon: 'pause',
+            label: t('Pause'),
+            action: () => this.setSelectedSuspended(true)
+        });
+        createBulkActionButton(bar, {
+            icon: 'play',
+            label: t('Resume'),
+            action: () => this.setSelectedSuspended(false)
+        });
+        createBulkActionButton(bar, {
+            icon: 'trash-2',
+            label: t('Delete'),
+            destructive: true,
+            action: () => this.deleteSelected()
+        });
+        createBulkActionButton(bar, {
+            icon: 'x',
+            label: t('Clear selection'),
+            action: () => {
+                this.selected.clear();
+                this.render(container);
+            }
+        });
+    }
+
+    private openAddToGroupMenu(anchor: HTMLElement): void {
+        const groups = this.plugin.fsrsManager.getCardGroups().filter(item => !isSystemCardGroup(item.id));
+        if (groups.length === 0) {
+            new Notice(t('Create a manual group to organize cards here.'));
+            return;
+        }
+        const menu = new Menu();
+        for (const group of groups) {
+            menu.addItem(item => {
+                item.setTitle(group.name).setIcon('folder').onClick(() => {
+                    for (const cardId of this.selected) this.plugin.fsrsManager.addCardToGroup(cardId, group.id);
+                    new Notice(t('Cards added to group'));
+                    if (this.container) this.render(this.container);
+                });
+            });
+        }
+        const rect = anchor.getBoundingClientRect();
+        menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
     }
 
     private async setSelectedSuspended(suspended: boolean): Promise<void> {
@@ -257,5 +463,18 @@ export class HiCardCardsPage {
     private openSource(filePath: string): void {
         const file = this.plugin.app.vault.getAbstractFileByPath(filePath);
         if (file instanceof TFile) void this.plugin.app.workspace.getLeaf().openFile(file);
+    }
+
+    private async openCardSource(card: FlashcardState, source: HighlightRecord | null): Promise<void> {
+        if (!card.filePath) return;
+        const file = this.plugin.app.vault.getAbstractFileByPath(card.filePath);
+        if (!(file instanceof TFile)) return;
+
+        const leaf = this.plugin.app.workspace.getLeaf();
+        await leaf.openFile(file);
+        if (!(leaf.view instanceof MarkdownView) || typeof source?.position !== 'number') return;
+        const position = leaf.view.editor.offsetToPos(source.position);
+        leaf.view.editor.setCursor(position);
+        leaf.view.editor.scrollIntoView({ from: position, to: position }, true);
     }
 }

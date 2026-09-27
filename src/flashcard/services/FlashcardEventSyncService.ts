@@ -53,17 +53,25 @@ export class FlashcardEventSyncService {
     }
 
     private handleHighlightUpdate(newText: string, sourceId: string): void {
-        this.options.updateCardsBySourceId(sourceId, "highlight", newText);
+        const textUpdates = this.options.updateCardsBySourceId(sourceId, "highlight", newText);
+        const answerUpdates = this.rebuildAnswers(sourceId);
+        if (textUpdates > 0 || answerUpdates > 0) this.options.emitFlashcardChanged();
     }
 
     private handleHighlightDelete(sourceId: string): void {
-        this.options.deleteCardsBySourceId(sourceId, "highlight");
+        if (this.options.deleteCardsBySourceId(sourceId, "highlight") > 0) {
+            this.options.emitFlashcardChanged();
+        }
     }
 
     private handleCommentUpdate(sourceId: string): void {
+        if (this.rebuildAnswers(sourceId) > 0) this.options.emitFlashcardChanged();
+    }
+
+    private rebuildAnswers(sourceId: string): number {
         const foundCards = this.options.findCardsBySourceId(sourceId, "highlight");
         if (foundCards.length === 0) {
-            return;
+            return 0;
         }
 
         const highlight = this.options.plugin.highlightRepository?.findHighlightById(sourceId);
@@ -82,12 +90,14 @@ export class FlashcardEventSyncService {
 
         if (updatedCount > 0) {
             this.options.saveDebounced();
-            this.options.emitFlashcardChanged();
         }
+        return updatedCount;
     }
 
     private handleCommentDelete(sourceId: string): void {
-        this.options.deleteCardsBySourceId(sourceId, "highlight");
+        if (this.options.deleteCardsBySourceId(sourceId, "highlight") > 0) {
+            this.options.emitFlashcardChanged();
+        }
     }
 
     private buildAnswer(card: FlashcardState, commentContents: string[]): string {

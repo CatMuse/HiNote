@@ -3,6 +3,7 @@ import { Platform } from "obsidian";
 export interface CommentInputKeyboardOptions {
     onInlineAI: () => Promise<void>;
     onSave: () => Promise<void>;
+    submitMode?: 'enter' | 'button';
 }
 
 /** Ignore an Enter arriving this soon after compositionend (IME commit echo). */
@@ -50,7 +51,9 @@ export function setupCommentInputKeyboard(
             return;
         }
 
-        if (Platform.isMobile || event.shiftKey) {
+        if (options.submitMode === 'button') {
+            if (!event.metaKey && !event.ctrlKey) return;
+        } else if (Platform.isMobile || event.shiftKey) {
             return;
         }
 

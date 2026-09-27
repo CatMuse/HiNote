@@ -1,6 +1,6 @@
 import { BatchFavoriteOperations } from './BatchFavoriteOperations';
 import { BatchColorOperations } from "./BatchColorOperations";
-import { Notice, setIcon } from "obsidian";
+import { Notice } from "obsidian";
 import { HighlightInfo } from "../../types/highlight";
 import type CommentPlugin from "../../../main";
 import { ExportService } from "../../services/ExportService";
@@ -10,6 +10,7 @@ import { t } from "../../i18n";
 import { BatchFlashcardOperations } from "./BatchFlashcardOperations";
 import { BatchHighlightDeletionOperations } from "./BatchHighlightDeletionOperations";
 import { BatchExportOperations } from "./BatchExportOperations";
+import { createBulkActionButton } from "../../components/BulkActionButton";
 
 /**
  * 批量操作处理器
@@ -140,13 +141,10 @@ export class BatchOperationsHandler {
     private createExportButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const exportButton = this.multiSelectActionsContainer.createDiv({
-            cls: 'multi-select-action-button'
-        });
-        exportButton.setAttribute('aria-label', t('Export'));
-        setIcon(exportButton, 'file-output');
-        exportButton.addEventListener('click', () => {
-            void this.exportOperations?.exportSelectedHighlights();
+        createBulkActionButton(this.multiSelectActionsContainer, {
+            icon: 'file-output',
+            label: t('Export'),
+            action: () => { void this.exportOperations?.exportSelectedHighlights(); }
         });
     }
     
@@ -191,13 +189,10 @@ export class BatchOperationsHandler {
     private createDefaultFlashcardButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const button = this.multiSelectActionsContainer.createDiv({
-            cls: 'multi-select-action-button'
-        });
-        button.setAttribute('aria-label', t('Create HiCard'));
-        setIcon(button, 'book-plus');
-        button.addEventListener('click', () => {
-            new Notice(t('HiCard function is not initialized, please enable FSRS function'));
+        createBulkActionButton(this.multiSelectActionsContainer, {
+            icon: 'book-plus',
+            label: t('Create HiCard'),
+            action: () => { new Notice(t('HiCard function is not initialized, please enable FSRS function')); }
         });
     }
     
@@ -207,11 +202,17 @@ export class BatchOperationsHandler {
     private createFlashcardCreateButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const createButton = this.multiSelectActionsContainer.createDiv({
-            cls: 'multi-select-action-button'
+        const createButton = createBulkActionButton(this.multiSelectActionsContainer, {
+            icon: 'book-plus',
+            label: t('Create HiCard'),
+            action: () => {
+                if (createButton.hasClass('disabled-button')) {
+                    new Notice(t('Only HiNote Pro'));
+                    return;
+                }
+                void this.flashcardOperations?.createMissingFlashcards();
+            }
         });
-        createButton.setAttribute('aria-label', t('Create HiCard'));
-        setIcon(createButton, 'book-plus');
         
         // 检查许可证状态
         void this.licenseManager.isActivated().then(isActivated => {
@@ -232,13 +233,6 @@ export class BatchOperationsHandler {
             createButton.setAttribute('aria-label', t('Only HiNote Pro'));
         });
 
-        createButton.addEventListener('click', () => {
-            if (createButton.hasClass('disabled-button')) {
-                new Notice(t('Only HiNote Pro'));
-                return;
-            }
-            void this.flashcardOperations?.createMissingFlashcards();
-        });
     }
     
     /**
@@ -247,13 +241,11 @@ export class BatchOperationsHandler {
     private createFlashcardDeleteButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const deleteButton = this.multiSelectActionsContainer.createDiv({
-            cls: 'multi-select-action-button delete-flashcard-button'
-        });
-        deleteButton.setAttribute('aria-label', t('Delete HiCard'));
-        setIcon(deleteButton, 'book-x');
-        deleteButton.addEventListener('click', () => {
-            this.flashcardOperations?.confirmDeleteFlashcards();
+        createBulkActionButton(this.multiSelectActionsContainer, {
+            icon: 'book-x',
+            label: t('Delete HiCard'),
+            destructive: true,
+            action: () => { this.flashcardOperations?.confirmDeleteFlashcards(); }
         });
     }
     
@@ -263,13 +255,11 @@ export class BatchOperationsHandler {
     private createFlashcardManageButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const manageButton = this.multiSelectActionsContainer.createDiv({
-            cls: 'multi-select-action-button'
-        });
-        manageButton.setAttribute('aria-label', t('Manage HiCard'));
-        setIcon(manageButton, 'book-heart');
-        manageButton.addEventListener('click', (event) => {
-            this.flashcardOperations?.showManageMenu(event);
+        createBulkActionButton(this.multiSelectActionsContainer, {
+            icon: 'book-heart',
+            label: t('Manage HiCard'),
+            hasPopup: true,
+            action: (_button, event) => { this.flashcardOperations?.showManageMenu(event); }
         });
     }
     
@@ -279,13 +269,11 @@ export class BatchOperationsHandler {
     private createDeleteButton() {
         if (!this.multiSelectActionsContainer) return;
         
-        const deleteButton = this.multiSelectActionsContainer.createDiv({
-            cls: 'multi-select-action-button delete-highlight-button'
-        });
-        deleteButton.setAttribute('aria-label', t('Delete'));
-        setIcon(deleteButton, 'trash');
-        deleteButton.addEventListener('click', () => {
-            this.deletionOperations?.confirmDeleteSelectedHighlights();
+        createBulkActionButton(this.multiSelectActionsContainer, {
+            icon: 'trash',
+            label: t('Delete'),
+            destructive: true,
+            action: () => { this.deletionOperations?.confirmDeleteSelectedHighlights(); }
         });
     }
     

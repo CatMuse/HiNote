@@ -99,10 +99,20 @@ async function modelBoundaries() {
     }
     view.comments[0].content = 'unsaved edit';
     assert.equal(env.repository.getCachedHighlights(env.file.path)[0].comments[0].content, 'user-comment');
+    await env.manager.updateHighlightComments(env.file, stored.id, comments => [
+        ...comments,
+        comment('hicard-comment', 'edited in HiCard')
+    ]);
+    assert.deepEqual(
+        Array.from((await env.repository.getFileHighlights(env.file.path))[0].comments, item => item.content),
+        ['user-comment', 'edited in HiCard'],
+        'HiCard annotation edits use the latest stored comments'
+    );
+    assert.equal(env.emitted.at(-1)[0], 'comment:update');
     const reloaded = await new HiNoteDataManager(env.app).getFileHighlights(env.file.path);
     assert.equal(reloaded[0].id, stored.id);
     assert.equal(reloaded[0].kind, 'highlight');
-    assert.equal(reloaded[0].comments[0].content, 'user-comment');
+    assert.deepEqual(Array.from(reloaded[0].comments, item => item.content), ['user-comment', 'edited in HiCard']);
     const dataPath = env.writes.find(p => p.startsWith('.hinote/highlights/') && p.endsWith('.json'));
     const json = JSON.parse(env.files.get(dataPath));
     assert.equal(json.version, '2.0');

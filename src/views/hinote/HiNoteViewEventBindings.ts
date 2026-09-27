@@ -79,6 +79,9 @@ export function registerHiNoteViewEvents(options: HiNoteViewEventBindingOptions)
     eventCoordinator.setCallbacks({
         onFavoritesChanged: () => scheduleRefresh(true),
         onRecordsChanged: () => scheduleRefresh(true),
+        onFlashcardsChanged: () => {
+            if (!state.disposed) void highlightListController.refreshView(true, true);
+        },
         onExclusionsChanged: () => {
             highlightListController.cancelPending();
             scheduleRefresh(true);

@@ -53,9 +53,73 @@ export class HiCardTodayPage {
         this.metric(metrics, 'brain', t('In learning'), learning, t('Short learning steps'));
         this.metric(metrics, 'circle-check-big', t('Finished today'), today, t('Cards reviewed'));
 
+        const insights = container.createDiv({ cls: 'hicard-today-insights' });
+        this.renderActivity(insights.createDiv({ cls: 'hicard-surface hicard-today-panel' }));
+        this.renderSnapshot(insights.createDiv({ cls: 'hicard-surface hicard-today-panel' }), cards);
+
         const lower = container.createDiv({ cls: 'hicard-today-columns' });
         this.renderGroups(lower.createDiv({ cls: 'hicard-surface' }));
         this.renderQuickStudy(lower.createDiv({ cls: 'hicard-surface' }), cards);
+    }
+
+    private renderActivity(section: HTMLElement): void {
+        const heading = section.createDiv({ cls: 'hicard-section-heading' });
+        heading.createEl('h3', { text: t('Recent activity') });
+        heading.createSpan({ cls: 'hicard-panel-period', text: t('Last 7 days') });
+        section.createEl('p', { cls: 'hicard-chart-description', text: t('Study actions completed each day') });
+
+        const stats = this.plugin.fsrsManager.getDailyStats();
+        const byDay = new Map(stats.map(item => [new Date(item.date).toDateString(), item.reviewCount ?? 0]));
+        const values = Array.from({ length: 7 }, (_, index) => {
+            const date = new Date();
+            date.setHours(0, 0, 0, 0);
+            date.setDate(date.getDate() - (6 - index));
+            return { date, value: byDay.get(date.toDateString()) ?? 0 };
+        });
+        const max = Math.max(1, ...values.map(item => item.value));
+        const chart = section.createDiv({ cls: 'hicard-today-bar-chart' });
+        for (const item of values) {
+            const column = chart.createDiv({
+                cls: 'hicard-today-bar-column',
+                attr: { 'aria-label': `${item.date.toLocaleDateString()}: ${item.value}` }
+            });
+            column.createDiv({ cls: 'hicard-today-bar-value', text: item.value ? String(item.value) : '' });
+            const track = column.createDiv({ cls: 'hicard-today-bar-track' });
+            const bar = track.createDiv({ cls: 'hicard-today-bar-fill' });
+            bar.style.height = `${Math.max(item.value ? 8 : 2, item.value / max * 100)}%`;
+            column.createDiv({
+                cls: 'hicard-today-bar-label',
+                text: item.date.toLocaleDateString(undefined, { weekday: 'short' })
+            });
+        }
+    }
+
+    private renderSnapshot(section: HTMLElement, cards: FlashcardState[]): void {
+        const heading = section.createDiv({ cls: 'hicard-section-heading' });
+        heading.createEl('h3', { text: t('Learning snapshot') });
+        heading.createSpan({ cls: 'hicard-panel-period', text: t('All time') });
+
+        const stats = this.plugin.fsrsManager.getStats();
+        const difficult = cards.filter(card => !card.suspended && card.lapses > 0).length;
+        const paused = cards.filter(card => card.suspended).length;
+        const retention = Math.round(Math.max(0, Math.min(1, stats.averageRetention)) * 100);
+        const items: Array<[string, string, string]> = [
+            ['flame', t('Study streak'), t('{count} days', { count: stats.streakDays })],
+            ['target', t('Average retention'), `${retention}%`],
+            ['layers', t('Cards in library'), String(cards.length)],
+            ['pause-circle', t('Paused cards'), String(paused)],
+            ['triangle-alert', t('Difficult cards'), String(difficult)],
+            ['history', t('Total reviews'), String(stats.totalReviews)]
+        ];
+        const grid = section.createDiv({ cls: 'hicard-snapshot-grid' });
+        for (const [iconName, label, value] of items) {
+            const item = grid.createDiv({ cls: 'hicard-snapshot-item' });
+            const icon = item.createSpan({ cls: 'hicard-snapshot-icon' });
+            setIcon(icon, iconName);
+            const copy = item.createDiv({ cls: 'hicard-snapshot-copy' });
+            copy.createDiv({ cls: 'hicard-snapshot-value', text: value });
+            copy.createDiv({ cls: 'hicard-snapshot-label', text: label });
+        }
     }
 
     private metric(container: HTMLElement, iconName: string, label: string, value: number, helper: string): void {

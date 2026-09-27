@@ -67,12 +67,20 @@ export interface GroupProgressState {
     completionMessage?: string | null;
 }
 
+export type HiCardManagementViewMode = 'list' | 'grid';
+
+export interface HiCardViewModes {
+    groups?: HiCardManagementViewMode;
+    cards?: HiCardManagementViewMode;
+}
+
 export interface HiCardState {
     progressVersion?: number;
     currentGroupId?: string;
     currentGroupName: string;
     completionMessage?: string | null;
     groupProgress?: Record<string, GroupProgressState>;
+    viewModes?: HiCardViewModes;
 }
 
 export interface DailyStats {

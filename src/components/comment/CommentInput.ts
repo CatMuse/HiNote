@@ -38,6 +38,7 @@ export class CommentInput {
             onDelete?: () => Promise<void>;
             onCancel: () => void;
             initialContent?: string;
+            submitMode?: 'enter' | 'button';
             onShown?: () => void;
             onClosed?: () => void;
         }
@@ -66,7 +67,12 @@ export class CommentInput {
         if (didShow) {
             if (this.options.initialContent !== undefined) { this.textarea.value = this.options.initialContent; this.autoResizeTextarea(); }
             this.isOpen = true;
-            activeDocument.addEventListener('click', this.boundHandleOutsideClick);
+            // Register after the opening click has finished bubbling. Otherwise
+            // a button that creates a new comment is immediately treated as an
+            // outside click and the freshly-created editor is cancelled.
+            window.setTimeout(() => {
+                if (this.isOpen) activeDocument.addEventListener('click', this.boundHandleOutsideClick);
+            }, 0);
             this.options.onShown?.();
         }
     }
@@ -75,7 +81,8 @@ export class CommentInput {
         const renderedInput = renderEditCommentInput(this.card, this.existingComment!, {
             onInput: () => this.autoResizeTextarea(),
             onSave: async () => await this.handleSave(),
-            onDelete: this.options.onDelete ? async () => await this.handleDelete() : undefined
+            onDelete: this.options.onDelete ? async () => await this.handleDelete() : undefined,
+            submitMode: this.options.submitMode
         });
 
         if (!renderedInput) return false;
@@ -98,7 +105,8 @@ export class CommentInput {
     private showCreateMode(): boolean {
         const renderedInput = renderCreateCommentInput(this.card, {
             onInput: () => this.autoResizeTextarea(),
-            onSave: async () => await this.handleSave()
+            onSave: async () => await this.handleSave(),
+            submitMode: this.options.submitMode
         });
 
         this.textarea = renderedInput.textarea;
@@ -124,7 +132,8 @@ export class CommentInput {
             onInlineAI: async () => await this.inlineAI.generate(),
             onSave: async () => {
                 await this.handleSave();
-            }
+            },
+            submitMode: this.options.submitMode
         });
     }
 
