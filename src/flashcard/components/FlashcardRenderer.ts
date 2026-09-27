@@ -1,12 +1,10 @@
 import { Platform } from "obsidian";
 import { t } from "../../i18n";
-import { PAUSED_CARDS_GROUP } from '../types/FlashcardGroups';
 import type { FlashcardState } from "../types/FSRSTypes";
 import type { FlashcardComponentContext } from "./FlashcardComponentContext";
 import {
     FlashcardActivationRenderer,
     FlashcardMarkdownRenderer,
-    FlashcardGroupListRenderer,
     FlashcardEmptyStateRenderer,
     FlashcardCardRenderer
 } from "./renderers";
@@ -21,7 +19,6 @@ export class FlashcardRenderer {
     private showingSidebar: boolean = true;
     private activationRenderer: FlashcardActivationRenderer;
     private markdownRenderer: FlashcardMarkdownRenderer;
-    private groupListRenderer: FlashcardGroupListRenderer;
     private emptyStateRenderer: FlashcardEmptyStateRenderer;
     private cardRenderer: FlashcardCardRenderer;
     
@@ -29,12 +26,11 @@ export class FlashcardRenderer {
         this.component = component;
         this.activationRenderer = new FlashcardActivationRenderer(component, () => { void component.activate(); });
         this.markdownRenderer = new FlashcardMarkdownRenderer(component);
-        this.groupListRenderer = new FlashcardGroupListRenderer(component);
         this.emptyStateRenderer = new FlashcardEmptyStateRenderer(component);
         this.cardRenderer = new FlashcardCardRenderer(component, this.markdownRenderer);
         this.isSmallScreen = component.getContainer().clientWidth < 768;
         this.isMobileView = Platform.isMobile || this.isSmallScreen;
-        this.showingSidebar = this.isMobileView;
+        this.showingSidebar = false;
     }
     
     /**
@@ -104,23 +100,15 @@ export class FlashcardRenderer {
         container.empty();
         this.markdownRenderer.dispose();
         container.addClass('flashcard-mode');
+        const studySession = this.component.getStudySession?.();
+        container.classList.toggle('is-custom-session', Boolean(studySession));
+        this.showingSidebar = false;
 
         this.applyResponsiveClasses(container);
         this.renderProgress(container);
 
         const mainContainer = container.createDiv({ cls: "flashcard-main-container" });
-        const sidebar = mainContainer.createDiv({ cls: "flashcard-sidebar" });
-        this.groupListRenderer.render(sidebar, container, {
-            isMobileView: this.isMobileView,
-            onGroupSelected: () => {
-                this.showingSidebar = false;
-            },
-            rerender: () => this.render()
-        });
-
         const contentArea = mainContainer.createDiv({ cls: "flashcard-content-area" });
-        const back = contentArea.createEl('button', { cls: 'flashcard-back-to-groups', text: t('Groups') });
-        back.addEventListener('click', () => this.showSidebar());
         const cardContainer = contentArea.createDiv({ cls: "flashcard-container" });
 
         if (!this.emptyStateRenderer.render(cardContainer)) {
@@ -157,12 +145,7 @@ export class FlashcardRenderer {
     }
 
     public refreshStatistics(): void {
-        const container = this.component.getContainer();
         this.component.updateProgress();
-        const counter = container.querySelector('.flashcard-counter');
-        if (counter) counter.textContent = `${t(this.component.getCurrentGroupId() === PAUSED_CARDS_GROUP ? 'Paused cards' : 'Remaining')}: ${this.component.getCards().length}`;
-        const sidebar = container.querySelector<HTMLElement>('.flashcard-sidebar');
-        if (sidebar) this.groupListRenderer.refreshStats(sidebar);
     }
 
     private renderUndo(container: HTMLElement): void {
@@ -173,8 +156,11 @@ export class FlashcardRenderer {
     }
 
     private renderProgress(container: HTMLElement): void {
-        const progressContainer = container.createDiv({ cls: "flashcard-progress-container" });
-        this.component.setProgressContainer(progressContainer);
+        const current = this.component.getProgressContainer();
+        const progressContainer = current?.isConnected
+            ? current
+            : container.createDiv({ cls: "flashcard-progress-container" });
+        if (progressContainer !== current) this.component.setProgressContainer(progressContainer);
         this.component.updateProgress();
     }
 

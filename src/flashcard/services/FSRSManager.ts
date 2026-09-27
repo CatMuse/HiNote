@@ -213,11 +213,11 @@ export class FSRSManager {
      * @param rating 评分
      * @returns 更新后的卡片状态
      */
-    public trackStudyProgress(cardId: string, rating: FSRSRating, groupId?: string): Promise<FlashcardState | null> {
+    public trackStudyProgress(cardId: string, rating: FSRSRating, groupId?: string, allowEarlyReview = false): Promise<FlashcardState | null> {
         return this.runReviewTransaction(() => cardId, async () => {
             const card = this.reviewDraft?.cards[cardId];
             const limits = this.createReviewDailyStats();
-            if (!card || card.suspended || card.nextReview > Date.now()) return null;
+            if (!card || card.suspended || (!allowEarlyReview && card.nextReview > Date.now())) return null;
             if (card.lastReview === 0 && !limits.canLearnNewCardsToday(groupId)) return null;
             if (card.lastReview > 0 && card.state !== 1 && card.state !== 3 && !limits.canReviewCardsToday(groupId)) return null;
             return this.reviewService.trackStudyProgress(cardId, rating, groupId);
@@ -363,6 +363,14 @@ export class FSRSManager {
         return this.cardService.deleteCard(cardId);
     }
 
+    public updateCard(cardId: string, updates: Pick<Partial<FlashcardState>, 'text' | 'answer' | 'filePath'>): boolean {
+        return this.cardService.updateCard(cardId, updates);
+    }
+
+    public resetCardProgress(cardId: string): boolean {
+        return this.cardService.resetCardProgress(cardId);
+    }
+
     /**
      * 根据文件路径获取卡片
      * @param filePath 文件路径
@@ -473,7 +481,7 @@ export class FSRSManager {
      * @returns 是否删除成功
      */
     public async deleteCardGroup(groupId: string, deleteCards = false): Promise<boolean> {
-        return this.groupService.deleteCardGroup(groupId);
+        return this.groupService.deleteCardGroup(groupId, deleteCards);
     }
     
     /**

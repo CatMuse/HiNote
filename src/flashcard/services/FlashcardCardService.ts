@@ -64,6 +64,38 @@ export class FlashcardCardService {
         return Object.values(this.options.getStorage().cards);
     }
 
+    updateCard(cardId: string, updates: Pick<Partial<FlashcardState>, 'text' | 'answer' | 'filePath'>): boolean {
+        const card = this.options.getStorage().cards[cardId];
+        if (!card) return false;
+        if (typeof updates.text === 'string') card.text = updates.text;
+        if (typeof updates.answer === 'string') card.answer = updates.answer;
+        if (typeof updates.filePath === 'string') card.filePath = updates.filePath || undefined;
+        card.updatedAt = Date.now();
+        this.options.saveDebounced();
+        this.options.emitFlashcardChanged();
+        return true;
+    }
+
+    resetCardProgress(cardId: string): boolean {
+        const storage = this.options.getStorage();
+        const card = storage.cards[cardId];
+        if (!card) return false;
+        const reset = this.options.getCardFactory().createCard(card.text, card.answer, card.filePath);
+        storage.cards[cardId] = {
+            ...reset,
+            id: card.id,
+            createdAt: card.createdAt,
+            updatedAt: Date.now(),
+            groupIds: card.groupIds ? [...card.groupIds] : undefined,
+            sourceId: card.sourceId,
+            sourceType: card.sourceType,
+            suspended: false
+        };
+        this.options.saveDebounced();
+        this.options.emitFlashcardChanged();
+        return true;
+    }
+
     getTotalCardsCount(): number {
         const allGroups = this.options.getGroupRepository().getCardGroups() || [];
         if (allGroups.length === 0) {

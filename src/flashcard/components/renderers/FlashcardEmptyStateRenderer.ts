@@ -17,6 +17,16 @@ export class FlashcardEmptyStateRenderer {
             return false;
         }
 
+        const studySession = this.component.getStudySession?.();
+        if (studySession && cards.length === 0) {
+            const completed = cardContainer.createDiv({ cls: 'flashcard-completion-message' });
+            const icon = completed.createDiv({ cls: 'completion-icon' });
+            setIcon(icon, 'badge-check');
+            completed.createEl('h3', { text: t('Session complete') });
+            completed.createEl('p', { text: t('You reviewed every card in this session.') });
+            return true;
+        }
+
         const currentGroup = groups.find((group: CardGroup) => group.id === this.component.getCurrentGroupId());
         const isEmptyGroup = currentGroup && this.component.getFsrsManager().getCardsByGroupId(currentGroup.id).length === 0;
 

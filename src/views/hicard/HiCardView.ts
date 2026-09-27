@@ -1,14 +1,13 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import type CommentPlugin from '../../../main';
-import { FlashcardComponent } from '../../flashcard/components/FlashcardComponent';
-import { LicenseManager } from '../../services/LicenseManager';
 import { t } from '../../i18n';
+import { HiCardWorkspace } from './HiCardWorkspace';
 
 export const VIEW_TYPE_HICARD = 'hicard-view';
 
-/** Independent study surface. Storage and source links remain shared with HiNote. */
+/** Independent HiCard workspace. Storage and source links remain shared with HiNote. */
 export class HiCardView extends ItemView {
-    private flashcards: FlashcardComponent | null = null;
+    private workspace: HiCardWorkspace | null = null;
     private generation = 0;
 
     constructor(leaf: WorkspaceLeaf, private plugin: CommentPlugin) {
@@ -29,12 +28,10 @@ export class HiCardView extends ItemView {
             await this.plugin.ensureServicesInitialized();
             if (!current()) return;
             this.contentEl.empty();
-            const container = this.contentEl.createDiv({ cls: 'hicard-study-container' });
-            const component = new FlashcardComponent(container, this.plugin);
-            this.flashcards = component;
-            component.setLicenseManager(new LicenseManager(this.plugin));
-            this.addChild(component);
-            await component.activate(current);
+            const workspace = new HiCardWorkspace(this.contentEl, this.plugin);
+            this.workspace = workspace;
+            this.addChild(workspace);
+            await workspace.open(current);
         } catch (error) {
             if (!current()) return;
             this.releaseComponent();
@@ -48,10 +45,10 @@ export class HiCardView extends ItemView {
     }
 
     private releaseComponent(): void {
-        if (!this.flashcards) return;
-        this.flashcards.deactivate();
-        this.removeChild(this.flashcards);
-        this.flashcards = null;
+        if (!this.workspace) return;
+        this.workspace.close();
+        this.removeChild(this.workspace);
+        this.workspace = null;
     }
 
     async onClose(): Promise<void> {

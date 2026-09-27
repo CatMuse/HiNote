@@ -43,8 +43,8 @@ export class FlashcardGroupService {
         return true;
     }
 
-    async deleteCardGroup(groupId: string): Promise<boolean> {
-        const result = await this.options.getGroupRepository().deleteCardGroup(groupId, false);
+    async deleteCardGroup(groupId: string, deleteCards = false): Promise<boolean> {
+        const result = await this.options.getGroupRepository().deleteCardGroup(groupId, deleteCards);
         if (!result) {
             return false;
         }

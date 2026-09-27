@@ -27,6 +27,14 @@ import {
     setGroupCompletionMessage
 } from "./FlashcardUIState";
 
+export interface FlashcardStudySession {
+    id: string;
+    title: string;
+    groupId: string;
+    cardIds: string[];
+    allowEarlyReview?: boolean;
+}
+
 /**
  * 闪卡组件，整合所有闪卡相关功能
  */
@@ -47,6 +55,7 @@ export class FlashcardComponent extends Component {
     private app: App;
     private plugin: CommentPlugin;
     private completionMessage: string | null = null;
+    private readonly studySession?: FlashcardStudySession;
     
     // 存储每个分组的学习进度和完成状态
     private groupProgress: Record<string, GroupProgressState> = {};
@@ -66,12 +75,13 @@ export class FlashcardComponent extends Component {
     public progressManager: FlashcardProgressManager;
     public utils: FlashcardUtils;
 
-    constructor(container: HTMLElement, plugin: CommentPlugin) {
+    constructor(container: HTMLElement, plugin: CommentPlugin, studySession?: FlashcardStudySession) {
         super();
         this.container = container;
         this.plugin = plugin;
         this.app = plugin.app;
         this.fsrsManager = plugin.fsrsManager;
+        this.studySession = studySession;
         
         // 初始化子组件
         this.renderer = new FlashcardRenderer(this);
@@ -87,6 +97,12 @@ export class FlashcardComponent extends Component {
         this.isFlipped = uiState.isFlipped;
         this.completionMessage = uiState.completionMessage;
         this.groupProgress = uiState.groupProgress;
+        if (studySession) {
+            this.currentGroupId = studySession.groupId;
+            this.currentGroupName = studySession.title;
+            this.currentIndex = 0;
+            this.isFlipped = false;
+        }
         this.container.tabIndex = 0;
         this.registerDomEvent(this.container, "keydown", event => {
             const target = event.target as HTMLElement;
@@ -238,6 +254,10 @@ export class FlashcardComponent extends Component {
     public getCards(): FlashcardState[] {
         return this.cards;
     }
+
+    public getStudySession(): FlashcardStudySession | undefined {
+        return this.studySession;
+    }
     
     public getCurrentIndex(): number {
         return this.currentIndex;
@@ -359,6 +379,7 @@ export class FlashcardComponent extends Component {
      * 优化版本：直接在组件中处理状态保存，确保所有状态都被正确保存
      */
     public saveState() {
+        if (this.studySession) return;
         saveFlashcardUIState(this.fsrsManager, {
             currentGroupName: this.currentGroupName,
             currentGroupId: this.currentGroupId,

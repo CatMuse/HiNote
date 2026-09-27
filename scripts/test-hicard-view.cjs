@@ -31,23 +31,21 @@ class ItemView {
     registerDomEvent(element, type, callback) { this.events.push({ element, type, callback }); }
 }
 const components = [];
-class FlashcardComponent {
+class HiCardWorkspace {
     constructor(container, plugin) { this.container = container; this.plugin = plugin; this.unloads = 0; this.deactivations = 0; components.push(this); }
     load() { this.loaded = true; }
     unload() { this.unloads++; }
-    setLicenseManager(manager) { this.license = manager; }
-    async activate(current) {
-        assert.ok(this.loaded && this.license, 'Lifecycle and licensing must be configured before activation');
+    async open(current) {
+        assert.ok(this.loaded, 'Workspace lifecycle must be configured before opening');
         await this.plugin.activation;
         if (current()) this.container.createDiv({ text: 'study' });
     }
-    deactivate() { this.deactivations++; this.container.empty(); }
+    close() { this.deactivations++; this.container.empty(); }
 }
 const { HiCardView, VIEW_TYPE_HICARD } = load('src/views/hicard/HiCardView.ts', {
     obsidian: { ItemView },
-    '../../flashcard/components/FlashcardComponent': { FlashcardComponent },
-    '../../services/LicenseManager': { LicenseManager: class {} },
-    '../../i18n': { t: s => s }
+    '../../i18n': { t: s => s },
+    './HiCardWorkspace': { HiCardWorkspace }
 });
 const { WindowManager } = load('src/plugin/WindowManager.ts', {
     obsidian: {},

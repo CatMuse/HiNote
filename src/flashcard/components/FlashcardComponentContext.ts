@@ -2,6 +2,7 @@ import type { App } from "obsidian";
 import type CommentPlugin from "../../../main";
 import type { FSRSManager } from "../services/FSRSManager";
 import type { FSRSRating, FlashcardState, GroupProgressState } from "../types/FSRSTypes";
+import type { FlashcardStudySession } from './FlashcardComponent';
 import type { LicenseManager } from "../../services/LicenseManager";
 import type { FlashcardRenderer } from "./FlashcardRenderer";
 import type { FlashcardGroupManager, FlashcardUtils } from "./controllers";
@@ -16,6 +17,7 @@ export interface FlashcardComponentContext {
     setProgressContainer(container: HTMLElement): void;
     getLicenseManager(): LicenseManager;
     getCards(): FlashcardState[];
+    getStudySession(): FlashcardStudySession | undefined;
     setCards(cards: FlashcardState[]): void;
     getCurrentIndex(): number;
     setCurrentIndex(index: number): void;

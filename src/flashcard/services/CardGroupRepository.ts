@@ -118,7 +118,7 @@ export class CardGroupRepository {
         };
         
         // 如果更新了筛选条件，自动更新卡片列表
-        if (updates.filter) {
+        if (Object.prototype.hasOwnProperty.call(updates, 'filter')) {
             this.updateGroupCardIds(groupId);
         }
         
@@ -166,9 +166,15 @@ export class CardGroupRepository {
         // 获取该分组内的所有卡片
         const cardsInGroup = [...(deletedGroup.cardIds || [])];
         
-        // 仅解除卡片与分组的关联，不再删除卡片
         for (const cardId of cardsInGroup) {
-            this.removeCardFromGroup(cardId, groupId);
+            if (deleteCards) {
+                for (const group of this.storage.cardGroups) {
+                    if (group.cardIds) group.cardIds = group.cardIds.filter(id => id !== cardId);
+                }
+                delete this.storage.cards[cardId];
+            } else {
+                this.removeCardFromGroup(cardId, groupId);
+            }
         }
         
         // 删除分组

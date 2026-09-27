@@ -1,238 +1,182 @@
 import { FSRSManager } from "../services/FSRSManager";
 import { DailyStats } from "../types/FSRSTypes";
-import { t, formatDate } from '../../i18n';
+import { formatDate, getDateLocale, t } from '../../i18n';
 
-/**
- * 闪卡统计面板，显示学习统计数据和热力图
- */
+type FlashcardStatsPanelMode = 'compact' | 'year';
+
+interface FlashcardStatsPanelOptions {
+    mode?: FlashcardStatsPanelMode;
+}
+
+interface CalendarDay {
+    date: Date;
+    stat?: DailyStats;
+    value: number;
+}
+
+const DAYS_IN_WEEK = 7;
+const COMPACT_WEEKS = 12;
+const YEAR_WEEKS = 53;
+
+/** Displays flashcard progress and either a compact or year activity calendar. */
 export class FlashcardStatsPanel {
-    private containerEl: HTMLElement;
-    private fsrsManager: FSRSManager;
-    
-    constructor(containerEl: HTMLElement, fsrsManager: FSRSManager) {
-        this.containerEl = containerEl;
-        this.fsrsManager = fsrsManager;
+    private readonly mode: FlashcardStatsPanelMode;
+
+    constructor(
+        private containerEl: HTMLElement,
+        private fsrsManager: FSRSManager,
+        options: FlashcardStatsPanelOptions = {}
+    ) {
+        this.mode = options.mode ?? 'compact';
     }
-    
-    /**
-     * 渲染统计面板
-     */
-    render() {
+
+    render(): void {
         this.containerEl.empty();
-        this.containerEl.addClass('flashcard-stats-panel');
-        
-        // 创建统计数据区域
-        this.renderStatsArea();
-        
-        // 创建热力图区域
+        this.containerEl.addClass('flashcard-stats-panel', `is-${this.mode}`);
+
+        if (this.mode === 'compact') this.renderStatsArea();
         this.renderHeatmap();
     }
-    
-    /**
-     * 渲染统计数据区域
-     */
-    private renderStatsArea() {
+
+    private renderStatsArea(): void {
         const statsArea = this.containerEl.createDiv('flashcard-stats-area');
-        
-        // 获取学习进度数据
         const progress = this.fsrsManager.getProgress();
-        
-        // 创建统计项
+
         this.createStatItem(statsArea, progress.newCards.toString(), 'New', 'flashcard-stat-new');
         this.createStatItem(statsArea, progress.learned.toString(), 'Learned', 'flashcard-stat-learning');
         this.createStatItem(statsArea, progress.due.toString(), 'Review', 'flashcard-stat-due');
     }
-    
-    /**
-     * 创建单个统计项
-     */
-    private createStatItem(container: HTMLElement, value: string, label: string, className: string) {
-        const statItem = container.createDiv(`flashcard-stat-item ${className}`);
-        const valueEl = statItem.createDiv('flashcard-stat-value');
-        valueEl.textContent = value;
-        
-        const labelEl = statItem.createDiv('flashcard-stat-label');
-        labelEl.textContent = t(label);
-    }
-    
-    /**
-     * 渲染热力图区域
-     */
-    private renderHeatmap() {
-        // 直接在主容器中创建热力图
-        this.createHeatmap(this.containerEl, this.fsrsManager.getDailyStats());
-    }
-    
-    /**
-     * 创建热力图
-     */
-    private createHeatmap(container: HTMLElement, dailyStats: DailyStats[]) {
-        // 创建热力图网格（直接在容器中创建，减少嵌套）
-        const grid = container.createDiv('flashcard-heatmap-grid');
-        
-        // 添加调试信息 - 当前日期
-        const today = new Date();
-        
-        // 获取过去84天的日期（7行*12列）
-        const startDate = new Date(today);
-        startDate.setDate(today.getDate() - 83); // 调整为83天，确保包含当天
-        
-        // 创建日期映射，用于快速查找特定日期的数据
-        const dateMap = new Map();
-        
-        // 手动添加当天的数据（如果不存在）
-        const todayDate = new Date(today);
-        todayDate.setHours(0, 0, 0, 0);
-        const todayTimestamp = todayDate.getTime();
-        const todayKey = `${todayDate.getFullYear()}-${todayDate.getMonth() + 1}-${todayDate.getDate()}`;
-                
-        // 检查是否有当天的数据
-        let hasTodayData = false;
-        
-        // 使用真实的学习数据
-        const allStats = [...dailyStats];
 
-        // 处理所有数据
-        allStats.forEach(stat => {
-            // 将时间戳转换为日期对象
-            const date = new Date(stat.date);
-            
-            // 获取日期的年、月、日
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            const day = date.getDate();
-            
-            // 创建日期键
-            const dateKey = `${year}-${month}-${day}`;
-            
-            // 检查是否是当天的数据
-            if (dateKey === todayKey) {
-                hasTodayData = true;
+    private createStatItem(container: HTMLElement, value: string, label: string, className: string): void {
+        const statItem = container.createDiv(`flashcard-stat-item ${className}`);
+        statItem.createDiv({ cls: 'flashcard-stat-value', text: value });
+        statItem.createDiv({ cls: 'flashcard-stat-label', text: t(label) });
+    }
+
+    private renderHeatmap(): void {
+        const weeks = this.mode === 'year' ? YEAR_WEEKS : COMPACT_WEEKS;
+        const days = this.buildCalendarDays(this.fsrsManager.getDailyStats(), weeks);
+
+        if (this.mode === 'year') {
+            this.renderYearCalendar(days);
+            return;
+        }
+
+        const grid = this.containerEl.createDiv('flashcard-heatmap-grid');
+        this.renderCells(grid, days);
+    }
+
+    private renderYearCalendar(days: CalendarDay[]): void {
+        const scroller = this.containerEl.createDiv('flashcard-year-scroller');
+        const calendar = scroller.createDiv('flashcard-year-calendar');
+        const months = calendar.createDiv('flashcard-year-months');
+        months.createDiv('flashcard-year-axis-spacer');
+        const monthGrid = months.createDiv('flashcard-year-month-grid');
+
+        for (let week = 0; week < YEAR_WEEKS; week++) {
+            const monday = days[week * DAYS_IN_WEEK].date;
+            const previousMonday = week > 0 ? days[(week - 1) * DAYS_IN_WEEK].date : undefined;
+            if (week === 0 || monday.getMonth() !== previousMonday?.getMonth()) {
+                const label = monthGrid.createSpan({
+                    cls: 'flashcard-year-month-label',
+                    text: monday.toLocaleDateString(getDateLocale(), { month: 'short' })
+                });
+                label.style.gridColumn = String(week + 1);
             }
-            
-            // 存储到映射中（如果有重复的日期，使用最后一条数据）
-            dateMap.set(dateKey, stat);
-        });
-        
-        // 如果没有当天的数据，手动添加一个空的记录
-        // 这样即使当天没有学习数据，也会显示一个空单元格
-        if (!hasTodayData) {
-            dateMap.set(todayKey, {
-                date: todayTimestamp,
-                newCardsLearned: 0,
-                cardsReviewed: 0,
-                reviewCount: 0,
-                newCount: 0,
-                againCount: 0,
-                hardCount: 0,
-                goodCount: 0,
-                easyCount: 0
+        }
+
+        const body = calendar.createDiv('flashcard-year-body');
+        const weekdays = body.createDiv('flashcard-year-weekdays');
+        const weekStart = days[0].date;
+        for (let row = 0; row < DAYS_IN_WEEK; row++) {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + row);
+            weekdays.createSpan({
+                text: row % 2 === 0 ? date.toLocaleDateString(getDateLocale(), { weekday: 'narrow' }) : ''
             });
         }
-        
-        // 创建热力图单元格
-        const rows = 7;
-        const cols = 12;
-        
-        // 重新设计热力图布局，确保当天在正确位置
-        // 先计算当天是周几（0是周日，1-6是周一到周六）
-        const todayDayOfWeek = today.getDay();
-        // 在热力图中，周一在第0行，周六在第5行，周日在第6行
-        // 计算当前周的周一的日期
-        const thisWeekMonday = new Date(today);
-        thisWeekMonday.setDate(today.getDate() - ((todayDayOfWeek === 0 ? 7 : todayDayOfWeek) - 1));
-                
-        // 计算热力图第一列第一行（左上角）的日期
-        // 往前推算11周
-        const firstCellDate = new Date(thisWeekMonday);
-        firstCellDate.setDate(firstCellDate.getDate() - 11 * 7);
- 
-        // 创建一个二维数组来存储所有单元格的日期
-        const cellDates = [];
-        
-        // 首先填充每一列的周一日期
-        const mondayDates = [];
-        for (let col = 0; col < cols; col++) {
-            const mondayDate = new Date(firstCellDate);
-            mondayDate.setDate(mondayDate.getDate() + col * 7);
-            mondayDates.push(mondayDate);
+
+        const grid = body.createDiv('flashcard-heatmap-grid');
+        this.renderCells(grid, days);
+
+        const activeDays = days.filter(day => day.value > 0).length;
+        const actions = days.reduce((sum, day) => sum + (day.stat?.reviewCount ?? 0), 0);
+        const footer = calendar.createDiv('flashcard-year-footer');
+        footer.createSpan({
+            cls: 'flashcard-year-summary',
+            text: t('{weeks} weeks · {days} active days · {actions} study actions', {
+                weeks: YEAR_WEEKS,
+                days: activeDays,
+                actions
+            })
+        });
+        const legend = footer.createDiv('flashcard-year-legend');
+        legend.createSpan({ text: t('Less activity') });
+        for (let level = 0; level <= 4; level++) {
+            legend.createSpan({ cls: `flashcard-heatmap-cell flashcard-heatmap-level-${level}` });
         }
-        
-        // 然后对每一列，填充其他每一天
-        for (let col = 0; col < cols; col++) {
-            const colDates = [];
-            for (let row = 0; row < rows; row++) {
-                const date = new Date(mondayDates[col]);
-                date.setDate(date.getDate() + row);
-                colDates.push(date);
-            }
-            cellDates.push(colDates);
-        }
-        
-        // 现在我们按行和列来填充热力图
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                const date = cellDates[col][row];
-                
-                // 获取日期的年、月、日
-                const year = date.getFullYear();
-                const month = date.getMonth() + 1;
-                const day = date.getDate();
-                
-                // 创建日期键
-                const dateKey = `${year}-${month}-${day}`;
-                
-                // 从映射中获取统计数据
-                const stat = dateMap.get(dateKey);
-                
-                // 创建单元格
-                const cell = grid.createDiv('flashcard-heatmap-cell');
-                
-                // 检查是否是当天的单元格
-                const isTodayCell = dateKey === todayKey;
-                
-                // 根据学习活动设置颜色深浅
-                if (stat) {
-                    // 新卡片学习通常需要更多精力，所以权重更高
-                    let intensity = stat.newCardsLearned * 1.5 + stat.cardsReviewed;
-                    
-                    // 如果有评分记录，考虑难度因素
-                    if (stat.reviewCount > 0) {
-                        // 困难卡片权重更高
-                        const difficultyFactor = (stat.againCount * 1.5 + stat.hardCount * 1.2 + stat.goodCount + stat.easyCount * 0.8) / stat.reviewCount;
-                        intensity = intensity * (difficultyFactor + 0.5); // 加0.5是为了保证最小影响
-                    }
-                    
-                    // 限制最大值
-                    intensity = Math.min(intensity, 20);
-                    const level = Math.ceil(intensity / 4); // 0-5级深浅
-                    cell.addClass(`flashcard-heatmap-level-${level}`);
-                    
-                    // 添加更详细的提示信息，包括评分分布
-                    let tooltipText = t('{date}: Learned {new} new cards, reviewed {reviewed} cards', { date: formatDate(date), new: stat.newCardsLearned, reviewed: stat.cardsReviewed });
-                    
-                    // 如果有评分记录，添加评分分布信息
-                    if (stat.reviewCount > 0) {
-                        tooltipText += '\n' + t('Ratings: Again ({again}), Hard ({hard}), Good ({good}), Easy ({easy})', { again: stat.againCount, hard: stat.hardCount, good: stat.goodCount, easy: stat.easyCount });
-                    }
-                    
-                    cell.setAttribute('title', tooltipText);
-                } else {
-                    // 不再为当天使用特殊样式
-                    if (isTodayCell) {
-                        // 使用默认样式
-                        cell.addClass('flashcard-heatmap-level-0');
-                    } else if (date > today) {
-                        // 未来日期
-                        cell.addClass('flashcard-heatmap-level-0');
-                    } else {
-                        // 过去的空单元格
-                        cell.addClass('flashcard-heatmap-level-0');
-                    }
-                }
-            }
-            
+        legend.createSpan({ text: t('More activity') });
+
+        // Keep the most recent weeks visible first when the pane is narrow.
+        scroller.scrollLeft = scroller.scrollWidth;
+    }
+
+    private renderCells(grid: HTMLElement, days: CalendarDay[]): void {
+        const thresholds = this.getIntensityThresholds(days);
+        const todayKey = this.toDateKey(new Date());
+
+        for (const day of days) {
+            const cell = grid.createDiv('flashcard-heatmap-cell');
+            const level = this.getIntensityLevel(day.value, thresholds);
+            cell.addClass(`flashcard-heatmap-level-${level}`);
+
+            const isToday = this.toDateKey(day.date) === todayKey;
+            if (isToday) cell.addClass('is-today');
+            if (day.date.getTime() > Date.now()) cell.addClass('is-future');
+
+            const newCards = day.stat?.newCardsLearned ?? 0;
+            const reviewed = day.stat?.cardsReviewed ?? 0;
+            const tooltip = t('{date} · {new} new · {reviewed} reviewed', {
+                date: formatDate(day.date),
+                new: newCards,
+                reviewed
+            });
+            cell.setAttribute('aria-label', tooltip);
         }
     }
-    
+
+    private buildCalendarDays(dailyStats: DailyStats[], weeks: number): CalendarDay[] {
+        const statsByDate = new Map(dailyStats.map(stat => [this.toDateKey(new Date(stat.date)), stat]));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const monday = new Date(today);
+        const weekday = monday.getDay();
+        monday.setDate(monday.getDate() - (weekday === 0 ? 6 : weekday - 1) - (weeks - 1) * DAYS_IN_WEEK);
+
+        return Array.from({ length: weeks * DAYS_IN_WEEK }, (_, index) => {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + index);
+            const stat = statsByDate.get(this.toDateKey(date));
+            return {
+                date,
+                stat,
+                value: stat ? stat.newCardsLearned + stat.cardsReviewed : 0
+            };
+        });
+    }
+
+    private getIntensityThresholds(days: CalendarDay[]): number[] {
+        const values = days.map(day => day.value).filter(value => value > 0).sort((a, b) => a - b);
+        if (!values.length) return [];
+        return [0.25, 0.5, 0.75].map(percentile => values[Math.ceil((values.length - 1) * percentile)]);
+    }
+
+    private getIntensityLevel(value: number, thresholds: number[]): number {
+        if (value <= 0) return 0;
+        return 1 + thresholds.filter(threshold => value >= threshold).length;
+    }
+
+    private toDateKey(date: Date): string {
+        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    }
 }

@@ -141,7 +141,8 @@ export class DailyStatsService {
 
         const maintainedStats = Array.from(uniqueDates.values())
             .sort((a, b) => b.date - a.date)
-            .slice(0, 84);
+            // Keep enough source data for the 53-week activity calendar.
+            .slice(0, 371);
 
         this.options.setDailyStats(maintainedStats);
         return maintainedStats.length;

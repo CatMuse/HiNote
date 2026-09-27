@@ -8,7 +8,6 @@ import {
 import { t } from "../../../i18n";
 import { IdGenerator } from "../../../utils/IdGenerator";
 import { CardGroup, FlashcardState, FSRS_RATING, FSRSRating } from "../../types/FSRSTypes";
-import { PAUSED_CARDS_GROUP } from '../../types/FlashcardGroups';
 import type { FlashcardComponentContext, FlashcardRatingButton } from "../FlashcardComponentContext";
 import { FlashcardMarkdownRenderer } from "./FlashcardMarkdownRenderer";
 
@@ -39,13 +38,16 @@ export class FlashcardCardRenderer {
             this.component.flipCard();
         });
 
-        if (this.component.isCardFlipped() && !currentCard.suspended) this.renderRatingButtons(cardContainer, currentCard);
+        if (this.component.isCardFlipped() && !currentCard.suspended) {
+            this.renderRatingButtons(cardContainer, currentCard);
+        } else if (!this.component.isCardFlipped()) {
+            this.renderRevealButton(cardContainer);
+        }
 
         if (this.component.isCardFlipped()) {
             card.classList.add("is-flipped");
         }
 
-        this.renderCounter(cardContainer);
         this.renderSource(cardContainer, currentCard);
         const actions = cardContainer.createDiv({ cls: 'flashcard-study-actions' });
         const suspend = actions.createEl('button', {
@@ -55,20 +57,36 @@ export class FlashcardCardRenderer {
         suspend.addEventListener('click', () => this.component.setCardSuspended(currentCard.id, !currentCard.suspended));
     }
 
+    private renderRevealButton(cardContainer: HTMLElement): void {
+        const button = cardContainer.createEl('button', {
+            cls: 'mod-cta flashcard-reveal-button',
+            attr: { type: 'button', 'aria-keyshortcuts': 'Space' }
+        });
+        button.createSpan({ text: t('Show answer') });
+        button.createEl('kbd', { text: t('Space') });
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            this.component.flipCard();
+        });
+    }
+
     private renderCardSides(card: HTMLElement, currentCard: FlashcardState): void {
         const isReversed = this.isCardReversed(currentCard);
         const frontContent = isReversed ? currentCard.answer : currentCard.text;
         const backContent = isReversed ? currentCard.text : currentCard.answer;
+        const isFlipped = this.component.isCardFlipped();
 
         const frontEl = card.createDiv({
-            cls: "flashcard-side flashcard-front"
+            cls: "flashcard-side flashcard-front",
+            attr: { 'aria-hidden': String(isFlipped) }
         }).createDiv({
             cls: "flashcard-content markdown-rendered"
         });
         void this.markdownRenderer.render(frontEl, frontContent, currentCard.filePath);
 
         const backEl = card.createDiv({
-            cls: "flashcard-side flashcard-back"
+            cls: "flashcard-side flashcard-back",
+            attr: { 'aria-hidden': String(!isFlipped) }
         }).createDiv({
             cls: "flashcard-content flashcard-back-content"
         });
@@ -134,15 +152,6 @@ export class FlashcardCardRenderer {
                 event.stopPropagation();
                 this.component.rateCard(buttonConfig.rating);
             });
-        });
-    }
-
-    private renderCounter(cardContainer: HTMLElement): void {
-        const remainingCards = this.component.getCards().length;
-
-        cardContainer.createDiv({
-            cls: "flashcard-counter",
-            text: `${t(this.component.getCurrentGroupId() === PAUSED_CARDS_GROUP ? 'Paused cards' : 'Remaining')}: ${remainingCards}`
         });
     }
 
