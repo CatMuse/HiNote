@@ -169,6 +169,7 @@ export class FileListManager {
     destroy() {
         this.disposed = true;
         this.generation++;
+        this.itemRenderer.destroy();
         this.container.empty();
         this.onFileSelect = null;
         this.onAllHighlightsSelect = null;

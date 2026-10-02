@@ -20,8 +20,14 @@ interface FileListItemRendererOptions {
 }
 
 export class FileListItemRenderer {
+    private keyboardActivationTimer: number | null = null;
+    private keyboardActivationWindow: Window | null = null;
 
     constructor(private options: FileListItemRendererOptions) {}
+
+    destroy(): void {
+        this.cancelKeyboardActivation();
+    }
 
     createAllHighlightsItem(fileList: HTMLElement): void {
         const state = this.options.getState();
@@ -50,6 +56,7 @@ export class FileListItemRenderer {
 
         this.makeKeyboardAction(allFilesItem);
         allFilesItem.addEventListener("click", () => {
+            this.cancelKeyboardActivation();
             this.options.onAllHighlightsSelect()?.();
         });
     }
@@ -68,7 +75,10 @@ export class FileListItemRenderer {
         }
         item.createSpan({ text: String(count), cls: 'highlight-file-item-count' });
         this.makeKeyboardAction(item);
-        item.addEventListener('click', () => this.options.onFavoritesSelect()?.());
+        item.addEventListener('click', () => {
+            this.cancelKeyboardActivation();
+            this.options.onFavoritesSelect()?.();
+        });
     }
 
     updateAllHighlightsCount(container: HTMLElement): void {
@@ -118,6 +128,7 @@ export class FileListItemRenderer {
 
         this.makeKeyboardAction(fileItem);
         fileItem.addEventListener("click", () => {
+            this.cancelKeyboardActivation();
             this.options.onFileSelect()?.(file);
         });
     }
@@ -147,9 +158,47 @@ export class FileListItemRenderer {
         element.setAttribute('tabindex', '0');
         element.addEventListener('keydown', event => {
             if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault(); element.click();
+                event.preventDefault();
+                this.cancelKeyboardActivation();
+                element.click();
+                return;
             }
+            if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+
+            const items = Array.from(element.parentElement?.querySelectorAll<HTMLElement>(
+                '.highlight-file-item[role="button"]'
+            ) || []);
+            if (!items.length) return;
+
+            event.preventDefault();
+            const current = Math.max(0, items.indexOf(element));
+            const targetIndex = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 :
+                Math.max(0, Math.min(items.length - 1, current + (event.key === 'ArrowDown' ? 1 : -1)));
+            const target = items[targetIndex];
+            if (target === element) return;
+            target.focus({ preventScroll: true });
+            target.scrollIntoView({ block: 'nearest' });
+            this.scheduleKeyboardActivation(target);
         });
+    }
+
+    private scheduleKeyboardActivation(element: HTMLElement): void {
+        this.cancelKeyboardActivation();
+        const view = element.ownerDocument.defaultView;
+        if (!view) return;
+        this.keyboardActivationWindow = view;
+        this.keyboardActivationTimer = view.setTimeout(() => {
+            this.keyboardActivationTimer = null;
+            this.keyboardActivationWindow = null;
+            if (element.isConnected) element.click();
+        }, 80);
+    }
+
+    private cancelKeyboardActivation(): void {
+        if (this.keyboardActivationTimer === null) return;
+        this.keyboardActivationWindow?.clearTimeout(this.keyboardActivationTimer);
+        this.keyboardActivationTimer = null;
+        this.keyboardActivationWindow = null;
     }
 
     private addPagePreview(element: HTMLElement, file: TFile): void {

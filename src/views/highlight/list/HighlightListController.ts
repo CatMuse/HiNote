@@ -34,14 +34,14 @@ export class HighlightListController {
     private renderedQuery: string | null = null;
     constructor(private options: HighlightListControllerOptions) {}
 
-    cancelPending(): void {
+    cancelPending(preserveRendered = false): void {
         this.loadedScope = null;
         this.options.state.invalidate();
         this.options.getInfiniteScrollManager()?.reset();
         this.options.beforeReplace?.();
         this.options.getSelectionManager()?.clearSelection();
         this.options.getSearchUIManager()?.cancelScheduledSearch();
-        this.options.getHighlightRenderManager()?.clear();
+        if (!preserveRendered) this.options.getHighlightRenderManager()?.clear();
     }
     renderHighlights(rows: HighlightInfo[], append = false): void {
         const { state } = this.options;
@@ -76,7 +76,12 @@ export class HighlightListController {
     }
     isInAllHighlightsView(): boolean { return this.options.state.isInAllHighlightsView(); }
 
-    async refreshView(render = true, reuse = false, preserveCards = false): Promise<void> {
+    async refreshView(
+        render = true,
+        reuse = false,
+        preserveCards = false,
+        preserveRendered = false
+    ): Promise<void> {
         const { state } = this.options;
         if (state.disposed) return;
         state.setSearch(this.options.getSearchInput()?.value || '');
@@ -90,7 +95,7 @@ export class HighlightListController {
             this.options.getInfiniteScrollManager()?.reset();
             this.options.beforeReplace?.();
             this.options.getSelectionManager()?.clearSelection();
-            if (render) this.showLoading();
+            if (render && !preserveRendered) this.showLoading();
         }
         try {
             let rows: HighlightInfo[] = [];

@@ -25,15 +25,16 @@ export class FileListController {
     async navigate(page: HiNotePage): Promise<void> {
         const { state, highlightListController } = this.options;
         if (state.disposed) return;
-        highlightListController.cancelPending();
+        highlightListController.cancelPending(true);
         state.navigate(page);
-        this.options.highlightContainer.empty();
         this.options.fileListManager.updateFileListSelection();
         await this.options.updateViewLayout();
         if (state.page !== page || state.disposed) return;
-        await this.refreshCurrentView();
+        await this.refreshCurrentView(true);
     }
-    async refreshCurrentView(): Promise<void> {
-        if (!this.options.state.disposed) await this.options.highlightListController.refreshView();
+    async refreshCurrentView(preserveRendered = false): Promise<void> {
+        if (!this.options.state.disposed) {
+            await this.options.highlightListController.refreshView(true, false, false, preserveRendered);
+        }
     }
 }

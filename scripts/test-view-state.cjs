@@ -100,7 +100,34 @@ async function races() {
     const canvasing=canvas.files.navigate(ViewState.filePage(new TFile('map.canvas')));await Promise.resolve();
     await canvas.files.navigate(ViewState.filePage(B));canvasGate.resolve([row('old canvas')]);await canvasing;
     assert.equal(canvas.rendered[0].text,'B');
+    const smoothGate=deferred(),smooth=harness(f=>f===B?smoothGate.promise:Promise.resolve([row('A')]));
+    const oldSurface=new Element();smooth.container.children=[oldSurface];const previousClears=smooth.clears;
+    const switching=smooth.files.navigate(ViewState.filePage(B));await Promise.resolve();
+    assert.equal(smooth.container.children[0],oldSurface,'Navigation keeps the previous cards until the next file is ready');
+    assert.equal(smooth.clears,previousClears,'Navigation does not flash an empty loading surface');
+    smoothGate.resolve([row('B')]);await switching;assert.equal(smooth.rendered[0].text,'B');
     console.log('Navigation: file ordering, global search, all highlights, Canvas and closed-view late results passed.');
+}
+
+async function fileListKeyboardNavigation() {
+    timers.clear();
+    const {FileListItemRenderer}=load('src/views/managers/FileListItemRenderer.ts',{
+        obsidian:{TFile,MarkdownView:class{},setIcon(){}},'../../../main':{},'../../i18n':{t:s=>s},'./FileListDataSource':{}
+    });
+    const renderer=new FileListItemRenderer({});
+    const list={items:[],querySelectorAll(){return this.items;}};
+    const item=()=>{
+        const el=new Element();el.parentElement=list;el.ownerDocument={defaultView:fakeWindow};el.isConnected=true;
+        el.scrollIntoView=options=>{el.scrolled=options;};el.click=()=>{el.clicks=(el.clicks||0)+1;};
+        list.items.push(el);FileListItemRenderer.prototype.makeKeyboardAction.call(renderer,el);return el;
+    };
+    const first=item(),second=item(),third=item();
+    const key=(el,value)=>el.listeners.keydown({key:value,preventDefault(){this.prevented=true;}});
+    key(first,'ArrowDown');assert.equal(second.focused,true);assert.equal(second.scrolled.block,'nearest');assert.equal(timers.size,1);
+    key(second,'ArrowDown');assert.equal(third.focused,true);assert.equal(timers.size,1,'Held arrows coalesce pending loads');
+    [...timers.values()][0]();timers.clear();assert.equal(third.clicks,1);assert.equal(second.clicks,undefined);
+    key(third,'Home');assert.equal(first.focused,true);renderer.destroy();assert.equal(timers.size,0,'Destroy cancels keyboard navigation');
+    console.log('File list keyboard: arrows move focus, coalesce loads and clean up pending navigation.');
 }
 async function queries() {
     const rows=[{...row('annotated'),comments:[{content:'note'}]},row('plain')];const env=harness(async()=>rows,async()=>rows);
@@ -407,4 +434,4 @@ async function favoritesNavigation() {
     assert.equal(racing.rendered[0].text, 'file');
     console.log('Favorites navigation: dedicated scope, filtered/empty states, session restore and late response isolation passed.');
 }
-(async()=>{await toolbarFileComment();await paginationRerender();await favoriteButtons();await favoritesNavigation();await races();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();await metadataRefresh();})().catch(error=>{console.error(error);process.exitCode=1;});
+(async()=>{await toolbarFileComment();await paginationRerender();await favoriteButtons();await favoritesNavigation();await races();await fileListKeyboardNavigation();await queries();await layoutAndLifetime();await debounceAndLicense();await commentSources();await drafts();await metadataRefresh();})().catch(error=>{console.error(error);process.exitCode=1;});
