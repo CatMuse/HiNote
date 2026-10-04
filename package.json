@@ -27,8 +27,7 @@
 		"test:exclusions": "node scripts/test-exclusions.cjs",
 		"test:secrets": "node scripts/test-ai-secrets.cjs",
 		"test:ai": "node scripts/test-ai-connections.cjs",
-		"test:smart-highlights": "node scripts/test-smart-highlights.cjs",
-		"test:related-highlights": "node scripts/test-related-highlights.cjs"
+		"test:smart-highlights": "node scripts/test-smart-highlights.cjs"
 	},
 	"keywords": [],
 	"author": "",
