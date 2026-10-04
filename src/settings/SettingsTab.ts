@@ -1,7 +1,6 @@
 import { App, PluginSettingTab, Setting, type SettingDefinitionItem } from 'obsidian';
 import { GeneralSettingsTab } from './tabs/GeneralSettingsTab';
 import { AIServiceTab } from './tabs/AIServiceTab';
-import { SmartHighlightSettingsTab } from './tabs/SmartHighlightSettingsTab';
 import { t } from '../i18n';
 import type CommentPlugin from '../../main';
 
@@ -24,10 +23,7 @@ export class AISettingTab extends PluginSettingTab {
             this.createSettingsSection(t('AI service'), [
                 'AI service', 'API key', 'Server URL', 'Model', 'Prompt settings',
                 'OpenAI', 'Anthropic', 'Gemini', 'Deepseek', 'SiliconFlow', 'Ollama', 'Custom'
-            ], container => new AIServiceTab(this.plugin, container).display()),
-            this.createSettingsSection(t('Smart highlight'), [
-                'Smart highlight', 'TypeSafe', 'Jev', 'Reading goal', 'Suggestion density', 'Highlight color'
-            ], container => new SmartHighlightSettingsTab(this.plugin, container).display())
+            ], container => new AIServiceTab(this.plugin, container).display())
         ];
     }
 
