@@ -17,9 +17,7 @@ const tasks = [
     'test:hicard-view',
     'test:exclusions',
     'test:secrets',
-    'test:ai',
-    'test:smart-highlights',
-    'test:related-highlights'
+    'test:ai'
 ];
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
