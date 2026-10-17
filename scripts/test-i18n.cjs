@@ -39,6 +39,15 @@ for (const [input, language, expected] of [['zh-cn', 'zh', 'zh-CN'], ['zh-tw', '
     assert.equal(formatDate(date), date.toLocaleDateString(expected));
     assert.equal(formatDateTime(date), date.toLocaleString(expected));
 }
+// Date options must also follow UI language, regardless of the machine's locale.
+locale = 'en';
+assert.equal(formatDate(date, { weekday: 'short' }), 'Fri');
+assert.ok(!/[\u3400-\u9fff]/.test(formatDate(date, { weekday: 'short' })));
+assert.equal(t('{count} day', { count: 1 }), '1 day');
+locale = 'zh-cn';
+assert.match(formatDate(date, { weekday: 'short' }), /五/);
+assert.equal(t('{count} day', { count: 1 }), '1 天');
+
 const placeholders = text => [...new Set([...text.matchAll(/(?<!\{)\{([a-zA-Z][a-zA-Z0-9_]*)\}(?!\})/g)].map(match => match[1]))].sort();
 for (const [language, dictionary] of Object.entries({ en, zh })) {
     for (const [key, value] of Object.entries(dictionary)) {
@@ -81,6 +90,15 @@ for (const filename of [...files(path.join(root, 'src')), path.join(root, 'main.
         // Variable keys (provider labels, user-defined names) are verified at their definitions.
     }
     function visit(node) {
+        if ((filename.includes('/views/hicard/') || filename.endsWith('/flashcard/components/FlashcardStatsPanel.ts'))
+            && ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
+            && ['toLocaleDateString', 'toLocaleString', 'toLocaleTimeString'].includes(node.expression.name.text)) {
+            const localeArg = node.arguments[0];
+            if (!localeArg || localeArg.kind === ts.SyntaxKind.NullKeyword
+                || (ts.isIdentifier(localeArg) && localeArg.text === 'undefined')) {
+                report(node, 'HiCard dates must use UI locale explicitly or an i18n date formatter');
+            }
+        }
         if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 't') checkKey(node.arguments[0]);
         if (ts.isNewExpression(node) && node.expression.getText(source) === 'Notice' && node.arguments?.[0] && ts.isStringLiteral(node.arguments[0])) report(node, 'Notice must use a translated string');
         if (ts.isPropertyAssignment(node) && node.name.getText(source) === 'heading') checkKey(node.initializer);

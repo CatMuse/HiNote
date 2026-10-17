@@ -1,3 +1,4 @@
+import { buildLinkedCardAnswer } from './LinkedCardContent';
 import type CommentPlugin from "../../../main";
 import type { CommentItem } from "../../types/highlight";
 import type { FlashcardState } from "../types/FSRSTypes";
@@ -80,7 +81,7 @@ export class FlashcardEventSyncService {
         let updatedCount = 0;
 
         for (const card of foundCards) {
-            const newAnswer = this.buildAnswer(card, commentContents);
+            const newAnswer = buildLinkedCardAnswer(card.text, commentContents.map(content => ({ content })));
             if (newAnswer !== card.answer) {
                 card.answer = newAnswer;
                 card.updatedAt = Date.now();
@@ -98,33 +99,6 @@ export class FlashcardEventSyncService {
         if (this.options.deleteCardsBySourceId(sourceId, "highlight") > 0) {
             this.options.emitFlashcardChanged();
         }
-    }
-
-    private buildAnswer(card: FlashcardState, commentContents: string[]): string {
-        const answerParts: string[] = [];
-        const clozeAnswers = this.extractClozeAnswers(card.text);
-
-        if (clozeAnswers.length > 0) {
-            answerParts.push(clozeAnswers.join("\n"));
-        }
-
-        if (commentContents.length > 0) {
-            answerParts.push(commentContents.join("\n\n"));
-        }
-
-        return answerParts.length > 0 ? answerParts.join("\n\n") : "";
-    }
-
-    private extractClozeAnswers(text: string): string[] {
-        const clozeRegex = /\{\{([^{}]+)\}\}/g;
-        const answers: string[] = [];
-        let match: RegExpExecArray | null;
-
-        while ((match = clozeRegex.exec(text)) !== null) {
-            answers.push(match[1]);
-        }
-
-        return answers;
     }
 
     private getCommentContents(comments: CommentItem[]): string[] {

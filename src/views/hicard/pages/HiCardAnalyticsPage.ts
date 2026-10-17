@@ -1,5 +1,5 @@
 import type CommentPlugin from '../../../../main';
-import { t } from '../../../i18n';
+import { t, formatDate } from '../../../i18n';
 import { FlashcardStatsPanel } from '../../../flashcard/components/FlashcardStatsPanel';
 import { isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
 import { renderHiCardPageHeader } from './HiCardPageHeader';
@@ -85,12 +85,12 @@ export class HiCardAnalyticsPage {
         const max = Math.max(1, ...values.map(item => item.value));
         const chart = section.createDiv({ cls: 'hicard-bar-chart' });
         for (const item of values) {
-            const column = chart.createDiv({ cls: 'hicard-bar-column', attr: { 'aria-label': `${item.date.toLocaleDateString()}: ${item.value}` } });
+            const column = chart.createDiv({ cls: 'hicard-bar-column', attr: { 'aria-label': `${formatDate(item.date)}: ${item.value}` } });
             column.createDiv({ cls: 'hicard-bar-value', text: item.value ? String(item.value) : '' });
             const track = column.createDiv({ cls: 'hicard-bar-track' });
             const bar = track.createDiv({ cls: 'hicard-bar-fill' });
             bar.style.height = `${Math.max(item.value ? 8 : 2, item.value / max * 100)}%`;
-            column.createDiv({ cls: 'hicard-bar-label', text: item.date.toLocaleDateString(undefined, { weekday: 'narrow' }) });
+            column.createDiv({ cls: 'hicard-bar-label', text: formatDate(item.date, { weekday: 'short' }) });
         }
     }
 

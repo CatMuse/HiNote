@@ -234,7 +234,9 @@ async function transactions(original) {
         getFlashcardData: async () => structuredClone(disk),
         saveFlashcardData: async value => { await beforeWrite(); disk = structuredClone(value); }
     };
-    const plugin = { registerEvent: () => {}, eventManager: { on: () => ({}), emitFlashcardChanged: () => {} } };
+    const sourceRecord = { id: 'source', text: 'Original source', comments: [{ content: 'Source annotation' }] };
+    const plugin = { highlightRepository: { findHighlightById: id => id === 'source' ? sourceRecord : null },
+        registerEvent: () => {}, eventManager: { on: () => ({}), emitFlashcardChanged: () => {} } };
     const manager = new FSRSManager(plugin, data);
     await manager.initialize();
     let release;
@@ -273,6 +275,21 @@ async function transactions(original) {
     beforeWrite = async () => {};
     assert.equal(await manager.updateCard(original.id, { answer: 'Durable edit' }, ['group']), true);
     assert.equal(disk.cards[original.id].answer, 'Durable edit', 'Successful card edits commit to disk');
+    const previous = structuredClone(disk.cards[original.id]);
+    await assert.rejects(manager.updateCard(original.id, { frontCustomized: true, text: '   ' }), /cannot be empty/);
+    beforeWrite = async () => { throw Error('write failed'); };
+    await assert.rejects(manager.updateCard(original.id, { frontCustomized: true, text: 'Failed edit' }), /write failed/);
+    assert.equal(manager.getAllCards()[0].frontCustomized, undefined, 'Failed front save cannot enable custom mode');
+    beforeWrite = async () => {};
+    await manager.updateCard(original.id, { frontCustomized: true, text: 'My {{custom answer}}' }, ['group']);
+    assert.equal(disk.cards[original.id].answer, 'custom answer\n\nSource annotation');
+    assert.equal(disk.cards[original.id].frontCustomized, true);
+    assert.equal(disk.cards[original.id].nextReview, previous.nextReview);
+    assert.equal(JSON.stringify(disk.cards[original.id].reviewHistory), JSON.stringify(previous.reviewHistory));
+    assert.equal(sourceRecord.text, 'Original source', 'Editing a card never changes its source');
+    sourceRecord.text = 'Updated {{source answer}}';
+    manager.updateCardsBySourceId('source', 'highlight', sourceRecord.text);
+    assert.equal(manager.getAllCards()[0].text, 'My {{custom answer}}', 'Source updates cannot overwrite a customized front');
     const schedule = disk.cards[original.id].nextReview;
     await manager.setCardSuspended(original.id, true);
     assert.equal(manager.getCardsForStudy('hinote:all').length, 0);
@@ -284,6 +301,16 @@ async function transactions(original) {
     const restarted = new FSRSManager(plugin, data);
     await restarted.initialize();
     assert.equal(restarted.getAllCards()[0].reviews, 0);
+    assert.equal(restarted.getAllCards()[0].frontCustomized, true, 'Customized mode survives storage round trip');
+    assert.equal(restarted.getAllCards()[0].text, 'My {{custom answer}}');
+    await restarted.updateCard(original.id, { frontCustomized: false });
+    assert.equal(restarted.getAllCards()[0].text, sourceRecord.text, 'Restore uses latest source, not dialog snapshot');
+    assert.equal(restarted.getAllCards()[0].answer, 'source answer\n\nSource annotation');
+    assert.equal(restarted.getAllCards()[0].nextReview, schedule);
+    sourceRecord.text = 'Following again';
+    restarted.updateCardsBySourceId('source', 'highlight', sourceRecord.text);
+    assert.equal(restarted.getAllCards()[0].text, 'Following again');
+
     assert.equal(restarted.getAllCards()[0].suspended, true, 'Pause survives restart');
     await restarted.setCardSuspended(original.id, false);
     assert.equal(restarted.getAllCards()[0].nextReview, schedule, 'Resume preserves schedule');

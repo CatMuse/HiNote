@@ -8,6 +8,7 @@ export interface ReviewLog {
 
 export interface FlashcardState {
     suspended?: boolean;
+    frontCustomized?: boolean; // A linked card front is edited independently of its source.
     state?: number;
     learningSteps?: number;
     scheduledDays?: number;

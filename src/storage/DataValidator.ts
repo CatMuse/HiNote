@@ -264,6 +264,7 @@ export class DataValidator {
         }
         if (card.groupIds !== undefined && !this.isStringArray(card.groupIds)) errors.push(`${path}.groupIds必须是字符串数组`);
         if (card.suspended !== undefined && typeof card.suspended !== 'boolean') errors.push(`${path}.suspended必须是布尔值`);
+        if (card.frontCustomized !== undefined && typeof card.frontCustomized !== 'boolean') errors.push(`${path}.frontCustomized必须是布尔值`);
         if (card.sourceType !== undefined && card.sourceType !== 'highlight' && card.sourceType !== 'comment') errors.push(`${path}.sourceType无效`);
         return errors;
     }

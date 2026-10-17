@@ -38,7 +38,7 @@ export class FlashcardReviewService {
         this.saving = true;
         const current = storage.cards[undo.card.id];
         storage.cards[undo.card.id] = { ...undo.card,
-            text: current.text, answer: current.answer,
+            text: current.text, answer: current.answer, frontCustomized: current.frontCustomized,
             filePath: current.filePath, groupIds: current.groupIds, updatedAt: current.updatedAt };
         storage.globalStats = undo.stats;
         storage.dailyStats = undo.daily;

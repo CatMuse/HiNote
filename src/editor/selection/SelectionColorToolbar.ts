@@ -11,6 +11,7 @@ import { SelectionHighlightActions } from './SelectionHighlightActions';
 import { t } from '../../i18n';
 import { CommentService } from '../../services/comment';
 import { FloatingCommentInput } from '../../components/comment';
+import { registerSelectionToolbarDocuments } from './SelectionToolbarDocuments';
 
 interface PendingAutoHighlight {
     context: SelectionContext;
@@ -21,6 +22,7 @@ interface PendingAutoHighlight {
 class SelectionColorController extends Component {
     private toolbar?: HTMLElement;
     private timer?: number;
+    private timerWindow?: Window;
     private pointerDownInEditor = false;
     private disposed = false;
     private extractor: HighlightExtractor;
@@ -42,10 +44,17 @@ class SelectionColorController extends Component {
     }
 
     onload(): void {
-        const doc = activeDocument;
+        registerSelectionToolbarDocuments(this, this.plugin.app.workspace, (scope, doc) => {
+            this.bindDocument(scope, doc);
+        });
+        this.registerEvent(this.plugin.app.workspace.on('active-leaf-change', () => this.hide()));
+        this.registerEvent(this.plugin.app.workspace.on('file-open', () => this.hide()));
+    }
+
+    private bindDocument(scope: Component, doc: Document): void {
         const win = doc.defaultView;
         if (!win) return;
-        this.registerDomEvent(doc, 'pointerdown', event => {
+        scope.registerDomEvent(doc, 'pointerdown', event => {
             const target = event.target as Node;
             if (this.toolbar?.contains(target)) return;
             const editor = this.selectionCapture.getEditorView();
@@ -53,27 +62,25 @@ class SelectionColorController extends Component {
             this.pointerDownInEditor = !!editor?.dom.contains(target) || !!preview?.contains(target);
             this.hide();
         });
-        this.registerDomEvent(doc, 'pointerup', () => {
+        scope.registerDomEvent(doc, 'pointerup', () => {
             if ((this.pointerDownInEditor || this.selectionCapture.isPreview()) && !this.selectionUpdatesSuppressed()) {
                 this.pointerDownInEditor = false;
                 this.schedule();
             }
         });
-        this.registerDomEvent(doc, 'selectionchange', () => {
+        scope.registerDomEvent(doc, 'selectionchange', () => {
             if (this.selectionCapture.isPreview() && !this.commentInputActive && !this.selectionUpdatesSuppressed()) this.schedule();
         });
-        this.registerDomEvent(doc, 'click', event => {
+        scope.registerDomEvent(doc, 'click', event => {
             if (this.toolbar?.contains(event.target as Node) || this.commentInputActive) return;
             void this.showForHighlightClick(event);
         });
-        this.registerDomEvent(doc, 'keydown', event => {
+        scope.registerDomEvent(doc, 'keydown', event => {
             if (event.key === 'Escape' && !this.commentInput?.isProcessing()) void this.cancelComment(true);
         });
-        this.registerDomEvent(doc, 'scroll', () => this.hide(), true);
-        this.registerDomEvent(win, 'resize', () => this.hide());
-        this.registerDomEvent(win, 'blur', () => this.hide());
-        this.registerEvent(this.plugin.app.workspace.on('active-leaf-change', () => this.hide()));
-        this.registerEvent(this.plugin.app.workspace.on('file-open', () => this.hide()));
+        scope.registerDomEvent(doc, 'scroll', () => this.hide(), true);
+        scope.registerDomEvent(win, 'resize', () => this.hide());
+        scope.registerDomEvent(win, 'blur', () => this.hide());
     }
 
     onEditorUpdate(view: EditorView, update: ViewUpdate): void {
@@ -88,11 +95,13 @@ class SelectionColorController extends Component {
 
     private schedule(): void {
         if (this.disposed || this.openingComment || this.commentInputActive || this.selectionUpdatesSuppressed()) return;
-        const win = activeDocument.defaultView;
+        const win = this.selectionCapture.getMarkdownView()?.containerEl.ownerDocument.defaultView;
         if (!win) return;
-        if (this.timer !== undefined) win.clearTimeout(this.timer);
+        if (this.timer !== undefined) this.timerWindow?.clearTimeout(this.timer);
+        this.timerWindow = win;
         this.timer = win.setTimeout(() => {
             this.timer = undefined;
+            this.timerWindow = undefined;
             void this.show();
         }, 140);
     }
@@ -116,7 +125,7 @@ class SelectionColorController extends Component {
 
     private render(captured: { context: SelectionContext; anchor: Rect }): void {
         this.hide();
-        const doc = activeDocument;
+        const doc = captured.context.markdownView.containerEl.ownerDocument;
         const win = doc.defaultView;
         if (!win) return;
         const popover = this.toolbar = doc.body.createDiv({ cls: 'hinote-selection-color-popover' });
@@ -350,9 +359,9 @@ class SelectionColorController extends Component {
 
     private hide(force = false): void {
         if (this.openingComment || (this.commentInputActive && !force)) return;
-        const win = activeDocument.defaultView;
-        if (this.timer !== undefined) win?.clearTimeout(this.timer);
+        if (this.timer !== undefined) this.timerWindow?.clearTimeout(this.timer);
         this.timer = undefined;
+        this.timerWindow = undefined;
         this.closeComment(false);
         this.toolbar?.remove();
         this.toolbar = undefined;

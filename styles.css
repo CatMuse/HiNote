@@ -5641,3 +5641,41 @@ button.flashcard-reveal-button {
     }
     .hicard-study-container .flashcard-rating { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.hicard-front-editor { display: grid; gap: 10px; }
+.hicard-front-tabs { display: flex; gap: 4px; }
+.hicard-front-tabs [role="tab"] {
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-muted);
+}
+.hicard-front-tabs [aria-selected="true"] {
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+.hicard-front-editor [role="tabpanel"]:not([hidden]) { display: grid; gap: 10px; }
+.hicard-front-editor [hidden] { display: none; }
+.hicard-front-editor textarea { width: 100%; }
+.hicard-front-restore { justify-self: start; }
+.hicard-source-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 240px;
+    overflow-y: auto;
+    line-height: var(--line-height-normal);
+    padding: 12px;
+    background: var(--background-secondary);
+    border-radius: var(--radius-m);
+    user-select: text;
+}
+.hicard-editor-modal .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.hicard-editor-help {
+    flex: 0 0 auto;
+    padding: 2px;
+    color: var(--text-muted);
+}
+.hicard-editor-help svg { width: 16px; height: 16px; }

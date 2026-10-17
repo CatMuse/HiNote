@@ -313,8 +313,63 @@ function testCopyHighlightFormatting() {
     assert.ok(!fileComment.includes('\n> File Comment\n'));
 }
 
+function testSelectionToolbarDocuments() {
+    class Component {
+        constructor() { this.cleanups = []; this.children = new Set(); }
+        addChild(child) { this.children.add(child); return child; }
+        removeChild(child) { child.unload(); this.children.delete(child); }
+        register(cleanup) { this.cleanups.push(cleanup); }
+        registerEvent(ref) { this.register(ref.off); }
+        registerDomEvent(doc, name, fn) {
+            doc.addEventListener(name, fn);
+            this.register(() => doc.removeEventListener(name, fn));
+        }
+        unload() {
+            for (const child of this.children) child.unload();
+            this.children.clear();
+            for (const cleanup of this.cleanups.splice(0)) cleanup();
+        }
+    }
+    function document() {
+        const listeners = new Set();
+        return { addEventListener: (_name, fn) => listeners.add(fn),
+            removeEventListener: (_name, fn) => listeners.delete(fn),
+            click: () => { for (const fn of listeners) fn(); }, listeners };
+    }
+    const main = document(), settings = document(), existing = document(), opened = document();
+    const leaves = [main, existing, existing];
+    const events = new Map(); let ready;
+    const workspace = {
+        containerEl: { ownerDocument: main },
+        iterateAllLeaves: fn => leaves.forEach(doc => fn({ view: { containerEl: { ownerDocument: doc } } })),
+        on: (name, fn) => { events.set(name, fn); return { off: () => events.delete(name) }; },
+        onLayoutReady: fn => { ready = fn; }
+    };
+    const { registerSelectionToolbarDocuments } = load('src/editor/selection/SelectionToolbarDocuments.ts', {
+        obsidian: { Component }
+    }, { activeDocument: settings });
+    const owner = new Component(); let clicks = 0;
+    registerSelectionToolbarDocuments(owner, workspace, (scope, doc) => {
+        scope.registerDomEvent(doc, 'click', () => clicks++);
+    });
+    main.click(); existing.click(); settings.click();
+    assert.equal(clicks, 2, 'Enabling in Settings must bind main and existing editor windows');
+    ready();
+    assert.equal(existing.listeners.size, 1, 'Layout readiness must not duplicate bindings');
+    events.get('window-open')({}, { document: opened });
+    opened.click(); assert.equal(clicks, 3, 'New editor windows receive events');
+    events.get('window-close')({}, { document: opened });
+    opened.click(); assert.equal(clicks, 3, 'Closing a window removes its listeners');
+    owner.unload();
+    main.click(); existing.click(); ready();
+    assert.equal(clicks, 3, 'Unload removes all document listeners');
+    assert.equal(main.listeners.size, 0, 'Delayed layout callback cannot reattach after unload');
+    assert.equal(events.size, 0, 'Workspace lifecycle listeners are removed');
+}
+
 (async () => {
     testReviewDomRules();
+    testSelectionToolbarDocuments();
     await testKeyboard();
     await testSettings();
     await testAICommentLocalUpdate();
@@ -327,6 +382,35 @@ function testCopyHighlightFormatting() {
     const versions = JSON.parse(fs.readFileSync('versions.json'));
     assert.equal(manifest.minAppVersion, '1.13.0');
     assert.equal(versions['0.5.8'], '1.8.0');
-    assert.equal(versions[manifest.version], manifest.minAppVersion);
-    console.log('Review regressions passed: IME, keyboard shortcuts, settings search definitions and lifecycle, local AI comment updates, file-comment drafts/context/copy, versions.');
+    // master temporarily keeps the published version to avoid advertising a release
+    // without downloadable assets. Preserve 0.5.8's historical compatibility;
+    // the unreleased implementation already requires Keychain from 1.13.
+    if (manifest.version !== '0.5.8') {
+        assert.equal(versions[manifest.version], manifest.minAppVersion);
+    }
+    const pkg = JSON.parse(fs.readFileSync('package.json'));
+    const lock = JSON.parse(fs.readFileSync('package-lock.json'));
+    assert.equal(pkg.version, manifest.version);
+    assert.equal(lock.version, manifest.version);
+    assert.equal(lock.packages[''].version, manifest.version);
+    const { validateReleaseMetadata } = require('./check-release-metadata.cjs');
+    if (manifest.version === '0.5.8') {
+        assert.throws(() => validateReleaseMetadata('0.5.8', manifest, versions, pkg, lock),
+            /Release compatibility mapping/, 'Development rollback is not valid release metadata');
+    } else {
+        validateReleaseMetadata(manifest.version, manifest, versions, pkg, lock);
+    }
+    const release = { ...manifest, version: '0.6.0' };
+    const releasePkg = { ...pkg, version: '0.6.0' };
+    const releaseLock = { ...lock, version: '0.6.0', packages: {
+        ...lock.packages, '': { ...lock.packages[''], version: '0.6.0' }
+    } };
+    validateReleaseMetadata('0.6.0', release, { ...versions, '0.6.0': '1.13.0' }, releasePkg, releaseLock);
+    assert.throws(() => validateReleaseMetadata('v0.6.0', release, versions, releasePkg, releaseLock),
+        /plain semantic version/);
+    assert.throws(() => validateReleaseMetadata('0.6.1', release, versions, releasePkg, releaseLock),
+        /Release tag must match/);
+    assert.throws(() => validateReleaseMetadata('0.6.0', release, versions, releasePkg, releaseLock),
+        /Release compatibility mapping/);
+    console.log('Review regressions passed: IME, keyboard shortcuts, settings search definitions and lifecycle, local AI comment updates, file-comment drafts/context/copy, workspace document lifecycle, development/release versions.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

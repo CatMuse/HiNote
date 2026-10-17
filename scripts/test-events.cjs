@@ -46,6 +46,10 @@ assert.deepEqual(manager.events.emitted.map(event => event[0]), [
     'highlight:update', 'records:changed', 'comment:delete', 'records:changed'
 ]);
 
+const contentExports = {};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/flashcard/services/LinkedCardContent.ts', 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
+}).outputText, { exports: contentExports });
 const syncSource = fs.readFileSync('src/flashcard/services/FlashcardEventSyncService.ts', 'utf8');
 const syncCode = ts.transpileModule(syncSource, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
@@ -54,13 +58,22 @@ const syncExports = {};
 vm.runInNewContext(syncCode, {
     exports: syncExports,
     console,
-    require: request => { throw new Error(`Unexpected import: ${request}`); }
+    require: request => { if (request === './LinkedCardContent') return contentExports; throw new Error(`Unexpected import: ${request}`); }
 }, { filename: 'src/flashcard/services/FlashcardEventSyncService.ts' });
 
+const sourceCardExports = {};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/flashcard/services/SourceCardService.ts', 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
+}).outputText, { exports: sourceCardExports });
 const cards = [{ id: 'card-1', sourceId: 'source-1', sourceType: 'highlight', text: 'old', answer: 'old answer' }];
 let record = { id: 'source-1', comments: [{ content: 'synced answer' }] };
 let saves = 0;
 let cardChanges = 0;
+const sourceCards = new sourceCardExports.SourceCardService({
+    getStorage: () => ({ cards: Object.fromEntries(cards.map(card => [card.id, card])) }),
+    removeCardFromGroup: () => true,
+    saveDebounced: () => saves++
+});
 const sync = new syncExports.FlashcardEventSyncService({
     plugin: {
         eventManager: manager,
@@ -68,15 +81,7 @@ const sync = new syncExports.FlashcardEventSyncService({
         highlightRepository: { findHighlightById: id => id === record.id ? record : null }
     },
     findCardsBySourceId: id => cards.filter(card => card.sourceId === id),
-    updateCardsBySourceId: (id, _type, text, answer) => {
-        const found = cards.filter(card => card.sourceId === id);
-        for (const card of found) {
-            if (text !== undefined) card.text = text;
-            if (answer !== undefined) card.answer = answer;
-        }
-        if (found.length) saves++;
-        return found.length;
-    },
+    updateCardsBySourceId: (...args) => sourceCards.updateCardsBySourceId(...args),
     deleteCardsBySourceId: id => {
         const index = cards.findIndex(card => card.sourceId === id);
         if (index < 0) return 0;
@@ -94,6 +99,14 @@ record = { ...record, comments: [] };
 manager.emitHighlightUpdate('note.md', 'old', 'new question', 'source-1');
 assert.equal(cards[0].text, 'new question', 'Highlight edits update the linked card question');
 assert.equal(cards[0].answer, '', 'Removing the last annotation clears the linked card answer');
+cards[0].text = 'Custom {{cloze}}';
+cards[0].frontCustomized = true;
+record.comments = [{ content: 'Updated annotation' }];
+manager.emitHighlightUpdate('note.md', 'new question', 'Changed source', 'source-1');
+assert.equal(cards[0].text, 'Custom {{cloze}}', 'Real source sync preserves custom fronts');
+assert.equal(cards[0].answer, 'cloze\n\nUpdated annotation', 'Answers use custom clozes and latest source annotations');
+manager.emitCommentUpdate('note.md', '', 'Next annotation', 'source-1');
+assert.equal(cards[0].text, 'Custom {{cloze}}');
 manager.emitHighlightDelete('note.md', 'new question', 'source-1');
 assert.equal(cards.length, 0, 'Deleting the source highlight deletes its linked card');
 assert.ok(saves >= 3 && cardChanges >= 3, 'Every source mutation persists and notifies open HiCard views');

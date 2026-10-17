@@ -1,8 +1,9 @@
-import { Modal, Notice, TFile } from 'obsidian';
+import { HiCardFrontEditor } from './HiCardFrontEditor';
+import { Modal, Notice, TFile, MarkdownView, setIcon, setTooltip } from 'obsidian';
 import type CommentPlugin from '../../../../main';
 import { CommentInput } from '../../../components/comment';
 import { CommentList } from '../../../components/highlight';
-import { t } from '../../../i18n';
+import { t, formatDateTime } from '../../../i18n';
 import type { FlashcardState } from '../../../flashcard';
 import { isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
 import type { CommentItem, HighlightRecord } from '../../../types/highlight';
@@ -34,6 +35,13 @@ export class HiCardEditorModal extends Modal {
         this.containerEl.addEventListener('mousedown', this.preventOutsideDismiss, true);
         this.containerEl.addEventListener('click', this.preventOutsideDismiss, true);
         this.titleEl.setText(t('Edit card'));
+        if (this.isLinkedCard()) {
+            const help = this.titleEl.createEl('button', {
+                cls: 'clickable-icon hicard-editor-help', attr: { type: 'button' }
+            });
+            setIcon(help, 'circle-help');
+            setTooltip(help, t('Rewrite the front without changing the source. Source updates preserve your rewrite; restore source text to follow it again. Save applies front and group changes; Cancel discards them. Annotation edits are saved to the source immediately.'), { placement: 'bottom' });
+        }
         void this.renderEditor();
     }
 
@@ -63,8 +71,14 @@ export class HiCardEditorModal extends Modal {
     }
 
     private renderLinkedContent(form: HTMLElement, record: HighlightRecord | null): void {
-        const question = this.textarea(form, t('Highlight text'), record?.text ?? this.card.text, '');
-        question.readOnly = true;
+        const front = new HiCardFrontEditor(form, this.card, record?.text ?? null, () => {
+            void (async () => {
+                if (front.hasChanges() && !await showConfirmModal(this.plugin.app, {
+                    title: t('Open source'), message: t('Discard the unsaved card front and open the source?')
+                })) return;
+                await this.openSource(record);
+            })().catch(error => new Notice(error instanceof Error ? error.message : String(error)));
+        });
 
         const section = form.createDiv({ cls: 'hicard-card-editor-groups' });
         section.createDiv({ cls: 'hicard-form-label', text: t('Annotations') });
@@ -73,10 +87,6 @@ export class HiCardEditorModal extends Modal {
             this.linkedRecord = record;
             this.annotationHost = section.createDiv({ cls: 'hicard-annotation-card-list' });
             this.renderAnnotationComments();
-            section.createDiv({
-                cls: 'setting-item-description',
-                text: t('Changes are synced to the source highlight.')
-            });
             const add = section.createEl('button', { text: t('Add another annotation'), attr: { type: 'button' } });
             add.addEventListener('click', () => this.openAnnotationInput());
         } else {
@@ -88,9 +98,27 @@ export class HiCardEditorModal extends Modal {
 
         const checks = this.renderGroups(form);
         this.renderActions(async () => {
-            await this.plugin.fsrsManager.updateCard(this.card.id, {}, this.selectedGroupIds(checks));
+            const change = front.getChange();
+            if (change !== undefined) await this.loadLinkedRecord();
+            const updated = await this.plugin.fsrsManager.updateCard(this.card.id,
+                change === undefined ? {} : { frontCustomized: change !== null, text: change ?? undefined },
+                this.selectedGroupIds(checks));
+            if (!updated) throw new Error(t('The source highlight is unavailable. Try again after locating it.'));
             this.finish(t('Card updated'));
-        }, t('Done'));
+        }, t('Save'));
+    }
+
+    private async openSource(record: HighlightRecord | null): Promise<void> {
+        if (!record) return;
+        const file = this.plugin.app.vault.getAbstractFileByPath(record.filePath);
+        if (!(file instanceof TFile)) throw new Error(t('No corresponding file found.'));
+        const leaf = this.plugin.app.workspace.getLeaf('tab');
+        await leaf.openFile(file);
+        if (leaf.view instanceof MarkdownView && record.position !== undefined) {
+            const position = leaf.view.editor.offsetToPos(record.position);
+            leaf.setEphemeralState({ line: position.line });
+        }
+        this.close();
     }
 
     /** Existing source-less cards remain editable, but no new source-less cards can be created. */
@@ -194,17 +222,19 @@ export class HiCardEditorModal extends Modal {
     }
 
     private renderGroups(container: HTMLElement): Map<string, HTMLInputElement> {
+        const checks = new Map<string, HTMLInputElement>();
+        const availableGroups = this.plugin.fsrsManager.getCardGroups()
+            .filter(group => !isSystemCardGroup(group.id) && !group.filter?.trim());
+        if (!availableGroups.length) return checks;
         const groups = container.createDiv({ cls: 'hicard-card-editor-groups' });
         groups.createDiv({ cls: 'hicard-form-label', text: t('Study groups') });
-        const checks = new Map<string, HTMLInputElement>();
-        for (const group of this.plugin.fsrsManager.getCardGroups().filter(group => !isSystemCardGroup(group.id) && !group.filter?.trim())) {
+        for (const group of availableGroups) {
             const label = groups.createEl('label', { cls: 'hicard-check-row' });
             const check = label.createEl('input', { attr: { type: 'checkbox' } });
             check.checked = Boolean(this.card.groupIds?.includes(group.id));
             checks.set(group.id, check);
             label.createSpan({ text: group.name });
         }
-        if (!checks.size) groups.createDiv({ cls: 'setting-item-description', text: t('Create a manual group to organize cards here.') });
         return checks;
     }
 
@@ -249,7 +279,7 @@ export class HiCardEditorModal extends Modal {
         const items: Array<[string, string]> = [
             [t('Reviews'), String(card.reviews)],
             [t('Lapses'), String(card.lapses)],
-            [t('Next review'), card.suspended ? t('Paused cards') : card.lastReview ? new Date(card.nextReview).toLocaleString() : t('Not studied yet')]
+            [t('Next review'), card.suspended ? t('Paused cards') : card.lastReview ? formatDateTime(card.nextReview) : t('Not studied yet')]
         ];
         for (const [label, value] of items) {
             const item = details.createDiv();

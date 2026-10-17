@@ -56,7 +56,7 @@ export class SourceCardService {
         let updatedCount = 0;
 
         for (const card of cardsToUpdate) {
-            if (newText !== undefined) {
+            if (newText !== undefined && !card.frontCustomized) {
                 card.text = newText;
             }
 

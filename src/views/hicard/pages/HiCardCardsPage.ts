@@ -354,7 +354,7 @@ export class HiCardCardsPage {
         if (card.suspended) return t('No review scheduled');
         if (card.lastReview === 0) return t('Not studied yet');
         if (card.nextReview <= Date.now()) return t('Due now');
-        return new Date(card.nextReview).toLocaleString();
+        return formatDateTime(card.nextReview);
     }
 
     private async toggleSuspended(card: FlashcardState): Promise<void> {

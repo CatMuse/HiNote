@@ -1,3 +1,4 @@
+import { buildLinkedCardAnswer } from './LinkedCardContent';
 import { t } from '../../i18n';
 import { 
     FlashcardState, 
@@ -391,14 +392,22 @@ export class FSRSManager {
 
     public updateCard(
         cardId: string,
-        updates: Pick<Partial<FlashcardState>, 'text' | 'answer' | 'filePath'>,
+        updates: Pick<Partial<FlashcardState>, 'text' | 'answer' | 'filePath' | 'frontCustomized'>,
         manualGroupIds?: Iterable<string>
     ): Promise<boolean> {
         const selectedGroups = manualGroupIds ? new Set(manualGroupIds) : null;
         return this.runStorageMutation(draft => {
             const card = draft.cards[cardId];
             if (!card) return { changed: false, result: false };
-            if (typeof updates.text === 'string') card.text = updates.text;
+            if (typeof updates.frontCustomized === 'boolean' && card.sourceType === 'highlight' && card.sourceId) {
+                const source = this.plugin.highlightRepository.findHighlightById(card.sourceId);
+                if (!source) throw new Error(t('The source highlight is unavailable. Try again after locating it.'));
+                const text = updates.frontCustomized ? updates.text?.trim() : source.text;
+                if (!text?.trim()) throw new Error(t('Card front cannot be empty.'));
+                card.text = text;
+                card.frontCustomized = updates.frontCustomized;
+                card.answer = buildLinkedCardAnswer(text, source.comments || []);
+            } else if (typeof updates.text === 'string') card.text = updates.text;
             if (typeof updates.answer === 'string') card.answer = updates.answer;
             if (typeof updates.filePath === 'string') card.filePath = updates.filePath || undefined;
             card.updatedAt = Date.now();
@@ -452,6 +461,7 @@ export class FSRSManager {
                 groupIds: card.groupIds ? [...card.groupIds] : undefined,
                 sourceId: card.sourceId,
                 sourceType: card.sourceType,
+                frontCustomized: card.frontCustomized,
                 suspended: false
             };
             return { changed: true, result: true };

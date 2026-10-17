@@ -58,7 +58,7 @@ export class SelectionCapture {
         const scans = this.extractor.extractHighlights(snapshot, file);
 
         if (isReadingPreview) {
-            const selection = activeDocument.getSelection();
+            const selection = markdownView.containerEl.ownerDocument.getSelection();
             if (!selection || selection.rangeCount !== 1 || selection.isCollapsed) return null;
             const range = selection.getRangeAt(0);
             const host = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
@@ -97,6 +97,7 @@ export class SelectionCapture {
         if (!markdownView || !view || !file || !this.extractor.shouldProcessFile(file) || !view.dom.isConnected) {
             return null;
         }
+        if ((event.target as Node | null)?.ownerDocument !== view.dom.ownerDocument) return null;
         const position = view.posAtCoords({ x: event.clientX, y: event.clientY });
         if (position === null || position === undefined) return null;
         const snapshot = view.state.doc.toString();
@@ -124,6 +125,7 @@ export class SelectionCapture {
         const markdownView = this.getMarkdownView();
         const file = markdownView?.file;
         const target = event.target as HTMLElement | null;
+        if (target?.ownerDocument !== markdownView?.containerEl.ownerDocument) return null;
         const mark = target?.closest<HTMLElement>('mark, span.highlight');
         if (!markdownView || !file || !mark || !this.extractor.shouldProcessFile(file)) return null;
         if (mark.dataset.hinoteSourcePath !== file.path) return null;

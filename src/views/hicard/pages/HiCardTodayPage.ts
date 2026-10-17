@@ -1,6 +1,6 @@
 import { setIcon } from 'obsidian';
 import type CommentPlugin from '../../../../main';
-import { t } from '../../../i18n';
+import { t, formatDate } from '../../../i18n';
 import type { FlashcardState } from '../../../flashcard';
 import type { DailyStats } from '../../../flashcard/types/FSRSTypes';
 import { ALL_CARDS_GROUP, isSystemCardGroup } from '../../../flashcard/types/FlashcardGroups';
@@ -78,7 +78,7 @@ export class HiCardTodayPage {
         for (const item of values) {
             const column = chart.createDiv({
                 cls: 'hicard-today-bar-column',
-                attr: { 'aria-label': `${item.date.toLocaleDateString()}: ${item.value}` }
+                attr: { 'aria-label': `${formatDate(item.date)}: ${item.value}` }
             });
             column.createDiv({ cls: 'hicard-today-bar-value', text: item.value ? String(item.value) : '' });
             const track = column.createDiv({ cls: 'hicard-today-bar-track' });
@@ -86,7 +86,7 @@ export class HiCardTodayPage {
             bar.style.height = `${Math.max(item.value ? 8 : 2, item.value / max * 100)}%`;
             column.createDiv({
                 cls: 'hicard-today-bar-label',
-                text: item.date.toLocaleDateString(undefined, { weekday: 'short' })
+                text: formatDate(item.date, { weekday: 'short' })
             });
         }
     }
@@ -101,7 +101,7 @@ export class HiCardTodayPage {
         const paused = cards.filter(card => card.suspended).length;
         const retention = Math.round(Math.max(0, Math.min(1, stats.averageRetention)) * 100);
         const items: Array<[string, string, string]> = [
-            ['flame', t('Study streak'), t('{count} days', { count: stats.streakDays })],
+            ['flame', t('Study streak'), t(stats.streakDays === 1 ? '{count} day' : '{count} days', { count: stats.streakDays })],
             ['target', t('Recall rate'), `${retention}%`],
             ['layers', t('Cards in library'), String(cards.length)],
             ['pause-circle', t('Paused cards'), String(paused)],

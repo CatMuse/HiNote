@@ -109,7 +109,53 @@ async function independentOpening() {
     }});
     await assert.rejects(recovery.openHiCard()); fail = false; await recovery.openHiCard();
 }
+function frontEditing() {
+    class Field {
+        constructor(options = {}) { this.options = options; this.children = []; this.events = {}; this.attrs = {}; }
+        createDiv(options) { const field = new Field(options); this.children.push(field); return field; }
+        createEl(tag, options) { const field = this.createDiv(options); field.tag = tag; return field; }
+        setText(text) { this.text = text; }
+        setAttribute(key, value) { this.attrs[key] = value; }
+        addEventListener(name, handler) { this.events[name] = handler; }
+        focus() { this.focused = true; }
+        fire(name, event = {}) { this.events[name]?.(event); }
+        all() { return [this, ...this.children.flatMap(child => child.all())]; }
+    }
+    const { HiCardFrontEditor } = load('src/views/hicard/modals/HiCardFrontEditor.ts', {
+        '../../../i18n': { t: value => value }
+    });
+    const host = new Field(), card = { text: 'Original source' };
+    let navigations = 0;
+    const editor = new HiCardFrontEditor(host, card, 'Original source', () => navigations++);
+    const input = host.all().find(field => field.tag === 'textarea');
+    const tabs = host.all().filter(field => field.options.attr?.role === 'tab');
+    const panels = host.all().filter(field => field.options.attr?.role === 'tabpanel');
+    assert.equal(editor.getChange(), undefined, 'Opening and saving untouched content keeps source following');
+    input.value = 'Custom {{answer}}'; input.fire('input');
+    assert.equal(editor.getChange(), 'Custom {{answer}}');
+    tabs[1].fire('click');
+    assert.equal(panels[0].hidden, true);
+    assert.equal(panels[1].hidden, false);
+    assert.equal(host.all().filter(field => field.tag === 'textarea').length, 1, 'Source is readable text, not a disabled textarea');
+    tabs[0].fire('click'); assert.equal(input.value, 'Custom {{answer}}', 'Tab switches preserve draft');
+    assert.equal(card.text, 'Original source', 'Editing and tab changes do not mutate the stored card');
+    input.value = '   '; input.fire('input');
+    assert.throws(() => editor.getChange(), /cannot be empty/);
+    host.all().find(field => field.options.text === 'Restore source text').fire('click');
+    assert.equal(editor.getChange(), null, 'Restore is a pending change until Save');
+    assert.equal(input.value, 'Original source');
+    host.all().find(field => field.options.text === 'Open source').fire('click');
+    assert.equal(navigations, 1);
+    const customHost = new Field();
+    const custom = new HiCardFrontEditor(customHost, { text: 'Kept rewrite', frontCustomized: true }, 'New source', () => {});
+    assert.equal(custom.getChange(), undefined, 'Opening a customized card does not clear its mode');
+    customHost.all().find(field => field.options.text === 'Restore source text').fire('click');
+    assert.equal(custom.getChange(), null);
+    assert.equal(customHost.all().find(field => field.tag === 'textarea').value, 'New source');
+}
+
 (async () => {
+    frontEditing();
     await lifecycle(); await independentOpening();
     console.log('HiCard view: independent tabs, concurrent open, workspace initialization, close races, license cleanup and retry passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
