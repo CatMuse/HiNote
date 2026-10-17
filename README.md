@@ -85,6 +85,8 @@ Export all your highlighted text and comments as a new note, displayed in Callou
 
 Drag the right sidebar window to the main view to unlock more features, such as a list of notes with highlighted text and all highlighted cards.
 
+Favorites provide a separate collection of saved highlights. HiCard opens in its own tab through the **Open HiCard** command or ribbon icon, with Today, Study groups, Card management, Statistics, and Learning settings pages.
+
 - Notes List: Displays all notes in the knowledge base that contain highlighted text, with the number of highlights indicated.
 - All Highlights: Shows all highlighted cards in the knowledge base, allowing you to focus more on the highlighted content.
 - HiCard: Implements the functionality to generate FlashCards from your highlighted text and comments, assisting you in memorizing and learning (Pro feature)
@@ -174,6 +176,6 @@ Scanning creates only temporary view keys. The first saved comment or flashcard 
 
 AI providers use Obsidian Keychain. Select or create a secret in HiNote's AI service settings; only its name is saved in plugin settings. Configure the secret on each device. HiNote reads it when starting an AI operation, so changes in Keychain apply to subsequent requests.
 
-Upgrading to 0.5.9 does **not** migrate existing keys. Legacy API key fields are removed from plugin settings on first load. Keep the keys you need before upgrading and configure Keychain again. Historical backups and sync history are not modified. Ollama without authentication does not require a secret.
+Upgrading to 0.6.0 does **not** migrate existing keys. Legacy API key fields are removed from plugin settings on first load. Keep the keys you need before upgrading and configure Keychain again. Historical backups and sync history are not modified. Ollama without authentication does not require a secret.
 
 AI model selection supports manual IDs and an explicit **Refresh models** action with searchable results. Opening settings does not fetch models. Custom services require an explicit API protocol. **Test current model** sends a short request without note content and may incur provider charges. Requests stop waiting after 45 seconds; the underlying request may still finish on the provider.
