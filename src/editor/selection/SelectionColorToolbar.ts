@@ -28,8 +28,7 @@ class SelectionColorController extends Component {
     private actions: SelectionHighlightActions;
     private commentInput?: FloatingCommentInput;
     private annotateButton?: HTMLButtonElement;
-    private deleteButton?: HTMLButtonElement;
-    private colorButtons: Array<{ color: HighlightColor | null; button: HTMLButtonElement }> = [];
+    private colorButtons: Array<{ color: HighlightColor | null; label: string; button: HTMLButtonElement }> = [];
     private openingComment = false;
     private commentInputActive = false;
     private pendingAutoHighlight?: PendingAutoHighlight;
@@ -133,10 +132,14 @@ class SelectionColorController extends Component {
                 type: 'button', 'aria-label': label
             } });
             button.style.setProperty('--swatch-color', highlightColorStyle(choice.color || 'yellow'));
-            this.colorButtons.push({ color: choice.color, button });
+            this.colorButtons.push({ color: choice.color, label, button });
             button.addEventListener('click', event => {
                 event.preventDefault();
                 event.stopPropagation();
+                if (button.getAttribute('aria-pressed') === 'true') {
+                    void this.deleteHighlight(captured.context);
+                    return;
+                }
                 void this.apply(captured.context, choice.color).catch(error => {
                     new Notice(error instanceof Error ? error.message : t('Could not save the selection.'));
                 });
@@ -177,17 +180,6 @@ class SelectionColorController extends Component {
                 new Notice(t('Failed to copy content'));
             });
         });
-        const remove = this.deleteButton = colorBar.createEl('button', {
-            cls: 'hinote-selection-action-button hinote-selection-delete-button clickable-icon',
-            attr: { type: 'button', 'aria-label': t('Delete') }
-        });
-        setIcon(remove, 'trash-2');
-        this.updateDeleteButton(!!captured.context.plan.source);
-        remove.addEventListener('click', event => {
-            event.preventDefault();
-            event.stopPropagation();
-            void this.deleteHighlight(captured.context);
-        });
         const rect = popover.getBoundingClientRect();
         const top = captured.anchor.top >= rect.height + 10
             ? captured.anchor.top - rect.height - 8
@@ -213,7 +205,6 @@ class SelectionColorController extends Component {
             context.plan = prepared.plan;
             this.pendingAutoHighlight = { context, ...result.rollback };
             this.updateColorSelection(context);
-            this.updateDeleteButton(true);
         }
         const highlight = await this.actions.getExistingHighlight(prepared);
         if (!highlight) throw new Error(t('This selection cannot be highlighted safely.'));
@@ -275,13 +266,6 @@ class SelectionColorController extends Component {
         setIcon(button, open ? 'x' : 'message-square-plus');
     }
 
-    private updateDeleteButton(enabled: boolean): void {
-        if (!this.deleteButton) return;
-        this.deleteButton.disabled = !enabled;
-        if (enabled) this.deleteButton.removeAttribute('aria-disabled');
-        else this.deleteButton.setAttribute('aria-disabled', 'true');
-    }
-
     private updateColorSelection(context: SelectionContext): void {
         const source = context.plan.source;
         const current = source?.backgroundColor;
@@ -291,11 +275,15 @@ class SelectionColorController extends Component {
             'var(--text-highlight-bg, #ffeb3b)',
             highlightColorStyle('yellow')
         ]);
-        for (const { color, button } of this.colorButtons) {
+        for (const { color, label: colorLabel, button } of this.colorButtons) {
             const selected = !!source && (color
                 ? current === highlightColorStyle(color)
                 : defaultColors.has(current));
             button.setAttribute('aria-pressed', String(selected));
+            const label = selected ? t('Delete highlight') : colorLabel;
+            button.setAttribute('aria-label', label);
+            button.replaceChildren();
+            if (selected) setIcon(button, 'x');
         }
     }
 
@@ -369,7 +357,6 @@ class SelectionColorController extends Component {
         this.toolbar?.remove();
         this.toolbar = undefined;
         this.annotateButton = undefined;
-        this.deleteButton = undefined;
         this.colorButtons = [];
     }
 
