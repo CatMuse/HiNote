@@ -118,7 +118,7 @@ async function testLastCommentDeletion() {
     const pkg = JSON.parse(fs.readFileSync('package.json'));
     const lock = JSON.parse(fs.readFileSync('package-lock.json'));
     const versions = JSON.parse(fs.readFileSync('versions.json'));
-    assert.equal(manifest.version, '0.5.9');
+    assert.equal(manifest.version, '0.6.0');
     assert.equal(pkg.version, manifest.version);
     assert.equal(lock.version, manifest.version);
     assert.equal(lock.packages[''].version, manifest.version);

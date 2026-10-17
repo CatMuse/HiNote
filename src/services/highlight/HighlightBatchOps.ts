@@ -1,5 +1,7 @@
 import { App, TFile } from "obsidian";
 import { HighlightExtractor } from './HighlightExtractor';
+import { parseHighlightColor } from './HighlightColor';
+import type { HighlightInfo } from '../../types/highlight';
 
 /**
  * 高亮批量操作
@@ -59,8 +61,10 @@ export class HighlightBatchOps {
                     // 依次删除每个高亮（从后往前）
                     for (const highlight of sortedHighlights) {
                         try {
-                            content = this.removeHighlightMarkFromContent(content, highlight);
-                            successCount++;
+                            const updated = this.removeHighlightMarkFromContent(content, highlight);
+                            if (updated === content) failedCount++;
+                            else successCount++;
+                            content = updated;
                         } catch {
                             failedCount++;
                         }
@@ -85,9 +89,27 @@ export class HighlightBatchOps {
      */
     private removeHighlightMarkFromContent(
         content: string, 
-        highlight: { text: string; position?: number; originalLength?: number }
+        highlight: { text: string; position?: number; originalLength?: number; syntax?: HighlightInfo['syntax'] }
     ): string {
         const escapedText = this.extractor.escapeRegExp(highlight.text);
+
+        // Resolve Markdown source spans before rebuilding formats from display text.
+        // A color marker is formatting, so removing the highlight also removes it.
+        const markdownMatches = [...content.matchAll(/==([^=\n](?:(?:[^=\n]|=[^=\n])*?[^=\n])?)==/g)]
+            .filter(match => content[match.index! - 1] !== '=' &&
+                highlight.syntax !== 'html' && highlight.syntax !== 'custom' &&
+                content[match.index! + match[0].length] !== '=' &&
+                (parseHighlightColor(match[1]).text === highlight.text || match[1] === highlight.text));
+        const exact = markdownMatches.find(match => match.index === highlight.position);
+        const onlyMatch = markdownMatches.length === 1 ? markdownMatches[0] : undefined;
+        const markdownMatch = exact || onlyMatch;
+        if (markdownMatch) {
+            const start = markdownMatch.index!;
+            return content.slice(0, start) + parseHighlightColor(markdownMatch[1]).text +
+                content.slice(start + markdownMatch[0].length);
+        }
+        // Multiple matching Markdown spans without an exact anchor are ambiguous.
+        if (markdownMatches.length > 1) return content;
         
         // 如果有位置信息，尝试精确定位
         if (typeof highlight.position === 'number') {

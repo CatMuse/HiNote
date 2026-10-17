@@ -17,7 +17,7 @@ import { t } from '../../i18n';
  */
 export class CommentService {
     private app: App;
-    private plugin: CommentPlugin;
+    private plugin: Pick<CommentPlugin, 'eventManager' | 'fsrsManager'>;
     private highlightManager: HighlightManager;
     
     // 回调函数
@@ -32,7 +32,7 @@ export class CommentService {
     
     constructor(
         app: App,
-        plugin: CommentPlugin,
+        plugin: Pick<CommentPlugin, 'eventManager' | 'fsrsManager'>,
         highlightManager: HighlightManager
     ) {
         this.app = app;

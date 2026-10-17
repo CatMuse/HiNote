@@ -53,3 +53,6 @@ export interface HighlightSettings {
     useCustomPattern: boolean;
     regexRules: RegexRule[];
 }
+
+/** Extracted source spans always include their complete wrapper length. */
+export type ScannedHighlight = HighlightInfo & { originalLength: number };

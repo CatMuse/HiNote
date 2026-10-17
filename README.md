@@ -117,6 +117,12 @@ Before replacing existing highlight, flashcard, or mapping files, HiNote keeps t
 
 Each `.bak` retains only one previous version and does not replace vault backups. See the [0.5.9 release notes](./doc/release-0.5.9.md) for changes and validation steps.
 
+## Highlight colors and selection toolbar in 0.6.0
+
+Recognize native color highlights such as `==🔴Important==`, show matching card accents, and omit formatting color markers from displayed and exported text. Select a single line to highlight or annotate it; select an existing Markdown highlight to recolor, copy, or delete it. Existing comments remain associated when colors change.
+
+HiNote still requires Obsidian 1.8.0 or later. Native colored-highlight rendering and menus require Obsidian 1.14. See the [0.6.0 release notes](./doc/release-0.6.0.md) for supported selections and validation steps.
+
 ## Support
 
 If you find this plugin useful and would like to support its development:

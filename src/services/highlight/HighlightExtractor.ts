@@ -1,9 +1,11 @@
+import { extractHtmlHighlightColor } from './HighlightColorEdit';
 import { App, TFile } from "obsidian";
-import type { HighlightInfo } from '../../types/highlight';
+import type { HighlightInfo, ScannedHighlight } from '../../types/highlight';
 import type { PluginSettings } from '../../types/settings';
 import { ExcludePatternMatcher } from '../ExcludePatternMatcher';
 import { BlockIdService } from '../BlockIdService';
 import { IdGenerator } from '../../utils/IdGenerator';
+import { highlightColorStyle, parseHighlightColor } from './HighlightColor';
 
 /**
  * 高亮提取器
@@ -16,13 +18,12 @@ import { IdGenerator } from '../../utils/IdGenerator';
  */
 export class HighlightExtractor {
     // 常量定义
-    private static readonly DUPLICATE_POSITION_THRESHOLD = 10; // 位置差异阈值
     private static readonly CONTEXT_LENGTH = 80;
 
     // 默认的文本提取正则（可以被用户自定义替换）
     // 使用更严格的模式：==后面和前面不能是=或换行符，避免匹配URL中的==
     private static readonly DEFAULT_HIGHLIGHT_PATTERN = 
-        /==([^=\n](?:[^=\n]|=[^=\n])*?[^=\n])==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
+        /==([^=\n](?:(?:[^=\n]|=[^=\n])*?[^=\n])?)==|<mark[^>]*>([\s\S]*?)<\/mark>|<span[^>]*>([\s\S]*?)<\/span>/g;
 
     private blockIdService: BlockIdService;
     // 文件内容缓存
@@ -51,8 +52,8 @@ export class HighlightExtractor {
      * @param file 文件对象
      * @returns 高亮信息数组
      */
-    extractHighlights(content: string, file: TFile): HighlightInfo[] {
-        const highlights: HighlightInfo[] = [];
+    extractHighlights(content: string, file: TFile): ScannedHighlight[] {
+        const highlights: ScannedHighlight[] = [];
         
         // 如果使用自定义规则且有规则配置
         const settings = this.getSettings?.();
@@ -154,14 +155,24 @@ export class HighlightExtractor {
             
             // 尝试提取颜色（内联逻辑）
             let extractedColor = null;
-            if (fullMatch.includes('style=')) {
-                extractedColor = this.extractColorFromElement(fullMatch);
+            let syntax: HighlightInfo['syntax'] = 'custom';
+            // Custom captures retain their meaning unless they capture the complete Markdown body.
+            if (fullMatch.startsWith('==') && fullMatch.endsWith('==') && text === fullMatch.slice(2, -2)) {
+                syntax = 'markdown';
+                const parsed = parseHighlightColor(text);
+                text = parsed.text;
+                if (parsed.color) extractedColor = highlightColorStyle(parsed.color);
+            } else if (/^<(?:mark|span)\b/.test(fullMatch)) {
+                syntax = 'html';
+            }
+            if (/\sstyle\s*=/i.test(fullMatch)) {
+                extractedColor = extractedColor || extractHtmlHighlightColor(fullMatch);
             }
 
             // 检查是否已存在相同位置的高亮
             const isDuplicate = highlights.some(h => 
                 typeof h.position === 'number' && 
-                Math.abs(h.position - safeMatch.index) < HighlightExtractor.DUPLICATE_POSITION_THRESHOLD && 
+                h.position === safeMatch.index &&
                 h.text === text
             );
 
@@ -176,6 +187,7 @@ export class HighlightExtractor {
                     text,
                     position: safeMatch.index,
                     backgroundColor: extractedColor || backgroundColor,
+                    syntax,
                     isCloze: isCloze,
                     filePath: file.path,
                     originalLength: fullMatch.length,
@@ -291,20 +303,6 @@ export class HighlightExtractor {
         return await this.blockIdService.createParagraphBlockId(file, position, endPosition);
     }
 
-    /**
-     * 从 HTML 元素中提取颜色（内联方法）
-     */
-    private extractColorFromElement(element: string): string | null {
-        const styleMatch = element.match(/style=["']([^"']*)["']/);
-        if (!styleMatch) return null;
-        
-        const bgColorMatch = styleMatch[1].match(
-            /background(?:-color)?:\s*((?:rgba?\(.*?\)|#[0-9a-fA-F]{3,8}|var\(--[^)]+\)))/
-        );
-        
-        return bgColorMatch ? bgColorMatch[1] : null;
-    }
-    
     /**
      * 获取缓存的文件内容
      */

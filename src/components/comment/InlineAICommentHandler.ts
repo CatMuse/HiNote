@@ -5,7 +5,7 @@ import { HighlightInfo, CommentItem } from "../../types/highlight";
 import type CommentPlugin from "../../../main";
 
 interface InlineAICommentHandlerOptions {
-    plugin: CommentPlugin;
+    plugin: Pick<CommentPlugin, 'settings'>;
     highlight: HighlightInfo;
     existingComment?: CommentItem;
     getTextarea: () => HTMLTextAreaElement;

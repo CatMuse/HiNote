@@ -1,5 +1,6 @@
 import type { HighlightInfo } from '../../types/highlight';
 import type { HighlightInfo as HiNote } from '../../types/highlight';
+import { parseHighlightColor } from './HighlightColor';
 
 export type HighlightMatchConfidence =
     | 'id'
@@ -23,6 +24,23 @@ const CONTEXT_SCORE_THRESHOLD = 1.35;
 const CONTEXT_TIE_MARGIN = 0.2;
 
 export function findStoredHighlightMatch(
+    target: HiNote,
+    candidates: HiNote[],
+    options: HighlightMatchOptions = {}
+): HighlightMatchResult | null {
+    // Older records stored the leading color emoji as text. Normalize only legacy
+    // candidates for a confirmed Markdown target, never virtual or normalized records.
+    const comparable = candidates.map(candidate => {
+        if (target.syntax !== 'markdown' || candidate.syntax || candidate.isVirtual ||
+            candidate.text === target.text) return candidate;
+        const parsed = parseHighlightColor(candidate.text);
+        return parsed.color ? { ...candidate, text: parsed.text, textFingerprint: parsed.text } : candidate;
+    });
+    const match = findComparableMatch(target, comparable, options);
+    return match ? { ...match, highlight: candidates[comparable.indexOf(match.highlight)] } : null;
+}
+
+function findComparableMatch(
     target: HiNote,
     candidates: HiNote[],
     options: HighlightMatchOptions = {}

@@ -2,6 +2,7 @@ import { MarkdownPostProcessorContext, TFile } from "obsidian";
 import { HighlightInfo as HiNote } from "../../../types/highlight";
 import { HighlightRepository } from "../../../repositories/HighlightRepository";
 import { HighlightCommentResolver } from "../../../services/highlight";
+import { highlightColorStyle, isHighlightColor } from "../../../services/highlight/HighlightColor";
 
 export type PreviewHighlight = HiNote & { line: number };
 
@@ -40,7 +41,6 @@ export class PreviewHighlightResolver {
     ): PreviewHighlight[] {
         return rawHighlights
             .map(highlight => this.enrichHighlight(highlight, file))
-            .filter(highlight => !!highlight.comments?.length)
             .map(highlight => ({
                 ...highlight,
                 line: this.getLineForPosition(content, highlight.position)
@@ -55,13 +55,18 @@ export class PreviewHighlightResolver {
         highlightsWithComments: PreviewHighlight[]
     ): PreviewHighlight | null {
         const sectionInfo = this.getSectionInfo(mark, rootElement, context);
+        const color = mark.getAttribute('data-highlight');
+        const candidates = highlightsWithComments.filter(highlight =>
+            highlight.text === text &&
+            (!isHighlightColor(color) || highlight.syntax !== 'markdown' ||
+                highlight.backgroundColor === highlightColorStyle(color))
+        );
 
         if (!sectionInfo) {
-            return highlightsWithComments.find(highlight => highlight.text === text) || null;
+            return candidates[0] || null;
         }
 
-        return highlightsWithComments.find(highlight =>
-            highlight.text === text &&
+        return candidates.find(highlight =>
             highlight.line >= sectionInfo.lineStart &&
             highlight.line <= sectionInfo.lineEnd
         ) || null;

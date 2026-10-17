@@ -1,4 +1,24 @@
 export default {
+    "Change highlight color": "Change highlight color",
+    "Default": "Default",
+    "Default yellow": "Default yellow",
+    "Red": "Red",
+    "Orange": "Orange",
+    "Yellow": "Yellow",
+    "Green": "Green",
+    "Blue": "Blue",
+    "Purple": "Purple",
+    "Comment": "Comment",
+    "Close": "Close",
+    "Copy": "Copy",
+    "Delete highlight": "Delete highlight",
+    "Could not save the selection.": "Could not save the selection.",
+    "Failed to copy content": "Failed to copy content",
+    "This selection cannot be highlighted safely.": "This selection cannot be highlighted safely.",
+    "Select an existing highlight to delete.": "Select an existing highlight to delete.",
+    "Failed to delete highlight: {error}": "Failed to delete highlight: {error}",
+    "The selection changed. Select the text again.": "The selection changed. Select the text again.",
+    "Add comment...": "Add comment...",
 
 //通用翻译
 

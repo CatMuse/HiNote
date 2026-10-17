@@ -3,12 +3,21 @@ import type CommentPlugin from '../../main';
 import { createWindowManager, registerCommands } from '../commands';
 import { WindowManager } from './WindowManager';
 import { HiNoteView, VIEW_TYPE_HINOTE } from '../views/hinote/HiNoteView';
+import { registerSelectionColorToolbar } from '../editor/selection/SelectionColorToolbar';
 
 export function createPluginWindowManager(plugin: CommentPlugin): WindowManager {
     return createWindowManager(plugin);
 }
 
 export function registerPluginViews(plugin: CommentPlugin): void {
+    registerSelectionColorToolbar(plugin);
+    plugin.registerMarkdownPostProcessor((element, context) => {
+        const section = context.getSectionInfo(element);
+        if (!section) return;
+        element.setAttribute('data-hinote-source-path', context.sourcePath);
+        element.setAttribute('data-hinote-line-start', String(section.lineStart));
+        element.setAttribute('data-hinote-line-end', String(section.lineEnd));
+    });
     plugin.registerView(
         VIEW_TYPE_HINOTE,
         (leaf: WorkspaceLeaf) => {

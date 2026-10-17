@@ -88,6 +88,10 @@ export class DataValidator {
         }
 
         // 可选字段验证
+        if (highlight.syntax !== undefined && highlight.syntax !== 'markdown' &&
+            highlight.syntax !== 'html' && highlight.syntax !== 'custom') {
+            errors.push(`高亮 ${id}: syntax必须是有效的高亮格式`);
+        }
         if (highlight.backgroundColor && typeof highlight.backgroundColor !== 'string') {
             errors.push(`高亮 ${id}: backgroundColor必须是字符串`);
         }
@@ -258,6 +262,9 @@ export class DataValidator {
         }
 
         // 可选字段
+        if (highlight.syntax === 'markdown' || highlight.syntax === 'html' || highlight.syntax === 'custom') {
+            sanitized.syntax = highlight.syntax;
+        }
         if (highlight.backgroundColor && typeof highlight.backgroundColor === 'string') {
             sanitized.backgroundColor = highlight.backgroundColor;
         }

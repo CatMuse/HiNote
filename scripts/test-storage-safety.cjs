@@ -139,6 +139,17 @@ async function repositoryRace() {
     assert.equal(readCount, 1);
     assert.equal((await repo.getFileHighlights('a.md'))[0].id, 'new');
     assert.equal(disk[0].id, 'new');
+    const edited = { ...highlight('new'), updatedAt: 987, comments: [{ id: 'comment', content: 'Latest comment', createdAt: 1, updatedAt: 987 }] };
+    await Promise.all([
+        repo.saveFileHighlights('a.md', [edited]),
+        repo.updateSourceMetadata('a.md', [{ id: 'new', patch: { position: 42, syntax: 'markdown', backgroundColor: 'blue' } }])
+    ]);
+    assert.equal(disk[0].position, 42);
+    assert.equal(disk[0].updatedAt, 987);
+    assert.equal(disk[0].comments[0].content, 'Latest comment');
+    await repo.saveFileHighlights('a.md', []);
+    await repo.updateSourceMetadata('a.md', [{ id: 'new', patch: { position: 99 } }]);
+    assert.equal(disk.length, 0, 'A late source update cannot recreate a deleted record');
     console.log('Repository: initialization waits, concurrent reads deduplicate, late reads cannot replace saved cache.');
 }
 

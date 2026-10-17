@@ -88,7 +88,7 @@ export class HighlightMatcher {
         
         // 异步更新存储中的定位锚点，防止偏移累积
         if (highlightUpdates.length > 0) {
-            this.applyStoredHighlightUpdates(file.path, storedComments, highlightUpdates);
+            this.applyStoredHighlightUpdates(file.path, highlightUpdates);
         }
         
         return [...virtualHighlights, ...mergedHighlights];
@@ -108,6 +108,12 @@ export class HighlightMatcher {
         }
 
         const patch: Partial<HiNote> = {};
+        if (highlight.syntax && highlight.syntax !== storedComment.syntax) {
+            patch.syntax = highlight.syntax;
+        }
+        if (highlight.backgroundColor !== storedComment.backgroundColor) {
+            patch.backgroundColor = highlight.backgroundColor;
+        }
         if (highlight.position !== undefined && highlight.position !== storedComment.position) {
             patch.position = highlight.position;
         }
@@ -136,38 +142,20 @@ export class HighlightMatcher {
      */
     private applyStoredHighlightUpdates(
         filePath: string,
-        storedComments: HiNote[],
         updates: StoredHighlightUpdate[]
     ): void {
         // 使用 setTimeout 异步执行，不阻塞合并流程
         window.setTimeout(() => {
-            void this.saveStoredHighlightUpdates(filePath, storedComments, updates);
+            void this.saveStoredHighlightUpdates(filePath, updates);
         }, 100);
     }
 
     private async saveStoredHighlightUpdates(
         filePath: string,
-        storedComments: HiNote[],
         updates: StoredHighlightUpdate[]
     ): Promise<void> {
         try {
-            const updateMap = new Map(updates.map(u => [u.id, u.patch]));
-            let changed = false;
-
-            for (const comment of storedComments) {
-                if (comment.id && updateMap.has(comment.id)) {
-                    Object.assign(comment, updateMap.get(comment.id)!);
-                    comment.updatedAt = Date.now();
-                    changed = true;
-                }
-            }
-
-            if (changed) {
-                const highlightRepository = this.getHighlightRepository?.();
-                if (highlightRepository) {
-                    await highlightRepository.saveFileHighlights(filePath, storedComments);
-                }
-            }
+            await this.getHighlightRepository?.()?.updateSourceMetadata(filePath, updates);
         } catch {
             // 静默处理，定位锚点更新失败不影响主流程
         }
@@ -183,6 +171,7 @@ export class HighlightMatcher {
             comments: storedComment.comments || [],
             createdAt: storedComment.createdAt,
             updatedAt: storedComment.updatedAt,
+            favoritedAt: storedComment.favoritedAt,
             fileName: file.basename,
             filePath: file.path,
             fileIcon: 'file-text'

@@ -67,6 +67,18 @@ export class HighlightRepository implements IHighlightRepository {
         });
     }
 
+    /** Merge source metadata into the latest records without replacing comments or timestamps. */
+    async updateSourceMetadata(filePath: string, updates: Array<{ id: string; patch: Partial<HiNote> }>): Promise<void> {
+        await this.mutations.run(async () => {
+            const latest = await this.getFileHighlights(filePath);
+            const patches = new Map(updates.map(update => [update.id, update.patch]));
+            const next = latest.map(record => record.id && patches.has(record.id)
+                ? { ...record, ...patches.get(record.id) } : record);
+            await this.dataManager.saveFileHighlights(filePath, next);
+            this.cache.set(filePath, next);
+        });
+    }
+
     handleFileRename(oldPath: string, newPath: string): Promise<void> {
         return this.mutations.run(() => this.renameFile(oldPath, newPath));
     }

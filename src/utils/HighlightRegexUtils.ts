@@ -3,6 +3,8 @@
  * 提供高亮格式的正则匹配和替换功能
  */
 export class HighlightRegexUtils {
+    private static readonly COLOR_MARKER_PATTERN = '[🔴🟥🟠🟧🟡🟨🟢🟩🔵🟦🟣🟪]';
+
     /**
      * 转义正则表达式中的特殊字符
      */
@@ -27,7 +29,10 @@ export class HighlightRegexUtils {
         let replaced = false;
         
         // 1. 尝试标准的 Markdown 高亮格式 ==text==
-        const markdownHighlightRegex = new RegExp(`==\\s*(${escapedText})\\s*==`, 'g');
+        const markdownHighlightRegex = new RegExp(
+            `==\\s*(?:${this.COLOR_MARKER_PATTERN})?(${escapedText})\\s*==`,
+            'gu'
+        );
         const mdResult = newContent.replace(markdownHighlightRegex, highlightText);
         if (mdResult !== newContent) {
             newContent = mdResult;
@@ -96,6 +101,16 @@ export class HighlightRegexUtils {
         endPos: number,
         customRegex?: string
     ): string {
+        // Prefer the exact scanned source span. This removes only the intended
+        // occurrence when identical highlighted text appears nearby.
+        if (startPos >= 0 && endPos > startPos && endPos <= content.length) {
+            const exactSource = content.slice(startPos, endPos);
+            const exactResult = this.removeHighlightFormat(exactSource, highlightText, customRegex);
+            if (exactResult !== exactSource) {
+                return content.slice(0, startPos) + exactResult + content.slice(endPos);
+            }
+        }
+
         // 定义搜索范围（前后各扩展100个字符）
         const searchStart = Math.max(0, startPos - 100);
         const searchEnd = Math.min(content.length, endPos + 100);

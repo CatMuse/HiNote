@@ -1,4 +1,24 @@
 export default {
+    "Change highlight color": "更改高亮颜色",
+    "Default": "默认",
+    "Default yellow": "默认黄色",
+    "Red": "红色",
+    "Orange": "橙色",
+    "Yellow": "黄色",
+    "Green": "绿色",
+    "Blue": "蓝色",
+    "Purple": "紫色",
+    "Comment": "批注",
+    "Close": "关闭",
+    "Copy": "复制",
+    "Delete highlight": "删除高亮",
+    "Could not save the selection.": "无法保存选区，请重试。",
+    "Failed to copy content": "复制内容失败",
+    "This selection cannot be highlighted safely.": "此选区无法安全创建高亮。",
+    "Select an existing highlight to delete.": "请选择已有高亮后再删除。",
+    "Failed to delete highlight: {error}": "删除高亮失败：{error}",
+    "The selection changed. Select the text again.": "选区内容已变化，请重新选择文本。",
+    "Add comment...": "添加批注…",
 
     //通用翻译
 

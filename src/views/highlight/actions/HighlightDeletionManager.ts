@@ -5,6 +5,7 @@ import CommentPlugin from '../../../../main';
 import { t } from '../../../i18n';
 import type { PluginSettings } from '../../../types/settings';
 import { showConfirmModal } from '../../../utils/ConfirmModal';
+import { HighlightExtractor } from '../../../services/highlight/HighlightExtractor';
 
 type LegacyHighlightSettings = PluginSettings & {
     customHighlightRegex?: string;
@@ -15,9 +16,9 @@ type LegacyHighlightSettings = PluginSettings & {
  * 负责高亮的删除逻辑，包括文件操作和格式移除
  */
 export class HighlightDeletionManager {
-    private plugin: CommentPlugin;
+    private plugin: Pick<CommentPlugin, 'app' | 'settings' | 'highlightManager' | 'eventManager'>;
     
-    constructor(plugin: CommentPlugin) {
+    constructor(plugin: Pick<CommentPlugin, 'app' | 'settings' | 'highlightManager' | 'eventManager'>) {
         this.plugin = plugin;
     }
     
@@ -30,8 +31,8 @@ export class HighlightDeletionManager {
      */
     async deleteHighlight(
         highlight: HighlightInfo,
-        skipConfirmation: boolean = false,
-        skipNotice: boolean = false
+        skipConfirmation = false,
+        skipNotice = false
     ): Promise<boolean> {
         try {
             // 显示确认对话框
@@ -82,7 +83,7 @@ export class HighlightDeletionManager {
      * @param highlight 高亮信息
      */
     private async removeHighlightFromFile(highlight: HighlightInfo): Promise<void> {
-        if (!highlight.filePath) return;
+        if (!highlight.filePath || highlight.isVirtual) return;
         
         const file = this.plugin.app.vault.getAbstractFileByPath(highlight.filePath);
         if (!(file instanceof TFile)) return;
@@ -96,7 +97,12 @@ export class HighlightDeletionManager {
         // 这会正确同步已打开的编辑器视图，不会导致编辑器状态重置或焦点丢失
         await this.plugin.app.vault.process(file, (fileContent) => {
             if (typeof highlight.position === 'number') {
-                const endPos = highlight.position + (highlight.originalLength || highlightText.length);
+                const source = new HighlightExtractor(this.plugin.app, () => this.plugin.settings)
+                    .extractHighlights(fileContent, file).find(item => item.position === highlight.position && item.text === highlightText);
+                if (!source || (highlight.originalLength !== undefined && source.originalLength !== highlight.originalLength)) {
+                    throw new Error(t('The selection changed. Select the text again.'));
+                }
+                const endPos = highlight.position + source.originalLength;
                 return HighlightRegexUtils.removeHighlightFormatInRange(
                     fileContent,
                     highlightText,
