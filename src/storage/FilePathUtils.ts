@@ -1,3 +1,5 @@
+import { normalizePath } from 'obsidian';
+
 /**
  * 文件路径处理工具类
  */
@@ -16,50 +18,12 @@ export class FilePathUtils {
     }
 
     /**
-     * 从安全文件名恢复原始路径（需要配合映射文件）
-     * @param safeFileName 安全文件名
-     * @returns 恢复的原始路径（近似）
-     */
-    static fromSafeFileName(safeFileName: string): string {
-        // 移除 .json 后缀并将下划线转回空格
-        // 注意：这是近似恢复，无法完全还原特殊字符
-        return safeFileName
-            .replace(/\.json$/, '')
-            .replace(/_/g, ' ');
-    }
-
-    /**
-     * 生成文件路径的哈希值（备用方案）
-     * @param filePath 文件路径
-     * @returns MD5哈希值
-     */
-    static generateHash(filePath: string): string {
-        let hash = 0;
-        for (let i = 0; i < filePath.length; i++) {
-            hash = ((hash << 5) - hash) + filePath.charCodeAt(i);
-            hash |= 0;
-        }
-        return Math.abs(hash).toString(16);
-    }
-
-    /**
-     * 验证文件路径是否安全
-     * @param filePath 文件路径
-     * @returns 是否安全
-     */
-    static isSafePath(filePath: string): boolean {
-        // 检查是否包含危险字符
-        const dangerousChars = /[/\\:*?"<>|]/;
-        return !dangerousChars.test(filePath);
-    }
-
-    /**
      * 获取.hinote目录路径
      * @param vaultPath Vault根目录路径
      * @returns .hinote目录路径
      */
     static getHiNoteDir(vaultPath: string): string {
-        return `${vaultPath}/.hinote`;
+        return normalizePath(`${vaultPath}/.hinote`);
     }
 
     /**

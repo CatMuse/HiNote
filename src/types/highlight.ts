@@ -11,6 +11,9 @@ export interface HighlightInfo {
     position: number;
     createdAt?: number;
     updatedAt?: number;
+    // Preserve metadata written by newer development versions during local validation.
+    favoritedAt?: number;
+    syntax?: 'markdown' | 'html' | 'custom';
     comments?: CommentItem[];
 
     paragraphOffset?: number;

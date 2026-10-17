@@ -18,9 +18,10 @@ export interface FlashcardGroupModal {
 }
 
 export function createFlashcardGroupModal(group?: CardGroup): FlashcardGroupModal {
-    const modalOverlay = activeDocument.createElement('div');
+    const ownerDocument = activeDocument;
+    const modalOverlay = ownerDocument.adoptNode(createDiv());
     modalOverlay.className = 'flashcard-modal-overlay';
-    activeDocument.body.appendChild(modalOverlay);
+    ownerDocument.body.appendChild(modalOverlay);
 
     const modalContainer = modalOverlay.createDiv({ cls: 'flashcard-modal-container' });
     const modalContent = modalContainer.createDiv({ cls: 'flashcard-modal-content' });
@@ -46,20 +47,19 @@ export function createFlashcardGroupModal(group?: CardGroup): FlashcardGroupModa
         text: group ? t('Save') : t('Create')
     });
 
-    let handleKeyDown: (event: KeyboardEvent) => void;
     const close = () => {
         if (modalOverlay.isConnected) {
-            activeDocument.body.removeChild(modalOverlay);
+            ownerDocument.body.removeChild(modalOverlay);
         }
-        activeDocument.removeEventListener('keydown', handleKeyDown);
+        ownerDocument.removeEventListener('keydown', handleKeyDown);
     };
 
-    handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
             close();
         }
     };
-    activeDocument.addEventListener('keydown', handleKeyDown);
+    ownerDocument.addEventListener('keydown', handleKeyDown);
 
     return {
         saveButton,
@@ -210,7 +210,7 @@ function renderSliderSetting(
     });
     slider.value = String(normalizeSliderValue(options.value, options.min, options.step));
 
-    const valueDisplay = sliderContainer.createEl('span', {
+    const valueDisplay = sliderContainer.createSpan({
         cls: 'slider-value',
         text: slider.value
     });

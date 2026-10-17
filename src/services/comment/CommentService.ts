@@ -189,7 +189,7 @@ export class CommentService {
                 if (this.onHighlightsUpdate) {
                     this.onHighlightsUpdate(this.highlights);
                 }
-            } else if (!hasFlashcard) {
+            } else if (!hasFlashcard && !highlight.favoritedAt) {
                 // 普通高亮仍然存在于 Markdown 文档中。可以清理不再需要的
                 // 评论存储记录，但必须保留侧边栏中的高亮卡片。
                 await this.highlightManager.removeHighlight(file, highlight);

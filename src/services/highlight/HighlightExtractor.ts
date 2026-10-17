@@ -120,6 +120,11 @@ export class HighlightExtractor {
         
         let match: RegExpExecArray | null;
         while ((match = pattern.exec(content)) !== null) {
+            // RegExp.exec does not advance lastIndex after an empty match.
+            if (match[0].length === 0) {
+                pattern.lastIndex = match.index + 1;
+                continue;
+            }
             const safeMatch = match;
             const fullMatch = safeMatch[0];
             const matchStart = safeMatch.index;

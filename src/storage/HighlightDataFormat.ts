@@ -16,6 +16,8 @@ export interface OptimizedHighlight {
     position: number;
     created: number;
     updated: number;
+    favoritedAt?: number;
+    syntax?: HiNote['syntax'];
     backgroundColor?: string;
     blockId?: string;
     isCloze?: boolean;
@@ -54,6 +56,8 @@ export function convertToLegacyHighlight(
         position: highlight.position,
         createdAt: highlight.created,
         updatedAt: highlight.updated,
+        favoritedAt: highlight.favoritedAt,
+        syntax: highlight.syntax,
         filePath,
         backgroundColor: highlight.backgroundColor,
         blockId: highlight.blockId,
@@ -87,6 +91,8 @@ export function convertToOptimizedHighlight(highlight: HiNote): OptimizedHighlig
     if (highlight.backgroundColor) {
         optimized.backgroundColor = highlight.backgroundColor;
     }
+    if (highlight.favoritedAt !== undefined) optimized.favoritedAt = highlight.favoritedAt;
+    if (highlight.syntax !== undefined) optimized.syntax = highlight.syntax;
 
     if (highlight.blockId) {
         optimized.blockId = highlight.blockId;

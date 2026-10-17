@@ -111,6 +111,12 @@ To access these premium features, you'll need to [upgrade to Pro](https://hinote
 
 ---
 
+## Data safety in 0.5.9
+
+Before replacing existing highlight, flashcard, or mapping files, HiNote keeps their previous contents in sibling `.bak` files. Unreadable or invalid data stops the affected operation instead of being replaced with an empty library. Existing record IDs and legacy file mappings remain compatible; new storage files receive independent names.
+
+Each `.bak` retains only one previous version and does not replace vault backups. See the [0.5.9 release notes](./doc/release-0.5.9.md) for changes and validation steps.
+
 ## Support
 
 If you find this plugin useful and would like to support its development:

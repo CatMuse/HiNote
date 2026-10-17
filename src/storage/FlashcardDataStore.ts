@@ -10,24 +10,25 @@ export class FlashcardDataStore {
     ) {}
 
     async load(): Promise<FSRSStorage | null> {
-        try {
-            const content = await this.app.vault.adapter.read(this.getFlashcardPath());
-            const data = JSON.parse(content);
-
-            const validation = DataValidator.validateFlashcardData(data);
-            if (!validation.valid) {
-                console.warn('闪卡数据验证失败:', validation.errors);
-                return null;
-            }
-
-            return data;
-        } catch {
-            return null;
+        const path = this.getFlashcardPath();
+        if (!await this.app.vault.adapter.exists(path)) return null;
+        const data = JSON.parse(await this.app.vault.adapter.read(path));
+        if (!DataValidator.validateFlashcardData(data).valid) {
+            throw new Error('Invalid HiNote flashcard data. Restore it before saving.');
         }
+        return data;
     }
 
     async save(data: FSRSStorage): Promise<void> {
-        await this.app.vault.adapter.write(this.getFlashcardPath(), JSON.stringify(data, null, 2));
+        const path = this.getFlashcardPath();
+        if (await this.app.vault.adapter.exists(path)) {
+            const previous = await this.app.vault.adapter.read(path);
+            if (!DataValidator.validateFlashcardData(JSON.parse(previous)).valid) {
+                throw new Error('Refusing to overwrite invalid HiNote flashcard data.');
+            }
+            await this.app.vault.adapter.write(`${path}.bak`, previous);
+        }
+        await this.app.vault.adapter.write(path, JSON.stringify(data, null, 2));
     }
 
     private getFlashcardPath(): string {

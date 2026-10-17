@@ -3,6 +3,7 @@ import type { HiNoteDataManager } from '../../storage/HiNoteDataManager';
 import type { FSRSStorage } from '../types/FSRSTypes';
 
 export class FlashcardStorageService {
+    private loaded = false;
     constructor(
         private plugin: CommentPlugin,
         private dataManager?: HiNoteDataManager
@@ -29,38 +30,40 @@ export class FlashcardStorageService {
     }
 
     async load(): Promise<FSRSStorage> {
+        const storage = await this.readStorage();
+        this.loaded = true;
+        return storage;
+    }
+
+    private async readStorage(): Promise<FSRSStorage> {
         const defaultStorage = this.createDefaultStorage();
 
-        try {
-            if (this.dataManager) {
-                const data = await this.dataManager.getFlashcardData();
-                const storage = data || defaultStorage;
-                this.normalize(storage);
-                return storage;
-            }
-
-            const data = await this.plugin.loadData();
-            if (!data?.fsrs) {
-                return defaultStorage;
-            }
-
-            const storage = {
-                version: data.fsrs.version || defaultStorage.version,
-                cards: data.fsrs.cards || {},
-                globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
-                cardGroups: Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [],
-                uiState: data.fsrs.uiState || defaultStorage.uiState,
-                dailyStats: data.fsrs.dailyStats || []
-            };
+        if (this.dataManager) {
+            const data = await this.dataManager.getFlashcardData();
+            const storage = data || defaultStorage;
             this.normalize(storage);
             return storage;
-        } catch (error) {
-            console.error('Loading storage data failed:', error);
+        }
+
+        const data = await this.plugin.loadData();
+        if (!data?.fsrs) {
             return defaultStorage;
         }
+
+        const storage = {
+            version: data.fsrs.version || defaultStorage.version,
+            cards: data.fsrs.cards || {},
+            globalStats: data.fsrs.globalStats || defaultStorage.globalStats,
+            cardGroups: Array.isArray(data.fsrs.cardGroups) ? data.fsrs.cardGroups : [],
+            uiState: data.fsrs.uiState || defaultStorage.uiState,
+            dailyStats: data.fsrs.dailyStats || []
+        };
+        this.normalize(storage);
+        return storage;
     }
 
     async save(storage: FSRSStorage): Promise<void> {
+        if (!this.loaded) throw new Error('Flashcard storage must load successfully before saving.');
         this.normalize(storage);
 
         try {

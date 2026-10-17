@@ -40,6 +40,7 @@ export class HiNoteView extends ItemView {
     private canvasService: CanvasService;
 
     // === 视图装配产物 ===
+    private closed = false;
     private setupResult: HiNoteViewSetupResult | null = null;
     private exportManager: ExportManager | null = null;
     private virtualHighlightManager: VirtualHighlightManager | null = null;
@@ -103,6 +104,14 @@ export class HiNoteView extends ItemView {
     }
 
     async onOpen() {
+        try {
+            await this.plugin.ensureServicesInitialized();
+        } catch (error) {
+            new Notice('HiNote could not load its data. Check vault storage before editing.');
+            console.error('[HiNote] View initialization failed:', error);
+            return;
+        }
+        if (this.closed) return;
         this.setupResult = await setupHiNoteView({
             app: this.app,
             component: this,
@@ -174,6 +183,7 @@ export class HiNoteView extends ItemView {
 
     // 在 onunload 方法中确保清理
     onunload() {
+        this.closed = true;
         // 清理有 destroy 方法的管理器
         this.setupResult?.searchUIManager.destroy();
         this.setupResult?.selectionManager.destroy();

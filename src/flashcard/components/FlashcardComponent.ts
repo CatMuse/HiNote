@@ -34,14 +34,14 @@ export class FlashcardComponent extends Component {
     // 核心属性
     private progressContainer: HTMLElement | null = null;
     private container: HTMLElement;
-    private currentIndex: number = 0;
-    private isFlipped: boolean = false;
+    private currentIndex = 0;
+    private isFlipped = false;
     private cards: FlashcardState[] = [];
-    private isActive: boolean = false;
+    private isActive = false;
     private licenseManager: LicenseManager;
     private fsrsManager: FSRSManager;
-    private currentGroupName: string = '';
-    private currentGroupId: string = '';
+    private currentGroupName = '';
+    private currentGroupId = '';
     private app: App;
     private plugin: CommentPlugin;
     private completionMessage: string | null = null;
@@ -108,6 +108,7 @@ export class FlashcardComponent extends Component {
      * 清理组件
      */
     public cleanup() {
+        this.groupManager.dispose();
         // 键盘事件监听器已移除
     }
     
@@ -147,6 +148,7 @@ export class FlashcardComponent extends Component {
      * 停用组件
      */
     public deactivate() {
+        this.groupManager.dispose();
         this.isActive = false;
         this.container.empty();
         this.container.removeClass('flashcard-mode');
@@ -157,6 +159,7 @@ export class FlashcardComponent extends Component {
      * 销毁组件
      */
     public destroy() {
+        this.groupManager.dispose();
         // 键盘事件监听器已移除
         this.container.removeClass('flashcard-mode');
         this.container.empty();

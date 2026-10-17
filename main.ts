@@ -66,7 +66,7 @@ export default class CommentPlugin extends Plugin {
 	onunload() {
 		// 清理初始化管理器
 		if (this.initManager) {
-			void this.initManager.cleanup();
+			void this.initManager.cleanup().catch(error => console.error('[HiNote] Cleanup failed:', error));
 		}
 	}
 

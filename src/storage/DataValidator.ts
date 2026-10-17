@@ -15,7 +15,7 @@ type SanitizedComment = Partial<CommentItem> & {
  */
 export class DataValidator {
     private static isRecord(value: unknown): value is JsonRecord {
-        return typeof value === 'object' && value !== null;
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
     }
 
     /**
@@ -179,17 +179,17 @@ export class DataValidator {
         }
 
         // 验证cards对象
-        if (data.cards && typeof data.cards !== 'object') {
+        if (!this.isRecord(data.cards)) {
             errors.push('cards必须是对象');
         }
 
         // 验证globalStats
-        if (data.globalStats && typeof data.globalStats !== 'object') {
+        if (!this.isRecord(data.globalStats)) {
             errors.push('globalStats必须是对象');
         }
 
         // 验证cardGroups
-        if (data.cardGroups && !Array.isArray(data.cardGroups)) {
+        if (!Array.isArray(data.cardGroups)) {
             errors.push('cardGroups必须是数组');
         }
 
@@ -213,7 +213,7 @@ export class DataValidator {
             errors.push('缺少有效的版本信息');
         }
 
-        if (!data.mapping || typeof data.mapping !== 'object') {
+        if (!this.isRecord(data.mapping) || !Object.values(data.mapping).every(value => typeof value === 'string')) {
             errors.push('缺少mapping对象');
         }
 

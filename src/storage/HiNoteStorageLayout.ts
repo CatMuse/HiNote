@@ -10,36 +10,33 @@ export async function ensureHiNoteDirectoryStructure(app: App, vaultPath: string
     ];
 
     for (const dir of directories) {
-        try {
-            await app.vault.adapter.mkdir(dir);
-        } catch {
-            // 目录可能已存在，忽略错误
-        }
+        if (!await app.vault.adapter.exists(dir)) await app.vault.adapter.mkdir(dir);
     }
 }
 
+/** Recover only unambiguous legacy mappings; never guess paths from underscores. */
 export async function detectHighlightFilesFromStorage(
     app: App,
     vaultPath: string,
     onMappingDetected: (originalPath: string, safeFileName: string) => void
 ): Promise<string[]> {
-    try {
-        const highlightsDir = FilePathUtils.getHighlightsDir(vaultPath);
-        const files = await app.vault.adapter.list(highlightsDir);
-        const detectedFiles: string[] = [];
-
-        for (const file of files.files) {
-            if (!file.endsWith('.json')) continue;
-
-            const baseName = file.replace(/\.json$/, '').replace(highlightsDir + '/', '');
-            const originalPath = FilePathUtils.fromSafeFileName(baseName);
-            detectedFiles.push(originalPath);
-            onMappingDetected(originalPath, baseName);
-        }
-
-        return detectedFiles;
-    } catch (error) {
-        console.warn('扫描高亮目录失败:', error);
-        return [];
+    const highlightsDir = FilePathUtils.getHighlightsDir(vaultPath);
+    const files = await app.vault.adapter.list(highlightsDir);
+    const candidates = new Map<string, string[]>();
+    for (const file of app.vault.getMarkdownFiles()) {
+        const name = FilePathUtils.toSafeFileName(file.path);
+        candidates.set(name, [...(candidates.get(name) || []), file.path]);
     }
+    const recovered: string[] = [];
+    for (const path of files.files) {
+        if (!path.endsWith('.json')) continue;
+        const name = path.slice(path.lastIndexOf('/') + 1);
+        const matches = candidates.get(name) || [];
+        if (matches.length !== 1) {
+            throw new Error('HiNote cannot safely recover a storage mapping. Restore file-mapping.json from backup.');
+        }
+        recovered.push(matches[0]);
+        onMappingDetected(matches[0], name);
+    }
+    return recovered;
 }
