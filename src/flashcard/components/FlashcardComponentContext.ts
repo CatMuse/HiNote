@@ -42,7 +42,9 @@ export interface FlashcardComponentContext {
     flipCard(): void;
     undoReview(): void;
     setCardSuspended(cardId: string, suspended: boolean): void;
-    getSessionProgress(): { completed: number; total: number };
+    getSessionProgress(): { completed: number; total: number; remaining: number; reviews: number; studyTimeMs: number };
+    returnFromStudy(): void;
+    getReturnLabel(): string;
     rateCard(rating: FSRSRating): void;
 }
 

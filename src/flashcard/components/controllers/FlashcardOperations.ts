@@ -9,6 +9,9 @@ export class FlashcardOperations {
     private static readonly MAX_CARD_STUDY_TIME_MS = 10 * 60 * 1000;
     private saving = false;
     private completed = 0;
+    private studyTimeMs = 0;
+    private lastRatingWasFirst = false;
+    private lastRatingTimeMs = 0;
     private sessionGroup = '';
     private sessionDay = new Date().toDateString();
     private revision = 0;
@@ -19,15 +22,19 @@ export class FlashcardOperations {
     private externalTimer: number | null = null;
     private currentCardStartedAt = 0;
     private currentCardId: string | undefined;
+    private hasReviewPosition = false;
 
     constructor(private component: FlashcardComponentContext) {}
 
     public getSessionProgress() {
-        return { completed: this.completed, total: this.completed + this.component.getCards().length };
+        const remaining = this.component.getCards().length;
+        const total = new Set([...this.completedCardIds, ...this.component.getCards().map(card => card.id)]).size;
+        return { completed: this.completedCardIds.size, total,
+            remaining, reviews: this.completed, studyTimeMs: this.studyTimeMs };
     }
 
     public async undoReview(): Promise<void> {
-        if (this.saving) return;
+        if (this.saving || this.component.getContainer().querySelector('.flashcard-answer-editor')) return;
         const revision = this.revision;
         const groupId = this.component.getCurrentGroupId();
         const undoId = this.component.getFsrsManager().getUndoCardId();
@@ -36,7 +43,10 @@ export class FlashcardOperations {
             if (await this.component.getFsrsManager().undoLastReview()) {
                 if (revision === this.revision && this.component.getCurrentGroupId() === groupId && this.component.getIsActive()) {
                     if (undoId === this.lastRatedCardId) this.completed = Math.max(0, this.completed - 1);
-                    if (undoId) this.completedCardIds.delete(undoId);
+                    if (undoId && undoId === this.lastRatedCardId) {
+                        if (this.lastRatingWasFirst) this.completedCardIds.delete(undoId);
+                        this.studyTimeMs = Math.max(0, this.studyTimeMs - this.lastRatingTimeMs);
+                    }
                     this.lastRatedCardId = undefined;
                     this.refreshCardList(false);
                     this.component.getRenderer().renderStudyArea();
@@ -47,6 +57,7 @@ export class FlashcardOperations {
     }
 
     public dispose(): void {
+        this.hasReviewPosition = false;
         this.revision++;
         this.cancelTimer();
         this.currentCardStartedAt = 0;
@@ -114,10 +125,11 @@ export class FlashcardOperations {
     }
 
     public flipCard(): void {
+        if (this.component.getContainer().querySelector('.flashcard-answer-editor')) return;
         if (this.saving || !this.component.getCards().length) return;
         this.component.setCardFlipped(!this.component.isCardFlipped());
         this.component.saveState();
-        this.component.getRenderer().renderStudyArea();
+        this.component.getRenderer().renderCardFlip();
         this.component.getContainer().focus();
     }
 
@@ -132,7 +144,8 @@ export class FlashcardOperations {
     }
 
     public async rateCard(rating: FSRSRating): Promise<void> {
-        if (this.saving || !this.component.isCardFlipped()) return;
+        if (this.saving || !this.component.isCardFlipped()
+            || this.component.getContainer().querySelector('.flashcard-answer-editor')) return;
         const card = this.component.getCards()[this.component.getCurrentIndex()];
         if (!card) return;
         const groupId = this.component.getCurrentGroupId();
@@ -157,6 +170,9 @@ export class FlashcardOperations {
             }
             if (revision !== this.revision || !this.component.getIsActive() || this.component.getCurrentGroupId() !== groupId) return;
             this.completed++;
+            this.lastRatingWasFirst = !this.completedCardIds.has(card.id);
+            this.lastRatingTimeMs = studyTimeMs;
+            this.studyTimeMs += studyTimeMs;
             this.completedCardIds.add(card.id);
             this.lastRatedCardId = card.id;
             this.component.setCardFlipped(false);
@@ -181,10 +197,15 @@ export class FlashcardOperations {
             groupId = manager.getCardGroups()[0]?.id || "";
             this.component.setCurrentGroupId(groupId);
         }
+        // Only a live refresh of the same group may retain an already revealed answer.
+        const previousCardId = this.component.getCards()[this.component.getCurrentIndex()]?.id;
+        const retainAnswer = restore && this.hasReviewPosition && this.sessionGroup === groupId
+            && this.component.isCardFlipped();
         const cards = groupId ? manager.getCardsForStudy(groupId) : [];
         const today = new Date().toDateString();
         if (this.sessionGroup !== groupId || this.sessionDay !== today) {
             this.completed = 0;
+            this.studyTimeMs = 0;
             this.lastRatedCardId = undefined;
             this.completedCardIds.clear();
             this.sessionGroup = groupId;
@@ -194,7 +215,9 @@ export class FlashcardOperations {
         this.component.setCards(cards);
         const position = restoreReviewPosition(cards, restore ? this.component.getGroupProgress() : null);
         this.component.setCurrentIndex(Math.max(0, position.currentIndex));
-        this.component.setCardFlipped(cards.length > 0 && position.isFlipped);
+        this.component.setCardFlipped(Boolean(retainAnswer && previousCardId
+            && cards[position.currentIndex]?.id === previousCardId));
+        this.hasReviewPosition = true;
         this.syncCurrentCardTimer();
         this.component.setCompletionMessage(null);
         this.component.setGroupCompletionMessage(groupId, null);

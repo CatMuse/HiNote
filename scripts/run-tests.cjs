@@ -15,6 +15,7 @@ const tasks = [
     'test:models',
     'test:views',
     'test:hicard-view',
+    'test:hicard-study',
     'test:exclusions',
     'test:secrets',
     'test:ai'

@@ -130,10 +130,14 @@ async function main() {
         getCardGroups: () => [{ id: 'one', name: 'Same' }, { id: 'two', name: 'Same' }] };
     const loaded = loadFlashcardUIState(manager);
     assert.equal(loaded.currentGroupId, 'one');
+    assert.equal(loaded.isFlipped, false, 'Legacy saved answer state must not be loaded as visible');
     saveFlashcardUIState(manager, { ...loaded, currentGroupId: 'two', cards: [original], currentIndex: 0 });
     assert.equal(loadFlashcardUIState(manager).currentGroupId, 'two');
+    assert.equal(state.groupProgress.two.isFlipped, false, 'Revealing an answer is not persisted across learning sessions');
     const { restoreReviewPosition } = load('src/flashcard/components/controllers/FlashcardReviewQueue.ts');
     assert.equal(restoreReviewPosition([original], { currentIndex: 3, currentCardId: 'removed', isFlipped: true }).isFlipped, false, 'Replacement card starts with its question');
+    assert.equal(restoreReviewPosition([original], { currentIndex: 0, currentCardId: original.id, isFlipped: true }).isFlipped, false, 'Same saved card also starts with its question');
+    assert.equal(restoreReviewPosition([original], { currentIndex: 0, isFlipped: true }).isFlipped, false, 'Legacy progress without card ID cannot reveal an answer');
 
     let licenseData = { 'vault-id': 'fake', 'flashcard-license': { token: 'fake', key: 'fake', vaultId: 'fake', features: ['flashcard'], lastVerified: Date.now() - 8 * 86400000 } };
     const licensePlugin = { loadData: async () => licenseData, saveData: async value => licenseData = value };
@@ -147,6 +151,7 @@ async function main() {
     assert.equal(await new LicenseManager(licensePlugin).isActivated(), false, 'Rejected license remains rejected after restart');
 
     const { FlashcardOperations } = load('src/flashcard/components/controllers/FlashcardOperations.ts');
+    reviewEntryAndRefresh(FlashcardOperations, original);
     let visible = [];
     let flipped = false;
     let index = 0;
@@ -175,7 +180,7 @@ async function main() {
         setCompletionMessage: () => {}, setGroupCompletionMessage: () => {},
         saveState: () => savedPosition = { currentIndex: index, currentCardId: visible[index]?.id, isFlipped: flipped },
         updateProgress: () => {},
-        getRenderer: () => ({ renderStudyArea: () => renders++, refreshStatistics: () => statsRefreshes++ }),
+        getRenderer: () => ({ renderCardFlip() {}, renderStudyArea: () => renders++, refreshStatistics: () => statsRefreshes++ }),
         getContainer: () => ({ querySelector: () => editing ? {} : null, querySelectorAll: () => [], focus: () => {}, ownerDocument: { defaultView: {
             setTimeout: callback => { timerCallback = callback; return 1; }, clearTimeout: () => cleared++
         } } })
@@ -183,7 +188,9 @@ async function main() {
     const operations = new FlashcardOperations(ui);
     operations.refreshCardList();
     assert.equal(visible.length, 1);
+    const beforeFlip = renders;
     operations.flipCard();
+    assert.equal(renders, beforeFlip, 'Reveal uses the face update path instead of rebuilding the study area');
     assert.equal(flipped, true);
     const originalError = console.error;
     try { console.error = () => {}; await operations.rateCard(1); } finally { console.error = originalError; }
@@ -208,6 +215,26 @@ async function main() {
     assert.equal(visible.length, 2);
     assert.equal(renders, beforeRefresh, 'Timer preserves current card DOM');
     assert.equal(statsRefreshes, 1, 'All counters refresh together');
+    editing = true;
+    const reviewsBeforeEdit = operations.getSessionProgress().reviews;
+    flipped = true;
+    await operations.rateCard(3);
+    operations.flipCard();
+    assert.equal(flipped, true, 'Editing an answer prevents flipping away');
+    assert.equal(operations.getSessionProgress().reviews, reviewsBeforeEdit, 'Editing an answer prevents rating away');
+    editing = false;
+    uiManager.trackStudyProgress = async () => learning;
+    await operations.rateCard(1);
+    flipped = true;
+    await operations.rateCard(3);
+    assert.equal(operations.getSessionProgress().completed, 2, 'Repeated learning counts the card once');
+    assert.equal(operations.getSessionProgress().reviews, 3, 'Repeated learning keeps its review action count');
+    assert.equal(operations.getSessionProgress().total, 2, 'A reviewed card still in the queue is not counted twice in progress');
+    uiManager.getUndoCardId = () => learning.id;
+    uiManager.undoLastReview = async () => true;
+    await operations.undoReview();
+    assert.equal(operations.getSessionProgress().completed, 2, 'Undo of a repeated rating preserves the earlier review');
+    assert.equal(operations.getSessionProgress().reviews, 2);
     operations.dispose();
     assert.ok(cleared > 0, 'Timers cleaned on disposal');
     operations.refreshCardList();
@@ -222,6 +249,81 @@ async function main() {
     assert.equal(renders, afterDispose, 'Late save must not redraw a disposed view');
     await transactions(original);
     console.log('Flashcard learning passed: FSRS-6 defaults and migration, parameter validation, preview parity, FSRS roundtrip, settings restart, groups, limits, transactional writes, undo, ID state, offline license, editor-safe timers and counters.');
+}
+
+function reviewEntryAndRefresh(FlashcardOperations, original) {
+    const second = { ...original, id: 'resume-target' };
+    const replacement = { ...original, id: 'replacement' };
+    let state = { currentGroupId: 'g', currentGroupName: 'Group', progressVersion: 2, groupProgress: {
+        g: { currentIndex: 1, currentCardId: second.id, isFlipped: true },
+        h: { currentIndex: 0, currentCardId: replacement.id, isFlipped: true }
+    } };
+    let group = 'g', visible = [], index = 0, flipped = true, callback;
+    const queues = { g: [original, second], h: [replacement] };
+    const manager = {
+        getUIState: () => structuredClone(state), updateUIState: value => state = structuredClone(value),
+        getCardGroups: () => [{ id: 'g', name: 'Group' }, { id: 'h', name: 'Other' }],
+        getCardsForStudy: id => queues[id], getCardsByGroupId: id => queues[id]
+    };
+    const loaded = loadFlashcardUIState(manager);
+    const localProgress = loaded.groupProgress;
+    const ui = {
+        getFsrsManager: () => manager,
+        getCurrentGroupId: () => group, setCurrentGroupId: value => group = value,
+        getCards: () => visible, setCards: cards => visible = cards,
+        getCurrentIndex: () => index, setCurrentIndex: value => index = value,
+        isCardFlipped: () => flipped, setCardFlipped: value => flipped = value,
+        getGroupProgress: () => localProgress[group], getIsActive: () => true,
+        setCompletionMessage() {}, setGroupCompletionMessage() {},
+        saveState: () => saveFlashcardUIState(manager, {
+            currentGroupId: group, currentGroupName: group, completionMessage: null,
+            cards: visible, currentIndex: index, isFlipped: flipped, groupProgress: localProgress
+        }),
+        getRenderer: () => ({ renderCardFlip() {}, renderStudyArea() {}, refreshStatistics() {} }),
+        getContainer: () => ({ querySelector: () => null, focus() {}, ownerDocument: { defaultView: {
+            setTimeout: value => { callback = value; return 1; }, clearTimeout() {}
+        } } })
+    };
+    const operations = new FlashcardOperations(ui);
+    operations.refreshCardList();
+    assert.equal(visible[index].id, second.id, 'Entry restores the saved card position');
+    assert.equal(flipped, false, 'Entry ignores a previously revealed answer');
+    operations.flipCard();
+    assert.equal(flipped, true);
+    assert.equal(state.groupProgress.g.isFlipped, false, 'Persisted state stays question-side while the live answer is visible');
+    queues.g = [second, original];
+    operations.refreshCardList();
+    assert.equal(index, 0, 'Queue reorder follows card ID');
+    assert.equal(flipped, true, 'Live refresh retains the answer for the same card');
+    callback();
+    assert.equal(flipped, true, 'Learning timer retains the live answer despite saved question state');
+    operations.onCardsChanged();
+    callback();
+    assert.equal(flipped, true, 'External card changes retain the live answer for the same card');
+    queues.g = [replacement, original];
+    operations.onCardsChanged();
+    callback();
+    assert.equal(visible[index].id, replacement.id);
+    assert.equal(flipped, false, 'A replacement card must not inherit the previous answer state');
+    operations.flipCard();
+    group = 'h';
+    operations.refreshCardList();
+    assert.equal(visible[index].id, replacement.id);
+    assert.equal(flipped, false, 'Switching groups resets the face even when the same card is shared');
+    operations.flipCard();
+    operations.dispose();
+    operations.refreshCardList();
+    assert.equal(flipped, false, 'Reactivation of the same component starts with the question');
+    operations.flipCard();
+    operations.dispose();
+    const reentered = new FlashcardOperations(ui);
+    reentered.refreshCardList();
+    assert.equal(visible[index].id, replacement.id);
+    assert.equal(flipped, false, 'A fresh study component also resumes question-side');
+    reentered.flipCard();
+    reentered.refreshCardList(false);
+    assert.equal(flipped, false, 'Advancing explicitly resets the answer face');
+    reentered.dispose();
 }
 
 async function transactions(original) {

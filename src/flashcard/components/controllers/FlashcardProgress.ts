@@ -47,21 +47,27 @@ export class FlashcardProgressManager {
 
         progressContainer.empty();
         const session = this.component.getSessionProgress();
-        const current = session.total ? Math.min(session.completed + 1, session.total) : 0;
+        const text = t('{completed} reviewed · {remaining} ready', {
+            completed: session.completed, remaining: session.remaining
+        });
         progressContainer.createDiv({
-            cls: 'flashcard-progress-text',
-            text: `${current} / ${session.total}`,
+            cls: 'flashcard-progress-text', text,
+            attr: { 'aria-live': 'polite', 'aria-atomic': 'true' }
+        });
+        const track = progressContainer.createDiv({
+            cls: 'flashcard-progress-bar-container',
             attr: {
-                'aria-label': t('{completed} of {total} completed', {
-                    completed: session.completed,
-                    total: session.total
+                role: 'progressbar', 'aria-label': t('Cards reviewed this session'),
+                'aria-valuemin': '0', 'aria-valuemax': String(session.total || 1),
+                'aria-valuenow': String(session.completed),
+                'aria-valuetext': t('{completed} of {total} cards reviewed this session', {
+                    completed: session.completed, total: session.total
                 })
             }
         });
-        const progressBarContainer = progressContainer.createDiv({ cls: 'flashcard-progress-bar-container' });
-        const progressBar = progressBarContainer.createDiv({ cls: 'flashcard-progress-bar' });
-        const percent = session.total ? Math.round(100 * current / session.total) : 0;
-        progressBar.setCssProps({ width: `${percent}%` });
+        const bar = track.createDiv({ cls: 'flashcard-progress-bar' });
+        const percent = session.total ? Math.min(100, session.completed / session.total * 100) : 0;
+        bar.setCssProps({ width: `${percent}%` });
+
     }
-    
 }

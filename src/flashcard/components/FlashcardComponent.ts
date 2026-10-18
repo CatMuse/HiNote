@@ -47,6 +47,15 @@ export class FlashcardComponent extends Component {
     private app: App;
     private plugin: CommentPlugin;
     private completionMessage: string | null = null;
+    private exitStudy: (() => void) | null = null;
+    private returnLabel = t('Back to today');
+
+    public setStudyExit(callback: () => void, label: string): void {
+        this.exitStudy = callback;
+        this.returnLabel = label;
+    }
+    public returnFromStudy(): void { this.exitStudy?.(); }
+    public getReturnLabel(): string { return this.returnLabel; }
     
     // 存储每个分组的学习进度和完成状态
     private groupProgress: Record<string, GroupProgressState> = {};

@@ -36,7 +36,8 @@ export function loadFlashcardUIState(fsrsManager: FSRSManager): LoadedFlashcardU
         currentGroupName,
         currentGroupId,
         currentIndex: savedProgress?.currentIndex || 0,
-        isFlipped: savedProgress?.isFlipped || false,
+        // A saved position resumes the question, never a previously revealed answer.
+        isFlipped: false,
         completionMessage: uiState.completionMessage || null,
         groupProgress
     };
@@ -101,7 +102,8 @@ export function saveFlashcardUIState(
     if (options.currentGroupId) {
         const progress = ensureGroupProgress(uiState.groupProgress, options.currentGroupId);
         progress.currentIndex = options.currentIndex;
-        progress.isFlipped = options.isFlipped;
+        // Keep the legacy field for compatibility; revealing is local to the live session.
+        progress.isFlipped = false;
         progress.currentCardId = getCurrentCardId(options.cards, options.currentIndex);
         progress.completionMessage = getGroupCompletionMessage(
             options.groupProgress,

@@ -45,8 +45,7 @@ export function restoreReviewPosition(
     }
 
     const currentIndex = Math.max(0, findRestoredCardIndex(cards, savedProgress));
-    const sameCard = !savedProgress.currentCardId || cards[currentIndex]?.id === savedProgress.currentCardId;
-    return { currentIndex, isFlipped: sameCard && savedProgress.isFlipped };
+    return { currentIndex, isFlipped: false };
 }
 
 export function clearGroupCompletionMessage(fsrsManager: FSRSManager, groupName: string): void {

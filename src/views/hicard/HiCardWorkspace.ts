@@ -27,14 +27,15 @@ const NAVIGATION: NavigationItem[] = [
 ];
 
 export class HiCardWorkspace extends Component {
-    private readonly toolbarMetaEl: HTMLElement;
     private readonly sidebarEl: HTMLElement;
     private readonly contentEl: HTMLElement;
     private currentPage: HiCardPageId = 'today';
+    private studyOrigin: Exclude<HiCardPageId, 'study'> = 'today';
     private studyComponent: FlashcardComponent | null = null;
     private pageCleanup: (() => void) | null = null;
     private generation = 0;
     private refreshTimer: number | null = null;
+    private checkingStudyExit = false;
 
     constructor(private rootEl: HTMLElement, private plugin: CommentPlugin) {
         super();
@@ -42,8 +43,6 @@ export class HiCardWorkspace extends Component {
         const toolbar = rootEl.createDiv({ cls: 'hicard-workspace-toolbar' });
         const titleGroup = toolbar.createDiv({ cls: 'hicard-workspace-title-group' });
         titleGroup.createDiv({ cls: 'hicard-workspace-title', text: 'HICARD' });
-        this.toolbarMetaEl = titleGroup.createDiv({ cls: 'hicard-workspace-toolbar-meta' });
-        this.updateToolbarMeta();
 
         const body = rootEl.createDiv({ cls: 'hicard-workspace-body' });
         this.sidebarEl = body.createEl('nav', {
@@ -88,6 +87,7 @@ export class HiCardWorkspace extends Component {
             this.refreshTimer = null;
         }
         this.releasePage();
+        this.rootEl.removeClass('is-studying');
         this.rootEl.empty();
     }
 
@@ -114,29 +114,51 @@ export class HiCardWorkspace extends Component {
         isCurrent: () => boolean = () => true,
         groupId?: string
     ): Promise<void> {
+        if (this.studyComponent) {
+            if (this.checkingStudyExit) return;
+            const component = this.studyComponent;
+            const version = this.generation;
+            this.checkingStudyExit = true;
+            try {
+                if (!await component.getRenderer().prepareToLeave()) return;
+                if (version !== this.generation || component !== this.studyComponent) return;
+                if (component.canStudy()) component.saveState();
+            } finally {
+                this.checkingStudyExit = false;
+            }
+        }
         const generation = ++this.generation;
+        if (page === 'study' && this.currentPage !== 'study') this.studyOrigin = this.currentPage;
         this.releasePage();
         this.currentPage = page;
         this.updateNavigation();
         this.contentEl.empty();
         this.contentEl.toggleClass('is-study-page', page === 'study');
+        this.rootEl.toggleClass('is-studying', page === 'study');
+        this.sidebarEl.hidden = page === 'study';
         if (page === 'study') {
-            const bar = this.contentEl.createDiv({ cls: 'hicard-study-toolbar' });
-            const back = bar.createEl('button', { cls: 'clickable-icon', attr: { type: 'button', 'aria-label': t('Back to today') } });
-            setIcon(back, 'arrow-left');
-            back.addEventListener('click', () => { void this.showPage('today'); });
+            const surface = this.contentEl.createDiv({ cls: 'hicard-study-surface' });
+            const bar = surface.createDiv({ cls: 'hicard-study-toolbar' });
+            const returnLabel = this.studyOrigin === 'groups' ? t('Back to study groups') : t('Back to today');
+            const back = bar.createEl('button', { cls: 'hicard-study-exit', attr: { type: 'button', 'aria-label': t('Exit study') } });
+            setIcon(back.createSpan({ cls: 'hicard-study-exit-icon' }), 'arrow-left');
+            back.createSpan({ text: t('Exit study') });
+            back.addEventListener('click', () => { void this.showPage(this.studyOrigin); });
             const group = groupId ? this.plugin.fsrsManager.getCardGroups().find(item => item.id === groupId) : undefined;
             const groupTitle = group ? (isSystemCardGroup(group.id) ? t(group.name) : group.name) : t('Study');
             bar.createDiv({ cls: 'hicard-study-title', text: groupTitle });
             const progress = bar.createDiv({ cls: 'flashcard-progress-container' });
-            const container = this.contentEl.createDiv({ cls: 'hicard-study-container' });
+            const container = surface.createDiv({ cls: 'hicard-study-container' });
             const component = new FlashcardComponent(container, this.plugin);
             component.setProgressContainer(progress);
+            component.setStudyExit(() => { void this.showPage(this.studyOrigin); }, returnLabel);
             this.studyComponent = component;
             component.setLicenseManager(new LicenseManager(this.plugin));
             this.addChild(component);
             await component.activate(() => generation === this.generation && isCurrent());
+            if (generation !== this.generation || !isCurrent() || component !== this.studyComponent) return;
             if (groupId) await this.activateStudyGroup(groupId);
+            if (component.canStudy()) container.focus();
             return;
         }
         this.renderManagementPage(page);
@@ -193,11 +215,7 @@ export class HiCardWorkspace extends Component {
         for (const item of Array.from(this.sidebarEl.querySelectorAll<HTMLElement>('[data-page]'))) {
             item.classList.toggle('is-active', item.dataset.page === this.currentPage);
         }
-        this.updateToolbarMeta();
     }
 
-    private updateToolbarMeta(): void {
-        if (!this.toolbarMetaEl) return;
-        this.toolbarMetaEl.setText(t('{count} cards', { count: this.plugin.fsrsManager.getAllCards().length }));
-    }
+
 }

@@ -1527,25 +1527,25 @@ settings:
 
 /* 卡片正面初始状态 */
 .flashcard-side.flashcard-front {
-    transform: rotateY(0deg);
+    transform: rotateX(0deg);
     z-index: 2;
 }
 
 /* 卡片背面初始状态，旋转180度隐藏 */
 .flashcard-side.flashcard-back {
-    transform: rotateY(180deg);
+    transform: rotateX(180deg);
     z-index: 1;
 }
 
 /* 卡片翻转后，正面旋转180度隐藏 */
 .flashcard.is-flipped .flashcard-side.flashcard-front {
-    transform: rotateY(-180deg);
+    transform: rotateX(-180deg);
     z-index: 1;
 }
 
 /* 卡片翻转后，背面旋转回0度显示 */
 .flashcard.is-flipped .flashcard-side.flashcard-back {
-    transform: rotateY(0deg);
+    transform: rotateX(0deg);
     z-index: 2;
 }
 
@@ -5679,3 +5679,486 @@ button.flashcard-reveal-button {
     color: var(--text-muted);
 }
 .hicard-editor-help svg { width: 16px; height: 16px; }
+
+/* Keep study controls predictable while reading and selecting text. */
+.hicard-study-toolbar { grid-template-columns: 32px minmax(0, 1fr) auto; }
+.hicard-study-toolbar > .flashcard-progress-container {
+    position: static;
+    grid-column: 3;
+    grid-row: 1;
+    pointer-events: auto;
+}
+.hicard-study-toolbar .flashcard-progress-text {
+    position: static;
+    transform: none;
+    white-space: nowrap;
+}
+.hicard-study-container .flashcard { cursor: auto; }
+.hicard-study-container .flashcard-rating-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.hicard-study-container .flashcard-rating-label kbd {
+    color: var(--text-muted);
+    font-size: var(--font-smallest);
+    font-family: var(--font-interface);
+}
+.hicard-study-container details.flashcard-question-context > summary {
+    cursor: pointer;
+    text-transform: none;
+}
+.hicard-study-container details.flashcard-question-context[open] > summary { margin-bottom: 12px; }
+.hicard-study-container button.flashcard-source-link {
+    height: auto;
+    max-width: 100%;
+    padding: 4px 8px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    border: 0;
+    box-shadow: none;
+    color: var(--text-muted);
+    background: transparent;
+    font-size: inherit;
+}
+.hicard-study-container button.flashcard-source-link:hover { color: var(--text-accent); }
+.hicard-study-container .flashcard-rating-button:disabled,
+.hicard-study-container .flashcard-more:disabled { opacity: .45; }
+@media (max-width: 700px) {
+    .hicard-study-toolbar > .flashcard-progress-container { grid-column: 2 / -1; grid-row: 2; }
+    .hicard-study-toolbar .flashcard-progress-text { white-space: normal; }
+}
+
+.hicard-study-container .flashcard-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(820px, 100%);
+    min-height: 62px;
+}
+.hicard-study-container .flashcard-controls .flashcard-rating { opacity: 1; }
+@media (max-width: 700px) {
+    .hicard-study-container .flashcard-controls { min-height: 134px; }
+}
+
+/* Learning occupies the current HiCard tab; management navigation returns on exit. */
+.hicard-workspace.is-studying .hicard-workspace-sidebar { display: none; }
+.hicard-workspace.is-studying .hicard-workspace-body { grid-template-columns: minmax(0, 1fr); }
+.hicard-workspace.is-studying .hicard-study-toolbar { grid-template-columns: auto minmax(0, 1fr) auto; }
+button.hicard-study-exit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    grid-column: 1;
+    grid-row: 1;
+    padding: 6px 10px;
+    height: auto;
+    box-shadow: none;
+    border: 0;
+    color: var(--text-muted);
+    background: transparent;
+    white-space: nowrap;
+}
+button.hicard-study-exit:hover { color: var(--text-normal); background: var(--background-modifier-hover); }
+.hicard-study-exit-icon { display: flex; }
+.hicard-study-exit-icon svg { width: 16px; height: 16px; }
+
+/* Fit learning to the actual Obsidian pane rather than the application viewport. */
+.hicard-workspace.is-studying .hicard-workspace-body {
+    grid-template-rows: minmax(0, 1fr);
+}
+.hicard-workspace-content.is-study-page {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px 24px;
+    overflow: hidden;
+}
+.is-study-page .hicard-study-toolbar {
+    width: 100%;
+    margin: 0;
+    padding-bottom: 0;
+}
+.is-study-page .hicard-study-container.flashcard-mode {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+.is-study-page .hicard-study-container .flashcard-container {
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 0;
+    gap: 12px;
+    padding: 20px;
+    overflow: hidden;
+}
+.is-study-page .hicard-study-container .flashcard {
+    flex: 1 1 0;
+    width: 100%;
+    max-width: none;
+    height: 0;
+    min-height: 0;
+}
+.is-study-page .hicard-study-container .flashcard-side {
+    min-width: 0;
+    min-height: 0;
+    padding: clamp(16px, 2.5vw, 32px);
+    overflow: hidden;
+}
+.is-study-page .hicard-study-container .flashcard-content {
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    max-width: 860px;
+    max-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    overscroll-behavior: contain;
+}
+.is-study-page .hicard-study-container .flashcard-back-content > * { flex-shrink: 0; }
+.is-study-page .hicard-study-container .flashcard-content img { max-width: 100%; height: auto; }
+.is-study-page .hicard-study-container .flashcard-content pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.is-study-page .hicard-study-container .flashcard-content table { width: 100%; table-layout: fixed; }
+.is-study-page .hicard-study-container .flashcard-controls,
+.is-study-page .hicard-study-container .flashcard-source,
+.is-study-page .hicard-study-container .flashcard-study-actions { flex: 0 0 auto; }
+.is-study-page .hicard-study-container .flashcard-controls {
+    width: 100%;
+    min-height: 62px;
+}
+.is-study-page .hicard-study-container .flashcard-source {
+    max-width: 100%;
+    overflow: hidden;
+}
+.is-study-page .hicard-study-container button.flashcard-source-link {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.is-study-page .hicard-study-container .flashcard-completion-message {
+    min-height: 0;
+    max-height: 100%;
+    overflow-y: auto;
+}
+@media (max-width: 700px) {
+    .hicard-workspace-content.is-study-page { gap: 8px; padding: 12px; }
+    .is-study-page .hicard-study-container .flashcard-container { gap: 8px; padding: 12px; }
+    .is-study-page .hicard-study-container .flashcard-controls { min-height: 134px; }
+}
+
+/* A single reading surface, compact typography and a quiet progress indicator. */
+.is-study-page .hicard-study-toolbar { padding-bottom: 12px; }
+.is-study-page .hicard-study-toolbar .flashcard-progress-text {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+.is-study-page .hicard-study-toolbar .flashcard-progress-bar-container {
+    position: absolute;
+    inset: auto 0 0;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--background-modifier-border);
+}
+.is-study-page .hicard-study-container .flashcard-container {
+    padding: 0;
+    background: transparent;
+}
+.is-study-page .hicard-study-container .flashcard-side {
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 3%);
+}
+.is-study-page .hicard-study-container .flashcard-content,
+.is-study-page .hicard-study-container .flashcard-answer-content > .markdown-rendered {
+    font-size: var(--font-text-size, 16px);
+    line-height: 1.65;
+}
+.is-study-page .hicard-study-container .flashcard-context-content { font-size: .9rem; }
+.is-study-page .hicard-study-container .flashcard-context-label,
+.is-study-page .hicard-study-container .flashcard-answer-label { font-size: var(--font-smallest); }
+.is-study-page .hicard-study-container .flashcard-rating-button {
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+}
+.is-study-page .hicard-study-container .flashcard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    gap: 12px;
+}
+.is-study-page .hicard-study-container .flashcard-footer .flashcard-source { flex: 0 1 auto; min-width: 0; }
+@media (prefers-reduced-motion: reduce) {
+    .is-study-page .flashcard-progress-bar { transition: none; }
+}
+
+/* The answer face has its own structure: question above, answer in the reading area. */
+.is-study-page .hicard-study-container .flashcard-back-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    gap: 0;
+    overflow: hidden;
+}
+.is-study-page .hicard-study-container .flashcard-question-context {
+    flex: 0 0 auto;
+    max-height: 35%;
+    margin: 0;
+    padding: 0 0 16px;
+    overflow-y: auto;
+    color: var(--text-muted);
+    opacity: 1;
+}
+.is-study-page .hicard-study-container div.flashcard-question-context {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    gap: 16px;
+}
+.is-study-page .hicard-study-container .flashcard-context-content { max-height: none; overflow: visible; }
+.is-study-page .hicard-study-container .flashcard-context-content p { margin-block: 0; }
+.is-study-page .hicard-study-container .flashcard-answer-content {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    gap: 16px;
+    padding: 24px 0;
+    overflow-y: auto;
+    text-align: center;
+}
+.is-study-page .hicard-study-container .flashcard-answer-content > * { flex: 0 0 auto; }
+.is-study-page .hicard-study-container .flashcard-answer-content > .markdown-rendered {
+    width: 100%;
+    max-width: 860px;
+    color: var(--text-normal);
+}
+.is-study-page .hicard-study-container .flashcard-answer-content.is-long-answer { text-align: left; }
+.is-study-page .hicard-study-container .flashcard-answer-label { margin: 0; color: var(--text-muted); }
+.is-study-page .hicard-study-container .flashcard-answer-empty-title {
+    margin: 0;
+    font-size: var(--font-text-size, 16px);
+    font-weight: var(--font-medium);
+    color: var(--text-muted);
+}
+.is-study-page .hicard-study-container button.flashcard-answer-empty-prompt {
+    width: auto;
+    min-width: 140px;
+    padding: 8px 16px;
+    border-radius: var(--radius-m);
+    box-shadow: none;
+    color: var(--text-accent);
+    background: transparent;
+    font-size: var(--font-ui-small);
+}
+.is-study-page .hicard-study-container .flashcard-answer-content.flashcard-answer-editor {
+    align-self: center;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: min(560px, 100%);
+    max-width: 100%;
+    padding: 16px 0;
+    text-align: left;
+}
+.is-study-page .hicard-study-container .flashcard-rating-label span { color: inherit; }
+
+/* Flip only the existing card faces; the next review renders without an entrance animation. */
+.hicard-study-container .flashcard-side {
+    transition: transform 220ms cubic-bezier(.2, .7, .2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+    .hicard-study-container .flashcard-side { transition: none; }
+}
+
+/* Reference layout: a shared study surface with an inset, top-aligned reading card. */
+.hicard-workspace-content.is-study-page { display: flex; padding: 16px; }
+.hicard-study-surface {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    padding: 12px 32px 28px;
+    border-radius: 18px;
+    background: var(--background-secondary);
+    overflow: hidden;
+}
+.is-study-page .hicard-study-toolbar { min-height: 48px; padding-bottom: 14px; }
+.is-study-page button.hicard-study-exit { background: var(--background-primary); border-radius: var(--radius-s); }
+.is-study-page .hicard-study-container.flashcard-mode {
+    box-sizing: border-box;
+    width: min(1120px, 78%);
+    padding-top: clamp(16px, 4vh, 48px);
+}
+.is-study-page .hicard-study-container .flashcard-container { gap: 24px; border-radius: 0; }
+.is-study-page .hicard-study-container .flashcard-side {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 24px;
+    padding: clamp(20px, 3.5vw, 48px);
+    border: 0;
+    border-radius: 16px;
+    box-shadow: none;
+}
+.is-study-page .hicard-study-container .flashcard-face-header {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 12px;
+    min-width: 0;
+}
+.is-study-page .hicard-study-container .flashcard-face-header .flashcard-context-label {
+    margin: 0 auto 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-medium);
+}
+.is-study-page .hicard-study-container .flashcard-face-header .flashcard-source {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 50%;
+}
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-source-link,
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-more {
+    box-sizing: border-box;
+    height: 28px;
+    min-height: 28px;
+    border: 0;
+    border-radius: var(--radius-s);
+    margin: 0;
+}
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-source-link {
+    line-height: 20px;
+    padding: 4px 8px;
+    border-radius: var(--radius-s);
+    color: var(--text-muted);
+    font-size: var(--font-ui-small, 14px);
+    cursor: pointer;
+}
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-source-link:hover,
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-source-link:focus-visible {
+    color: var(--interactive-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.is-study-page .hicard-study-container .flashcard-face-header .flashcard-study-actions {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0;
+}
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    min-width: 28px;
+    padding: 4px;
+}
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-more:hover,
+.is-study-page .hicard-study-container .flashcard-face-header button.flashcard-more:focus-visible {
+    color: var(--interactive-accent);
+    background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary));
+}
+.is-study-page .hicard-study-container .flashcard-content {
+    flex: 1 1 0;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    text-align: left;
+}
+.is-study-page .hicard-study-container .flashcard-back-content {
+    display: block;
+    height: auto;
+    overflow-y: auto;
+}
+.is-study-page .hicard-study-container .flashcard-question-context,
+.is-study-page .hicard-study-container div.flashcard-question-context {
+    display: block;
+    max-height: none;
+    padding: 0;
+    margin: 0 0 28px;
+    border: 0;
+    overflow: visible;
+    color: var(--text-muted);
+}
+.is-study-page .hicard-study-container .flashcard-context-content { font-size: var(--font-ui-small); }
+.is-study-page .hicard-study-container .flashcard-answer-content {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 0;
+    overflow: visible;
+    text-align: left;
+}
+.is-study-page .hicard-study-container .flashcard-answer-label {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+}
+.is-study-page .hicard-study-container .flashcard-answer-content > .markdown-rendered { max-width: none; }
+.is-study-page .hicard-study-container .flashcard-controls { min-height: 54px; }
+.is-study-page .hicard-study-container .flashcard-rating { width: min(640px, 100%); gap: 12px; }
+.is-study-page .hicard-study-container .flashcard-rating-button {
+    height: 54px;
+    border: 1px solid var(--rating-color, var(--background-modifier-border));
+    border-radius: 8px;
+}
+.is-study-page .hicard-study-container .flashcard-reveal-button { min-width: 220px; min-height: 48px; }
+.is-study-page .hicard-study-container .flashcard-answer-content.flashcard-answer-editor { padding: 0; }
+@media (max-width: 900px) {
+    .hicard-study-surface { padding: 12px 20px 20px; }
+    .is-study-page .hicard-study-container.flashcard-mode { width: 94%; padding-top: 20px; }
+}
+@media (max-width: 700px) {
+    .hicard-workspace-content.is-study-page { padding: 10px; }
+    .hicard-study-surface { padding: 10px 12px 16px; border-radius: 14px; }
+    .is-study-page .hicard-study-container.flashcard-mode { width: 100%; padding-top: 12px; }
+    .is-study-page .hicard-study-container .flashcard-container { gap: 12px; }
+    .is-study-page .hicard-study-container .flashcard-side { padding: 18px; gap: 16px; }
+    .is-study-page .hicard-study-container .flashcard-controls { min-height: 120px; }
+    .is-study-page .hicard-study-container .flashcard-face-header { flex-wrap: wrap; gap: 6px; }
+    .is-study-page .hicard-study-container .flashcard-face-header .flashcard-source { max-width: 60%; }
+}
+.is-study-page .hicard-study-container button.flashcard-answer-empty-prompt { align-self: flex-start; }
+.hicard-study-surface { container-type: size; }
+@container (max-height: 420px) {
+    .is-study-page .hicard-study-container.flashcard-mode { padding-top: 8px; }
+    .is-study-page .hicard-study-container .flashcard-container { gap: 12px; }
+    .is-study-page .hicard-study-container .flashcard-side { padding: 16px; gap: 12px; }
+    .is-study-page .hicard-study-container .flashcard-question-context { margin-bottom: 16px; }
+}
+
+/* Use the full pane width instead of inheriting a centered reading-width limit. */
+.workspace-leaf-content[data-type="hicard-view"] .hicard-workspace.is-studying .hicard-workspace-body,
+.workspace-leaf-content[data-type="hicard-view"] .hicard-workspace-content.is-study-page,
+.workspace-leaf-content[data-type="hicard-view"] .hicard-study-surface {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+    justify-self: stretch;
+    align-self: stretch;
+}
+.is-study-page .hicard-study-container .flashcard-rating-button:hover:not(:disabled),
+.is-study-page .hicard-study-container .flashcard-rating-button:focus-visible:not(:disabled) {
+    border-color: var(--rating-color);
+    background: color-mix(in srgb, var(--rating-color) 10%, var(--background-primary));
+    box-shadow: none;
+}

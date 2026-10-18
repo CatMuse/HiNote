@@ -1,5 +1,5 @@
 import { recordToHighlightView } from '../../../models/HighlightModels';
-import { Notice, TFile } from "obsidian";
+import { MarkdownView, Menu, Notice, setIcon, setTooltip, TFile } from "obsidian";
 import { CommentInputActionBar, CommentInputSaveController } from "../../../components/comment";
 import {
     autoResizeCommentTextarea,
@@ -11,13 +11,54 @@ import { CardGroup, FlashcardState, FSRS_RATING, FSRSRating } from "../../types/
 import type { FlashcardComponentContext, FlashcardRatingButton } from "../FlashcardComponentContext";
 import { FlashcardMarkdownRenderer } from "./FlashcardMarkdownRenderer";
 
+import { StudyExitModal } from './StudyExitModal';
+
 export class FlashcardCardRenderer {
+    private answerEditor: { textarea: HTMLTextAreaElement; save: () => Promise<boolean>; isSaving: () => boolean } | null = null;
+    private exitModal: StudyExitModal | null = null;
+    private cardElement: HTMLElement | null = null;
+    private renderedCardId: string | null = null;
+
+    public dispose(): void {
+        this.cardElement = null;
+        this.renderedCardId = null;
+        this.exitModal?.close();
+        this.exitModal = null;
+        this.answerEditor = null;
+    }
+
+    public async prepareToLeave(): Promise<boolean> {
+        const editor = this.answerEditor;
+        if (!editor || !editor.textarea.isConnected) return true;
+        if (editor.isSaving()) {
+            new Notice(t('Please wait for the answer to finish saving.'));
+            return false;
+        }
+        if (!editor.textarea.value.trim()) return true;
+        const modal = new StudyExitModal(this.component.getApp());
+        this.exitModal = modal;
+        modal.open();
+        const choice = await modal.result;
+        if (this.exitModal === modal) this.exitModal = null;
+        if (choice === 'stay') { editor.textarea.focus(); return false; }
+        if (choice === 'discard') return true;
+        const saved = await editor.save();
+        if (!saved) {
+            new Notice(t('Answer could not be saved. Please try again.'));
+            editor.textarea.focus();
+        }
+        return saved;
+    }
+
     constructor(
         private component: FlashcardComponentContext,
         private markdownRenderer: FlashcardMarkdownRenderer
     ) {}
 
     public render(cardContainer: HTMLElement, currentCard: FlashcardState | null): void {
+        this.answerEditor = null;
+        this.cardElement = null;
+        this.renderedCardId = null;
         if (!currentCard) {
             cardContainer.createDiv({
                 cls: "flashcard-empty-state",
@@ -32,29 +73,66 @@ export class FlashcardCardRenderer {
         }
 
         const card = cardContainer.createDiv({ cls: cardClasses.join(" ") });
+        this.cardElement = card;
+        this.renderedCardId = currentCard.id;
         this.renderCardSides(card, currentCard);
-        card.addEventListener("click", event => {
-            if ((event.target as Element).closest('a, button, input, textarea, [contenteditable=true]')) return;
-            this.component.flipCard();
-        });
+        this.updateFaceAccessibility(card);
 
-        if (this.component.isCardFlipped() && !currentCard.suspended) {
-            this.renderRatingButtons(cardContainer, currentCard);
-        } else if (!this.component.isCardFlipped()) {
-            this.renderRevealButton(cardContainer);
+        const controls = cardContainer.createDiv({ cls: 'flashcard-controls' });
+        this.renderControls(controls, currentCard);
+
+    }
+
+    /** Reveal by updating the existing sides so their CSS transforms can interpolate. */
+    public updateFace(container: HTMLElement, currentCard: FlashcardState | null): boolean {
+        const card = container.querySelector<HTMLElement>('.flashcard');
+        const controls = container.querySelector<HTMLElement>('.flashcard-controls');
+        if (!card || card !== this.cardElement || !controls || currentCard?.id !== this.renderedCardId) return false;
+        card.classList.toggle('is-flipped', this.component.isCardFlipped());
+        this.updateFaceAccessibility(card);
+        controls.empty();
+        this.renderControls(controls, currentCard);
+        return true;
+    }
+
+    private updateFaceAccessibility(card: HTMLElement): void {
+        const flipped = this.component.isCardFlipped();
+        for (const [selector, hidden] of [['.flashcard-front', flipped], ['.flashcard-back', !flipped]] as const) {
+            const side = card.querySelector<HTMLElement>(selector);
+            side?.setAttribute('aria-hidden', String(hidden));
+            side?.toggleAttribute('inert', hidden);
         }
+    }
 
-        if (this.component.isCardFlipped()) {
-            card.classList.add("is-flipped");
-        }
+    private renderControls(controls: HTMLElement, currentCard: FlashcardState): void {
+        if (this.component.isCardFlipped() && !currentCard.suspended) this.renderRatingButtons(controls, currentCard);
+        else if (!this.component.isCardFlipped()) this.renderRevealButton(controls);
+    }
 
-        this.renderSource(cardContainer, currentCard);
-        const actions = cardContainer.createDiv({ cls: 'flashcard-study-actions' });
-        const suspend = actions.createEl('button', {
-            cls: 'flashcard-suspend',
-            text: currentCard.suspended ? t('Resume card') : t('Pause card')
+    public renderActions(container: HTMLElement, currentCard?: FlashcardState): void {
+        if (!currentCard && !this.component.getFsrsManager().canUndoReview()) return;
+        const actions = container.createDiv({ cls: 'flashcard-study-actions' });
+        const more = actions.createEl('button', {
+            cls: 'clickable-icon flashcard-more',
+            attr: { type: 'button', 'aria-label': t('More actions') }
         });
-        suspend.addEventListener('click', () => this.component.setCardSuspended(currentCard.id, !currentCard.suspended));
+        setIcon(more, 'ellipsis');
+        setTooltip(more, t('More actions'));
+        more.addEventListener('click', event => {
+            if (this.component.getContainer().querySelector('.flashcard-answer-editor')) return;
+            const menu = new Menu();
+            if (this.component.getFsrsManager().canUndoReview()) {
+                menu.addItem(item => item.setTitle(t('Undo last rating')).setIcon('undo-2')
+                    .onClick(() => this.component.undoReview()));
+            }
+            if (currentCard) {
+                menu.addItem(item => item
+                    .setTitle(currentCard.suspended ? t('Resume card') : t('Pause card'))
+                    .setIcon(currentCard.suspended ? 'play' : 'pause')
+                    .onClick(() => this.component.setCardSuspended(currentCard.id, !currentCard.suspended)));
+            }
+            menu.showAtMouseEvent(event);
+        });
     }
 
     private renderRevealButton(cardContainer: HTMLElement): void {
@@ -63,7 +141,6 @@ export class FlashcardCardRenderer {
             attr: { type: 'button', 'aria-keyshortcuts': 'Space' }
         });
         button.createSpan({ text: t('Show answer') });
-        button.createEl('kbd', { text: t('Space') });
         button.addEventListener('click', event => {
             event.stopPropagation();
             this.component.flipCard();
@@ -76,27 +153,27 @@ export class FlashcardCardRenderer {
         const backContent = isReversed ? currentCard.text : currentCard.answer;
         const isFlipped = this.component.isCardFlipped();
 
-        const frontEl = card.createDiv({
-            cls: "flashcard-side flashcard-front",
-            attr: { 'aria-hidden': String(isFlipped) }
-        }).createDiv({
-            cls: "flashcard-content markdown-rendered"
+        const front = card.createDiv({
+            cls: 'flashcard-side flashcard-front', attr: { 'aria-hidden': String(isFlipped) }
         });
+        this.renderFaceHeader(front, currentCard);
+        const frontEl = front.createDiv({ cls: 'flashcard-content markdown-rendered' });
         void this.markdownRenderer.render(frontEl, frontContent, currentCard.filePath);
 
-        const backEl = card.createDiv({
-            cls: "flashcard-side flashcard-back",
-            attr: { 'aria-hidden': String(!isFlipped) }
-        }).createDiv({
-            cls: "flashcard-content flashcard-back-content"
+        const back = card.createDiv({
+            cls: 'flashcard-side flashcard-back', attr: { 'aria-hidden': String(!isFlipped) }
         });
+        this.renderFaceHeader(back, currentCard);
+        const backEl = back.createDiv({ cls: 'flashcard-content flashcard-back-content' });
 
-        const context = backEl.createDiv({ cls: 'flashcard-question-context' });
-        context.createDiv({ cls: 'flashcard-context-label', text: t('Question') });
+        const longQuestion = frontContent.length > 280 || frontContent.split('\n').length > 5;
+        const context = backEl.createEl(longQuestion ? 'details' : 'div', { cls: 'flashcard-question-context' });
+        if (longQuestion) context.createEl('summary', { cls: 'flashcard-context-label', text: t('Show question') });
         const contextContent = context.createDiv({ cls: 'flashcard-context-content markdown-rendered' });
         void this.markdownRenderer.render(contextContent, frontContent, currentCard.filePath);
 
-        const answer = backEl.createDiv({ cls: 'flashcard-answer-content' });
+        const longAnswer = backContent.length > 280 || backContent.split('\n').length > 5;
+        const answer = backEl.createDiv({ cls: `flashcard-answer-content${longAnswer ? ' is-long-answer' : ''}` });
         answer.createDiv({ cls: 'flashcard-answer-label', text: t('Answer') });
 
         if (this.shouldRenderAnswerEmptyState(currentCard, isReversed, backContent)) {
@@ -105,6 +182,13 @@ export class FlashcardCardRenderer {
             const answerContent = answer.createDiv({ cls: 'markdown-rendered' });
             void this.markdownRenderer.render(answerContent, backContent, currentCard.filePath);
         }
+    }
+
+    private renderFaceHeader(side: HTMLElement, currentCard: FlashcardState): void {
+        const header = side.createDiv({ cls: 'flashcard-face-header' });
+        header.createDiv({ cls: 'flashcard-context-label', text: t('Question') });
+        this.renderSource(header, currentCard);
+        this.renderActions(header, currentCard);
     }
 
     private isCardReversed(currentCard: FlashcardState): boolean {
@@ -128,11 +212,17 @@ export class FlashcardCardRenderer {
                 cls: "flashcard-rating-button",
                 attr: {
                     "data-rating": buttonConfig.ratingText,
-                    title: `${buttonConfig.label} (${buttonConfig.key})`
+                    'aria-keyshortcuts': buttonConfig.key
                 }
             });
 
-            button.createSpan({ text: buttonConfig.label });
+            const descriptions: Record<string, string> = {
+                again: 'Could not recall the answer', hard: 'Recalled with difficulty',
+                good: 'Recalled correctly', easy: 'Recalled effortlessly'
+            };
+            setTooltip(button, t(descriptions[buttonConfig.ratingText]));
+            const heading = button.createSpan({ cls: 'flashcard-rating-label' });
+            heading.createSpan({ text: buttonConfig.label });
 
             const predictedCard = predictions?.[buttonConfig.rating];
             if (predictedCard) {
@@ -164,18 +254,35 @@ export class FlashcardCardRenderer {
         const sourceEl = cardContainer.createDiv({
             cls: "flashcard-source"
         });
-        const fileNameText = sourceEl.createSpan({
-            text: filePath.split("/").pop() || ""
+        const fileNameText = sourceEl.createEl('button', {
+            text: filePath.split("/").pop() || "",
+            cls: 'flashcard-source-link',
+            attr: { type: 'button', 'aria-label': t('Open source in a new tab') }
         });
+        setTooltip(fileNameText, t('Open source in a new tab'));
 
         this.component.getUtils().addPagePreview(fileNameText, filePath);
         fileNameText.addEventListener("click", (event: MouseEvent) => {
             event.stopPropagation();
             const file = this.component.getApp().vault.getAbstractFileByPath(filePath);
             if (file && file instanceof TFile) {
-                void this.component.getApp().workspace.getLeaf().openFile(file);
+                void this.openSource(file, currentCard).catch(() => new Notice(t('Could not open source.')));
             }
         });
+    }
+
+    private async openSource(file: TFile, card: FlashcardState): Promise<void> {
+        const record = card.sourceId
+            ? await this.component.getPlugin().highlightRepository.findHighlightById(card.sourceId)
+            : null;
+        const leaf = this.component.getApp().workspace.getLeaf('tab');
+        await leaf.openFile(file);
+        if (leaf.view instanceof MarkdownView && record?.filePath === file.path && record.position !== undefined) {
+            const position = leaf.view.editor.offsetToPos(record.position);
+            leaf.setEphemeralState({ line: position.line });
+            leaf.view.editor.setCursor(position);
+            leaf.view.editor.scrollIntoView({ from: position, to: position }, true);
+        }
     }
 
     private shouldRenderAnswerEmptyState(currentCard: FlashcardState, isReversed: boolean, backContent: string): boolean {
@@ -191,12 +298,10 @@ export class FlashcardCardRenderer {
         container.removeClass("markdown-rendered");
         container.addClass("flashcard-answer-empty-state");
 
-        const emptyPrompt = container.createDiv({
-            cls: "flashcard-answer-empty-prompt",
-            attr: {
-                role: "button",
-                tabindex: "0"
-            }
+        container.createEl('h3', { cls: 'flashcard-answer-empty-title', text: t('No answer yet') });
+        const emptyPrompt = container.createEl('button', {
+            cls: 'flashcard-answer-empty-prompt',
+            attr: { type: 'button' }
         });
         emptyPrompt.setText(t("Add answer..."));
 
@@ -222,6 +327,8 @@ export class FlashcardCardRenderer {
         container.removeClass("markdown-rendered");
         container.addClass("flashcard-answer-editor");
         container.addClass("hi-note-input");
+        this.component.getContainer().querySelectorAll<HTMLButtonElement>('.flashcard-rating-button, .flashcard-more, .flashcard-undo')
+            .forEach(button => button.disabled = true);
 
         const textarea = container.createEl("textarea", {
             attr: {
@@ -237,6 +344,9 @@ export class FlashcardCardRenderer {
             onSaved: () => {}
         });
 
+        this.answerEditor = {
+            textarea, save: () => saveController.saveCurrentContent(), isSaving: () => saveController.isProcessing()
+        };
         container.addEventListener("click", event => event.stopPropagation());
         setupCommentInputKeyboard(textarea, {
             onInlineAI: async () => {},
@@ -252,9 +362,10 @@ export class FlashcardCardRenderer {
             saveHintText: t("Shift + Enter Wrap, Enter Save")
         }).render();
 
-        const cancelLink = actionHint.createDiv({
-            cls: "hi-note-delete-link",
-            text: t("Cancel")
+        const cancelLink = actionHint.createEl('button', {
+            cls: 'hi-note-delete-link',
+            text: t('Cancel'),
+            attr: { type: 'button' }
         });
         cancelLink.addEventListener("click", event => {
             event.stopPropagation();
@@ -269,28 +380,28 @@ export class FlashcardCardRenderer {
         const content = answer.trim();
         if (!content) {
             new Notice(t("Please enter an answer."));
-            return;
+            throw new Error('Please enter an answer.');
         }
 
         const sourceId = currentCard.sourceId;
         const filePath = currentCard.filePath;
         if (!sourceId || !filePath) {
             new Notice(t("No corresponding highlight found."));
-            return;
+            throw new Error('No corresponding highlight found.');
         }
 
         const plugin = this.component.getPlugin();
         const file = plugin.app.vault.getAbstractFileByPath(filePath);
         if (!(file instanceof TFile)) {
             new Notice(t("No corresponding file found."));
-            return;
+            throw new Error('No corresponding file found.');
         }
 
         const fileHighlights = await plugin.highlightRepository.getFileHighlights(file.path);
         const record = fileHighlights.find(item => item.id === sourceId);
         if (!record) {
             new Notice(t("No corresponding highlight found."));
-            return;
+            throw new Error('No corresponding highlight found.');
         }
 
         const highlight = recordToHighlightView(record);

@@ -1,5 +1,4 @@
 import { Platform } from "obsidian";
-import { t } from "../../i18n";
 import type { FlashcardState } from "../types/FSRSTypes";
 import type { FlashcardComponentContext } from "./FlashcardComponentContext";
 import {
@@ -39,7 +38,9 @@ export class FlashcardRenderer {
         this.activationRenderer.render();
     }
 
-    public dispose(): void { this.markdownRenderer.dispose(); }
+    public dispose(): void { this.markdownRenderer.dispose(); this.cardRenderer.dispose(); }
+
+    public prepareToLeave(): Promise<boolean> { return this.cardRenderer.prepareToLeave(); }
     
     /**
      * 渲染主界面
@@ -63,7 +64,7 @@ export class FlashcardRenderer {
         if (!this.emptyStateRenderer.render(cardContainer)) {
             this.cardRenderer.render(cardContainer, this.getCurrentCard());
         }
-        this.renderUndo(cardContainer);
+        if (!this.component.getCards().length) this.cardRenderer.renderActions(cardContainer);
     }
 
     private applyResponsiveClasses(container: HTMLElement): void {
@@ -87,19 +88,18 @@ export class FlashcardRenderer {
         if (!this.emptyStateRenderer.render(cardContainer)) {
             this.cardRenderer.render(cardContainer, this.getCurrentCard());
         }
-        this.renderUndo(cardContainer);
+        if (!this.component.getCards().length) this.cardRenderer.renderActions(cardContainer);
         this.refreshStatistics();
+    }
+
+    public renderCardFlip(): void {
+        if (!this.component.canStudy()) return;
+        const container = this.component.getContainer().querySelector<HTMLElement>('.flashcard-container');
+        if (!container || !this.cardRenderer.updateFace(container, this.getCurrentCard())) this.renderStudyArea();
     }
 
     public refreshStatistics(): void {
         this.component.updateProgress();
-    }
-
-    private renderUndo(container: HTMLElement): void {
-        if (!this.component.getFsrsManager().canUndoReview()) return;
-        const actions = container.querySelector<HTMLElement>('.flashcard-study-actions') || container.createDiv({ cls: 'flashcard-study-actions' });
-        const button = actions.createEl('button', { text: t('Undo last rating'), cls: 'flashcard-undo' });
-        button.addEventListener('click', () => this.component.undoReview());
     }
 
     private renderProgress(container: HTMLElement): void {
