@@ -84,6 +84,16 @@ export class GeneralSettingsTab {
         variables.createEl('summary', { text: t('Template variables') });
         variables.createEl('code', { text: '{{highlightText}}, {{highlightBlockRef}}, {{commentContent}}, {{commentDate}}' });
 
+        new Setting(container)
+            .setName(t('Selection toolbar'))
+            .setDesc(t('Show the floating toolbar when selecting text or clicking a highlight.'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.showSelectionToolbar ?? true)
+                .onChange(async value => {
+                    this.plugin.settings.showSelectionToolbar = value;
+                    await this.plugin.saveSettings();
+                }));
+
         // Widget显示设置
         new Setting(container)
             .setName(t('Show Comment Widget'))

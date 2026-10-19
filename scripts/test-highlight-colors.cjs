@@ -233,7 +233,7 @@ const { ExportContentRenderer } = load('src/services/export/ExportContentRendere
         assert.equal(chosen, null);
     }
     let yellowDocument = '==🟡正文==';
-    const uiPlugin = { app: { ...app, vault: { getAbstractFileByPath: () => file, process: async (_file, action) => { yellowDocument = action(yellowDocument); } } } };
+    const uiPlugin = { settings: {}, app: { ...app, vault: { getAbstractFileByPath: () => file, process: async (_file, action) => { yellowDocument = action(yellowDocument); } } } };
     const ui = new SelectionColorController(uiPlugin), doc = colorDocument();
     const yellowSource = extract(yellowDocument)[0];
     const context = { file, snapshot: yellowDocument, plan: { from: 0, to: yellowSource.originalLength, source: yellowSource }, markdownView: { containerEl: { ownerDocument: doc } } };
@@ -253,6 +253,38 @@ const { ExportContentRenderer } = load('src/services/export/ExportContentRendere
     swatches.find(item => item.color === 'yellow').button.events.click({ preventDefault() {}, stopPropagation() {} });
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(yellowDocument, '==🟡正文==');
+
+    // Disabling the toolbar blocks both entry points and captures already in flight.
+    const gatedPlugin = { ...uiPlugin, settings: { showSelectionToolbar: false } };
+    const gated = new SelectionColorController(gatedPlugin);
+    let captures = 0, renders = 0;
+    gated.selectionCapture = {
+        captureSelection: async () => { captures++; return { context, anchor: {} }; },
+        captureHighlightClick: async () => { captures++; return { context, anchor: {} }; }
+    };
+    gated.render = () => { renders++; };
+    await gated.show();
+    await gated.showForHighlightClick({});
+    assert.equal(captures, 0, 'Disabled toolbar must not capture text or highlight clicks');
+    gatedPlugin.settings.showSelectionToolbar = true;
+    gated.hide = () => {};
+    await gated.show();
+    await gated.showForHighlightClick({});
+    assert.equal(renders, 2, 'Re-enabling works without reloading');
+    const inFlight = new SelectionColorController(gatedPlugin);
+    let resolveCapture;
+    inFlight.selectionCapture = { captureSelection: () => new Promise(resolve => { resolveCapture = resolve; }) };
+    inFlight.hide = () => {};
+    const pendingShow = inFlight.show();
+    gatedPlugin.settings.showSelectionToolbar = false;
+    const before = doc.body.children.length;
+    resolveCapture({ context, anchor: {} });
+    await pendingShow;
+    assert.equal(doc.body.children.length, before, 'Disabling during capture prevents a late popup');
+
+    const { normalizeSettings } = load('src/settings/SettingsMigration.ts');
+    assert.equal(normalizeSettings({}).showSelectionToolbar, true);
+    assert.equal(normalizeSettings({ showSelectionToolbar: false }).showSelectionToolbar, false);
 
     for (const mode of ['editor', 'reading']) {
         let document = '前 正文 后 ==正文==';

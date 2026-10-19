@@ -9,6 +9,8 @@
 
 Requires Obsidian 1.14.0 or later. Settings are searchable in Obsidian settings.
 
+Turn off **Selection toolbar** in HiNote's general settings to stop the floating toolbar from appearing when selecting text or clicking a highlight. This is enabled by default; the highlight-card color palette remains available.
+
 ---
 
 [简体中文](./README-ZH.md) | English

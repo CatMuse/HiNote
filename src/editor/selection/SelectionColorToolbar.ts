@@ -84,6 +84,7 @@ class SelectionColorController extends Component {
     }
 
     onEditorUpdate(view: EditorView, update: ViewUpdate): void {
+        if (this.plugin.settings.showSelectionToolbar === false) return;
         if (view !== this.selectionCapture.getEditorView() || this.commentInputActive || this.selectionUpdatesSuppressed()) return;
         if (update.selectionSet || update.focusChanged) this.schedule();
         if (update.docChanged) this.hide();
@@ -94,6 +95,7 @@ class SelectionColorController extends Component {
     }
 
     private schedule(): void {
+        if (this.plugin.settings.showSelectionToolbar === false) return;
         if (this.disposed || this.openingComment || this.commentInputActive || this.selectionUpdatesSuppressed()) return;
         const win = this.selectionCapture.getMarkdownView()?.containerEl.ownerDocument.defaultView;
         if (!win) return;
@@ -107,6 +109,7 @@ class SelectionColorController extends Component {
     }
 
     private async show(): Promise<void> {
+        if (this.plugin.settings.showSelectionToolbar === false) return;
         if (this.openingComment || this.commentInputActive || this.disposed) return;
         this.hide();
         const captured = await this.selectionCapture.captureSelection();
@@ -114,6 +117,7 @@ class SelectionColorController extends Component {
     }
 
     private async showForHighlightClick(event: MouseEvent): Promise<void> {
+        if (this.plugin.settings.showSelectionToolbar === false || this.disposed) return;
         const captured = await this.selectionCapture.captureHighlightClick(event);
         // Ordinary clicks must remain available for double-click and triple-click
         // selection. Suppress later selection updates only after a real highlight hit.
@@ -124,6 +128,7 @@ class SelectionColorController extends Component {
     }
 
     private render(captured: { context: SelectionContext; anchor: Rect }): void {
+        if (this.plugin.settings.showSelectionToolbar === false || this.disposed) return;
         this.hide();
         const doc = captured.context.markdownView.containerEl.ownerDocument;
         const win = doc.defaultView;

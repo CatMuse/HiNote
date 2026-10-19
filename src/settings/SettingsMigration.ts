@@ -25,7 +25,8 @@ export function normalizeSettings(raw: SettingsData, existingData?: SettingsData
             : defaults.regexRules,
         excludePatterns: source.excludePatterns ?? defaults.excludePatterns,
         useCustomPattern: source.useCustomPattern ?? defaults.useCustomPattern,
-        showCommentWidget: source.showCommentWidget ?? defaults.showCommentWidget
+        showCommentWidget: source.showCommentWidget ?? defaults.showCommentWidget,
+        showSelectionToolbar: source.showSelectionToolbar ?? defaults.showSelectionToolbar
     };
 
     if (existing['flashcard-license'] ?? source['flashcard-license']) {

@@ -558,6 +558,8 @@ export default {
     "Default Color": "默认颜色",
     "Set the default color for decorators when no color is specified. Leave empty to use system default.": "设置当未指定颜色时的装饰器的默认颜色。留空以使用系统默认颜色。",
     "Show Comment Widget": "显示评论小组件",
+    "Selection toolbar": "划词工具栏",
+    "Show the floating toolbar when selecting text or clicking a highlight.": "选中文字或点击高亮时显示浮动工具栏。",
     "Show or hide the comment widget next to highlights. Disabling this can reduce visual clutter while reading.": "显示或隐藏高亮旁边的评论小组件。禁用此选项可以减少阅读时的视觉干扰。",
     "Export template": "导出模板",
     "Unable to load this view. Try refreshing.": "无法加载此视图，请刷新重试。",
