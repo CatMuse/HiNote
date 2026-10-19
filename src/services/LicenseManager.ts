@@ -17,6 +17,8 @@ interface LicenseVerificationResponse {
     valid?: boolean;
     token?: string;
     features?: string[];
+    error?: string;
+    code?: string;
 }
 
 export class LicenseManager {
@@ -106,6 +108,7 @@ export class LicenseManager {
             const response = await requestUrl({
                 url: url,
                 method: 'POST',
+                throw: false,
                 headers: { 
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
@@ -115,7 +118,7 @@ export class LicenseManager {
 
             const data = response.json as LicenseVerificationResponse;
 
-            if (data.valid && data.token) {
+            if ((response.status ?? 200) === 200 && data.valid && data.token) {
                 // 保存许可证信息
                 const currentData = await this.plugin.loadData() || {};
                 await this.plugin.saveData({
@@ -203,6 +206,7 @@ export class LicenseManager {
             const response = await requestUrl({
                 url: `${this.API_URL}/api/verify`,
                 method: 'POST',
+                throw: false,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
@@ -216,13 +220,20 @@ export class LicenseManager {
             });
 
             const result = response.json as LicenseVerificationResponse | null;
+            const status = response.status ?? 200;
+            // Treat outages separately from definitive license rejections. Older
+            // servers report business errors as 403/404 without valid:false.
+            if (status >= 500 || status === 429) return this.canUseOffline(licenseData);
+            const legacyRejection = (status === 403 || status === 404)
+                && ['License not found', 'License expired', 'Maximum devices reached']
+                    .includes(result?.error ?? '');
             
             if (!result) {
                 // 如果服务器返回错误，但我们有本地令牌，仍然允许使用
                 // 这样在网络问题时用户仍能使用插件
                 return this.canUseOffline(licenseData);
             }
-            if (result.valid) {
+            if (status === 200 && result.valid) {
                 // 更新验证时间、token 和设备 ID
                 const currentData = await this.plugin.loadData() || {};
                 await this.plugin.saveData({
@@ -240,7 +251,7 @@ export class LicenseManager {
                 return true;
             }
             
-            if (result.valid !== false) return this.canUseOffline(licenseData);
+            if (result.valid !== false && !legacyRejection) return this.canUseOffline(licenseData);
             this.licenseToken = null;
             licenseData.revoked = true;
             const currentData = await this.plugin.loadData() || {};

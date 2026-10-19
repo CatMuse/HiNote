@@ -4,7 +4,7 @@ import type { FlashcardComponentContext } from "../FlashcardComponentContext";
 
 export class FlashcardActivationRenderer {
     constructor(
-        private component: FlashcardComponentContext,
+        private component: Pick<FlashcardComponentContext, 'getIsActive' | 'getContainer' | 'getLicenseManager'>,
         private renderMainView: () => void
     ) {}
 

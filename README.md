@@ -135,6 +135,8 @@ Daily limits apply across your library; a custom group limit is an additional ca
 
 FSRS parameters and learning states are stored locally with flashcard data. Older cards retain their history; missing learning states are inferred from their last interval until the next rating records the full algorithm state.
 
+HiCard's workspace pages require Pro activation with flashcard access. Until activated, the HiCard tab shows only the activation screen. Existing card data and review history are retained.
+
 Pro authorization is rechecked after seven days. If the service is temporarily unreachable, a previously verified license can be used offline for up to 30 days from its last successful verification. An explicit rejection does not receive this grace period.
 
 To access these premium features, you'll need to [upgrade to Pro](https://hinote.vip).

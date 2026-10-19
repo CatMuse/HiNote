@@ -7,6 +7,7 @@ const tasks = [
     'test:i18n',
     'test:review',
     'test:flashcards',
+    'test:license',
     'test:storage',
     'test:colors',
     'test:matching',

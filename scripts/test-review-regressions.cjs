@@ -410,7 +410,7 @@ function testSelectionToolbarDocuments() {
         /plain semantic version/);
     assert.throws(() => validateReleaseMetadata('0.6.1', release, versions, releasePkg, releaseLock),
         /Release tag must match/);
-    assert.throws(() => validateReleaseMetadata('0.6.0', release, versions, releasePkg, releaseLock),
+    assert.throws(() => validateReleaseMetadata('0.6.0', release, { ...versions, '0.6.0': '1.8.0' }, releasePkg, releaseLock),
         /Release compatibility mapping/);
     console.log('Review regressions passed: IME, keyboard shortcuts, settings search definitions and lifecycle, local AI comment updates, file-comment drafts/context/copy, workspace document lifecycle, development/release versions.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
