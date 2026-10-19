@@ -6,7 +6,7 @@ import type { PluginSettings } from '../../types/settings';
 import { ExcludePatternMatcher } from '../ExcludePatternMatcher';
 import { BlockIdService } from '../BlockIdService';
 import { IdGenerator } from '../../utils/IdGenerator';
-import { highlightColorStyle, parseHighlightColor } from './HighlightColor';
+import { DEFAULT_HIGHLIGHT_COLOR, highlightColorStyle, parseHighlightColor } from './HighlightColor';
 
 /**
  * 高亮提取器
@@ -75,7 +75,7 @@ export class HighlightExtractor {
                 HighlightExtractor.DEFAULT_HIGHLIGHT_PATTERN, 
                 highlights, 
                 file, 
-                '#ffeb3b' // 使用固定的默认黄色
+                DEFAULT_HIGHLIGHT_COLOR
             );
         }
         

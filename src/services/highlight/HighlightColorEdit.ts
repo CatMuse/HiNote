@@ -1,9 +1,10 @@
 import { HighlightColor, highlightColorStyle, parseHighlightColor } from './HighlightColor';
 
 export const HIGHLIGHT_COLOR_CHOICES: Array<{ color: HighlightColor | null; label: string; marker: string }> = [
-    { color: null, label: 'Default yellow', marker: '🟡' },
+    { color: null, label: 'Default', marker: '' },
     { color: 'red', label: 'Red', marker: '🔴' },
     { color: 'orange', label: 'Orange', marker: '🟠' },
+    { color: 'yellow', label: 'Yellow', marker: '🟡' },
     { color: 'green', label: 'Green', marker: '🟢' },
     { color: 'blue', label: 'Blue', marker: '🔵' },
     { color: 'purple', label: 'Purple', marker: '🟣' }
@@ -50,14 +51,14 @@ export function extractHtmlHighlightColor(source: string): string | null {
 export function recolorHighlightSource(source: string, color: HighlightColor | null): string {
     if (source.startsWith('==') && source.endsWith('==')) {
         const text = parseHighlightColor(source.slice(2, -2)).text;
-        const marker = color === 'yellow' ? '🟡' : HIGHLIGHT_COLOR_CHOICES.find(choice => choice.color === color)?.marker;
+        const marker = HIGHLIGHT_COLOR_CHOICES.find(choice => choice.color === color)?.marker;
         return `==${color ? marker : ''}${text}==`;
     }
     const opening = source.match(OPEN_TAG);
     if (!opening || !new RegExp(`</${opening[1]}>$`, 'i').test(source)) {
         throw new Error('This highlight format does not support color changes.');
     }
-    const value = color ? highlightColorStyle(color) : 'var(--text-highlight-bg, #ffeb3b)';
+    const value = highlightColorStyle(color);
     const style = opening[0].match(STYLE);
     if (!style && /\sstyle\s*=/i.test(opening[0])) {
         throw new Error('Unquoted HTML styles cannot be safely recolored.');

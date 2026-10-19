@@ -15,6 +15,8 @@ function load(file) {
     }).outputText;
     vm.runInNewContext(code, { exports, console, window: { setTimeout: () => 0 }, require: name => {
         if (name === 'obsidian') return { TFile, moment: { locale: () => 'en' } };
+        if (name.endsWith('/card/Clipboard')) return { HighlightCardClipboard: {} };
+        if (name.endsWith('/actions/HighlightDeletionManager')) return { HighlightDeletionManager: class {} };
         if (name === '../../../services/highlight') return load('src/services/highlight/HighlightCommentResolver.ts');
         if (!name.startsWith('.')) return require(name);
         const target = path.resolve(path.dirname(file), name);
@@ -23,7 +25,7 @@ function load(file) {
     return exports;
 }
 const { HighlightExtractor } = load('src/services/highlight/HighlightExtractor.ts');
-const { highlightColorStyle } = load('src/services/highlight/HighlightColor.ts');
+const { highlightColorStyle, DEFAULT_HIGHLIGHT_COLOR, isDefaultHighlightColor } = load('src/services/highlight/HighlightColor.ts');
 const { HighlightMatcher } = load('src/services/highlight/HighlightMatcher.ts');
 const { HighlightBatchOps } = load('src/services/highlight/HighlightBatchOps.ts');
 const { HighlightRegexUtils } = load('src/utils/HighlightRegexUtils.ts');
@@ -55,7 +57,7 @@ assert.equal(extract('==🔴==').length, 0);
 assert.equal(extract('==🔴🔵正文==')[0].text, '🔵正文');
 for (const text of [' 🔴正文', '正文🔴', '🔶正文']) {
     assert.equal(extract(`==${text}==`)[0].text, text);
-    assert.equal(extract(`==${text}==`)[0].backgroundColor, '#ffeb3b');
+    assert.equal(extract(`==${text}==`)[0].backgroundColor, DEFAULT_HIGHLIGHT_COLOR);
 }
 const html = extract('<mark style="background-color: #abc">🔴正文</mark>')[0];
 assert.equal(html.text, '🔴正文');
@@ -103,8 +105,27 @@ assert.equal(
 assert.equal(batch.removeHighlightMarkFromContent(source, { text: '重复' }), source);
 assert.equal(batch.removeHighlightMarkFromContent('==🔴正文==', { text: '🔴正文', position: 0 }), '正文');
 
-const { recolorHighlightSource, extractHtmlHighlightColor } = load('src/services/highlight/HighlightColorEdit.ts');
-for (const color of ['red', 'orange', 'green', 'blue', 'purple']) {
+const { recolorHighlightSource, extractHtmlHighlightColor, HIGHLIGHT_COLOR_CHOICES } = load('src/services/highlight/HighlightColorEdit.ts');
+assert.deepEqual(Array.from(HIGHLIGHT_COLOR_CHOICES, choice => choice.color), [null, 'red', 'orange', 'yellow', 'green', 'blue', 'purple']);
+assert.equal(HIGHLIGHT_COLOR_CHOICES[0].marker, '');
+assert.equal(recolorHighlightSource('==正文==', 'yellow'), '==🟡正文==');
+assert.equal(recolorHighlightSource('==🟡正文==', null), '==正文==');
+assert.equal(extract('==正文==')[0].backgroundColor, DEFAULT_HIGHLIGHT_COLOR);
+assert.equal(extract('==🟡正文==')[0].backgroundColor, highlightColorStyle('yellow'));
+assert.notEqual(DEFAULT_HIGHLIGHT_COLOR, highlightColorStyle('yellow'));
+assert.equal(isDefaultHighlightColor(highlightColorStyle('yellow')), false);
+assert.equal(isDefaultHighlightColor(DEFAULT_HIGHLIGHT_COLOR), true);
+assert.equal(isDefaultHighlightColor('#ffeb3b'), true, 'Legacy default remains recognizable');
+const plainWithComments = { ...extract('==正文==')[0], id: 'default-with-comment', backgroundColor: '#ffeb3b', comments: [{ id: 'kept', content: 'Keep this comment' }] };
+for (const value of ['==正文==', '==🟡正文==']) {
+    const scanned = extract(value)[0];
+    const [updated] = matcher.mergeHighlightsWithComments([scanned], [plainWithComments], file);
+    assert.equal(updated.id, 'default-with-comment');
+    assert.equal(updated.comments[0].id, 'kept');
+    assert.equal(updated.backgroundColor, scanned.backgroundColor);
+}
+
+for (const color of ['red', 'orange', 'yellow', 'green', 'blue', 'purple']) {
     const recolored = recolorHighlightSource('==🟦正文==', color);
     assert.equal(extract(recolored)[0].backgroundColor, highlightColorStyle(color));
     assert.equal(extract(recolored)[0].text, '正文');
@@ -148,6 +169,137 @@ assert.equal(DataValidator.sanitizeHighlight(red).syntax, 'markdown');
 assert.equal(DataValidator.sanitizeHighlight({ syntax: 'invalid' }).syntax, undefined);
 const { ExportContentRenderer } = load('src/services/export/ExportContentRenderer.ts');
 (async () => {
+    const { SelectionHighlightActions } = load('src/editor/selection/SelectionHighlightActions.ts');
+    // Use the real controller methods with UI dependencies stubbed: this covers
+    // the comment-open path, which deliberately keeps the toolbar alive.
+    const toolbarFile = path.resolve('src/editor/selection/SelectionColorToolbar.ts');
+    const toolbarExports = {};
+    const toolbarCode = ts.transpileModule(fs.readFileSync(toolbarFile, 'utf8') +
+        '\nexport { SelectionColorController };', {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
+    }).outputText;
+    vm.runInNewContext(toolbarCode, { exports: toolbarExports, console, require: name => {
+        if (name === 'obsidian') return { Component: class {}, Notice: class { constructor(message) { throw Error(message); } }, setIcon: (el, name) => { el.icon = name; } };
+        if (name.includes('SelectionCapture')) return { SelectionCapture: class {} };
+        if (name === '@codemirror/view' || name.includes('/comment') || name.includes('SelectionToolbarDocuments')) return {};
+        const target = path.resolve(path.dirname(toolbarFile), name);
+        return load(fs.existsSync(target + '.ts') ? target + '.ts' : path.join(target, 'index.ts'));
+    } });
+    const { SelectionColorController } = toolbarExports;
+    class ColorElement {
+        constructor(doc, options = {}) {
+            this.ownerDocument = doc; this.options = options; this.children = []; this.events = {};
+            this.attributes = { ...options.attr }; this.isConnected = true;
+            this.properties = {};
+            this.style = { setProperty: (key, value) => { this.properties[key] = value; } };
+        }
+        createDiv(options) { const child = new ColorElement(this.ownerDocument, options); this.children.push(child); return child; }
+        createEl(tag, options) { const child = this.createDiv(options); child.tag = tag; return child; }
+        getAttribute(key) { return this.attributes[key] ?? null; }
+        setAttribute(key, value) { this.attributes[key] = value; }
+        addEventListener(name, callback) { this.events[name] = callback; }
+        getBoundingClientRect() { return { left: 20, right: 42, top: 100, bottom: 122, width: 220, height: 36 }; }
+        focus() { this.ownerDocument.activeElement = this; }
+        contains(target) { return this === target || this.children.some(child => child.contains(target)); }
+        remove() { this.isConnected = false; }
+        replaceChildren() { this.children = []; this.icon = undefined; }
+        all() { return [this, ...this.children.flatMap(child => child.all())]; }
+    }
+    function colorDocument() {
+        const doc = { addEventListener() {}, defaultView: { innerWidth: 1000, innerHeight: 800, addEventListener() {} } };
+        doc.body = new ColorElement(doc);
+        return doc;
+    }
+    // Render and click the real palette: Default and Yellow must never share a selection.
+    const paletteExports = {};
+    vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/components/highlight/card/ColorPalette.ts', 'utf8'), {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
+    }).outputText, { exports: paletteExports, require: name => {
+        if (name === 'obsidian') return { Component: class { registerDomEvent(el, name, callback) { el.addEventListener(name, callback); } } };
+        const target = path.resolve('src/components/highlight/card', name);
+        return load(fs.existsSync(target + '.ts') ? target + '.ts' : path.join(target, 'index.ts'));
+    } });
+    for (const [current, selected] of [[DEFAULT_HIGHLIGHT_COLOR, 'Default'], [highlightColorStyle('yellow'), 'Yellow'], ['#ffeb3b', 'Default']]) {
+        const doc = colorDocument(), trigger = new ColorElement(doc);
+        let chosen = 'unset';
+        const palette = new paletteExports.HighlightColorPalette(trigger, current, color => { chosen = color; }, () => palette.onunload());
+        palette.onload();
+        const buttons = doc.body.all().filter(el => el.attributes.role === 'menuitemradio');
+        assert.equal(buttons.length, 7);
+        assert.deepEqual(buttons.filter(el => el.attributes['aria-checked'] === 'true').map(el => el.attributes['aria-label']), [selected]);
+        assert.match(buttons[0].options.cls, /is-default/);
+        assert.equal(buttons[0].properties['--swatch-color'], DEFAULT_HIGHLIGHT_COLOR);
+        buttons[0].events.click({ preventDefault() {}, stopPropagation() {} });
+        assert.equal(chosen, null);
+    }
+    let yellowDocument = '==🟡正文==';
+    const uiPlugin = { app: { ...app, vault: { getAbstractFileByPath: () => file, process: async (_file, action) => { yellowDocument = action(yellowDocument); } } } };
+    const ui = new SelectionColorController(uiPlugin), doc = colorDocument();
+    const yellowSource = extract(yellowDocument)[0];
+    const context = { file, snapshot: yellowDocument, plan: { from: 0, to: yellowSource.originalLength, source: yellowSource }, markdownView: { containerEl: { ownerDocument: doc } } };
+    ui.hide = () => {};
+    ui.registerToolbarEvents = () => {};
+    ui.deleteHighlight = () => { throw Error('Switching from Yellow to Default must not delete the highlight'); };
+    ui.render({ context, anchor: { top: 100, bottom: 120, left: 20, right: 160 } });
+    const swatches = ui.colorButtons;
+    assert.equal(swatches.length, 7);
+    assert.equal(swatches[0].button.properties['--swatch-color'], DEFAULT_HIGHLIGHT_COLOR);
+    assert.deepEqual(Array.from(swatches.filter(item => item.button.attributes['aria-pressed'] === 'true'), item => item.color), ['yellow']);
+    swatches[0].button.events.click({ preventDefault() {}, stopPropagation() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(yellowDocument, '==正文==', 'Default removes only the explicit color marker');
+    ui.updateColorSelection(context);
+    assert.deepEqual(Array.from(swatches.filter(item => item.button.attributes['aria-pressed'] === 'true'), item => item.color), [null]);
+    swatches.find(item => item.color === 'yellow').button.events.click({ preventDefault() {}, stopPropagation() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(yellowDocument, '==🟡正文==');
+
+    for (const mode of ['editor', 'reading']) {
+        let document = '前 正文 后 ==正文==';
+        const plugin = { app: { ...app, vault: {
+            getAbstractFileByPath: () => file,
+            read: async () => document,
+            process: async (_file, callback) => { document = callback(document); }
+        } } };
+        const actions = new SelectionHighlightActions(plugin, extractor);
+        const context = { file, snapshot: document, plan: { from: 2, to: 4 } };
+        if (mode === 'editor') context.view = {
+            dom: { isConnected: true },
+            state: { doc: { toString: () => document } },
+            dispatch: ({ changes }) => {
+                document = document.slice(0, changes.from) + changes.insert + document.slice(changes.to);
+            }
+        };
+        const prepared = await actions.ensureHighlighted(context);
+        assert.equal(prepared.rollback.originalSnapshot, '前 正文 后 ==正文==');
+        assert.equal(prepared.rollback.originalPlan.to, 4);
+        assert.equal(document, '前 ==正文== 后 ==正文==');
+        const controller = new SelectionColorController(plugin);
+        controller.actions = actions;
+        controller.commentInputActive = true;
+        controller.pendingAutoHighlight = { context, ...prepared.rollback };
+        controller.updateColorSelection = current => {
+            assert.equal(current.snapshot, document);
+            assert.equal(current.plan.to, 2 + current.plan.source.originalLength);
+        };
+        controller.hide = () => { throw new Error('An open comment must survive recoloring'); };
+        for (const color of ['blue', 'red', null, 'purple']) {
+            await controller.apply(context, color);
+            const marker = color ? { blue: '🔵', red: '🔴', purple: '🟣' }[color] : '';
+            assert.equal(document, `前 ==${marker}正文== 后 ==正文==`, `${mode}: only the selected occurrence changes`);
+            assert.equal(context.snapshot, document);
+            assert.equal(context.plan.source.backgroundColor, highlightColorStyle(color));
+        }
+        assert.equal(controller.pendingAutoHighlight, undefined, 'Explicit color selection must survive cancelling an empty comment');
+        controller.closeComment = () => {};
+        await controller.cancelComment(false);
+        assert.equal(document, '前 ==🟣正文== 后 ==正文==');
+        const snapshot = context.snapshot;
+        document = 'external edit ' + document;
+        await assert.rejects(() => controller.apply(context, 'green'), /selection changed/);
+        assert.equal(document, 'external edit ' + snapshot, 'External edits still reject stale source ranges');
+        assert.equal(context.snapshot, snapshot, 'A failed write must not advance the captured context');
+    }
     const { HighlightService } = load('src/services/HighlightService.ts');
     const { scanToHighlightView } = load('src/models/HighlightModels.ts');
     let document = '==重复== and ==重复==';

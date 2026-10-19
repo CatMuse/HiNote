@@ -360,6 +360,7 @@ export default {
     "Default": "默认",
     "Red": "红色",
     "Orange": "橙色",
+    "Yellow": "黄色",
     "Green": "绿色",
     "Blue": "蓝色",
     "Purple": "紫色",

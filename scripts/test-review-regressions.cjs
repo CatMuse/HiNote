@@ -380,11 +380,11 @@ function testSelectionToolbarDocuments() {
     testCopyHighlightFormatting();
     const manifest = JSON.parse(fs.readFileSync('manifest.json'));
     const versions = JSON.parse(fs.readFileSync('versions.json'));
-    assert.equal(manifest.minAppVersion, '1.13.0');
+    assert.equal(manifest.minAppVersion, '1.14.0');
     assert.equal(versions['0.5.8'], '1.8.0');
     // master temporarily keeps the published version to avoid advertising a release
     // without downloadable assets. Preserve 0.5.8's historical compatibility;
-    // the unreleased implementation already requires Keychain from 1.13.
+    // the implementation requires native colored highlights from 1.14.
     if (manifest.version !== '0.5.8') {
         assert.equal(versions[manifest.version], manifest.minAppVersion);
     }
@@ -405,7 +405,7 @@ function testSelectionToolbarDocuments() {
     const releaseLock = { ...lock, version: '0.6.0', packages: {
         ...lock.packages, '': { ...lock.packages[''], version: '0.6.0' }
     } };
-    validateReleaseMetadata('0.6.0', release, { ...versions, '0.6.0': '1.13.0' }, releasePkg, releaseLock);
+    validateReleaseMetadata('0.6.0', release, { ...versions, '0.6.0': '1.14.0' }, releasePkg, releaseLock);
     assert.throws(() => validateReleaseMetadata('v0.6.0', release, versions, releasePkg, releaseLock),
         /plain semantic version/);
     assert.throws(() => validateReleaseMetadata('0.6.1', release, versions, releasePkg, releaseLock),

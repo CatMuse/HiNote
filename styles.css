@@ -4163,6 +4163,9 @@ textarea.flashcard-modal-input {
     cursor: pointer;
     transition: transform 120ms ease;
 }
+.hinote-selection-color-toolbar .hinote-selection-color-swatch.is-default svg {
+    color: var(--text-muted);
+}
 .hinote-color-palette .hinote-color-swatch:hover {
     transform: scale(1.08);
 }
@@ -4174,6 +4177,12 @@ textarea.flashcard-modal-input {
     box-shadow:
         inset 0 0 0 2px var(--background-primary),
         0 0 0 2px var(--swatch-color);
+}
+.hinote-color-palette .hinote-color-swatch.is-default[aria-checked="true"],
+.hinote-selection-color-toolbar .hinote-selection-color-swatch.is-default[aria-pressed="true"] {
+    box-shadow:
+        inset 0 0 0 2px var(--background-primary),
+        0 0 0 2px var(--background-modifier-border-hover);
 }
 .is-mobile .hinote-color-palette .hinote-color-swatch {
     flex-basis: 38px;
@@ -5333,6 +5342,9 @@ button.hicard-continue-row:hover { background: var(--background-modifier-hover);
 }
 .hinote-selection-color-popover .hinote-selection-color-toolbar {
     position: static;
+    box-sizing: border-box;
+    max-width: 100%;
+    flex-wrap: wrap;
 }
 .hinote-selection-annotate-button,
 .hinote-selection-action-button {

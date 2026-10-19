@@ -101,6 +101,10 @@ export class SelectionHighlightActions {
         const replacement = plan.source
             ? recolorHighlightSource(original, color)
             : recolorHighlightSource(`==${original}==`, color);
+        const snapshot = context.snapshot.slice(0, plan.from) + replacement + context.snapshot.slice(plan.to);
+        const source = this.extractor.extractHighlights(snapshot, context.file)
+            .find(item => item.position === plan.from && item.originalLength === replacement.length);
+        if (!source) throw new Error(t('This selection cannot be highlighted safely.'));
         if (context.view) {
             context.view.dispatch({
                 changes: { from: plan.from, to: plan.to, insert: replacement },
@@ -113,6 +117,10 @@ export class SelectionHighlightActions {
                 return current.slice(0, plan.from) + replacement + current.slice(plan.to);
             });
         }
+        // The comment panel keeps this context alive across color changes.
+        // Advance it only after a successful write, retaining stale-edit checks.
+        context.snapshot = snapshot;
+        context.plan = { from: source.position, to: source.position + source.originalLength, source };
         this.plugin.services?.highlightDecorator.invalidate(context.file.path);
     }
 

@@ -4,7 +4,7 @@ import type { EditorFeatureContext } from '../../types/plugin';
 import { HIGHLIGHT_COLOR_CHOICES } from '../../services/highlight/HighlightColorEdit';
 import type { HighlightColor } from '../../services/highlight/HighlightColor';
 import { HighlightExtractor } from '../../services/highlight/HighlightExtractor';
-import { highlightColorStyle } from '../../services/highlight/HighlightColor';
+import { highlightColorStyle, isDefaultHighlightColor } from '../../services/highlight/HighlightColor';
 import type { SelectionRangePlan } from './SelectionRangeResolver';
 import { SelectionCapture, type SelectionContext } from './SelectionCapture';
 import { SelectionHighlightActions } from './SelectionHighlightActions';
@@ -136,11 +136,11 @@ class SelectionColorController extends Component {
         this.colorButtons = [];
         this.registerToolbarEvents(popover, captured.context);
         for (const choice of HIGHLIGHT_COLOR_CHOICES) {
-            const label = t(choice.color === null ? 'Default' : choice.label);
-            const button = colorBar.createEl('button', { cls: 'hinote-selection-color-swatch', attr: {
+            const label = choice.color === null ? 'Default' : t(choice.label);
+            const button = colorBar.createEl('button', { cls: `hinote-selection-color-swatch${choice.color === null ? ' is-default' : ''}`, attr: {
                 type: 'button', 'aria-label': label
             } });
-            button.style.setProperty('--swatch-color', highlightColorStyle(choice.color || 'yellow'));
+            button.style.setProperty('--swatch-color', highlightColorStyle(choice.color));
             this.colorButtons.push({ color: choice.color, label, button });
             button.addEventListener('click', event => {
                 event.preventDefault();
@@ -227,7 +227,9 @@ class SelectionColorController extends Component {
         this.commentInputActive = true;
         this.commentInput = new FloatingCommentInput(popover, highlight, this.plugin, {
             onSave: async content => {
-                await commentService.addComment(highlight, content);
+                const current = await this.actions.getExistingHighlight(context);
+                if (!current) throw new Error(t('This selection cannot be highlighted safely.'));
+                await commentService.addComment(current, content);
                 this.pendingAutoHighlight = undefined;
                 this.commentInputActive = false;
                 this.hide();
@@ -278,18 +280,12 @@ class SelectionColorController extends Component {
     private updateColorSelection(context: SelectionContext): void {
         const source = context.plan.source;
         const current = source?.backgroundColor;
-        const defaultColors = new Set([
-            undefined,
-            '#ffeb3b',
-            'var(--text-highlight-bg, #ffeb3b)',
-            highlightColorStyle('yellow')
-        ]);
         for (const { color, label: colorLabel, button } of this.colorButtons) {
             const selected = !!source && (color
                 ? current === highlightColorStyle(color)
-                : defaultColors.has(current));
+                : isDefaultHighlightColor(current));
             button.setAttribute('aria-pressed', String(selected));
-            const label = selected ? t('Delete highlight') : colorLabel;
+            const label = selected && color !== null ? t('Delete highlight') : colorLabel;
             button.setAttribute('aria-label', label);
             button.replaceChildren();
             if (selected) setIcon(button, 'x');
@@ -354,7 +350,11 @@ class SelectionColorController extends Component {
 
     private async apply(context: SelectionContext, color: HighlightColor | null): Promise<void> {
         await this.actions.writeSelectionChange(context, color);
-        this.hide();
+        // Choosing a color explicitly keeps an automatic highlight even if the
+        // user later closes an empty comment draft.
+        this.pendingAutoHighlight = undefined;
+        if (this.commentInputActive) this.updateColorSelection(context);
+        else this.hide();
     }
 
     private hide(force = false): void {

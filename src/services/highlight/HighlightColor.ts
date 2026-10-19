@@ -1,3 +1,5 @@
+export const DEFAULT_HIGHLIGHT_COLOR = 'var(--text-highlight-bg, #ffeb3b)';
+
 export type HighlightColor = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple';
 
 const COLORS: Record<string, HighlightColor> = {
@@ -19,8 +21,14 @@ export function parseHighlightColor(text: string): { text: string; color?: Highl
     return color ? { text: text.slice(marker.length), color } : { text };
 }
 
-export function highlightColorStyle(color: HighlightColor): string {
-    return `var(--color-${color}, ${FALLBACKS[color]})`;
+export function highlightColorStyle(color: HighlightColor | null): string {
+    return color === null ? DEFAULT_HIGHLIGHT_COLOR : `var(--color-${color}, ${FALLBACKS[color]})`;
+}
+
+/** Keep legacy default values recognizable without confusing explicit yellow. */
+export function isDefaultHighlightColor(value: string | undefined): boolean {
+    return !value || value === '#ffeb3b' || value === DEFAULT_HIGHLIGHT_COLOR
+        || value === 'var(--text-highlight-bg)';
 }
 
 export function isHighlightColor(value: string | null): value is HighlightColor {

@@ -1,6 +1,6 @@
 import { Component } from 'obsidian';
 import { HIGHLIGHT_COLOR_CHOICES } from '../../../services/highlight/HighlightColorEdit';
-import { HighlightColor, highlightColorStyle } from '../../../services/highlight/HighlightColor';
+import { HighlightColor, highlightColorStyle, isDefaultHighlightColor } from '../../../services/highlight/HighlightColor';
 import { t } from '../../../i18n';
 
 /** A compact, keyboard-accessible palette attached to the trigger's window. */
@@ -34,18 +34,18 @@ export class HighlightColorPalette extends Component {
         const swatches: HTMLButtonElement[] = [];
         let selected = 0;
         HIGHLIGHT_COLOR_CHOICES.forEach((choice, index) => {
-            const label = t(choice.color === null ? 'Default' : choice.label);
+            const label = choice.color === null ? 'Default' : t(choice.label);
             const checked = choice.color ? this.current === highlightColorStyle(choice.color) :
-                !this.current || ['#ffeb3b', 'var(--text-highlight-bg, #ffeb3b)', highlightColorStyle('yellow')].includes(this.current);
+                isDefaultHighlightColor(this.current);
             if (checked) selected = index;
             const swatch = palette.createEl('button', {
-                cls: 'hinote-color-swatch',
+                cls: `hinote-color-swatch${choice.color === null ? ' is-default' : ''}`,
                 attr: {
                     type: 'button', role: 'menuitemradio', tabindex: '-1',
                     'aria-label': label, 'aria-checked': String(checked)
                 }
             });
-            swatch.style.setProperty('--swatch-color', highlightColorStyle(choice.color || 'yellow'));
+            swatch.style.setProperty('--swatch-color', highlightColorStyle(choice.color));
             swatches.push(swatch);
             this.registerDomEvent(swatch, 'click', event => {
                 event.preventDefault();
