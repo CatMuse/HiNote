@@ -1,11 +1,10 @@
 # HiNote 0.6.0
 
-本版本整体纳入 `codex/obsidian-review-2026-09-17` 在 `4256530` 时的完整功能和配套优化，不再按功能拆分。运行时代码、样式及测试以该分支为准；版本文件与说明统一更新为 0.6.0。原先拆分进入主分支的提交历史保留。
+本版本带来独立 HiCard 工作区、彩色高亮与划词工具栏，并完善批注、AI 设置和数据保存。
 
 ## 升级前
 
-- 最低支持版本从 Obsidian 1.8.0 提高到 **1.13.0**。
-- 官方彩色高亮的原生显示和编辑菜单需要 Obsidian 1.14；HiNote 在 1.13 中仍可识别带颜色标记的文本。
+- 最低支持版本从 Obsidian 1.8.0 提高到 **1.14.0**。
 - **AI 密钥改用 Obsidian Keychain，不会自动迁移旧密钥。** 首次加载会移除插件设置中的旧 API key 字段。升级前请保留所需密钥，升级后在每台设备重新选择或创建 Keychain 密钥。
 - 其他 AI 设置、Prompt、高亮和评论保留；无需身份验证的 Ollama 不需要配置密钥。历史备份与同步历史中的明文副本不会自动删除。
 - 建议先备份知识库和插件配置；`.bak` 只保留上一份内容，不能代替完整备份。
@@ -14,6 +13,7 @@
 
 - 识别官方六色高亮及对应方形标记，颜色跟随主题，正文、复制和导出不包含格式色标。
 - 点击卡片装饰色条打开调色面板；支持键盘操作，以及多选卡片后批量改色。
+- Default 与 Yellow 独立：Default 跟随主题默认高亮色，Yellow 写入明确的黄色标记；默认色选中外圈使用柔和的主题边框色。
 - 改色原位刷新，保留卡片、选中状态与评论输入；原文变化或无法确认来源时拒绝按旧位置修改。
 - 编辑器划词工具栏支持高亮、选色、批注、复制和删除；支持可明确定位的阅读模式选区。
 - 添加高亮收藏、批量收藏和收藏集合。
@@ -31,6 +31,7 @@
 ## HiCard
 
 - 独立 HiCard 标签页及命令入口，包含今日、学习分组、卡片管理、统计和学习设置。
+- HiCard 需激活 Pro 授权后使用，未激活时显示激活入口。
 - 卡片搜索筛选、分组管理、批量操作、暂停与恢复，关联批注编辑同步到源高亮。
 - 升级到 FSRS-6，完善参数兼容、每日限额、短期学习、到期入队和评分撤销。
 - 评分和撤销在写盘成功后提交状态，保留并发修改的答案，改善多视图状态同步与统计。
@@ -49,8 +50,8 @@
 ## 验证与验收
 
 - `npm ci --ignore-scripts`。
-- `npm run check`：全项目 ESLint、TypeScript／生产构建及 17 组自动测试。
-- `git diff --check`；核对运行时代码和样式与 `4256530` 一致。
+- `npm run check`：全项目 ESLint、TypeScript／生产构建及自动测试。
+- `git diff --check`。
 - 仍需实机验收：划词及色条调色、批量改色保留输入状态、中文输入法、Keychain 重配与真实服务连接、旧卡片继续学习／撤销、窗口弹出和移动端操作。
 - 自动测试使用模拟数据和服务，不代表真实 AI 服务、移动端或全部桌面交互已经验收。
 
@@ -58,4 +59,4 @@
 
 This release integrates the complete development branch, including native highlight colors, card and batch color palettes, the selection toolbar, favorites, navigation and comment improvements, searchable settings, Keychain credentials, model discovery and connection tests, and the standalone HiCard workspace with FSRS-6 scheduling and transactional review updates.
 
-Obsidian 1.13.0 or later is required. Existing API keys are not migrated to Keychain: preserve the keys you need before upgrading, then configure a secret on each device. Legacy plaintext credential fields are removed from plugin settings on first load. Existing notes, comments, cards and review history remain compatible. Smart highlights, related recommendations, live context recommendations and Custom study are not included.
+Obsidian 1.14.0 or later is required. Default and Yellow are separate color choices. HiCard requires an activated Pro license. Existing API keys are not migrated to Keychain: preserve the keys you need before upgrading, then configure a secret on each device. Legacy plaintext credential fields are removed from plugin settings on first load. Existing notes, comments, cards and review history remain compatible. Smart highlights, related recommendations, live context recommendations and Custom study are not included.
